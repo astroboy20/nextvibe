@@ -4,6 +4,8 @@ export const SIZE = '324 by 576'
 export const JWT_SECRET = process.env.JWT_SECRET || 'secret'
 export const GOOGLE_ANALYTICS_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || 'G-XXXXXXXXXX'
+export const GOOGLE_MAP_KEY=
+  process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || 'G-XXXXXXXXXX'
 
 export const NAIRA_SIGN = '₦'
 export const DOLLAR_SIGN = '$'

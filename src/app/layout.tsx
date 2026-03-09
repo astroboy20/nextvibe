@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import ProviderWrapper from "./provider/provider";
 import Script from "next/script";
-import { GOOGLE_ANALYTICS_ID } from "@/utils/constants";
+import { GOOGLE_ANALYTICS_ID, GOOGLE_MAP_KEY } from "@/utils/constants";
 
 const nunitoSans = Nunito_Sans({
   weight: ["200", "300", "400", "500", "600", "700", "800", "900", "1000"],
@@ -64,13 +64,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-          <head>
+      <head>
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="beforeInteractive"
         />
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyC73yaRGGiQ-W1qpni-3WlKJJ3A1vWtmUs&libraries=places`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAP_KEY}&libraries=places`}
           strategy="beforeInteractive"
         />
       </head>
