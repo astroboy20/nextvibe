@@ -158,7 +158,7 @@ const AboutContent = () => {
 
       {/* Mission */}
       <section className="bg-gradient-vibe py-16">
-        <div className="container px-4 max-w-3xl mx-auto text-center text-primary-foreground">
+        <div className="container px-4 max-w-3xl mx-auto text-center text-[#120A12]">
           <motion.div
             initial="hidden"
             whileInView="visible"
