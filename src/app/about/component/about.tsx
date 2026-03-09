@@ -182,7 +182,7 @@ const AboutContent = () => {
               ].map((belief, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-2 bg-primary-foreground/10 rounded-xl p-4"
+                  className="flex items-start gap-2 bg-[#1A1A1A]/10 rounded-xl p-4"
                 >
                   <ChevronRight className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>{belief}</span>
