@@ -147,16 +147,16 @@ export default function RegisterContent() {
     try {
       const res = await registerMutation(values as any).unwrap();
       if (from) localStorage.setItem("redirect_after_auth", from);
-      await fetch("/api/auth/store-token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token: res?.data?.token }),
+      Cookies.set("accessToken", res?.data?.token, {
+        expires: 7,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
       });
-      router.push(
-        `/check-verification?userId=${res.data.user.id}&name=${res.data.user.name}&email=${res.data.user.email}`
-      );
+
+      router.push(`/events`);
+      // router.push(
+      //   `/check-verification?userId=${res.data.user.id}&name=${res.data.user.name}&email=${res.data.user.email}`
+      // );
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Something went wrong");
     }
