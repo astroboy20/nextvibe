@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,9 +23,9 @@ export default function Preview({ canvas }: PreviewProps) {
   const isPreviewOpen = useSelector((state: any) => state.canvas.isPreviewOpen);
 
   useEffect(() => {
-    if (canvas) {
-      const dataUrl = canvas.toDataURL();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isPreviewOpen && canvas) {
+      canvas.renderAll();
+      const dataUrl = canvas.toDataURL({ format: "png", multiplier: 1 });
       setPreview(dataUrl);
     }
   }, [isPreviewOpen, canvas]);
@@ -47,7 +48,7 @@ export default function Preview({ canvas }: PreviewProps) {
                 <Image
                   src={preview}
                   width={200}
-                  height={200}
+                  height={400}
                   alt="Canvas Preview"
                   className="rounded-md"
                 />

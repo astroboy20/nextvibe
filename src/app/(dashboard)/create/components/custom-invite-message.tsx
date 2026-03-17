@@ -26,7 +26,6 @@ export function CustomInviteMessage({
   onSave,
   isSaving = false,
 }: CustomInviteMessageProps) {
-
   const [message, setMessage] = useState(defaultMessage);
   const [preview] = useState("");
   const [showPreview] = useState(false);
@@ -47,7 +46,7 @@ export function CustomInviteMessage({
   const hasTemplateVariables = message.includes("{");
 
   return (
-    <Card className="border rounded-xl">
+    <Card className="border-none shadow-none! w-full !">
       <CardHeader className="space-y-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-semibold">
@@ -63,20 +62,14 @@ export function CustomInviteMessage({
           <span className="font-medium text-purple-600">
             {"{attendeeName}"}
           </span>
-          ,{" "}
-          <span className="font-medium text-purple-600">
-            {"{eventName}"}
-          </span>
-          ,{" "}
-          <span className="font-medium text-purple-600">
-            {"{eventDate}"}
-          </span>
+          , <span className="font-medium text-purple-600">{"{eventName}"}</span>
+          , <span className="font-medium text-purple-600">{"{eventDate}"}</span>
           .
         </CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        {/* TEXTAREA */}
+
         <div className="space-y-2">
           <Textarea
             value={message}
@@ -104,7 +97,6 @@ export function CustomInviteMessage({
           </div>
         </div>
 
-        {/* PREVIEW */}
         {showPreview && (
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
@@ -113,7 +105,6 @@ export function CustomInviteMessage({
           </Alert>
         )}
 
-        {/* TIP ALERT */}
         <Alert className="bg-purple-50 border-purple-200">
           <AlertCircle className="h-4 w-4 text-purple-600" />
           <AlertDescription className="text-sm">
@@ -122,12 +113,11 @@ export function CustomInviteMessage({
           </AlertDescription>
         </Alert>
 
-        {/* ACTION */}
-        <div className="flex justify-end">
+        <div className=" w-full">
           <Button
             onClick={handleSave}
             disabled={!message.trim() || isSaving}
-            className="bg-linear-to-r from-pink-500 to-purple-600 text-white hover:opacity-90"
+            className="bg-linear-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 w-full"
           >
             {isSaving ? "Saving..." : "Save Confirmation Message"}
           </Button>

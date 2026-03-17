@@ -60,7 +60,6 @@ export default function StepTwo() {
   const handleNextStep = (values: FormValues) => {
     const payload = { ...values }
 
-    // Free events default to price 0
     if (payload.eventType === 'free') {
       payload.price = '0'
     }
@@ -78,7 +77,7 @@ export default function StepTwo() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleNextStep)} className="flex flex-col gap-5 mb-6">
 
-        {/* ── Event type ── */}
+   
         <FormField
           control={form.control}
           name="eventType"
@@ -101,7 +100,6 @@ export default function StepTwo() {
           )}
         />
 
-        {/* ── Number of attendees ── */}
         <FormField
           control={form.control}
           name="numberOfAttendees"
@@ -127,7 +125,6 @@ export default function StepTwo() {
           )}
         />
 
-        {/* ── Ticket price — paid ── */}
         {eventType === 'premium' && (
           <FormField
             control={form.control}
@@ -148,19 +145,17 @@ export default function StepTwo() {
           />
         )}
 
-        {/* ── Ticket price — free (read-only) ── */}
         {eventType === 'free' && (
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Ticket Price (₦)</label>
             <Input
-              value="0"
+              value=""
               disabled
               className="h-11 rounded-lg bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed"
             />
           </div>
         )}
 
-        {/* ── Fast track gamification ── */}
         <FormField
           control={form.control}
           name="fastTrack"
@@ -180,7 +175,6 @@ export default function StepTwo() {
           )}
         />
 
-        {/* ── Actions ── */}
         <div className="flex flex-col gap-2 pt-1">
           <Button
             type="submit"

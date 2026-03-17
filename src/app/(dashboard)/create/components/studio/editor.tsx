@@ -1,4 +1,5 @@
 "use client";
+
 import Controls from "./controls";
 import Scene from "./scene";
 

@@ -41,14 +41,12 @@ import { MIME_TYPES } from "@/lib/mime-types";
 import { toast } from "sonner";
 import AddressSearch from "./address-search";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 const createDefaultTime = (hours: number, minutes = 0) => {
   const d = new Date();
   d.setHours(hours, minutes, 0, 0);
   return d;
 };
 
-// ── Schema ─────────────────────────────────────────────────────────────────────
 const basicInfoSchema = z
   .object({
     flier: z
@@ -113,7 +111,6 @@ const basicInfoSchema = z
 
 type FormValues = z.infer<typeof basicInfoSchema>;
 
-// ── Tags input ─────────────────────────────────────────────────────────────────
 function TagsInput({
   value = [],
   onChange,
@@ -161,7 +158,6 @@ function TagsInput({
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
 export default function StepOne() {
   const dispatch = useDispatch();
   const data = useSelector(selectEventFormData);
@@ -195,7 +191,7 @@ export default function StepOne() {
   const isMultiDay = form.watch("isMultiDay");
   const isPublic = form.watch("isPublic");
   const eventMode = form.watch("eventMode");
-  //   const flier = form.watch("flier");
+  // const flier = form.watch("flier");
 
   const handleNextStep = (values: FormValues) => {
     let startDateTime: Date;
@@ -233,10 +229,9 @@ export default function StepOne() {
     dispatch(nextStep());
   };
 
-  // ── Field wrapper for consistent spacing ──
-  //   const Field = ({ children }: { children: React.ReactNode }) => (
-  //     <div className="flex flex-col gap-1.5">{children}</div>
-  //   );
+  // const Field = ({ children }: { children: React.ReactNode }) => (
+  //   <div className="flex flex-col gap-1.5">{children}</div>
+  // );
 
   return (
     <Form {...form}>
@@ -244,7 +239,6 @@ export default function StepOne() {
         onSubmit={form.handleSubmit(handleNextStep)}
         className="space-y-5 mb-10"
       >
-        {/* ── Flyer upload ── */}
         <FormField
           control={form.control}
           name="flier"
@@ -301,7 +295,6 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Promotional video ── */}
         <FormField
           control={form.control}
           name="promotionalVideo"
@@ -322,7 +315,6 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Event name ── */}
         <FormField
           control={form.control}
           name="name"
@@ -341,7 +333,6 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Description ── */}
         <FormField
           control={form.control}
           name="description"
@@ -361,7 +352,7 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Category ── */}
+      
         <FormField
           control={form.control}
           name="category"
@@ -387,7 +378,7 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Tags ── */}
+       
         <FormField
           control={form.control}
           name="tags"
@@ -409,7 +400,7 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Promote event ── */}
+   
         <FormField
           control={form.control}
           name="promoteEvent"
@@ -429,7 +420,7 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Allow sponsorship ── */}
+       
         <FormField
           control={form.control}
           name="allowSponsorship"
@@ -455,7 +446,6 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Event visibility ── */}
         <FormField
           control={form.control}
           name="isPublic"
@@ -512,7 +502,7 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Private event settings ── */}
+      
         {isPublic === false && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 flex flex-col gap-3">
             <p className="text-sm font-semibold text-[#5B1A57]">
@@ -548,7 +538,7 @@ export default function StepOne() {
           </div>
         )}
 
-        {/* ── Multi-day toggle ── */}
+     
         <FormField
           control={form.control}
           name="isMultiDay"
@@ -568,9 +558,9 @@ export default function StepOne() {
           )}
         />
 
-        {/* ── Date / time fields ── */}
+      
         {isMultiDay ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <FormField
               control={form.control}
               name="date"

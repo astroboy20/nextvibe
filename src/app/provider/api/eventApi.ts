@@ -1,3 +1,4 @@
+import { getTokens } from "@/hooks/getToken";
 import { ICreateEvent, IGalleryItem } from "@/types/event.type";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
@@ -9,12 +10,9 @@ export const eventsApi = createApi({
     baseUrl: process.env.NEXT_PUBLIC_API_URL,
     credentials: "include",
     prepareHeaders: (headers) => {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token")
-          : null;
+      const { accessToken } = getTokens()
 
-      if (token) headers.set("authorization", `Bearer ${token}`);
+      if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
       return headers;
     },
   }),
@@ -22,7 +20,7 @@ export const eventsApi = createApi({
   tagTypes: ["Events", "Event", "Gallery", "Messages"],
 
   endpoints: (builder) => ({
-  
+
 
     getEvents: builder.query<any, void>({
       query: () => "/events",
@@ -53,7 +51,7 @@ export const eventsApi = createApi({
       ],
     }),
 
-   
+
 
     updateMedia: builder.mutation<
       any,
@@ -79,7 +77,7 @@ export const eventsApi = createApi({
       invalidatesTags: ["Event"],
     }),
 
-   
+
     toggleLikeEvent: builder.mutation<any, string>({
       query: (eventId) => ({
         url: `/events/${eventId}/like`,
@@ -116,7 +114,7 @@ export const eventsApi = createApi({
       }),
     }),
 
-   
+
 
     getUpcomingEvents: builder.query<any, void>({
       query: () => "/events/explore/upcoming",
@@ -142,7 +140,7 @@ export const eventsApi = createApi({
       query: () => "/events/user",
     }),
 
-   
+
 
     createEvent: builder.mutation<any, ICreateEvent>({
       query: (eventData) => {
@@ -184,7 +182,7 @@ export const eventsApi = createApi({
       invalidatesTags: ["Events"],
     }),
 
-    
+
 
     uploadGalleryMedia: builder.mutation<
       any,
@@ -217,7 +215,7 @@ export const eventsApi = createApi({
       query: () => "/events/gallery/promoted",
     }),
 
-   
+
     sendCustomInvite: builder.mutation<
       any,
       {
@@ -251,7 +249,7 @@ export const eventsApi = createApi({
       invalidatesTags: ["Messages"],
     }),
 
-   
+
     playGame: builder.mutation<
       any,
       {

@@ -35,7 +35,6 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
 
   const [debouncedValue] = useDebounce(value, 300);
 
-  // 🔎 Fetch suggestions
   const fetchSuggestions = (input: string) => {
     if (!input || !window.google) return;
 
@@ -61,7 +60,6 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
     fetchSuggestions(debouncedValue);
   }, [debouncedValue]);
 
-  // 📍 Get coordinates
   const handleSelect = (place: any) => {
     if (!window.google) {
       onChange(place.description);

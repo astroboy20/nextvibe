@@ -42,11 +42,11 @@ export default function Templates() {
       </div>
 
       <div className="max-w-xs mx-auto">
-        <Label htmlFor="category" className="text-sm">
+        <Label htmlFor="category" className="text-base mb-1">
           Category
         </Label>
         <Select>
-          <SelectTrigger id="category" className="w-full">
+          <SelectTrigger id="category" className="w-full h-11!">
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -60,7 +60,7 @@ export default function Templates() {
       </div>
 
       {/* Templates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {/* Start from Scratch */}
         <Card
           className="h-52 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"

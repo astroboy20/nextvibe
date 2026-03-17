@@ -4,18 +4,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { setIsFontsOpen } from "@/app/provider/slices/canvasslice";
 import { RootState } from "@/app/provider/store";
 import { fonts } from "@/data/fonts";
-import { Canvas, Textbox } from "fabric";
+import { Textbox } from "fabric";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 
 interface FontsProps {
-  canvas: Canvas | null;
+  canvas: any | null;
 }
 
 export default function Fonts({ canvas }: FontsProps) {
@@ -25,21 +23,22 @@ export default function Fonts({ canvas }: FontsProps) {
   );
 
   const onAddText = (styles: any) => {
-    if (canvas) {
-      const text = new Textbox("Click to edit", {
-        ...styles,
-        fill: "#000",
-        fontSize: 20,
-        width: 110,
-        padding: 5,
-        centeredScaling: true,
-      });
-      canvas.add(text);
-      canvas.setActiveObject(text);
-      canvas.centerObject(text);
-      canvas.renderAll();
-      dispatch(setIsFontsOpen(false));
-    }
+    if (!canvas) return;
+
+    const text = new Textbox("Click to edit", {
+      ...styles,
+      fill: "#000",
+      fontSize: 20,
+      width: 110,
+      padding: 5,
+      centeredScaling: true,
+    });
+
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    canvas.centerObject(text);
+    canvas.requestRenderAll();
+    dispatch(setIsFontsOpen(false));
   };
 
   return (
@@ -47,14 +46,9 @@ export default function Fonts({ canvas }: FontsProps) {
       open={isFontsOpen}
       onOpenChange={(open) => dispatch(setIsFontsOpen(open))}
     >
-      <DialogContent className="sm:max-w-3xl w-full rounded-lg">
+      <DialogContent className="sm:max-w-3xl w-full rounded-lg max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Select a Font</DialogTitle>
-          <DialogClose asChild>
-            <Button variant="ghost" className="absolute top-2 right-2">
-              Close
-            </Button>
-          </DialogClose>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">

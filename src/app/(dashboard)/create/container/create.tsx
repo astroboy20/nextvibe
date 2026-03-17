@@ -46,14 +46,10 @@ export default function CreateEvent() {
 
   return (
     <div className="max-w-2xl mx-auto pb-16 px-5">
-      {/* <DashNavbar back={handleBack} /> */}
-
-      {/* Step title */}
       <h2 className="text-center text-xl font-medium mt-4 mb-3">
         {currentStep?.title ?? "Create Event"}
       </h2>
 
-      {/* Progress bar — hidden on final step */}
       {step < TOTAL_STEPS && (
         <div className="flex items-center gap-3 mb-6 px-4">
           <Progress
@@ -66,7 +62,6 @@ export default function CreateEvent() {
         </div>
       )}
 
-      {/* Step content */}
       {currentStep?.content}
     </div>
   );

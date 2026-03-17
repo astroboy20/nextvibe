@@ -11,7 +11,7 @@ import {
   GameType,
 } from "@/types/game.type";
 import { Trash2, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AccordionItem,
   AccordionTrigger,
@@ -187,8 +187,9 @@ export function SimplifiedGamificationForm({
             };
             const res = await createCoupon(couponInput).unwrap();
             return { ...prize, prize: res.data.code };
-          } catch (e) {
+          } catch (error) {
             toast.error("Failed to create coupon");
+            console.log(error);
             return prize;
           }
         }
@@ -218,7 +219,7 @@ export function SimplifiedGamificationForm({
         <CardHeader>
           <CardTitle>Basic Settings</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 py-1">
           {/* Schedule Type */}
           <div className="flex flex-col gap-1.5">
             <Label>Schedule Type</Label>
@@ -226,7 +227,7 @@ export function SimplifiedGamificationForm({
               value={schedule}
               onValueChange={(v) => setSchedule(v as ScheduleType)}
             >
-              <SelectTrigger className="h-10 rounded-lg">
+              <SelectTrigger className="h-10! rounded-lg w-full">
                 <SelectValue placeholder="Select schedule" />
               </SelectTrigger>
               <SelectContent>
@@ -296,7 +297,7 @@ export function SimplifiedGamificationForm({
               className="h-10 rounded-lg"
             />
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* ── Prizes ── */}
@@ -308,14 +309,14 @@ export function SimplifiedGamificationForm({
             Add Prize
           </Button>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6 border-none! shadow-none!">
           {prizes.length === 0 && (
             <p className="text-gray-400 text-sm">No prizes added yet.</p>
           )}
           {prizes.map((prize, i) => (
             <div
               key={i}
-              className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border p-3 rounded-lg"
+              className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end  px-5 py-1"
             >
               {/* Position */}
               <div className="md:col-span-1 flex flex-col gap-1.5">
@@ -338,7 +339,7 @@ export function SimplifiedGamificationForm({
                   value={prize.prizeType}
                   onValueChange={(v) => updatePrize(i, "prizeType", v)}
                 >
-                  <SelectTrigger className="h-10 rounded-lg">
+                  <SelectTrigger className="h-10! rounded-lg w-full">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -352,44 +353,46 @@ export function SimplifiedGamificationForm({
 
               {/* Coupon config */}
               {prize.prizeType === "coupon" && (
-                <div className="md:col-span-6 flex flex-wrap gap-2">
+                <div className="md:col-span-6 flex flex-wrap gap-5">
                   {/* Discount Type */}
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Discount Type</Label>
-                    <Select
-                      value={prize.couponConfig?.discountType || "percentage"}
-                      onValueChange={(v) =>
-                        updatePrize(i, "couponConfig", { discountType: v })
-                      }
-                    >
-                      <SelectTrigger className="h-10 rounded-lg w-36">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed">Fixed Amount</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div className="flex gap-2 items-center">
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <Label>Discount Type</Label>
+                      <Select
+                        value={prize.couponConfig?.discountType || "percentage"}
+                        onValueChange={(v) =>
+                          updatePrize(i, "couponConfig", { discountType: v })
+                        }
+                      >
+                        <SelectTrigger className="h-10! rounded-lg w-full!">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  {/* Discount Value */}
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Discount Value</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={prize.couponConfig?.discountValue || 10}
-                      onChange={(e) =>
-                        updatePrize(i, "couponConfig", {
-                          discountValue: Number(e.target.value),
-                        })
-                      }
-                      className="h-10 rounded-lg w-24"
-                    />
+                    {/* Discount Value */}
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <Label>Discount Value</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={prize.couponConfig?.discountValue || 10}
+                        onChange={(e) =>
+                          updatePrize(i, "couponConfig", {
+                            discountValue: Number(e.target.value),
+                          })
+                        }
+                        className="h-10 rounded-lg w-full"
+                      />
+                    </div>
                   </div>
 
                   {/* Expiry Date */}
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 w-full">
                     <Label>Expiry Date</Label>
                     <DateTimePicker
                       value={
@@ -406,7 +409,7 @@ export function SimplifiedGamificationForm({
                   </div>
 
                   {/* Usage Limit */}
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 w-full">
                     <Label>Usage Limit</Label>
                     <Input
                       type="number"
@@ -417,7 +420,7 @@ export function SimplifiedGamificationForm({
                           usageLimit: Number(e.target.value),
                         })
                       }
-                      className="h-10 rounded-lg w-24"
+                      className="h-10 rounded-lg w-full"
                     />
                   </div>
                 </div>
@@ -434,19 +437,19 @@ export function SimplifiedGamificationForm({
               </div>
 
               {/* Remove */}
-              <div className="md:col-span-1 flex items-end">
+              <div className="w-full">
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  className="text-white hover:text-red-600 hover:bg-red-50 w-full"
                   onClick={() => removePrize(i)}
                 >
-                  <Trash2 size={16} />
+                  Delete
                 </Button>
               </div>
             </div>
           ))}
-        </CardContent>
+        </div>
       </Card>
 
       {/* ── Game Rounds ── */}
@@ -458,7 +461,7 @@ export function SimplifiedGamificationForm({
             Add Game Round
           </Button>
         </CardHeader>
-        <CardContent>
+        <div className=" px-5 py-1">
           {games.length === 0 && (
             <p className="text-gray-400 text-sm">No games added yet.</p>
           )}
@@ -466,7 +469,7 @@ export function SimplifiedGamificationForm({
             {games.map((game, i) => (
               <AccordionItem key={i} value={`game-${i}`}>
                 <AccordionTrigger>
-                  Game {i + 1}: {game.name || "Unnamed"}
+                  Game {i + 1}: {game.name || "Unnamed" || gameName}
                 </AccordionTrigger>
                 <AccordionContent className="space-y-3 pt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -494,7 +497,7 @@ export function SimplifiedGamificationForm({
                           setSelectedGame(v as GameType);
                         }}
                       >
-                        <SelectTrigger className="h-10 rounded-lg">
+                        <SelectTrigger className="h-10! rounded-lg w-full">
                           <SelectValue placeholder="Select game type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -536,9 +539,8 @@ export function SimplifiedGamificationForm({
 
                   <Button
                     variant="destructive"
-                    size="sm"
                     onClick={() => removeGame(i)}
-                    className="gap-1.5"
+                    className="gap-1.5 w-full"
                   >
                     <Trash2 size={14} />
                     Remove Game
@@ -547,7 +549,7 @@ export function SimplifiedGamificationForm({
               </AccordionItem>
             ))}
           </Accordion>
-        </CardContent>
+        </div>
       </Card>
 
       {/* ── Actions ── */}

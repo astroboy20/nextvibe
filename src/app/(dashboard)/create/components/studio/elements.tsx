@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setIsElementsOpen } from "@/app/provider/slices/canvasslice";
 import { allElements } from "@/data/elements";
-import { Canvas, FabricImage } from "fabric";
+import { FabricImage } from "fabric";
 import Image from "next/image";
 
 import {
@@ -18,26 +18,35 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
 interface ElementsProps {
-  canvas: Canvas | null;
+  canvas: any | null;
 }
 
 export default function Elements({ canvas }: ElementsProps) {
   const dispatch = useDispatch();
-  const isElementsOpen = useSelector((state: any) => state.canvas.isElementsOpen);
+  const isElementsOpen = useSelector(
+    (state: any) => state.canvas.isElementsOpen
+  );
   const [tabValue, setTabValue] = useState("fsvg");
 
   const handleAddElement = (url: string) => {
+    if (!canvas) return;
+
     FabricImage.fromURL(url, { crossOrigin: "anonymous" }).then((img) => {
       img.scaleToWidth(200);
-      canvas?.setActiveObject(img);
-      canvas?.centerObject(img);
-      canvas?.add(img);
+      canvas.add(img);
+      canvas.setActiveObject(img);
+      canvas.centerObject(img);
+      canvas.requestRenderAll();
     });
+
     dispatch(setIsElementsOpen(false));
   };
 
   return (
-    <Dialog open={isElementsOpen} onOpenChange={(open) => !open && dispatch(setIsElementsOpen(false))}>
+    <Dialog
+      open={isElementsOpen}
+      onOpenChange={(open) => !open && dispatch(setIsElementsOpen(false))}
+    >
       <DialogContent className="max-w-4xl w-full p-6">
         <DialogHeader>
           <DialogTitle>Add Elements</DialogTitle>

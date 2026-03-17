@@ -4,6 +4,7 @@ import eventFormReducer from "./slices/eventformslice"
 import { authApi } from "./api/authApi";
 import canvasReducer from "./slices/canvasslice";
 import { gamesApi } from "./api/gameApi";
+import { eventsApi } from "./api/eventApi";
 
 export const store = configureStore({
     reducer: {
@@ -12,11 +13,13 @@ export const store = configureStore({
         canvas: canvasReducer,
         [authApi.reducerPath]: authApi.reducer,
         [gamesApi.reducerPath]: gamesApi.reducer,
+        [eventsApi.reducerPath]: eventsApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
             authApi.middleware,
-            gamesApi.middleware
+            gamesApi.middleware,
+            eventsApi.middleware
         )
     }
 })

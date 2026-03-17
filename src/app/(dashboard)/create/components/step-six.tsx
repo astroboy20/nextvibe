@@ -70,7 +70,7 @@ export default function StepSix() {
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
-  const [couponCode, setCouponCode] = useState("UNILAG56THCONVOCATION");
+  const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState<{
     amount: number;
     code: string;
@@ -78,7 +78,7 @@ export default function StepSix() {
   const [config, setConfig] = useState({
     promotion: 0,
     gamification: 0,
-    total: 0,
+    total: 50,
   });
 
   const [createEvent, { isLoading: isCreating }] = useCreateEventMutation();

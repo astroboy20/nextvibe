@@ -3,12 +3,15 @@
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/provider/store";
-import { setCanvas } from "@/app/provider/slices/canvasslice";
+import {
+  setHasSavedData,
+  setIsRestoreModalOpen,
+} from "@/app/provider/slices/canvasslice";
+import { canvasStore } from "@/hooks/canvas-store";
 
 const Scene = () => {
   const dispatch = useDispatch();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const fabricCanvasRef = useRef<any>(null);
+  const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const template = useSelector((state: RootState) => state.canvas.template);
 
   useEffect(() => {
@@ -22,16 +25,22 @@ const Scene = () => {
         InteractiveFabricObject,
       } = fabricModule;
 
-      if (!canvasRef.current || !isMounted) return;
+      if (!domCanvasRef.current || !isMounted) return;
 
-      const fabricCanvas = new Canvas(canvasRef.current, {
+      // Dispose any existing canvas first
+      const existing = canvasStore.get();
+      if (existing) {
+        existing.dispose();
+        canvasStore.set(null);
+      }
+
+      const fabricCanvas = new Canvas(domCanvasRef.current, {
         width: 300,
         height: 600,
         preserveObjectStacking: true,
       });
 
-      fabricCanvasRef.current = fabricCanvas;
-      dispatch(setCanvas(fabricCanvas));
+      canvasStore.set(fabricCanvas);
 
       InteractiveFabricObject.ownDefaults = {
         ...InteractiveFabricObject.ownDefaults,
@@ -42,13 +51,34 @@ const Scene = () => {
         transparentCorners: false,
       };
 
+      const saveCanvas = () => {
+        try {
+          const json = fabricCanvas.toJSON();
+          localStorage.setItem("fabricCanvas", JSON.stringify(json));
+          dispatch(setHasSavedData(true));
+        } catch (e) {
+          console.error("Failed to save canvas:", e);
+        }
+      };
+
+      fabricCanvas.on("object:added", saveCanvas);
+      fabricCanvas.on("object:modified", saveCanvas);
+      fabricCanvas.on("object:removed", saveCanvas);
+
+      const savedData = localStorage.getItem("fabricCanvas");
+      if (savedData) {
+        dispatch(setHasSavedData(true));
+        dispatch(setIsRestoreModalOpen(true));
+      }
+
       if (template?.frame) {
         FabricImage.fromURL(template.frame, { crossOrigin: "anonymous" }).then(
           (img: any) => {
-            if (!fabricCanvas) return;
+            if (!isMounted) return;
             img.scaleX = fabricCanvas.getWidth() / img.width;
             img.scaleY = fabricCanvas.getHeight() / img.height;
-            fabricCanvas.backgroundImage = img as any;
+            fabricCanvas.backgroundImage = img;
+            fabricCanvas.renderAll();
           }
         );
       }
@@ -58,10 +88,10 @@ const Scene = () => {
 
     return () => {
       isMounted = false;
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.dispose();
-        fabricCanvasRef.current = null;
-        dispatch(setCanvas(null));
+      const c = canvasStore.get();
+      if (c) {
+        c.dispose();
+        canvasStore.set(null);
       }
     };
   }, [dispatch, template]);
@@ -71,7 +101,7 @@ const Scene = () => {
       <div className="flex bg-white rounded-xl shadow-md p-2.5 border border-gray-100">
         <div className="bg-gray-100">
           <canvas
-            ref={canvasRef}
+            ref={domCanvasRef}
             className="border border-gray-100 rounded-lg"
           />
         </div>

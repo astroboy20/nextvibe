@@ -19,7 +19,7 @@ import {
 
 type VerificationStatus = "loading" | "success" | "expired" | "error";
 
-export default function VerifyEmailPage() {
+export default function VerifyEmail() {
   const router = useRouter();
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
@@ -37,11 +37,11 @@ export default function VerifyEmailPage() {
       if (!token) return;
       try {
         const res = await verifyEmailMutation(token).unwrap();
-        dispatch(setUser({ ...res.data.user, token: res.data.token }));
-        const redirectPath =
-          localStorage.getItem("redirect_after_auth") || "/interests";
+        dispatch(setUser({ ...res.data.user }));
+        // const redirectPath =
+        //   "localStorage.getItem("redirect_after_auth")" || "/interests";
 
-        router.push(redirectPath);
+        // router.push("/discover");
 
         setStatus("success");
       } catch (error) {
@@ -99,7 +99,13 @@ export default function VerifyEmailPage() {
               </Button>
             </div>
           )}
-
+ <Button
+                  className="w-full rounded-full bg-purple-900 text-white flex items-center justify-center gap-2"
+                  onClick={handleRequestNewLink}
+                >
+                  <Mail size={16} />
+                  Send New Verification Link
+                </Button>
           {(status === "expired" || status === "error") && (
             <div className="bg-white rounded-xl p-6 shadow-sm text-center">
               <div className="flex justify-center mb-4">

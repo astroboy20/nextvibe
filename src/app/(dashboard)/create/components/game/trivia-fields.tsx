@@ -32,7 +32,11 @@ const TriviaFields = ({
     setTriviaData(updated);
   };
 
-  const updateOption = (questionIndex: number, optionIndex: number, value: string) => {
+  const updateOption = (
+    questionIndex: number,
+    optionIndex: number,
+    value: string
+  ) => {
     const updated = [...data];
     updated[questionIndex].options[optionIndex] = value;
     setTriviaData(updated);
@@ -45,7 +49,10 @@ const TriviaFields = ({
   };
 
   const addQuestion = () => {
-    setTriviaData([...data, { question: "", options: ["", ""], correctOption: "" }]);
+    setTriviaData([
+      ...data,
+      { question: "", options: ["", ""], correctOption: "" },
+    ]);
   };
 
   const removeQuestion = (index: number) => {
@@ -63,8 +70,8 @@ const TriviaFields = ({
           : [];
 
         return (
-          <Card key={qIndex} className="rounded-xl border border-gray-200">
-            <CardContent className="pt-5 flex flex-col gap-4">
+          <Card key={qIndex} className="p-0! border-0! shadow-none!">
+            <CardContent className="py-4! flex flex-col gap-4">
               {/* Question header */}
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-800">
@@ -124,7 +131,7 @@ const TriviaFields = ({
                   size="sm"
                   variant="outline"
                   onClick={() => addOption(qIndex)}
-                  className="w-fit h-9 rounded-lg border-dashed border-gray-300 text-gray-600 hover:border-[#5B1A57] hover:text-[#5B1A57] gap-1.5 transition-colors"
+                  className="w-fit h-9 rounded-lg border-dashed border-gray-300 text-gray-600 hover:border-[#5B1A57] hover:text-[#5B1A57] gap-1.5 transition-colors w-full!"
                 >
                   <Plus className="w-4 h-4" />
                   Add Option
@@ -142,7 +149,7 @@ const TriviaFields = ({
                     updateQuestion(qIndex, "correctOption", value)
                   }
                 >
-                  <SelectTrigger className="h-10 rounded-lg border-gray-300 focus:ring-[#5B1A57]">
+                  <SelectTrigger className="h-10 rounded-lg border-gray-300 focus:ring-[#5B1A57] w-full">
                     <SelectValue placeholder="Select correct answer" />
                   </SelectTrigger>
                   <SelectContent>
@@ -160,15 +167,17 @@ const TriviaFields = ({
       })}
 
       {/* Add question */}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={addQuestion}
-        className="w-full h-10 rounded-lg border-dashed border-gray-300 text-gray-600 hover:border-[#5B1A57] hover:text-[#5B1A57] gap-1.5 transition-colors"
-      >
-        <Plus className="w-4 h-4" />
-        Add Question
-      </Button>
+      <div className="mx-5">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addQuestion}
+          className="w-full h-10 rounded-lg border-dashed border-gray-300 text-gray-600 hover:border-[#5B1A57] hover:text-[#5B1A57] gap-1.5 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Question
+        </Button>
+      </div>
     </div>
   );
 };

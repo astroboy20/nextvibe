@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Wand2, Save } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,  CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -210,7 +210,7 @@ export function GameContentGenerator({
         <CardHeader>
           <CardTitle>Generate {displayTitle} Content</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4  px-5 py-1">
           {/* Theme */}
           <div className="flex flex-col gap-1.5">
             <Label>Theme</Label>
@@ -234,7 +234,7 @@ export function GameContentGenerator({
                 onChange={(e) =>
                   setNumberOfQuestions(Number(e.currentTarget.value))
                 }
-                className="h-10 rounded-lg w-32"
+                className="h-10 rounded-lg w-full"
               />
             </div>
           )}
@@ -265,7 +265,7 @@ export function GameContentGenerator({
               </Button>
             )}
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* ── Edit card ── */}
@@ -273,7 +273,7 @@ export function GameContentGenerator({
         <CardHeader>
           <CardTitle>Edit {displayTitle} Content</CardTitle>
         </CardHeader>
-        <CardContent>{renderEditableContent()}</CardContent>
+        <div>{renderEditableContent()}</div>
       </Card>
     </div>
   );

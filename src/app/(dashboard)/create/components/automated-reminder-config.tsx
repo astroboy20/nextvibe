@@ -33,10 +33,9 @@ interface AutomatedReminderConfigProps {
   eventId?: string;
   existingReminders: AutomatedReminder[];
   onSave: (
-    reminders: Omit<
-      AutomatedReminder,
-      "id" | "eventId" | "sentCount" | "lastSentAt"
-    >[] | any []
+    reminders:
+      | Omit<AutomatedReminder, "id" | "eventId" | "sentCount" | "lastSentAt">[]
+      | any[]
   ) => void;
   isSaving?: boolean;
 }
@@ -187,7 +186,6 @@ export function AutomatedReminderConfig({
     Object.values(reminders).filter((r) => r.enabled).length +
     customReminders.length;
 
-
   return (
     <Card>
       <CardHeader>
@@ -335,7 +333,7 @@ export function AutomatedReminderConfig({
 
         <Separator />
 
-        <div className="flex justify-end">
+        <div className="w-full">
           <Button
             onClick={handleSave}
             disabled={enabledCount === 0 || isSaving}

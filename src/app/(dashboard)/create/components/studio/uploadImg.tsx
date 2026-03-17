@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Canvas, Image as FabricImage } from "fabric";
+import { Image as FabricImage } from "fabric";
 import { useDispatch, useSelector } from "react-redux";
 import { setIsUploadImgOpen } from "@/app/provider/slices/canvasslice";
 import { RootState } from "@/app/provider/store";
@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ImageIcon, Wand } from "lucide-react";
 
 interface UploadImgProps {
-  canvas: Canvas | null;
+  canvas: any | null;
 }
 
 const items = [
@@ -48,6 +48,17 @@ export default function UploadImg({ canvas }: UploadImgProps) {
     fileInputRef.current?.click();
   };
 
+  const addToCanvas = (url: string) => {
+    if (!canvas) return;
+    FabricImage.fromURL(url, { crossOrigin: "anonymous" }).then((img) => {
+      img.scaleToWidth(200);
+      canvas.add(img);
+      canvas.setActiveObject(img);
+      canvas.centerObject(img);
+      canvas.requestRenderAll();
+    });
+  };
+
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,12 +68,7 @@ export default function UploadImg({ canvas }: UploadImgProps) {
       const reader = new FileReader();
       reader.onload = (f) => {
         const data = f.target?.result as string;
-        FabricImage.fromURL(data).then((img) => {
-          img.scaleToWidth(200);
-          canvas?.setActiveObject(img);
-          canvas?.centerObject(img);
-          canvas?.add(img);
-        });
+        addToCanvas(data);
       };
       reader.readAsDataURL(file);
     } else {
@@ -87,13 +93,7 @@ export default function UploadImg({ canvas }: UploadImgProps) {
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-
-        FabricImage.fromURL(url).then((img) => {
-          img.scaleToWidth(200);
-          canvas?.setActiveObject(img);
-          canvas?.centerObject(img);
-          canvas?.add(img);
-        });
+        addToCanvas(url);
       } catch (error) {
         console.error("Background removal failed:", error);
       }
@@ -107,7 +107,7 @@ export default function UploadImg({ canvas }: UploadImgProps) {
       open={isUploadImgOpen}
       onOpenChange={(open) => !open && dispatch(setIsUploadImgOpen(false))}
     >
-      <DialogContent className="max-w-md w-full p-6">
+      <DialogContent className="max-w-md w-full p-6 mb-10!">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
             Upload Image
@@ -123,18 +123,18 @@ export default function UploadImg({ canvas }: UploadImgProps) {
           onChange={onFileChange}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 mt-4">
           {items.map((item, i) => {
             const Icon = item.icon;
             return (
               <Button
                 key={i}
                 variant="outline"
-                className="flex flex-col items-center justify-center p-6 space-y-2 hover:scale-105 transition-transform duration-300"
+                className="flex flex-col gap-2 items-center justify-center p-6 space-y-2 hover:scale-105 transition-transform duration-300"
                 onClick={() => openFilePicker(item.mode as any)}
               >
                 <Icon className="w-8 h-8" />
-                <span className="font-semibold text-sm">{item.label}</span>
+                <span className="font-semibold text-sm my-3">{item.label}</span>
                 <span className="text-xs text-gray-500">
                   {item.description}
                 </span>

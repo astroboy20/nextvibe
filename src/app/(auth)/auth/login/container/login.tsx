@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/app/provider/api/authApi";
+import Cookies from "js-cookie";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -65,7 +66,13 @@ const LoginContent = () => {
     const body = { email, password };
     try {
       const res = await loginMutation(body).unwrap();
-      toast.success("Login success");
+
+      Cookies.set("accessToken", res?.data?.token, {
+        // httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        expires: 7,
+      });
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
       router.replace(from);
