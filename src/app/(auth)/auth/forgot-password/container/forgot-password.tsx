@@ -11,7 +11,6 @@ const ForgotPasswordForm = () => {
   const [email, setEmail] = useState("");
   const router = useRouter();
   const [forgotpasswordMutation, { isLoading }] = useForgotPasswordMutation();
-  const [isSent, setIsSent] = useState(false);
 
   const onBack = () => {
     router.push("/auth/login");
@@ -26,35 +25,37 @@ const ForgotPasswordForm = () => {
 
     try {
       const res = await forgotpasswordMutation({ email }).unwrap();
-      setIsSent(true);
-      toast.success("Check your inbox ,We've sent you a password reset link");
+      if (res?.success) {
+        router.push("/auth/login");
+      }
+      toast.success(res?.data?.message || "Reset link sent successfully");
     } catch (error: any) {
       toast.error("Something went wrong", error);
     }
   };
 
-  if (isSent) {
-    return (
-      <div className="space-y-4 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto">
-          <Mail className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-display text-lg font-semibold">
-            Check your email
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            We sent a reset link to <strong>{email}</strong>. Click the link in
-            the email to set a new password.
-          </p>
-        </div>
-        <Button variant="ghost" className="gap-2" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to sign in
-        </Button>
-      </div>
-    );
-  }
+  // if (isSent) {
+  //   return (
+  //     <div className="space-y-4 text-center">
+  //       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto">
+  //         <Mail className="h-6 w-6 text-primary" />
+  //       </div>
+  //       <div>
+  //         <h3 className="font-display text-lg font-semibold">
+  //           Check your email
+  //         </h3>
+  //         <p className="text-sm text-muted-foreground mt-1">
+  //           We sent a reset link to <strong>{email}</strong>. Click the link in
+  //           the email to set a new password.
+  //         </p>
+  //       </div>
+  //       <Button variant="ghost" className="gap-2" onClick={onBack}>
+  //         <ArrowLeft className="h-4 w-4" />
+  //         Back to sign in
+  //       </Button>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-4">
