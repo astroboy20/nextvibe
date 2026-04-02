@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Image as FabricImage } from "fabric";
 import { useDispatch, useSelector } from "react-redux";
-import { setIsUploadImgOpen } from "@/app/provider/slices/canvasslice";
+import { setIsUploadImgOpen } from "@/app/provider/slices/canvas-slice";
 import { RootState } from "@/app/provider/store";
 
 import {

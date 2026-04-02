@@ -24,7 +24,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useDispatch, useSelector } from 'react-redux'
-import { nextStep, prevStep, selectEventFormData, setStep, updateData } from '@/app/provider/slices/eventformslice'
+import { nextStep, prevStep, selectEventFormData, setStep, updateData } from '@/app/provider/slices/eventform-slice'
 
 
 const eventTypeSchema = z.object({

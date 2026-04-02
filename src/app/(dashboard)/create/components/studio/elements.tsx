@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setIsElementsOpen } from "@/app/provider/slices/canvasslice";
+import { setIsElementsOpen } from "@/app/provider/slices/canvas-slice";
 import { allElements } from "@/data/elements";
 import { FabricImage } from "fabric";
 import Image from "next/image";

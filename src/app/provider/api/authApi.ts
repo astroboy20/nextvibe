@@ -65,6 +65,15 @@ export const authApi = createApi({
                 }
             }
         }),
+        forgotPassword: build.mutation({
+            query(body) {
+                return {
+                    url: "/v1/auth/forgot-password",
+                    method: "POST",
+                    body
+                }
+            }
+        }),
         getUser: build.query<any, void>({
             query() {
                 return {
@@ -79,4 +88,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useForgotPasswordMutation } = authApi

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 import { PRIMARY_COLOR } from "@/utils/constants";
 import { useDispatch } from "react-redux";
-import { setView } from "@/app/provider/slices/canvasslice";
+import { setView } from "@/app/provider/slices/canvas-slice";
 
 export function Start() {
   const dispatch = useDispatch();

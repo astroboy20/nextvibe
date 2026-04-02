@@ -1,6 +1,5 @@
 "use client";
 
-
 import { NewLogo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -32,15 +31,15 @@ export default function DashboardLayout({
           </Link>
 
           <h1 className="font-display text-xl sm:text-2xl font-semibold">
-            {pathname.startsWith("/auth/login")
-              ? "Welcome back"
-              : "Join NextVibe"}
+            {pathname.startsWith("/auth/login") && "Welcome back"}
+            {pathname.startsWith("/auth/register") && "Join NextVibe"}
           </h1>
 
           <p className="text-sm sm:text-base text-muted-foreground">
-            {pathname.startsWith("/auth/login")
-              ? "Sign in to continue your vibe"
-              : "Create your account and start vibing"}
+            {pathname.startsWith("/auth/login") &&
+              "Sign in to continue your vibe"}
+            {pathname.startsWith("/auth/register") &&
+              "Create your account and start vibing"}
           </p>
         </div>
 

@@ -15,7 +15,7 @@ import {
 } from "@/app/constants/pricing";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/provider/store";
-import { resetForm, setStep } from "@/app/provider/slices/eventformslice";
+import { resetForm, setStep } from "@/app/provider/slices/eventform-slice";
 import { toast } from "sonner";
 import { useCreateEventMutation } from "@/app/provider/api/eventApi";
 import { useLazyVerifyCouponQuery } from "@/app/provider/api/couponApi";

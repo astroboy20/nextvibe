@@ -15,7 +15,7 @@ import {
   prevStep,
   selectEventFormData,
   updateData,
-} from "@/app/provider/slices/eventformslice";
+} from "@/app/provider/slices/eventform-slice";
 import { toast } from "sonner";
 import { AutomatedReminder } from "@/types/event.type";
 import { CustomInviteMessage } from "./custom-invite-message";

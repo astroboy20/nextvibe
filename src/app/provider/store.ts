@@ -1,8 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/user"
-import eventFormReducer from "./slices/eventformslice"
+import eventFormReducer from "./slices/eventform-slice"
+import locationReducer from "./slices/location-slice"
 import { authApi } from "./api/authApi";
-import canvasReducer from "./slices/canvasslice";
+import canvasReducer from "./slices/canvas-slice";
 import { gamesApi } from "./api/gameApi";
 import { eventsApi } from "./api/eventApi";
 import { userApi } from "./api/userApi";
@@ -12,6 +13,7 @@ export const store = configureStore({
         user: authReducer,
         eventForm: eventFormReducer,
         canvas: canvasReducer,
+        location: locationReducer,
         [authApi.reducerPath]: authApi.reducer,
         [gamesApi.reducerPath]: gamesApi.reducer,
         [eventsApi.reducerPath]: eventsApi.reducer,

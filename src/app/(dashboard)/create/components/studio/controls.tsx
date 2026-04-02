@@ -9,7 +9,7 @@ import {
   setIsPreviewOpen,
   setIsUploadImgOpen,
   setView,
-} from "@/app/provider/slices/canvasslice";
+} from "@/app/provider/slices/canvas-slice";
 import base64ToImage from "@/utils/base64ToImg";
 
 import Fonts from "./fonts";

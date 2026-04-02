@@ -72,6 +72,11 @@ const LoginContent = () => {
         sameSite: "strict",
         expires: 7,
       });
+      Cookies.set("refreshToken", res?.data?.refreshToken, {
+        expires: 7,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+      });
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
       router.replace("/events");

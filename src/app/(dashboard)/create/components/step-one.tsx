@@ -33,7 +33,7 @@ import {
   nextStep,
   selectEventFormData,
   updateData,
-} from "@/app/provider/slices/eventformslice";
+} from "@/app/provider/slices/eventform-slice";
 import { useDispatch, useSelector } from "react-redux";
 import { eventType } from "@/data";
 import FileUpload from "./file-upload";

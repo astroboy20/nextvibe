@@ -5,7 +5,7 @@ import {
   selectEventFormStep,
   updateData,
   updateEditMode,
-} from "@/app/provider/slices/eventformslice";
+} from "@/app/provider/slices/eventform-slice";
 import { Progress } from "@/components/ui/progress";
 
 import { ReactNode, useEffect } from "react";

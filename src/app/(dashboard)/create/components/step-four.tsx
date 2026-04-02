@@ -26,7 +26,7 @@ import {
   prevStep,
   selectEventFormData,
   updateData,
-} from "@/app/provider/slices/eventformslice";
+} from "@/app/provider/slices/eventform-slice";
 import { toast } from "sonner";
 import DesignTemplate from "./design-templates";
 import { SimplifiedGamificationForm } from "./simplified-gamification-form";

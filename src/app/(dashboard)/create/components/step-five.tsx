@@ -11,7 +11,7 @@ import {
   nextStep,
   prevStep,
   selectEventFormData,
-} from "@/app/provider/slices/eventformslice";
+} from "@/app/provider/slices/eventform-slice";
 
 const positionStyle = (position: number) => {
   if (position === 1) return "bg-yellow-400 text-yellow-900";

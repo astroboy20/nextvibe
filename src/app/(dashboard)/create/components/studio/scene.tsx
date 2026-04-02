@@ -6,7 +6,7 @@ import { RootState } from "@/app/provider/store";
 import {
   setHasSavedData,
   setIsRestoreModalOpen,
-} from "@/app/provider/slices/canvasslice";
+} from "@/app/provider/slices/canvas-slice";
 import { canvasStore } from "@/hooks/canvas-store";
 
 const Scene = () => {

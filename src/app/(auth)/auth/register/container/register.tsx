@@ -58,6 +58,11 @@ export default function RegisterContent() {
         sameSite: "strict",
         secure: process.env.NODE_ENV === "production",
       });
+      Cookies.set("refreshToken", res?.data?.refreshToken, {
+        expires: 7,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+      });
       toast.success("Account created successfully");
       router.replace(`/events`);
     } catch (error: any) {

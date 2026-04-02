@@ -1,7 +1,7 @@
 "use client";
 
 import { useDispatch, useSelector } from "react-redux";
-import { setTemplate, setView } from "@/app/provider/slices/canvasslice";
+import { setTemplate, setView } from "@/app/provider/slices/canvas-slice";
 import { RootState } from "@/app/provider/store";
 import { allTemplates } from "@/data/templates";
 import { Template } from "@/types/canvas";

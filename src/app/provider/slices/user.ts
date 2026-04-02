@@ -24,7 +24,7 @@ const authSlice = createSlice({
   reducers: {
     setUser(state, action: PayloadAction<Partial<IUser> | null>) {
       state.user = action.payload;
-    //   state.token = action.payload?.token || null;
+      //   state.token = action.payload?.token || null;
     },
 
     setRole(state, action: PayloadAction<Role>) {
@@ -34,6 +34,8 @@ const authSlice = createSlice({
     setIsAuthenticated(state, action: PayloadAction<boolean>) {
       state.isAuthenticated = action.payload;
     },
+
+
 
     logout(state) {
       state.user = null;
