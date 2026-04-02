@@ -76,6 +76,9 @@ const LoginContent = () => {
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
       // router.replace(from);
+      if (res?.data?.user?.role === "attendee") {
+        router.replace("/events");
+      }
     } catch (error: any) {
       toast(error?.data?.message || "Login Error");
     }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -19,77 +18,41 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useSwitchRoleMutation } from "@/app/provider/api/userApi";
 
-type UserRole = "attendee" | "organizer";
 
-const useAuth = () => {
-  return {
-    user: { id: "demo-user-id" },
-    profile: { role: "attendee" as UserRole },
-    refetchProfile: async () => {},
-  };
-};
 
-const supabase = {
-  from: () => ({
-    update: () => ({
-      eq: async () => ({ error: null }),
-    }),
-  }),
-};
 
 interface RoleToggleProps {
   compact?: boolean;
+  profile: any;
 }
 
-export function RoleToggle({ compact = false }: RoleToggleProps) {
+export function RoleToggle({ compact = false, profile }: RoleToggleProps) {
   const router = useRouter();
-  const { user, profile, refetchProfile } = useAuth();
-  const [isUpdating, setIsUpdating] = useState(false);
 
-  const isOrganizer = profile?.role === "organizer";
+  const isOrganizer = profile?.data?.role === "organizer";
 
-  const handleRoleChange = async (newRole: UserRole) => {
-    if (!user || profile?.role === newRole) return;
+  const [switchRoleMutation, { isLoading }] = useSwitchRoleMutation();
 
-    setIsUpdating(true);
-
+  const handleRoleSwitch = async () => {
+    const newRole = isOrganizer ? "attendee" : "organizer";
     try {
-      //   const { error: roleError } = await supabase
-      //     .from("user_roles")
-      //     .update({ role: newRole })
-      //     .eq("user_id", user.id);
-
-      //   if (roleError) throw roleError;
-
-      //   const { error: profileError } = await supabase
-      //     .from("profiles")
-      //     .update({ role: newRole })
-      //     .eq("user_id", user.id);
-
-      //   if (profileError) throw profileError;
-
-      await refetchProfile();
-
-      toast(
-        newRole === "organizer"
-          ? "You can now create and manage events"
-          : "You're now browsing as an attendee"
-      );
-
-      if (newRole === "organizer") {
+      const res = await switchRoleMutation(newRole).unwrap();
+      console.log(res);
+      if (res?.data?.currentRole === "organizer") {
         router.push("/dashboard");
-      } else {
-        router.push("/discover");
+        toast(
+          "Switched to Organizer Mode! You can now create and manage events."
+        );
+      } else if (res?.data?.currentRole === "attendee") {
+        router.push("/events");
+        toast("Switched to Attendee Mode! You're now browsing as an attendee.");
       }
-    } catch (error: any) {
-      console.error("Error updating role:", error);
-      toast(error.message || "Please try again");
-    } finally {
-      setIsUpdating(false);
+    } catch (error:any) {
+      toast.error("Something went wrong", error);
     }
   };
-
   if (compact) {
     return (
       <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -124,12 +87,10 @@ export function RoleToggle({ compact = false }: RoleToggleProps) {
               variant="outline"
               size="sm"
               className="gap-1.5 rounded-full"
-              onClick={() =>
-                handleRoleChange(isOrganizer ? "attendee" : "organizer")
-              }
-              disabled={isUpdating}
+              onClick={handleRoleSwitch}
+              disabled={isLoading}
             >
-              {isUpdating ? (
+              {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
@@ -161,8 +122,8 @@ export function RoleToggle({ compact = false }: RoleToggleProps) {
         <div className="grid grid-cols-2 gap-3">
           {/* Attendee */}
           <button
-            onClick={() => handleRoleChange("attendee")}
-            disabled={isUpdating}
+            // onClick={() => handleRoleChange("attendee")}
+            disabled={isLoading}
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-4 transition-all",
               !isOrganizer
@@ -201,8 +162,8 @@ export function RoleToggle({ compact = false }: RoleToggleProps) {
 
           {/* Organizer */}
           <button
-            onClick={() => handleRoleChange("organizer")}
-            disabled={isUpdating}
+            // onClick={() => handleRoleChange("organizer")}
+            disabled={isLoading}
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-4 transition-all",
               isOrganizer
@@ -240,7 +201,7 @@ export function RoleToggle({ compact = false }: RoleToggleProps) {
           </button>
         </div>
 
-        {isUpdating && (
+        {isLoading && (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Switching roles...

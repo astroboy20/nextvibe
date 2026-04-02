@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,7 +19,6 @@ import {
   ArrowRight,
   Loader2,
   Check,
-  X,
   Eye,
   Edit2,
   RefreshCw,
@@ -73,7 +72,6 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;

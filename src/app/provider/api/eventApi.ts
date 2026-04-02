@@ -146,32 +146,22 @@ export const eventsApi = createApi({
       query: (eventData) => {
         const formData = new FormData();
 
-        formData.append("name", eventData.name);
-        formData.append("eventMode", eventData.eventMode);
-        formData.append("description", eventData.description);
-        formData.append("category", eventData.category);
-        formData.append("startDateTime", eventData.startDateTime);
-        formData.append("location", JSON.stringify(eventData.location));
-        formData.append(
-          "allowSponsorship",
-          eventData.allowSponsorship ? "true" : "false"
-        );
+        Object.entries(eventData).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
 
-        formData.append("tags", JSON.stringify(eventData.tags));
-
-        if (eventData.flier)
-          formData.append("flier", eventData.flier);
-
-        if (eventData.promotionalVideo)
-          formData.append("promotionalVideo", eventData.promotionalVideo);
-
-        if (eventData.backdrop)
-          formData.append("backdrop", eventData.backdrop);
-
-        formData.append(
-          "gamification",
-          JSON.stringify(eventData.activities ?? [])
-        );
+          // File handling
+          if (value instanceof File) {
+            formData.append(key, value);
+          }
+          // Objects (location, tags, etc.)
+          else if (typeof value === "object") {
+            formData.append(key, JSON.stringify(value));
+          }
+          // Primitives
+          else {
+            formData.append(key, String(value));
+          }
+        });
 
         return {
           url: "/events",

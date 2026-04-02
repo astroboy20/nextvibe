@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 import { Calendar, Gamepad2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,6 @@ export function EventCard({
   id = "1",
   title,
   date,
-  location,
   image,
   attendees = 0,
   hasGames,
@@ -40,7 +40,7 @@ export function EventCard({
 
   return (
     <div
-      onClick={() => router.replace(`/event/${id}`)}
+      onClick={() => router.replace(`/events/${id}`)}
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-card shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer",
         className

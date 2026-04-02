@@ -16,8 +16,6 @@ import {
   MapPin,
   Gamepad2,
   ChevronRight,
-  LayoutDashboard,
-  Sparkles,
   Ticket,
   Crown,
   Medal,
@@ -29,6 +27,7 @@ import Link from "next/link";
 import { RoleToggle } from "../../components/role-toggle";
 import { MyTickets } from "../../components/my-tickets";
 import BottomNav from "@/components/navbar/bottom-navbar";
+import { useGetUserQuery } from "@/app/provider/api/authApi";
 
 const userEvents = [
   {
@@ -198,6 +197,7 @@ const getRankIcon = (rank: number) => {
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("events");
+  const { data: profile } = useGetUserQuery();
 
   return (
     <>
@@ -205,13 +205,15 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="mb-6 flex flex-col items-center text-center">
           <Avatar className="h-24 w-24 ring-4 ring-primary/20">
-            <AvatarImage src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face" />
+            <AvatarImage src={profile?.data?.avatar} />
             <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
               NV
             </AvatarFallback>
           </Avatar>
 
-          <h1 className="mt-4 font-display text-2xl font-bold">Nina Vibe</h1>
+          <h1 className="mt-4 font-display text-2xl font-bold">
+            {profile?.data?.name}
+          </h1>
           <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             Lagos, Nigeria
@@ -260,47 +262,7 @@ const Profile = () => {
 
         {/* Quick Links */}
         <div className="mb-6 space-y-3">
-          {/* Role Toggle Compact */}
-          <RoleToggle compact />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/dashboard">
-              <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/10 to-accent/10 hover:shadow-card transition-all">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-sm">
-                      Organizer Dashboard
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Manage your events
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/rewards">
-              <Card className="overflow-hidden border-accent/20 bg-linear-to-br from-accent/10 to-primary/10 hover:shadow-card transition-all">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">
-                    <Sparkles className="h-5 w-5 text-accent" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-sm">
-                      Rewards Center
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Claim your prizes
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          <RoleToggle compact profile={profile} />
         </div>
 
         {/* Tabs */}

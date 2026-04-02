@@ -63,7 +63,6 @@ function LineItem({
 
 export default function StepSix() {
   const data = useSelector((state: RootState) => state.eventForm.data);
-  const user = useSelector((state: RootState) => state.user.user);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -100,15 +99,18 @@ export default function StepSix() {
     const preRounds = Array.isArray(data.activities?.preEvent?.games)
       ? data.activities.preEvent.games.length
       : 0;
-    const duringRounds =
-      Array.isArray(data.activities?.duringEvent?.games)
-        ? data.activities.duringEvent.games.length
-        : 0;
+    const duringRounds = Array.isArray(data.activities?.duringEvent?.games)
+      ? data.activities.duringEvent.games.length
+      : 0;
     const gamificationTotal =
       gamificationUnitPrice * (preRounds + duringRounds);
     const total = promoVal + gamificationTotal;
 
-    setConfig({ promotion: promoVal, gamification: gamificationTotal, total });
+    setConfig({
+      promotion: promoVal,
+      gamification: gamificationTotal,
+      total: Number(data.price),
+    });
   }, [data, promoPrice, gamificationUnitPrice]);
 
   const handleVerifyCoupon = async () => {
@@ -178,7 +180,7 @@ export default function StepSix() {
       toast.error(error?.data?.message || "Failed to create event");
     }
   };
-
+  console.log(data);
   const handlePaymentSuccess = (_ref: any) => {
     setIsPaymentSuccess(true);
     handleSubmit();

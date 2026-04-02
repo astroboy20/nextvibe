@@ -35,7 +35,7 @@ const BottomNav = () => {
                   href={item.path}
                   className="flex items-center justify-center -mt-6"
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#5B1A57] hover:bg-[#4a1446]  text-white shadow-elevated transition-transform hover:scale-105 active:scale-95">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#34132E] text-white shadow-elevated transition-transform hover:scale-105 active:scale-95">
                     <Icon className="h-6 w-6" />
                   </div>
                 </Link>

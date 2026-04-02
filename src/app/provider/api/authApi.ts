@@ -1,6 +1,7 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { AuthResponse } from "../type";
+import { getTokens } from "@/hooks/getToken";
 
 
 
@@ -8,12 +9,13 @@ export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
         baseUrl: process.env.NEXT_PUBLIC_API_URL,
-        // prepareHeaders: (headers) => {
-        //     const { user_token, tutor_token } = getTokens()
-        //     if (user_token || tutor_token) {
-        //         headers.set("Authorization", `Bearer ${user_token || tutor_token}`)
-        //     }
-        // }
+        prepareHeaders: (headers) => {
+            const { accessToken } = getTokens()
+
+            if (accessToken) {
+                headers.set("Authorization", `Bearer ${accessToken}`)
+            }
+        }
     }),
     endpoints: (build) => ({
 
@@ -62,11 +64,19 @@ export const authApi = createApi({
                     body
                 }
             }
-        })
+        }),
+        getUser: build.query<any, void>({
+            query() {
+                return {
+                    url: "/users/me",
+                    method: "GET",
+                }
+            }
+        }),
 
 
 
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery } = authApi
