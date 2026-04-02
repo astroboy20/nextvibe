@@ -67,18 +67,14 @@ const LoginContent = () => {
     try {
       const res = await loginMutation(body).unwrap();
 
-      Cookies.set("accessToken", res?.data?.token, {
-        // httpOnly: true,
+      Cookies.set("accessToken", res?.data?.accessToken, {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         expires: 7,
       });
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      // router.replace(from);
-      if (res?.data?.user?.role === "attendee") {
-        router.replace("/events");
-      }
+      router.replace("/events");
     } catch (error: any) {
       toast(error?.data?.message || "Login Error");
     }

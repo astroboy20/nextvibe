@@ -22,7 +22,7 @@ export const authApi = createApi({
         login: build.mutation({
             query(body) {
                 return {
-                    url: "/auth/login",
+                    url: "/v1/auth/login",
                     method: "POST",
                     body
                 }
@@ -38,10 +38,10 @@ export const authApi = createApi({
                 }
             }
         }),
-        register: build.mutation<AuthResponse, string>({
+        register: build.mutation({
             query(body) {
                 return {
-                    url: "/auth/register",
+                    url: "/v1/auth/register",
                     method: "POST",
                     body
                 }
