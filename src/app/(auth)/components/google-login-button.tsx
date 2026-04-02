@@ -32,9 +32,10 @@ const GoogleLoginButton = () => {
         {isLoaded ? (
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
-              const res = await googleLogin(
-                credentialResponse.credential as string
-              ).unwrap();
+              const res = await googleLogin({
+                idToken: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string,
+                // credential: credentialResponse.credential,
+              }).unwrap();
               dispatch(setUser({ ...res.data.user }));
               toast.success(res.message || "Logged in successfully");
               router.replace(from);

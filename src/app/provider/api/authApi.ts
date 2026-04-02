@@ -1,6 +1,5 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { AuthResponse } from "../type";
 import { getTokens } from "@/hooks/getToken";
 
 
@@ -28,10 +27,10 @@ export const authApi = createApi({
                 }
             }
         }),
-        googleLogin: build.mutation<AuthResponse, string>({
-            query(body) {
+        googleLogin: build.mutation({
+            query(body: { idToken: string }) {
                 return {
-                    url: "/auth/google",
+                    url: "/v1/auth/oauth/google",
                     method: "POST",
                     credentials: "include",
                     body

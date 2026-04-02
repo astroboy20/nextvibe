@@ -31,19 +31,14 @@ const locationSlice = createSlice({
     name: "location",
     initialState,
     reducers: {
-        setLocation(state, action: PayloadAction<Partial<UserLocation> | null>) {
-            if (state.location) {
-                state.location = {
-                    ...state.location,
-                    latitude: action.payload?.location?.latitude ?? state.location.latitude,
-                    longitude: action.payload?.location?.longitude ?? state.location.longitude,
-                    address: action.payload?.location?.address ?? state.location.address,
-                    city: action.payload?.location?.city ?? state.location.city,
-                    country: action.payload?.location?.country ?? state.location.country,
-                };
-            }
+        setLocation(state, action: PayloadAction<UserLocation["location"] | null>) {
+            if (!action.payload) return;
 
-        },
+            state.location = {
+                ...state.location,
+                ...action.payload,
+            };
+        }
 
 
     },
