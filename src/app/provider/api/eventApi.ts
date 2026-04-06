@@ -1,7 +1,7 @@
-import { getTokens } from "@/hooks/getToken";
+
 import { ICreateEvent, IGalleryItem } from "@/types/event.type";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
+import Cookies from "js-cookie";
 
 export const eventsApi = createApi({
   reducerPath: "eventsApi",
@@ -10,7 +10,7 @@ export const eventsApi = createApi({
     baseUrl: process.env.NEXT_PUBLIC_API_URL,
     credentials: "include",
     prepareHeaders: (headers) => {
-      const { accessToken } = getTokens()
+      const accessToken = Cookies.get("accessToken")
 
       if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
       return headers;
@@ -23,7 +23,7 @@ export const eventsApi = createApi({
 
 
     getEvents: builder.query<any, void>({
-      query: () => "/events",
+      query: () => "/v1/events",
       providesTags: ["Events"],
     }),
 
@@ -31,21 +31,56 @@ export const eventsApi = createApi({
       query: (eventId) => `/events/${eventId}`,
       providesTags: (_, __, id) => [{ type: "Event", id }],
     }),
+    createEvent: builder.mutation({
+      query: (eventData) => {
+        const formData = new FormData();
+
+        Object.entries(eventData).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+
+          // File handling
+          if (value instanceof File) {
+            formData.append(key, value);
+          }
+          // Objects (location, tags, etc.)
+          else if (typeof value === "object") {
+            formData.append(key, JSON.stringify(value));
+          }
+          // Primitives
+          else {
+            formData.append(key, String(value));
+          }
+        });
+
+        return {
+          url: "/v1/events",
+          method: "POST",
+          body: eventData,
+        };
+      },
+      invalidatesTags: ["Events"],
+    }),
 
     deleteEvent: builder.mutation<any, string>({
-      query: (eventId) => ({
-        url: `/events/${eventId}`,
+      query: (eventId ) => ({
+        url: `/v1/events/${eventId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Events"],
     }),
 
     updateEvent: builder.mutation<any, { eventId: string; data: any }>({
-      query: ({ eventId, data }) => ({
-        url: `/events/${eventId}`,
-        method: "PUT",
-        body: data,
-      }),
+      query: ({ eventId, data }) => {
+        const filteredData = Object.fromEntries(
+          Object.entries(data).filter(([_, value]) => value !== null && value !== undefined)
+        );
+
+        return {
+          url: `/v1/events/${eventId}`,
+          method: "PATCH",
+          body: filteredData,
+        };
+      },
       invalidatesTags: (_, __, { eventId }) => [
         { type: "Event", id: eventId },
       ],
@@ -142,35 +177,7 @@ export const eventsApi = createApi({
 
 
 
-    createEvent: builder.mutation<any, ICreateEvent>({
-      query: (eventData) => {
-        const formData = new FormData();
 
-        Object.entries(eventData).forEach(([key, value]) => {
-          if (value === undefined || value === null) return;
-
-          // File handling
-          if (value instanceof File) {
-            formData.append(key, value);
-          }
-          // Objects (location, tags, etc.)
-          else if (typeof value === "object") {
-            formData.append(key, JSON.stringify(value));
-          }
-          // Primitives
-          else {
-            formData.append(key, String(value));
-          }
-        });
-
-        return {
-          url: "/events",
-          method: "POST",
-          body: formData,
-        };
-      },
-      invalidatesTags: ["Events"],
-    }),
 
 
 

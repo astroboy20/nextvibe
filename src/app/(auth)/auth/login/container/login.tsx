@@ -69,17 +69,21 @@ const LoginContent = () => {
 
       Cookies.set("accessToken", res?.data?.accessToken, {
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        expires: 7,
+        sameSite: "lax",
+        path: "/",
+        expires: 1 / 96,
       });
       Cookies.set("refreshToken", res?.data?.refreshToken, {
-        expires: 7,
-        sameSite: "strict",
         secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        expires: 7,
       });
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      router.replace("/events");
+      router.push("/events");
+      router.refresh();
+      toast.success(res.message || "Logged in successfully");
     } catch (error: any) {
       toast(error?.data?.message || "Login Error");
     }

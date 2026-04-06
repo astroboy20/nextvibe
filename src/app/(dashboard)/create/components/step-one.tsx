@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { CalendarIcon, Clock, X, ImageIcon } from "lucide-react";
+import { CalendarIcon, Clock, X, ImageIcon, Loader2 } from "lucide-react";
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +40,7 @@ import FileUpload from "./file-upload";
 import { MIME_TYPES } from "@/lib/mime-types";
 import { toast } from "sonner";
 import AddressSearch from "./address-search";
+import { useCreateEventMutation } from "@/app/provider/api/eventApi";
 
 const createDefaultTime = (hours: number, minutes = 0) => {
   const d = new Date();
@@ -47,67 +48,92 @@ const createDefaultTime = (hours: number, minutes = 0) => {
   return d;
 };
 
-const basicInfoSchema = z
-  .object({
-    flier: z
-      .any()
-      .refine((f) => f != null, { message: "Event flyer is required" }),
-    promotionalVideo: z.any().optional(),
-    name: z.string().min(2, "Name must have at least 2 letters"),
-    description: z.string().min(2, "Event description is required"),
-    category: z.string().min(1, "Category is required"),
-    location: z.string().optional(),
-    isMultiDay: z.boolean(),
-    date: z.date({ message: "Start date is required" }),
-    endDate: z.date().nullable().optional(),
-    startTime: z.date().nullable().optional(),
-    coordinates: z.object({
+// const basicInfoSchema = z
+//   .object({
+//     flier: z
+//       .any()
+//       .refine((f) => f != null, { message: "Event flyer is required" }),
+//     promotionalVideo: z.any().optional(),
+//     name: z.string().min(2, "Name must have at least 2 letters"),
+//     description: z.string().min(2, "Event description is required"),
+//     category: z.string().min(1, "Category is required"),
+//     location: z.string().optional(),
+//     isMultiDay: z.boolean(),
+//     date: z.date({ message: "Start date is required" }),
+//     endDate: z.date().nullable().optional(),
+//     startTime: z.date().nullable().optional(),
+//     coordinates: z.object({
+//       lon: z.number().optional(),
+//       lat: z.number().optional(),
+//     }),
+//     eventMode: z
+//       .enum(["virtual", "hybrid", "onsite"])
+//       .refine((value) => !!value, {
+//         message: "Event mode is required",
+//       }),
+//     tags: z.array(z.string()).optional(),
+//     promoteEvent: z.boolean().optional(),
+//     isPublic: z.boolean().optional(),
+//     allowSponsorship: z.boolean().optional(),
+//     requiresApproval: z.boolean().optional(),
+//   })
+//   .superRefine((data, ctx) => {
+//     if (data.eventMode !== "virtual" && !data.location) {
+//       ctx.addIssue({
+//         code: "custom",
+//         message: "Location is required for onsite and hybrid events",
+//         path: ["location"],
+//       });
+//     }
+//     if (data.isMultiDay) {
+//       if (!data.endDate) {
+//         ctx.addIssue({
+//           code: "custom",
+//           message: "End date is required for multi-day events",
+//           path: ["endDate"],
+//         });
+//       }
+//       if (data.endDate && data.endDate < data.date) {
+//         ctx.addIssue({
+//           code: "custom",
+//           message: "End date must be after start date",
+//           path: ["endDate"],
+//         });
+//       }
+//     }
+//     if (!data.isMultiDay && !data.startTime) {
+//       ctx.addIssue({
+//         code: "custom",
+//         message: "Start time is required",
+//         path: ["startTime"],
+//       });
+//     }
+//   });
+
+const basicInfoSchema = z.object({
+  flier: z.any().optional(),
+  promotionalVideo: z.any().optional(),
+  name: z.string().min(2, "Name must have at least 2 letters").optional(),
+  description: z.string().min(2, "Event description is required").optional(),
+  category: z.string().optional(),
+  location: z.string().optional(),
+  isMultiDay: z.boolean().optional(),
+  date: z.date().optional(),
+  endDate: z.date().nullable().optional(),
+  startTime: z.date().nullable().optional(),
+  coordinates: z
+    .object({
       lon: z.number().optional(),
       lat: z.number().optional(),
-    }),
-    eventMode: z
-      .enum(["virtual", "hybrid", "onsite"])
-      .refine((value) => !!value, {
-        message: "Event mode is required",
-      }),
-    tags: z.array(z.string()).optional(),
-    promoteEvent: z.boolean().optional(),
-    isPublic: z.boolean().optional(),
-    allowSponsorship: z.boolean().optional(),
-    requiresApproval: z.boolean().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.eventMode !== "virtual" && !data.location) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Location is required for onsite and hybrid events",
-        path: ["location"],
-      });
-    }
-    if (data.isMultiDay) {
-      if (!data.endDate) {
-        ctx.addIssue({
-          code: "custom",
-          message: "End date is required for multi-day events",
-          path: ["endDate"],
-        });
-      }
-      if (data.endDate && data.endDate < data.date) {
-        ctx.addIssue({
-          code: "custom",
-          message: "End date must be after start date",
-          path: ["endDate"],
-        });
-      }
-    }
-    if (!data.isMultiDay && !data.startTime) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Start time is required",
-        path: ["startTime"],
-      });
-    }
-  });
+    })
+    .optional(),
+  eventMode: z.enum(["virtual", "hybrid", "onsite"]).optional(),
+  tags: z.array(z.string()).optional(),
+  promoteEvent: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
+  allowSponsorship: z.boolean().optional(),
+  requiresApproval: z.boolean().optional(),
+});
 
 type FormValues = z.infer<typeof basicInfoSchema>;
 
@@ -160,6 +186,7 @@ function TagsInput({
 
 export default function StepOne() {
   const dispatch = useDispatch();
+  const [createEvent, { isLoading: isCreating }] = useCreateEventMutation();
   const data = useSelector(selectEventFormData);
   const startTimePickerRef = useRef<HTMLInputElement>(null);
 
@@ -193,28 +220,38 @@ export default function StepOne() {
   const eventMode = form.watch("eventMode");
   // const flier = form.watch("flier");
 
-  const handleNextStep = (values: FormValues) => {
+  const handleNextStep = async (values: FormValues) => {
     let startDateTime: Date;
     let endDateTime: Date;
 
     if (values.isMultiDay) {
-      startDateTime = new Date(values.date);
+      startDateTime = values.date ? new Date(values.date) : new Date();
       startDateTime.setHours(0, 0, 0, 0);
       endDateTime = new Date(values.endDate!);
       endDateTime.setHours(23, 59, 59, 999);
     } else {
-      startDateTime = new Date(values.date);
+      startDateTime = values.date ? new Date(values.date) : new Date();
       startDateTime.setHours(values.startTime?.getHours() ?? 0);
       startDateTime.setMinutes(values.startTime?.getMinutes() ?? 0);
       startDateTime.setSeconds(0);
       startDateTime.setMilliseconds(0);
-      endDateTime = new Date(values.date);
+      endDateTime = values.date ? new Date(values.date) : new Date();
       endDateTime.setHours(23, 59, 59, 999);
     }
+
+    const body = {
+      name: values.name,
+      locationName: values.location,
+      description: values.description,
+      startsAt: startDateTime.toISOString(),
+    };
+
+    const request = await createEvent(body).unwrap();
 
     dispatch(
       updateData({
         ...values,
+        id: request?.data?.id,
         allowSponsorship: values.allowSponsorship,
         isPublic: values.isPublic,
         requiresApproval: values.requiresApproval,
@@ -226,12 +263,9 @@ export default function StepOne() {
         },
       })
     );
+
     dispatch(nextStep());
   };
-
-  // const Field = ({ children }: { children: React.ReactNode }) => (
-  //   <div className="flex flex-col gap-1.5">{children}</div>
-  // );
 
   return (
     <Form {...form}>
@@ -352,7 +386,6 @@ export default function StepOne() {
           )}
         />
 
-      
         <FormField
           control={form.control}
           name="category"
@@ -378,7 +411,6 @@ export default function StepOne() {
           )}
         />
 
-       
         <FormField
           control={form.control}
           name="tags"
@@ -400,7 +432,6 @@ export default function StepOne() {
           )}
         />
 
-   
         <FormField
           control={form.control}
           name="promoteEvent"
@@ -420,7 +451,6 @@ export default function StepOne() {
           )}
         />
 
-       
         <FormField
           control={form.control}
           name="allowSponsorship"
@@ -502,7 +532,6 @@ export default function StepOne() {
           )}
         />
 
-      
         {isPublic === false && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 flex flex-col gap-3">
             <p className="text-sm font-semibold text-[#5B1A57]">
@@ -538,7 +567,6 @@ export default function StepOne() {
           </div>
         )}
 
-     
         <FormField
           control={form.control}
           name="isMultiDay"
@@ -558,7 +586,6 @@ export default function StepOne() {
           )}
         />
 
-      
         {isMultiDay ? (
           <div className="grid grid-cols-1 gap-4">
             <FormField
@@ -762,9 +789,10 @@ export default function StepOne() {
         {/* ── Submit ── */}
         <Button
           type="submit"
+          disabled={isCreating}
           className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors"
         >
-          Continue
+          {isCreating ? <Loader2 /> : " Continue"}
         </Button>
       </form>
     </Form>

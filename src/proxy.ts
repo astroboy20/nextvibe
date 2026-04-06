@@ -1,64 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeJwt } from "jose";
 
-const REFRESH_ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL}/v1/auth/refresh`;
+const PUBLIC_ROUTES = [
+  "/",
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/discover/event/create"
+];
 
-const PUBLIC_ROUTES = ["/", "/auth/login", "/auth/register", "/auth/forgot-password"];
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// 🔍 Check if token is expired (NO secret needed)
-function isTokenExpired(token: string): boolean {
+// Check expiry
+function isTokenExpired(token: string) {
   try {
     const payload = decodeJwt(token);
-    if (!payload.exp) return true;
-    return Date.now() >= payload.exp * 1000;
+
+    if (!payload.exp) return false;
+
+    // Refresh 1 min before expiry (Best practice)
+    const expiresIn = payload.exp * 1000 - Date.now();
+
+    return expiresIn < 60 * 1000;
   } catch {
     return true;
   }
 }
 
-// 🔄 Call backend to refresh token
-async function refreshAccessToken(
-  refreshToken: string
-): Promise<{ accessToken: string; refreshToken: string } | null> {
-  try {
-    const res = await fetch(REFRESH_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!res.ok) return null;
-
-    const json = await res.json();
-    const { accessToken, refreshToken: newRefreshToken } = json.data;
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-    };
-  } catch {
-    return null;
-  }
-}
-
-// 🚪 Helper to redirect and clear cookies
+// Redirect helper
 function redirectToLogin(req: NextRequest) {
-  const response = NextResponse.redirect(new URL("/auth/login", req.url));
-  response.cookies.delete("accessToken");
-  response.cookies.delete("refreshToken");
-  return response;
+  const res = NextResponse.redirect(new URL("/auth/login", req.url));
+
+  res.cookies.delete("accessToken");
+  res.cookies.delete("refreshToken");
+
+  return res;
 }
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ Allow public routes
+  // Allow public routes
   if (
     PUBLIC_ROUTES.includes(pathname) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
@@ -67,59 +52,67 @@ export async function proxy(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  // ❌ No access token → login
-  if (!accessToken) {
-    console.log("[middleware] No access token");
+
+
+  // No tokens
+  if (!accessToken || !refreshToken) {
     return redirectToLogin(req);
   }
 
-  // ✅ Check expiration ONLY (no signature verification)
-  const tokenExpired = isTokenExpired(accessToken);
-
-  // ✅ If still valid → allow request
-  if (!tokenExpired) {
+  // Access token still valid
+  if (!isTokenExpired(accessToken)) {
     return NextResponse.next();
   }
 
-  console.log("[middleware] Access token expired");
+  // Try refresh
+  try {
+    const res = await fetch(`${API_URL}/v1/auth/refresh`, {
+      method: "POST",
 
-  // ❌ No refresh token → login
-  if (!refreshToken) {
-    console.log("[middleware] No refresh token");
+      // VERY IMPORTANT
+      credentials: "include",
+
+      headers: {
+        "Content-Type": "application/json",
+
+        // pass cookies
+        cookie: req.headers.get("cookie") || "",
+      },
+    });
+
+    if (!res.ok) {
+      return redirectToLogin(req);
+    }
+
+    const data = await res.json();
+
+    const {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    } = data.data;
+
+    const response = NextResponse.next();
+
+    // Replace access token
+    response.cookies.set("accessToken", newAccessToken, {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 15,
+    });
+
+    // Replace refresh token
+    response.cookies.set("refreshToken", newRefreshToken, {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
+  } catch {
     return redirectToLogin(req);
   }
-
-  // 🔄 Try to refresh
-  const tokens = await refreshAccessToken(refreshToken);
-
-  // ❌ Refresh failed → login
-  if (!tokens) {
-    console.log("[middleware] Refresh failed");
-    return redirectToLogin(req);
-  }
-
-  console.log("[middleware] Token refreshed successfully");
-
-  // ✅ Set new cookies
-  const response = NextResponse.next();
-
-  response.cookies.set("accessToken", tokens.accessToken, {
-    // httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 15, // 15 minutes
-  });
-
-  response.cookies.set("refreshToken", tokens.refreshToken, {
-    // httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-
-  return response;
 }
 
 export const config = {

@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/incompatible-library */
-'use client'
+"use client";
 
-import { noOfAttendees } from '@/data'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
+import { noOfAttendees } from "@/data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -12,72 +12,92 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useDispatch, useSelector } from 'react-redux'
-import { nextStep, prevStep, selectEventFormData, setStep, updateData } from '@/app/provider/slices/eventform-slice'
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  nextStep,
+  prevStep,
+  selectEventFormData,
+  setStep,
+  updateData,
+} from "@/app/provider/slices/eventform-slice";
+import { useUpdateEventMutation } from "@/app/provider/api/eventApi";
 
+// const eventTypeSchema = z.object({
+//   eventType: z.string().min(1, 'Event type is required'),
+//   numberOfAttendees: z.string().min(1, 'Number of attendees is required'),
+//   price: z.string().refine((val) => val === '' || !isNaN(Number(val)), {
+//     message: 'Price must be a number',
+//   }),
+//   fastTrack: z.boolean(),
+//   allowSponsorship: z.boolean(),
+// })
 
 const eventTypeSchema = z.object({
-  eventType: z.string().min(1, 'Event type is required'),
-  numberOfAttendees: z.string().min(1, 'Number of attendees is required'),
-  price: z.string().refine((val) => val === '' || !isNaN(Number(val)), {
-    message: 'Price must be a number',
-  }),
-  fastTrack: z.boolean(),
-  allowSponsorship: z.boolean(),
-})
+  eventType: z.string().optional(),
+  numberOfAttendees: z.string().optional(),
+  price: z.string().optional(),
+  fastTrack: z.boolean().optional(),
+  allowSponsorship: z.boolean().optional(),
+});
 
-type FormValues = z.infer<typeof eventTypeSchema>
-
+type FormValues = z.infer<typeof eventTypeSchema>;
 
 export default function StepTwo() {
-  const dispatch = useDispatch()
-  const data = useSelector(selectEventFormData)
+  const dispatch = useDispatch();
+  const data = useSelector(selectEventFormData);
+  const eventId = useSelector((state: any) => state.eventForm.data);
+  const [updateEventMutation] = useUpdateEventMutation();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(eventTypeSchema),
     defaultValues: {
-      eventType: data.eventType ?? '',
-      price: data.price ?? '',
-      numberOfAttendees: data.numberOfAttendees ?? '',
+      eventType: data.eventType ?? "",
+      price: data.price ?? "",
+      numberOfAttendees: data.numberOfAttendees ?? "",
       fastTrack: data.fastTrack ?? false,
       allowSponsorship: false,
     },
-  })
+  });
 
-  const eventType = form.watch('eventType')
+  const eventType = form.watch("eventType");
 
-  const handleNextStep = (values: FormValues) => {
-    const payload = { ...values }
+  const handleNextStep = async (values: FormValues) => {
+    const payload = { ...values };
 
-    if (payload.eventType === 'free') {
-      payload.price = '0'
+    if (payload.eventType === "free") {
+      payload.price = "0";
     }
+    const request = await updateEventMutation({
+      eventId: "edb8baa5-99ee-49ca-90bc-48dd83504be1",
+      data: payload,
+    }).unwrap();
 
-    dispatch(updateData(payload))
+    dispatch(updateData(payload));
 
     if (!values.fastTrack) {
-      dispatch(setStep(3))
-    } else {
-      dispatch(nextStep())
+      dispatch(setStep(3));
+    } else if (request?.request) {
+      dispatch(nextStep());
     }
-  }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleNextStep)} className="flex flex-col gap-5 mb-6">
-
-   
+      <form
+        onSubmit={form.handleSubmit(handleNextStep)}
+        className="flex flex-col gap-5 mb-6"
+      >
         <FormField
           control={form.control}
           name="eventType"
@@ -113,11 +133,13 @@ export default function StepTwo() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {noOfAttendees.map((opt: { label: string; value: string }) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
+                  {noOfAttendees.map(
+                    (opt: { label: string; value: string }) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -125,7 +147,7 @@ export default function StepTwo() {
           )}
         />
 
-        {eventType === 'premium' && (
+        {eventType === "premium" && (
           <FormField
             control={form.control}
             name="price"
@@ -145,9 +167,11 @@ export default function StepTwo() {
           />
         )}
 
-        {eventType === 'free' && (
+        {eventType === "free" && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">Ticket Price (₦)</label>
+            <label className="text-sm font-medium text-gray-700">
+              Ticket Price (₦)
+            </label>
             <Input
               value=""
               disabled
@@ -169,7 +193,8 @@ export default function StepTwo() {
                 />
               </FormControl>
               <FormLabel className="mt-0! font-medium text-sm leading-relaxed cursor-pointer">
-                Would you like to fast track sales of your event ticket through gamification?
+                Would you like to fast track sales of your event ticket through
+                gamification?
               </FormLabel>
             </FormItem>
           )}
@@ -193,5 +218,5 @@ export default function StepTwo() {
         </div>
       </form>
     </Form>
-  )
+  );
 }

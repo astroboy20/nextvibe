@@ -10,6 +10,7 @@ export enum EVENTGAMIFICATION_MODE {
 
 export type FormValues = {
     // Step 1
+    id?: string | any;
     flier: string | null;
     promotionalVideo: string | null;
     backdrop: string | null;
@@ -40,7 +41,7 @@ export type FormValues = {
     rsvpEndDateTime?: Date | null;
     customInviteMessage?: string;
     automatedReminders?: AutomatedReminder[];
-    enableRsvp?: boolean; 
+    enableRsvp?: boolean;
 
     // Step 4 (Activities)
     activityTiming?: "pre-event" | "during-event" | "both" | null;
@@ -148,7 +149,6 @@ const eventFormSlice = createSlice({
         updateData(state, action: PayloadAction<Partial<FormValues>>) {
             const newData = action.payload;
 
-            // Mirror the logging from the original Zustand store
             if (newData.activities) {
                 console.log("eventFormSlice - Updating activities:", newData.activities);
                 console.log("eventFormSlice - Pre-event games:", newData.activities.preEvent?.games);

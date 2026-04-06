@@ -42,7 +42,7 @@ export default function CreateEvent() {
   }, [editMode, dispatch]);
 
   const progressValue = (step / TOTAL_STEPS) * 100;
-  const currentStep = formSteps[step];
+  const currentStep = formSteps[2];
 
   return (
     <div className="max-w-2xl mx-auto pb-16 px-5">

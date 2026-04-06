@@ -7,7 +7,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/discover" },
+  { icon: Home, label: "Home", path: "/events" },
   { icon: Users, label: "Social", path: "/social" },
   { icon: Plus, label: "Create", path: "/create", isMain: true },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
