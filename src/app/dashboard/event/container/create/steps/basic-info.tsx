@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Image as ImageIcon, Plus, X } from "lucide-react";
+import { Calendar, Image as ImageIcon, Loader2, Plus, X } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -262,11 +262,12 @@ const BasicInfo = () => {
       </div>
       <Button
         type="submit"
+        disabled={isLoading}
         className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6 mb-25"
         size="lg"
       >
         <Plus className="mr-2 h-5 w-5" />
-        Create Event
+        {isLoading ? <Loader2 className="animate-spin" /> : "Create Event"}
       </Button>
     </form>
   );

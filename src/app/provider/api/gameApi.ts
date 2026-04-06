@@ -20,7 +20,7 @@ export const gamesApi = createApi({
 
         generateTrivia: build.mutation<GenerateTriviaResponse, GenerateTriviaRequest>({
             query: (body) => ({
-                url: "/games/trivia/generate",
+                url: "/v1/games/trivia/generate",
                 method: "POST",
                 body,
             }),
@@ -28,7 +28,7 @@ export const gamesApi = createApi({
 
         generateWordPuzzle: build.mutation<GenerateWordPuzzleResponse, GenerateWordPuzzleRequest>({
             query: (body) => ({
-                url: "/games/word-puzzle/generate",
+                url: "/v1/games/word-puzzle/generate",
                 method: "POST",
                 body,
             }),
@@ -36,7 +36,7 @@ export const gamesApi = createApi({
 
         generateWordPuzzleFromWords: build.mutation<GenerateWordPuzzleResponse, string[]>({
             query: (words) => ({
-                url: "/games/word-puzzle/generate-from-words",
+                url: "/v1/games/word-puzzle/generate-from-words",
                 method: "POST",
                 body: { words },
             }),
@@ -44,7 +44,7 @@ export const gamesApi = createApi({
 
         generateThisOrThat: build.mutation<GenerateThisOrThatResponse, GenerateThisOrThatRequest>({
             query: (body) => ({
-                url: "/games/this-or-that/generate",
+                url: "/v1/games/this-or-that/generate",
                 method: "POST",
                 body,
             }),
@@ -52,7 +52,7 @@ export const gamesApi = createApi({
 
         generateTwoTruthsOneLie: build.mutation<GenerateTwoTruthsOneLieResponse, GenerateTwoTruthsOneLieRequest>({
             query: (body) => ({
-                url: "/games/two-truths-one-lie/generate",
+                url: "/v1/games/two-truths-one-lie/generate",
                 method: "POST",
                 body,
             }),

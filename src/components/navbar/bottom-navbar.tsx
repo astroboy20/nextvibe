@@ -9,7 +9,12 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard/events" },
   { icon: Users, label: "Social", path: "/dashboard/social" },
-  { icon: Plus, label: "Create", path: "/dashboard/create", isMain: true },
+  {
+    icon: Plus,
+    label: "Create",
+    path: "/dashboard/event/create/?step=1",
+    isMain: true,
+  },
   { icon: MessageCircle, label: "Messages", path: "/dashboard/messages" },
   { icon: User, label: "Profile", path: "/dashboard/profile" },
 ];
