@@ -12,6 +12,7 @@ import AddressSearch from "../../components/address-search";
 import { useState } from "react";
 import Games from "./steps/games/games";
 import BasicInfo from "./steps/basic-info";
+import Vibetags from "./steps/vibetag/vibetags";
 
 const basicInfoSchema = z.object({
   flier: z
@@ -86,6 +87,7 @@ const Create = () => {
               onBack={() => setStep(1)}
             />
           )}
+          {step === 3 && <Vibetags onBack={() => setStep(1)} />}
 
           {step === 2 || step === 3 ? (
             ""
