@@ -70,7 +70,7 @@ const Create = () => {
 
   return (
     <div className="min-h-screen pb-20">
-      <main className="container">
+      <main className="">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-6 animate-fade-in"
