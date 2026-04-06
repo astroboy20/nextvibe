@@ -4,7 +4,6 @@ import { useRouter, usePathname } from "next/navigation";
 import Games from "./steps/games/games";
 import BasicInfo from "./steps/basic-info";
 import Vibetags from "./steps/vibetag/vibetags";
-
 interface CreateProps {
   step: number;
 }
@@ -12,11 +11,12 @@ interface CreateProps {
 const Create = ({ step }: CreateProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  console.log(pathname);
 
   const [gamesData, setGamesData] = useState<any>(null);
 
-  const goToStep = (s: number) => {
-    router.push(`${pathname}?step=${s}`);
+  const goToStep = (step: number) => {
+    router.push(`${pathname}/?step=${step}`);
   };
 
   if (step === 2) {
@@ -45,7 +45,7 @@ const Create = ({ step }: CreateProps) => {
 
   // Step 1 — Basic Info (hub)
   return (
-    <div className="h-screen pt-10 pb-20 w-full px-5">
+    <div className="h-screen pt-10 pb-[200px] w-full px-5">
       <BasicInfo />
     </div>
   );

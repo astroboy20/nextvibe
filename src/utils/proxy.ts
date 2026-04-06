@@ -6,7 +6,7 @@ const PUBLIC_ROUTES = [
   "/auth/login",
   "/auth/register",
   "/auth/forgot-password",
-  "/discover/event/create"
+  "/dashboard/event/create"
 ];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;

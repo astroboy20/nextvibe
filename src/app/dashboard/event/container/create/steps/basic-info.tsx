@@ -9,6 +9,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
 import AddressSearch from "../../../components/address-search";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateEventMutation } from "@/app/provider/api/eventApi";
+import { useRouter } from "next/navigation";
 
 const basicInfoSchema = z.object({
   flier: z
@@ -30,6 +33,8 @@ const basicInfoSchema = z.object({
 type BasicInfoFormValues = z.infer<typeof basicInfoSchema>;
 
 const BasicInfo = () => {
+  const router = useRouter();
+  const [createEventMutation, { isLoading }] = useCreateEventMutation();
   const {
     register,
     handleSubmit,
@@ -55,13 +60,25 @@ const BasicInfo = () => {
     }
   };
 
-  const onSubmit = (values: BasicInfoFormValues) => {
+  const onSubmit = async (values: BasicInfoFormValues) => {
     const body = {
-      ...values,
+      name: values.name,
+      description: values.description,
+      locationName: values.locationName,
+      flier: values.flier,
       startsAt: values.startsAt?.toISOString(),
     };
+
+    const request = await createEventMutation(body).unwrap();
+
+    if (request?.success) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("event_id", request?.data?.id ?? "");
+      }
+      router.replace(`/dashboard/event/edit/${request?.data?.id}/?step=2`);
+    }
+
     console.log("Final body:", body);
-    // call your API here
   };
 
   return (
@@ -92,6 +109,22 @@ const BasicInfo = () => {
             />
             {errors.name && (
               <p className="text-xs text-red-500">{errors.name.message}</p>
+            )}
+          </div>
+
+          {/* Event Title */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Event Title</Label>
+            <Textarea
+              id="description"
+              {...register("description")}
+              placeholder="Give your event description"
+              className=" rounded-lg border-gray-300 focus-visible:ring-[#5B1A57]"
+            />
+            {errors.name && (
+              <p className="text-xs text-red-500">
+                {errors.description?.message}
+              </p>
             )}
           </div>
 
@@ -229,7 +262,7 @@ const BasicInfo = () => {
       </div>
       <Button
         type="submit"
-        className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6 mb-25"
         size="lg"
       >
         <Plus className="mr-2 h-5 w-5" />

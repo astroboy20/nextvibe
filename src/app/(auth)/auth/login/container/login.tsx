@@ -81,7 +81,7 @@ const LoginContent = () => {
       });
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      router.push("/events");
+      router.push("/dashboard/events");
       router.refresh();
       toast.success(res.message || "Logged in successfully");
     } catch (error: any) {
