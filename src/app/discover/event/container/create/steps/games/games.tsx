@@ -1,8 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState } from "react";
-import { Gamepad2, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Gamepad2, CheckCircle2, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -10,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SimplifiedGamificationForm } from "./simplified-gamification-form";
 
@@ -32,25 +30,10 @@ export default function GamesStep({
   const [gamesData, setGamesData] = useState<any>(initialData ?? null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Auto-open the modal when the step mounts for the first time
-  // If editing (initialData exists), still open so they can review/edit
-  useEffect(() => {
-    setModalOpen(true);
-  }, []);
-
   const handleSave = (data: any) => {
     setGamesData(data);
     setModalOpen(false);
     toast.success("Games configuration saved!");
-  };
-
-  // If user closes modal without saving and no games exist yet, go back
-  const handleModalClose = (open: boolean) => {
-    if (!open && !gamesData) {
-      onBack();
-    } else {
-      setModalOpen(open);
-    }
   };
 
   const handleContinue = () => {
@@ -63,6 +46,9 @@ export default function GamesStep({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex gap-2 items-center" onClick={onBack}>
+        <ChevronLeft className="cursor-pointer" /> Back
+      </div>
       {/* Header */}
       <div>
         <p className="text-lg font-semibold text-[#5B1A57]">Event Games</p>
@@ -106,9 +92,9 @@ export default function GamesStep({
       </button>
 
       {/* Games Modal */}
-      <Dialog open={modalOpen} onOpenChange={handleModalClose}>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent
-          className="max-w-3xl max-h-[70vh] overflow-y-auto"
+          className="w-[98%] sm:max-w-3xl max-h-[70vh] overflow-y-auto"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -121,31 +107,12 @@ export default function GamesStep({
             eventGamificationType="main-event"
             initialData={gamesData}
             onNext={handleSave}
-            onBack={() => handleModalClose(false)}
+            onBack={() => setModalOpen(false)}
             eventStartDate={eventStartDate}
             eventEndDate={eventEndDate}
           />
         </DialogContent>
       </Dialog>
-
-      {/* Actions */}
-      <div className="flex flex-col gap-2 mt-4">
-        <Button
-          type="button"
-          onClick={handleContinue}
-          className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium"
-        >
-          Save & Continue
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onBack}
-          className="w-full h-11 text-gray-700 hover:text-gray-900 font-medium"
-        >
-          Back
-        </Button>
-      </div>
     </div>
   );
 }

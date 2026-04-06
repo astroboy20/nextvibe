@@ -11,14 +11,6 @@ import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 
 export default function Templates() {
   const dispatch = useDispatch();
@@ -30,7 +22,7 @@ export default function Templates() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header & Category Select */}
       <div className="space-y-2 text-center">
         <h2 className="text-lg font-semibold">
@@ -39,24 +31,6 @@ export default function Templates() {
         <p className="text-sm text-gray-500">
           Get started by selecting a category or template
         </p>
-      </div>
-
-      <div className="max-w-xs mx-auto">
-        <Label htmlFor="category" className="text-base mb-1">
-          Category
-        </Label>
-        <Select>
-          <SelectTrigger id="category" className="w-full h-11!">
-            <SelectValue placeholder="Select" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="wedding">Wedding</SelectItem>
-            <SelectItem value="birthday">Birthday</SelectItem>
-            <SelectItem value="graduation">Graduation</SelectItem>
-            <SelectItem value="christmas">Christmas</SelectItem>
-            <SelectItem value="new-year">New Year</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Templates Grid */}

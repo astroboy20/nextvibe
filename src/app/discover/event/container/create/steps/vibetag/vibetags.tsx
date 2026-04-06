@@ -7,8 +7,8 @@ interface VibetagsProps {
 }
 const Vibetags = ({ onBack }: VibetagsProps) => {
   return (
-    <div className="flex flex-col gap-8" onClick={onBack}>
-      <div className="flex gap-2 items-center">
+    <div className="flex flex-col gap-8" >
+      <div className="flex gap-2 items-center" onClick={onBack}>
         <ChevronLeft className="cursor-pointer" /> Back
       </div>
       <DesignTemplate />

@@ -9,7 +9,7 @@ interface EditorProps {
 
 export default function Editor({ onSaveVibeTag }: EditorProps) {
   return (
-    <div className="flex flex-col gap-8 mb-12">
+    <div className="flex flex-col gap-8 mb-25">
       <Scene />
       <Controls onSaveVibeTag={onSaveVibeTag} />
     </div>
