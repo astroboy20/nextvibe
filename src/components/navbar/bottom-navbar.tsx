@@ -20,7 +20,7 @@ const BottomNav = () => {
   //   const { unreadCount } = useUnreadMessages();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white">
       <div className="glass border-t border-border/50 px-2 pb-safe">
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {

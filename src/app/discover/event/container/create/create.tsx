@@ -69,7 +69,7 @@ const Create = () => {
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pt-10 pb-20 w-full px-5">
       <main className="">
         <form
           onSubmit={handleSubmit(onSubmit)}
