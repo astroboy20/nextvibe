@@ -23,10 +23,10 @@ const  VibeTagStudioContent =()=> {
   ]);
 
   const templatePreviews: Record<string, string> = {
-    classic: "bg-gradient-to-br from-primary/20 to-accent/20",
+    classic: "bg-gradient-to-br from-[#531342]/20 to-accent/20",
     polaroid: "bg-white border-4 border-b-8",
     minimal: "bg-muted",
-    gradient: "bg-gradient-to-br from-primary via-accent to-primary",
+    gradient: "bg-gradient-to-br from-[#531342] via-accent to-[#531342]",
   };
 
   const getPhaseBadge = (phase: string) => {
@@ -42,7 +42,7 @@ const  VibeTagStudioContent =()=> {
         );
       case "main-event":
         return (
-          <Badge variant="outline" className="border-primary/50 text-primary">
+          <Badge variant="outline" className="border-[#531342]/50 text-[#531342]">
             Main Event
           </Badge>
         );
@@ -60,7 +60,7 @@ const  VibeTagStudioContent =()=> {
 
   return (
     <div className="space-y-3">
-      <Button size="sm" className="w-full gap-1.5 rounded-xl mb-4">
+      <Button size="sm" className="w-full gap-1.5 rounded-xl mb-4 bg-[#531342] hover:bg-[#531342]/90 text-white">
         <Tag className="h-3.5 w-3.5" />
         Create VibeTag
       </Button>
