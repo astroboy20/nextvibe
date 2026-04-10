@@ -17,9 +17,6 @@ import {
   Clock,
   Users,
   Zap,
-  Calendar,
-  Sparkles,
-  Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCreationWizard } from "./game-creation-wizard";
@@ -47,12 +44,12 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-4 w-4" />,
 };
 
-const gameTypeLabels: Record<GameType, string> = {
-  "trivia": "Trivia",
-  "word-puzzle": "Word Puzzle",
-  "two-truths": "2 Truths & 1 Lie",
-  "this-or-that": "This or That",
-};
+// const gameTypeLabels: Record<GameType, string> = {
+//   "trivia": "Trivia",
+//   "word-puzzle": "Word Puzzle",
+//   "two-truths": "2 Truths & 1 Lie",
+//   "this-or-that": "This or That",
+// };
 
 const mockGames: Game[] = [
   { id: "1", name: "Birthday Trivia", type: "trivia", phase: "pre-event", rounds: 3, status: "live", players: 42, scheduleMode: "concurrent", contentMode: "ai" },
@@ -90,6 +87,7 @@ export function GamificationHubContent() {
     };
     setGames(prev => [...prev, newGame]);
     setIsAddingGame(false);
+    // console.log(games, "Updated Games List");
   };
 
   const getStatusBadge = (status: Game["status"]) => {
@@ -114,20 +112,20 @@ export function GamificationHubContent() {
     }
   };
 
-  const getScheduleBadge = (mode?: ScheduleMode) => {
-    if (!mode) return null;
-    const config = {
-      daily: { icon: <Calendar className="h-3 w-3" />, label: "Daily" },
-      weekly: { icon: <Calendar className="h-3 w-3" />, label: "Weekly" },
-      concurrent: { icon: <Play className="h-3 w-3" />, label: "Always On" },
-    };
-    return (
-      <Badge variant="outline" className="text-xs gap-1">
-        {config[mode].icon}
-        {config[mode].label}
-      </Badge>
-    );
-  };
+  // const getScheduleBadge = (mode?: ScheduleMode) => {
+  //   if (!mode) return null;
+  //   const config = {
+  //     daily: { icon: <Calendar className="h-3 w-3" />, label: "Daily" },
+  //     weekly: { icon: <Calendar className="h-3 w-3" />, label: "Weekly" },
+  //     concurrent: { icon: <Play className="h-3 w-3" />, label: "Always On" },
+  //   };
+  //   return (
+  //     <Badge variant="outline" className="text-xs gap-1">
+  //       {config[mode].icon}
+  //       {config[mode].label}
+  //     </Badge>
+  //   );
+  // };
 
   return (
     <div>
@@ -135,7 +133,7 @@ export function GamificationHubContent() {
       <div className="mb-4">
         <Button 
           size="sm" 
-          className="w-full gap-1.5 rounded-xl"
+          className="w-full gap-1.5 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
           onClick={() => setIsAddingGame(true)}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -158,13 +156,13 @@ export function GamificationHubContent() {
       {/* Phase Filter */}
       <Tabs value={activePhase} onValueChange={(v) => setActivePhase(v as any)} className="mb-4">
         <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-2">
-          <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-[#531342] data-[state=active]:text-primary-foreground">
             All Games
           </TabsTrigger>
           <TabsTrigger value="pre-event" className="rounded-full data-[state=active]:bg-amber-500 data-[state=active]:text-white">
             Pre-Event
           </TabsTrigger>
-          <TabsTrigger value="main-event" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="main-event" className="rounded-full data-[state=active]:bg-[#531342] data-[state=active]:text-primary-foreground">
             Main Event
           </TabsTrigger>
         </TabsList>
@@ -248,7 +246,7 @@ export function GamificationHubContent() {
               <p className="font-semibold text-sm mt-1">@chioma_vibes</p>
               <p className="text-lg font-bold text-amber-600">2,450 pts</p>
             </div>
-            <div className="rounded-lg bg-primary/10 p-3 text-center">
+            <div className="rounded-lg bg-[#531342]/10 p-3 text-center">
               <p className="text-xs text-muted-foreground">Main Event Top</p>
               <p className="font-semibold text-sm mt-1">@tunde_party</p>
               <p className="text-lg font-bold text-primary">1,890 pts</p>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,7 +19,6 @@ import {
   ArrowRight,
   Loader2,
   Check,
-  X,
   Eye,
   Edit2,
   RefreshCw,
@@ -73,7 +72,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  // const [showPreview, setShowPreview] = useState(false);
 
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
@@ -181,13 +180,13 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
               className={cn(
                 "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
                 gameType === type 
-                  ? "border-primary bg-primary/10" 
-                  : "border-border hover:border-primary/50"
+                  ? "border-[#531342] bg-[#531342]/10" 
+                  : "border-border hover:border-[#531342]/50"
               )}
             >
               <div className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                gameType === type ? "bg-primary text-primary-foreground" : "bg-muted"
+                gameType === type ? "bg-[#531342] text-white" : "bg-muted"
               )}>
                 {config.icon}
               </div>
@@ -224,7 +223,10 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
               key={num}
               variant={rounds === num ? "default" : "outline"}
               size="sm"
-              className="flex-1 rounded-full"
+              className={`flex-1 rounded-full ${
+                rounds === num ? "bg-[#531342] text-white hover:bg-[#531342]/90" : ""
+              }`}
+      
               onClick={() => setRounds(num)}
             >
               {num}
@@ -239,7 +241,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
           <div className="space-y-3">
             <label className={cn(
               "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "concurrent" ? "border-primary bg-primary/5" : "border-border"
+              scheduleMode === "concurrent" ? "border-[#531342] bg-[#531342]/5" : "border-border"
             )}>
               <RadioGroupItem value="concurrent" id="concurrent" className="mt-0.5" />
               <div className="flex-1">
@@ -249,7 +251,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             </label>
             <label className={cn(
               "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "daily" ? "border-primary bg-primary/5" : "border-border"
+              scheduleMode === "daily" ? "border-[#531342] bg-[#531342]/5" : "border-border"
             )}>
               <RadioGroupItem value="daily" id="daily" className="mt-0.5" />
               <div className="flex-1">
@@ -259,7 +261,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             </label>
             <label className={cn(
               "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "weekly" ? "border-primary bg-primary/5" : "border-border"
+              scheduleMode === "weekly" ? "border-[#531342] bg-[#531342]/5" : "border-border"
             )}>
               <RadioGroupItem value="weekly" id="weekly" className="mt-0.5" />
               <div className="flex-1">
@@ -283,14 +285,14 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
               contentMode === "ai" 
-                ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10" 
-                : "border-border hover:border-primary/50"
+                ? "border-[#531342] bg-linear-to-br from-[#531342]/10 to-accent/10" 
+                : "border-border hover:border-[#531342]/50"
             )}
           >
             <div className={cn(
               "flex h-14 w-14 items-center justify-center rounded-2xl",
               contentMode === "ai" 
-                ? "bg-gradient-to-br from-primary to-accent text-white" 
+                ? "bg-linear-to-br from-[#531342] to-accent text-[#531342]" 
                 : "bg-muted"
             )}>
               <Sparkles className="h-7 w-7" />
@@ -306,13 +308,13 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
               contentMode === "manual" 
-                ? "border-primary bg-primary/10" 
-                : "border-border hover:border-primary/50"
+                ? "border-[#531342] bg-[#531342]/10" 
+                : "border-border hover:border-[#531342]/50"
             )}
           >
             <div className={cn(
               "flex h-14 w-14 items-center justify-center rounded-2xl",
-              contentMode === "manual" ? "bg-primary text-primary-foreground" : "bg-muted"
+              contentMode === "manual" ? "bg-[#531342] text-[#531342]" : "bg-muted"
             )}>
               <Pencil className="h-7 w-7" />
             </div>
@@ -482,8 +484,8 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
   const renderStep5 = () => (
     <div className="space-y-6 animate-fade-in">
       <div className="text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-accent mx-auto mb-4">
-          <Eye className="h-8 w-8 text-white" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-[#531342] to-accent mx-auto mb-4">
+          <Eye className="h-8 w-8 text-[#531342]" />
         </div>
         <h3 className="font-display text-xl font-bold">Preview & Submit</h3>
         <p className="text-sm text-muted-foreground mt-1">Review your game before publishing</p>
@@ -492,7 +494,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
       <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#531342]/10">
               {gameTypeConfig[gameType].icon}
             </div>
             <div className="flex-1">
@@ -502,15 +504,15 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg bg-muted p-3">
+            <div className="rounded-lg bg-[#531342]/10 p-3">
               <p className="text-lg font-bold">{rounds}</p>
               <p className="text-xs text-muted-foreground">Rounds</p>
             </div>
-            <div className="rounded-lg bg-muted p-3">
+            <div className="rounded-lg bg-[#531342]/10 p-3">
               <p className="text-lg font-bold">{questions.length}</p>
               <p className="text-xs text-muted-foreground">Questions</p>
             </div>
-            <div className="rounded-lg bg-muted p-3">
+            <div className="rounded-lg bg-[#531342]/10 p-3">
               <p className="text-xs font-semibold capitalize">{phase.replace("-", " ")}</p>
               <p className="text-xs text-muted-foreground">Phase</p>
             </div>
@@ -529,7 +531,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
         </CardContent>
       </Card>
 
-      <Button onClick={handleComplete} className="w-full gap-2 rounded-xl">
+      <Button onClick={handleComplete} className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white">
         <Play className="h-4 w-4" />
         Create Game
       </Button>
@@ -550,7 +552,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             {step === 5 && "Preview"}
           </span>
         </div>
-        <Progress value={progress} className="h-2" />
+        <Progress value={progress} className="h-2 " />
       </div>
 
       {/* Step Content */}
@@ -563,7 +565,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
       {/* Navigation */}
       <div className="flex gap-3 pt-4 border-t border-border">
         {step > 1 ? (
-          <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1 gap-1.5">
+          <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1 gap-1.5 ">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
@@ -586,7 +588,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
               }
             }}
             disabled={(step === 1 && !gameName) || isGenerating}
-            className="flex-1 gap-1.5"
+            className="flex-1 gap-1.5 bg-[#531342] hover:bg-[#531342]/90 text-white"
           >
             {isGenerating ? (
               <>
