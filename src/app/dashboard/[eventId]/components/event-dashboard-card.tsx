@@ -24,18 +24,18 @@ export function EventDashboardCard({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <Card 
+    <div 
       className={cn(
-        "overflow-hidden transition-all duration-200",
+        "transition-all duration-200 border h-fit!  px-3 py-4 rounded-xl",
         isOpen && "ring-1 ring-primary/20",
         className
       )}
     >
-      <CardHeader 
-        className="pb-3 cursor-pointer select-none hover:bg-muted/50 transition-colors"
+      <div 
+        className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between  h-fit!">
           <CardTitle className="flex items-center gap-2 text-base">
             <span className="text-primary">{icon}</span>
             {title}
@@ -50,17 +50,17 @@ export function EventDashboardCard({
             />
           </div>
         </div>
-      </CardHeader>
+      </div>
       <div 
         className={cn(
-          "overflow-hidden transition-all duration-200",
+          "overflow-hidden transition-all duration-200 mt-3",
           isOpen ? "max-h-500 opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <CardContent className="pt-0">
+        <div className="flex flex-col justify-center ">
           {children}
-        </CardContent>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
