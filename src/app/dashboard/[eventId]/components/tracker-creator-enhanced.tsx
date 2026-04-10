@@ -141,7 +141,7 @@ export function TicketCreatorEnhanced() {
           </p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
-        <div className="rounded-xl bg-primary/10 p-3 text-center">
+        <div className="rounded-xl bg-[#531342]/10 p-3 text-center">
           <p className="font-display text-lg font-bold text-primary">
             {totalSold}
           </p>
@@ -153,7 +153,7 @@ export function TicketCreatorEnhanced() {
       <div className="mb-4">
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
           <DialogTrigger asChild>
-            <Button size="sm" className="w-full gap-1 rounded-xl">
+            <Button size="sm" className="w-full gap-1 rounded-xl bg-[#531342] text-white hover:bg-[#531342]/80  font-semibold">
               <Plus className="h-3.5 w-3.5" />
               Add Ticket Type
             </Button>
@@ -211,7 +211,7 @@ export function TicketCreatorEnhanced() {
                   />
                 </div>
               </div>
-              <Button onClick={handleCreateTicket} className="w-full">
+              <Button onClick={handleCreateTicket} className="w-full bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold">
                 Create Ticket Type
               </Button>
             </div>

@@ -53,8 +53,8 @@ export function EventDashboardCard({
       </div>
       <div 
         className={cn(
-          "overflow-hidden transition-all duration-200 mt-3",
-          isOpen ? "max-h-500 opacity-100" : "max-h-0 opacity-0"
+          "overflow-hidden transition-all duration-200 ",
+          isOpen ? "max-h-500 opacity-100 mt-3" : "max-h-0 opacity-0 "
         )}
       >
         <div className="flex flex-col justify-center ">

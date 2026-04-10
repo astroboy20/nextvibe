@@ -90,7 +90,7 @@ export default function OrganizerDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-1.5 rounded-full"
+                  className="h-8 gap-1.5 rounded-full  border border-[#531342] text-[#531342] hover:bg-[#531342]/10"
                 >
                   <QrCode className="h-3.5 w-3.5" />
                   QR
@@ -98,7 +98,7 @@ export default function OrganizerDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-1.5 rounded-full"
+                  className="h-8 gap-1.5 rounded-full border border-[#531342] text-[#531342] hover:bg-[#531342]/10"
                 >
                   <Share2 className="h-3.5 w-3.5" />
                   Share
@@ -122,7 +122,7 @@ export default function OrganizerDashboard() {
             title="RSVP Tracker"
             icon={<Users className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
                 156 Going
               </Badge>
             }
@@ -136,7 +136,7 @@ export default function OrganizerDashboard() {
             title="Ticket Management"
             icon={<Ticket className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
                 116 Sold
               </Badge>
             }
@@ -175,7 +175,7 @@ export default function OrganizerDashboard() {
             title="VibeTag Studio"
             icon={<Tag className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
                 2 Tags
               </Badge>
             }
@@ -188,7 +188,7 @@ export default function OrganizerDashboard() {
             title="Postcard Leaderboard"
             icon={<ImageIcon className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
                 32 Posts
               </Badge>
             }
@@ -201,7 +201,7 @@ export default function OrganizerDashboard() {
             title="Analytics"
             icon={<BarChart3 className="h-4 w-4" />}
             badge={
-              <Badge className="bg-green-500/10 text-green-600 text-xs">
+              <Badge className="bg-green-500/10 text-green-600 text-xs ">
                 +12%
               </Badge>
             }
