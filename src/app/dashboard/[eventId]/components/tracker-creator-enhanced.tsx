@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Ticket,
   Plus,
   Edit2,
   Trash2,
@@ -340,7 +339,7 @@ export function TicketCreatorEnhanced() {
                         >
                           Cancel
                         </Button>
-                        <Button onClick={handleEditTicket}>Save Changes</Button>
+                        <Button onClick={handleEditTicket} className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold">Save Changes</Button>
                       </DialogFooter>
                     </div>
                   )}
@@ -404,7 +403,7 @@ export function TicketCreatorEnhanced() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTicket}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-500 text-destructive-foreground hover:bg-red-500/90"
             >
               Delete Ticket
             </AlertDialogAction>
