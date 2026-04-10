@@ -1,6 +1,5 @@
 "use client"
 import { ReactNode, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,10 +35,10 @@ export function EventDashboardCard({
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center justify-between  h-fit!">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <div className="flex items-center gap-2 text-base">
             <span className="text-primary">{icon}</span>
             {title}
-          </CardTitle>
+          </div>
           <div className="flex items-center gap-2">
             {badge}
             <ChevronDown 

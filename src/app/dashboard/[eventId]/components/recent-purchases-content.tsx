@@ -1,7 +1,7 @@
-"use client"
+"use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { QrCode, Download, Calendar, MapPin, Ticket } from "lucide-react";
+import { QrCode, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PurchasedTicket {
@@ -102,15 +102,20 @@ export function RecentPurchasesContent() {
           className="rounded-xl border border-border overflow-hidden"
         >
           {/* Purchase Header */}
-          <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-3">
+          <div className="bg-linear-to-r from-[#531342]/5 to-accent/5 p-3">
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold text-sm">{purchase.buyerName}</p>
-                <p className="text-xs text-muted-foreground">{purchase.buyerEmail}</p>
+                <p className="text-xs text-muted-foreground">
+                  {purchase.buyerEmail}
+                </p>
               </div>
               <Badge
                 variant="outline"
-                className={cn("text-xs capitalize", getStatusColor(purchase.status))}
+                className={cn(
+                  "text-xs capitalize",
+                  getStatusColor(purchase.status)
+                )}
               >
                 {purchase.status}
               </Badge>
@@ -122,7 +127,10 @@ export function RecentPurchasesContent() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-[#531342]/10 text-[#531342] border-[#531342]/20"
+                  >
                     {purchase.ticketType}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
@@ -133,16 +141,17 @@ export function RecentPurchasesContent() {
                   {formatPrice(purchase.totalPaid)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Purchased: {new Date(purchase.purchaseDate).toLocaleDateString()}
+                  Purchased:{" "}
+                  {new Date(purchase.purchaseDate).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 rounded-full"
+                  className="h-8 w-8 rounded-full border border-[#531342]"
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-4 w-4 text-[#531342]" />
                 </Button>
               </div>
             </div>
@@ -150,7 +159,7 @@ export function RecentPurchasesContent() {
         </div>
       ))}
 
-      <button className="w-full text-center text-xs font-medium text-primary hover:underline">
+      <button className="w-full text-center text-xs font-medium text-[#531342] hover:underline">
         View All Purchases
       </button>
     </div>
