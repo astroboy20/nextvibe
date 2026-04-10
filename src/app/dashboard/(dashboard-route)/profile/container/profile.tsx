@@ -21,6 +21,7 @@ import {
   Medal,
   Heart,
   Eye,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -169,6 +170,45 @@ const userRewards = [
   },
 ];
 
+const tabList = [
+  {
+    id: 1,
+    title: "Events",
+    icon: <Calendar className="mr-1.5 h-4 w-4" />,
+    value: "events",
+  },
+  {
+    id: 2,
+    title: "Tickets",
+    icon: <Ticket className="mr-1.5 h-4 w-4" />,
+    value: "tickets",
+  },
+  {
+    id: 3,
+    title: "Postcards",
+    icon: <ImageIcon className="mr-1.5 h-4 w-4" />,
+    value: "postcards",
+  },
+  {
+    id: 4,
+    title: "Games",
+    icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
+    value: "activity",
+  },
+  {
+    id: 5,
+    title: "Rankings",
+    icon: <Trophy className="mr-1.5 h-4 w-4" />,
+    value: "leaderboards",
+  },
+  {
+    id: 6,
+    title: "Rewards",
+    icon: <Gift className="mr-1.5 h-4 w-4" />,
+    value: "rewards",
+  },
+];
+
 const getStatusBadge = (status: "going" | "maybe") => {
   if (status === "going") {
     return (
@@ -242,12 +282,16 @@ const Profile = () => {
           {/* Action Buttons */}
           <div className="mt-6 flex gap-3">
             <Link href="/profile/edit">
-              <Button size="sm" className="gap-2 rounded-full">
+              <Button size="sm" className="gap-2 rounded-full  bg-[#531342]">
                 Edit Profile
               </Button>
             </Link>
-            <Button variant="outline" size="sm" className="gap-2 rounded-full">
-              <Share2 className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 rounded-full text-[#531342] border-2 border-[#531342]"
+            >
+              <Share2 className="h-4 w-4 text-[#531342]" />
               Share
             </Button>
             <Link href="/settings">
@@ -258,51 +302,41 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Quick Links */}
+        <div className="mb-6 space-y-3">
+          <div className="grid grid-cols-1 gap-3">
+            <Link href="/dashboard">
+              <Card className="overflow-hidden border-[#4d143d]/20 bg-linear-to-br from-[#4d143d]/10 to-accent/10 hover:shadow-card transition-all">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4d143d]/20">
+                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground text-2l">
+                      Dashboard
+                    </h3>
+                    <p className="text-base ">Manage your events</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full justify-start gap-1 bg-transparent p-0 border-b border-border rounded-none overflow-x-auto">
-            <TabsTrigger
-              value="events"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <Calendar className="mr-1.5 h-4 w-4" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="tickets"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <Ticket className="mr-1.5 h-4 w-4" />
-              Tickets
-            </TabsTrigger>
-            <TabsTrigger
-              value="postcards"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <ImageIcon className="mr-1.5 h-4 w-4" />
-              Postcards
-            </TabsTrigger>
-            <TabsTrigger
-              value="activity"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <Gamepad2 className="mr-1.5 h-4 w-4" />
-              Games
-            </TabsTrigger>
-            <TabsTrigger
-              value="leaderboards"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <Trophy className="mr-1.5 h-4 w-4" />
-              Rankings
-            </TabsTrigger>
-            <TabsTrigger
-              value="rewards"
-              className="rounded-none border-b-2 border-transparent px-3 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              <Gift className="mr-1.5 h-4 w-4" />
-              Rewards
-            </TabsTrigger>
+          <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
+            {tabList.map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.value}
+                className="rounded-none border-b-2 shadow-none! px-3 pb-3 data-[state=active]:border-b-[#531342] data-[state=active]:bg-transparent"
+              >
+                {tab.icon}
+                {tab.title}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* My Events Tab */}
