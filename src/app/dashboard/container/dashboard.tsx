@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 
 export const userEvents = [
   {
@@ -26,25 +26,23 @@ export const userEvents = [
   },
 ];
 
-const getStatusBadge = (status: "going" | "maybe") => {
-  if (status === "going") {
-    return (
-      <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
-        Going
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
-      Maybe
-    </span>
-  );
-};
-
 const Dashboard = () => {
   return (
-    <div className="space-y-3">
-      <h1 className="text-2xl font-bold">My Events</h1>
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+          <Calendar className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <h1 className="font-display text-lg font-bold text-foreground">
+            My Events
+          </h1>
+            <p className="text-xs text-muted-foreground">
+            Organize your events, tickets, and interactions effortlessly
+            </p>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3">
         {userEvents.map((event, index) => (
           <Link href={`/dashboard/${event.id}`} key={event.id}>

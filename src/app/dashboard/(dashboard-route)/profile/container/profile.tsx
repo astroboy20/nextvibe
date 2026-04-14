@@ -296,7 +296,7 @@ const Profile = () => {
             </Button>
             <Link href="/settings">
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Settings className="h-5 w-5" />
+                <Settings className="h-5 w-5 text-primary" />
               </Button>
             </Link>
           </div>

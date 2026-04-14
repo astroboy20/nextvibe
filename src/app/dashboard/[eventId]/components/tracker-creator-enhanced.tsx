@@ -96,6 +96,8 @@ export function TicketCreatorEnhanced() {
       sold: 0,
     };
 
+    console.log("Creating ticket:", ticket);
+
     setTickets([...tickets, ticket]);
     setNewTicket({ name: "", description: "", price: "", quantity: "" });
     setIsCreating(false);

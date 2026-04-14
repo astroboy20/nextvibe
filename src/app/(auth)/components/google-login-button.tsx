@@ -1,19 +1,25 @@
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
-import { setUser } from "@/app/provider/slices/user";
+import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
 import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
+import Cookies from "js-cookie";
+import { Loader2 } from "lucide-react";
 
-const GoogleLoginButton = () => {
+const GoogleLoginButtonInner = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
   const [googleLogin, { isLoading }] = useGoogleLoginMutation();
-
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/events";
-  //   const defaultRole = searchParams.get("DEFAULT_ROLE") || "";
+  const from = searchParams.get("from") || "/dashboard/events";
+  const router = useRouter();
+  const pathname = usePathname();
+  const successMessage =
+    pathname === "/auth/login"
+      ? "Logged in successfully"
+      : "Account created successfully";
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -22,38 +28,49 @@ const GoogleLoginButton = () => {
         clearInterval(interval);
       }
     }, 100);
-
     return () => clearInterval(interval);
   }, []);
-  const router = useRouter();
+
+  if (isLoading) return <Loader2 className="animate-spin mx-auto mb-4" />;
+  if (!isLoaded) return null;
+
   return (
-    <div>
-      <Suspense fallback={null}>
-        {isLoaded ? (
-          <GoogleLogin
-            onSuccess={async (credentialResponse) => {
-              const res = await googleLogin({
-                idToken: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string,
-                // credential: credentialResponse.credential,
-              }).unwrap();
-              dispatch(setUser({ ...res.data.user }));
-              toast.success(res.message || "Logged in successfully");
-              router.replace(from);
-            }}
-            logo_alignment="center"
-            size="large"
-            onError={() => {
-              // console.error("Login Failed");
-              toast.error("Login Failed \n Please try again");
-            }}
-          />
-        ) : (
-          <div>Loading...</div>
-        )}
-        {isLoading && <p>Signing you in...</p>}
-      </Suspense>
-    </div>
+    <GoogleLogin
+      onSuccess={async (credentialResponse) => {
+        // console.log("Google Credential Response:", credentialResponse);
+        const res = await googleLogin({
+          idToken: credentialResponse.credential as string,
+        }).unwrap();
+        Cookies.set("accessToken", res?.data?.accessToken, {
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          expires: 1 / 96,
+        });
+        Cookies.set("refreshToken", res?.data?.refreshToken, {
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          expires: 7,
+        });
+        dispatch(setUser({ ...res.data.user }));
+        dispatch(setIsAuthenticated(true));
+        toast.success(res.message || successMessage);
+        router.replace(from);
+      }}
+      logo_alignment="center"
+      size="large"
+      onError={() => {
+        toast.error("Login Failed. Please try again");
+      }}
+    />
   );
 };
+
+const GoogleLoginButton = () => (
+  <Suspense fallback={null}>
+    <GoogleLoginButtonInner />
+  </Suspense>
+);
 
 export default GoogleLoginButton;
