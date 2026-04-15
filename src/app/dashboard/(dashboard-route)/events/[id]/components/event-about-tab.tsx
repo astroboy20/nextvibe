@@ -1,26 +1,21 @@
-/* eslint-disable @next/next/no-img-element */
-"use client"
+"use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin,  Users, ExternalLink } from "lucide-react";
+import { formatDate, formatTime } from "@/hooks/format-date";
+import { Calendar, MapPin, Users, ExternalLink } from "lucide-react";
+import { DisplayMap } from "./display-map";
 
 interface EventAboutTabProps {
-  event: {
-    title: string;
-    date: string;
-    time: string;
-    location: string;
-    description: string;
-    attendees: number;
-    organizer: {
-      name: string;
-      avatar: string;
-    };
-  };
+  event: any;
 }
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
+  const openMap = () => {
+    const query = encodeURIComponent(event?.locationName);
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    window.open(url, "_blank");
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Quick Info */}
@@ -30,8 +25,12 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
             <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-medium text-foreground">{event.date}</p>
-            <p className="text-muted-foreground">{event.time}</p>
+            <p className="font-medium text-foreground">
+              {formatDate(event?.startsAt)}
+            </p>
+            <p className="text-muted-foreground">
+              {formatTime(event?.startsAt)}
+            </p>
           </div>
         </div>
 
@@ -40,8 +39,11 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
             <MapPin className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-medium text-foreground">{event.location}</p>
-            <button className="text-primary text-xs hover:underline flex items-center gap-1">
+            <p className="font-medium text-foreground">{event?.locationName}</p>
+            <button
+              onClick={openMap}
+              className="text-primary text-xs hover:underline flex items-center gap-1"
+            >
               View on map <ExternalLink className="h-3 w-3" />
             </button>
           </div>
@@ -52,7 +54,9 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
             <Users className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-medium text-foreground">{event.attendees} attending</p>
+            <p className="font-medium text-foreground">
+              {event?.attendingCount} attending
+            </p>
             <p className="text-muted-foreground">Be part of the vibe</p>
           </div>
         </div>
@@ -61,27 +65,35 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
       {/* Description */}
       <div>
         <h3 className="font-semibold text-foreground mb-2">About</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {event.description}
+        <p className="text-sm text-muted-foreground leading-relaxed capitalize">
+          {event?.description}
         </p>
       </div>
 
       {/* Organizer Card */}
-      <Card>
+      <Card className="py-0!">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground mb-3">Organized by</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={event.organizer.avatar} />
-                <AvatarFallback>{event.organizer.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={event?.organizer?.avatarUrl} />
+                <AvatarFallback>
+                  {event?.organizer?.displayName.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-semibold text-foreground">{event.organizer.name}</p>
+                <p className="font-semibold text-foreground">
+                  {event?.organizer?.displayName}
+                </p>
                 <p className="text-xs text-muted-foreground">Event Organizer</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="rounded-full">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full text-primary font-bold border-2 border-primary hover:bg-primary/10"
+            >
               Follow
             </Button>
           </div>
@@ -89,18 +101,8 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
       </Card>
 
       {/* Map Preview Placeholder */}
-      <div className="relative h-40 w-full overflow-hidden rounded-2xl bg-muted">
-        <img 
-          src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=300&fit=crop"
-          alt="Map"
-          className="h-full w-full object-cover opacity-80"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Button variant="secondary" className="rounded-full shadow-lg">
-            <MapPin className="mr-2 h-4 w-4" />
-            Get Directions
-          </Button>
-        </div>
+      <div className="relative h-50 w-full overflow-hidden rounded-2xl bg-muted">
+        <DisplayMap address={event?.locationName} />
       </div>
     </div>
   );

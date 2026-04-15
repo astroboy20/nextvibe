@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useGetEventsQuery } from "@/app/provider/api/eventApi";
@@ -30,7 +29,7 @@ const Discover = () => {
   }
 
   return (
-    <main className="container px-4 py-6 mx-auto">
+    <main className="container  pt-6 mx-auto">
       {/* View Toggle */}
       <div className="mb-6 flex justify-center">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
@@ -44,45 +43,45 @@ const Discover = () => {
               Nothing to see here yet, check back later!
             </div>
           ) : (
-            // <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            //   {filteredEvents.map((event, index) => (
-            //     <div
-            //       key={event.id}
-            //       className="animate-fade-in"
-            //       style={{ animationDelay: `${index * 100}ms` }}
-            //     >
-            //       <div className="relative">
-            //         <EventCard
-            //           id={event.id}
-            //           title={event.title}
-            //           date={event.date}
-            //           location={event.location}
-            //           image={event.image}
-            //           attendees={event.attendees}
-            //           hasGames={event.hasGames}
-            //           hasVibeTag={event.hasVibeTag}
-            //           colorAccent={event.colorAccent}
-            //         />
-            //         {/* Match reasons badges */}
-            //         {activeTab === "foryou" &&
-            //           event.matchReasons.length > 0 && (
-            //             <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-            //               {event.matchReasons.slice(0, 2).map((reason, i) => (
-            //                 <Badge
-            //                   key={i}
-            //                   variant="secondary"
-            //                   className="bg-background/90 backdrop-blur text-xs"
-            //                 >
-            //                   {reason}
-            //                 </Badge>
-            //               ))}
-            //             </div>
-            //           )}
-            //       </div>
-            //     </div>
-            //   ))}
-            // </div>
-            "messing with event card design, will add back soon :)"
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {events?.data?.map((event: any, index: number) => (
+                <div
+                  key={event.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="relative">
+                    <EventCard
+                      id={event?.id}
+                      title={event?.name}
+                      date={event?.startsAt}
+                      location={event?.locationName}
+                      image={event?.image}
+                      attendees={event?.attendees}
+                      hasGames={event?.hasGames}
+                      hasVibeTag={event?.hasVibeTag}
+                      colorAccent={event?.colorAccent}
+                    />
+                    {/* Match reasons badges */}
+                    {/* {activeTab === "foryou" &&
+                      event.matchReasons.length > 0 && (
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+                          {event.matchReasons.slice(0, 2).map((reason, i) => (
+                            <Badge
+                              key={i}
+                              variant="secondary"
+                              className="bg-background/90 backdrop-blur text-xs"
+                            >
+                              {reason}
+                            </Badge>
+                          ))}
+                        </div>
+                      )} */}
+                  </div>
+                </div>
+              ))}
+            </div>
+            // "messing with event card design, will add back soon :)"
           )}
         </>
       ) : (

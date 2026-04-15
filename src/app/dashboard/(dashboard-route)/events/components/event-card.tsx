@@ -1,9 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
-"use client"
+
+"use client";
 import { Calendar, Gamepad2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/hooks/format-date";
+import Image from "next/image";
 
 interface EventCardProps {
   id?: string;
@@ -36,45 +38,38 @@ export function EventCard({
   colorAccent = "plum",
   className,
 }: EventCardProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <div
-      onClick={() => router.replace(`/events/${id}`)}
+      onClick={() => router.replace(`/dashboard/events/${id}`)}
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-card shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer",
         className
       )}
     >
       {/* Image Grid */}
-      <div className={cn(
-        "relative h-40 overflow-hidden rounded-t-2xl border-2 bg-linear-to-br",
-        accentColors[colorAccent]
-      )}>
-        <div className="absolute inset-2 grid grid-cols-3 gap-1.5">
-          <div className="col-span-2 row-span-2 overflow-hidden rounded-xl">
-            <img
-              src={image}
+      <div
+        className={cn(
+          "relative h-40 overflow-hidden rounded-t-2xl border-2 bg-linear-to-br",
+          accentColors[colorAccent]
+        )}
+      >
+        <div className="absolute inset-2 grid grid-cols-1 gap-1.5">
+          <div className="col-span-1 row-span-1 overflow-hidden rounded-xl">
+            <Image
+              width={400}
+              height={300}
+              src={
+                image ||
+                "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop"
+              }
               alt={title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
-          <div className="overflow-hidden rounded-xl bg-muted/50">
-            <img
-              src={`${image}&w=100`}
-              alt=""
-              className="h-full w-full object-cover opacity-80"
-            />
-          </div>
-          <div className="overflow-hidden rounded-xl bg-muted/50">
-            <img
-              src={`${image}&h=100`}
-              alt=""
-              className="h-full w-full object-cover opacity-80"
-            />
-          </div>
         </div>
-        
+
         {/* Add Button */}
         <button className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-card transition-transform hover:scale-110">
           <span className="text-lg font-medium">+</span>
@@ -83,11 +78,13 @@ export function EventCard({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-display text-lg font-semibold line-clamp-1">{title}</h3>
-        
+        <h3 className="font-display text-lg font-semibold line-clamp-1">
+          {title}
+        </h3>
+
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-3.5 w-3.5" />
-          <span>{date}</span>
+          <span>{formatDate(date)}</span>
           <span className="text-border">•</span>
           <span>{attendees} Memories</span>
         </div>

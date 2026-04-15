@@ -37,7 +37,6 @@ const GoogleLoginButtonInner = () => {
   return (
     <GoogleLogin
       onSuccess={async (credentialResponse) => {
-        // console.log("Google Credential Response:", credentialResponse);
         const res = await googleLogin({
           idToken: credentialResponse.credential as string,
         }).unwrap();

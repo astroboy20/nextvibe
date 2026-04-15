@@ -1,5 +1,5 @@
 
-import { ICreateEvent, IGalleryItem } from "@/types/event.type";
+import {  IGalleryItem } from "@/types/event.type";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Cookies from "js-cookie";
 
@@ -28,7 +28,7 @@ export const eventsApi = createApi({
     }),
 
     getEventDetails: builder.query<any, string>({
-      query: (eventId) => `/events/${eventId}`,
+      query: (eventId) => `/v1/events/${eventId}`,
       providesTags: (_, __, id) => [{ type: "Event", id }],
     }),
     createEvent: builder.mutation({
