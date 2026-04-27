@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   Trash2,
   DollarSign,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useCreateTicketMutation } from "@/app/provider/api/eventApi";
 
 interface TicketType {
   id: string;
@@ -39,6 +41,10 @@ interface TicketType {
   price: number;
   quantity: number;
   sold: number;
+}
+
+interface TicketCreatorEnhancedProps {
+  eventId: string;
 }
 
 // Mock data for tickets
@@ -69,7 +75,7 @@ const mockTickets: TicketType[] = [
   },
 ];
 
-export function TicketCreatorEnhanced() {
+export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
   const [tickets, setTickets] = useState<TicketType[]>(mockTickets);
   const [isCreating, setIsCreating] = useState(false);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
@@ -79,7 +85,13 @@ export function TicketCreatorEnhanced() {
     description: "",
     price: "",
     quantity: "",
+    currency: "NGN",
+    perks: "",
+    tickectEndDate: "",
+    ticketLink: "",
   });
+
+  const [createTicketMutation, { isLoading }] = useCreateTicketMutation();
 
   const totalRevenue = tickets.reduce((sum, t) => sum + t.price * t.sold, 0);
   const totalSold = tickets.reduce((sum, t) => sum + t.sold, 0);
@@ -87,20 +99,24 @@ export function TicketCreatorEnhanced() {
   const handleCreateTicket = () => {
     if (!newTicket.name || !newTicket.price) return;
 
-    const ticket: TicketType = {
-      id: Date.now().toString(),
-      name: newTicket.name,
-      description: newTicket.description,
-      price: parseFloat(newTicket.price),
-      quantity: parseInt(newTicket.quantity) || 0,
-      sold: 0,
-    };
+    const request = createTicketMutation({
+      ticketData: newTicket,
+      eventId: eventId,
+    }).unwrap();
 
-    console.log("Creating ticket:", ticket);
-
-    setTickets([...tickets, ticket]);
-    setNewTicket({ name: "", description: "", price: "", quantity: "" });
-    setIsCreating(false);
+    if (request?.success) {
+      setNewTicket({
+        name: "",
+        description: "",
+        price: "",
+        quantity: "",
+        currency: "NGN",
+        perks: "",
+        tickectEndDate: "",
+        ticketLink: "",
+      });
+      setIsCreating(false);
+    }
   };
 
   const handleEditTicket = () => {
@@ -154,7 +170,10 @@ export function TicketCreatorEnhanced() {
       <div className="mb-4">
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
           <DialogTrigger asChild>
-            <Button size="sm" className="w-full gap-1 rounded-xl bg-[#531342] text-white hover:bg-[#531342]/80  font-semibold">
+            <Button
+              size="sm"
+              className="w-full gap-1 rounded-xl bg-[#531342] text-white hover:bg-[#531342]/80  font-semibold"
+            >
               <Plus className="h-3.5 w-3.5" />
               Add Ticket Type
             </Button>
@@ -179,12 +198,23 @@ export function TicketCreatorEnhanced() {
                 <Label htmlFor="ticket-desc">Description</Label>
                 <Input
                   id="ticket-desc"
-                  placeholder="What's included?"
+                  placeholder="Enter a description for the ticket?"
                   value={newTicket.description}
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, description: e.target.value })
                   }
                 />
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-perks">Perks</Label>
+                  <Input
+                    id="ticket-perks"
+                    placeholder="What's included?"
+                    value={newTicket.perks}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, perks: e.target.value })
+                    }
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -212,8 +242,42 @@ export function TicketCreatorEnhanced() {
                   />
                 </div>
               </div>
-              <Button onClick={handleCreateTicket} className="w-full bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold">
-                Create Ticket Type
+              <div className="space-y-2">
+                <Label htmlFor="ticket-payment-link">PaymentLink</Label>
+                <Input
+                  id="ticket-payment-link"
+                  placeholder="https://payment-link.com"
+                  value={newTicket.ticketLink}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, ticketLink: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticket-end-date"> Ticket End date</Label>
+                <Input
+                  id="ticket-end-date"
+                  type="datetime-local"
+                  placeholder="What's included?"
+                  value={newTicket.tickectEndDate}
+                  onChange={(e) =>
+                    setNewTicket({
+                      ...newTicket,
+                      tickectEndDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <Button
+                onClick={handleCreateTicket}
+                disabled={isLoading}
+                className="w-full bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
+              >
+                {isLoading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  "Create Ticket Type"
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -341,7 +405,12 @@ export function TicketCreatorEnhanced() {
                         >
                           Cancel
                         </Button>
-                        <Button onClick={handleEditTicket} className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold">Save Changes</Button>
+                        <Button
+                          onClick={handleEditTicket}
+                          className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
+                        >
+                          Save Changes
+                        </Button>
                       </DialogFooter>
                     </div>
                   )}

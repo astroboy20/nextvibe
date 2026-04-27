@@ -1,5 +1,5 @@
 
-import {  IGalleryItem } from "@/types/event.type";
+import { IGalleryItem } from "@/types/event.type";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Cookies from "js-cookie";
 
@@ -30,6 +30,16 @@ export const eventsApi = createApi({
     getEventDetails: builder.query<any, string>({
       query: (eventId) => `/v1/events/${eventId}`,
       providesTags: (_, __, id) => [{ type: "Event", id }],
+    }),
+    createTicket: builder.mutation<any, { eventId: string; ticketData: any }>({
+      query: ({ eventId, ticketData }) => ({
+        url: `/v1/events/${eventId}/tickets`,
+        method: "POST",
+        body: ticketData,
+      }),
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Event", id: eventId },
+      ],
     }),
     createEvent: builder.mutation({
       query: (eventData) => {
@@ -62,7 +72,7 @@ export const eventsApi = createApi({
     }),
 
     deleteEvent: builder.mutation<any, string>({
-      query: (eventId ) => ({
+      query: (eventId) => ({
         url: `/v1/events/${eventId}`,
         method: "DELETE",
       }),
@@ -288,4 +298,5 @@ export const {
   useGetEventMessagesQuery,
   useDeleteScheduledMessageMutation,
   usePlayGameMutation,
+  useCreateTicketMutation,
 } = eventsApi;

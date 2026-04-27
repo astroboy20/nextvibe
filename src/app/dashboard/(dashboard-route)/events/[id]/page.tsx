@@ -12,7 +12,7 @@ import {
   Heart,
   ArrowLeft,
   Table,
-  Calendar1Icon,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ const tabsConfig = [
   {
     value: "about",
     label: "About",
-    icon: <Calendar1Icon className="mr-1.5 h-4 w-4" />,
+    icon: <Info className="mr-1.5 h-4 w-4" />,
   },
   {
     value: "rsvp",

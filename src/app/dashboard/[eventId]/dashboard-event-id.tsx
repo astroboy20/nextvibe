@@ -25,6 +25,7 @@ import Image from "next/image";
 import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 import PostcardLeaderboardContent from "./components/leaderboard-content";
+import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 
 const mockEvent = {
   id: "1",
@@ -39,7 +40,14 @@ const mockEvent = {
     "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=nextvibe.com/event/1",
 };
 
-export default function OrganizerDashboard() {
+interface OrganizerDashboardProps {
+  eventId: string;
+}
+
+export default function OrganizerDashboard({
+  eventId,
+}: OrganizerDashboardProps) {
+  const { data: eventDetails } = useGetEventDetailsQuery(eventId);
   return (
     <div className="min-h-screen bg-background pb-24">
       <main className="container px-4 py-6">
@@ -122,7 +130,10 @@ export default function OrganizerDashboard() {
             title="RSVP Tracker"
             icon={<Users className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+              >
                 156 Going
               </Badge>
             }
@@ -136,12 +147,15 @@ export default function OrganizerDashboard() {
             title="Ticket Management"
             icon={<Ticket className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+              >
                 116 Sold
               </Badge>
             }
           >
-            <TicketCreatorEnhanced />
+            <TicketCreatorEnhanced eventId={eventId}/>
           </EventDashboardCard>
 
           {/* Recent Purchases */}
@@ -175,7 +189,10 @@ export default function OrganizerDashboard() {
             title="VibeTag Studio"
             icon={<Tag className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+              >
                 2 Tags
               </Badge>
             }
@@ -188,7 +205,10 @@ export default function OrganizerDashboard() {
             title="Postcard Leaderboard"
             icon={<ImageIcon className="h-4 w-4" />}
             badge={
-              <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+              >
                 32 Posts
               </Badge>
             }
