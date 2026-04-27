@@ -96,28 +96,28 @@ export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
   const totalRevenue = tickets.reduce((sum, t) => sum + t.price * t.sold, 0);
   const totalSold = tickets.reduce((sum, t) => sum + t.sold, 0);
 
-  const handleCreateTicket = () => {
-    if (!newTicket.name || !newTicket.price) return;
-
-    const request = createTicketMutation({
-      ticketData: newTicket,
-      eventId: eventId,
-    }).unwrap();
-
-    if (request?.success) {
-      setNewTicket({
-        name: "",
-        description: "",
-        price: "",
-        quantity: "",
-        currency: "NGN",
-        perks: "",
-        tickectEndDate: "",
-        ticketLink: "",
-      });
-      setIsCreating(false);
-    }
-  };
+  const handleCreateTicket = async () => {
+      if (!newTicket.name || !newTicket.price) return;
+  
+      const request = await createTicketMutation({
+        ticketData: newTicket,
+        eventId: eventId,
+      }).unwrap();
+  
+      if (request?.success) {
+        setNewTicket({
+          name: "",
+          description: "",
+          price: "",
+          quantity: "",
+          currency: "NGN",
+          perks: "",
+          tickectEndDate: "",
+          ticketLink: "",
+        });
+        setIsCreating(false);
+      }
+    };
 
   const handleEditTicket = () => {
     if (!editingTicket) return;

@@ -26,7 +26,7 @@ const basicInfoSchema = z.object({
   flier: z
     .instanceof(File, { message: "Please upload a flyer image" })
     .optional(),
-  promotionalVideo: z
+  promoVideo: z
     .instanceof(File)
     .refine(
       (file) => file.size <= MAX_VIDEO_SIZE,
@@ -66,7 +66,7 @@ const BasicInfo = () => {
 
   const flier = watch("flier");
   const locationName = watch("locationName");
-  const promotionalVideo = watch("promotionalVideo");
+  const promotionalVideo = watch("promoVideo");
 
   const handleDateTimeChange = (date: string, time: string) => {
     if (date && time) {
@@ -83,7 +83,7 @@ const BasicInfo = () => {
       description: values.description,
       locationName: values.locationName,
       flier: values.flier,
-      promotionalVideo: values.promotionalVideo,
+      promotionalVideo: values.promoVideo,
       startsAt: values.startsAt?.toISOString(),
     };
 
@@ -307,7 +307,7 @@ const BasicInfo = () => {
                             alert("Video must be 350MB or less");
                             return;
                           }
-                          setValue("promotionalVideo", file, {
+                          setValue("promoVideo", file, {
                             shouldValidate: true,
                           });
                         }
@@ -324,7 +324,7 @@ const BasicInfo = () => {
                     size="sm"
                     className="border-red-400 text-red-400 hover:bg-red-400 hover:text-white transition-colors"
                     onClick={() =>
-                      setValue("promotionalVideo", undefined, {
+                      setValue("promoVideo", undefined, {
                         shouldValidate: true,
                       })
                     }
@@ -355,16 +355,16 @@ const BasicInfo = () => {
                       e.target.value = "";
                       return;
                     }
-                    setValue("promotionalVideo", file, {
+                    setValue("promoVideo", file, {
                       shouldValidate: true,
                     });
                   }}
                 />
               </label>
             )}
-            {errors.promotionalVideo && (
+            {errors.promoVideo && (
               <p className="text-xs text-red-500">
-                {errors.promotionalVideo.message as string}
+                {errors.promoVideo.message as string}
               </p>
             )}
           </div>
