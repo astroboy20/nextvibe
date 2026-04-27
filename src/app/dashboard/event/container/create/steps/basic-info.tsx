@@ -83,7 +83,7 @@ const BasicInfo = () => {
       description: values.description,
       locationName: values.locationName,
       flier: values.flier,
-      promotionalVideo: values.promoVideo,
+      promoVideo: values.promoVideo,
       startsAt: values.startsAt?.toISOString(),
     };
 
