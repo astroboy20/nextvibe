@@ -65,8 +65,8 @@ export const eventsApi = createApi({
         return {
           url: "/v1/events",
           method: "POST",
-          headers: { "Content-Type": "multipart/form-data" },
-          body: eventData,
+          // headers: { "Content-Type": "multipart/form-data" },
+          body: formData,
         };
       },
       invalidatesTags: ["Events"],
