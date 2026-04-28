@@ -60,7 +60,15 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
     }
 
     setLoading(true);
-    const service = new window.google.maps.places.AutocompleteService();
+    const service = window.google?.maps?.places
+      ? new window.google.maps.places.AutocompleteService()
+      : null;
+
+    if (!service) {
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
     service.getPlacePredictions(
       {
         input: debouncedValue,

@@ -19,6 +19,13 @@ import AddressSearch from "../../../components/address-search";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateEventMutation } from "@/app/provider/api/eventApi";
 import { useRouter } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const MAX_VIDEO_SIZE = 350 * 1024 * 1024;
 
@@ -35,6 +42,9 @@ const basicInfoSchema = z.object({
     .optional(),
   name: z.string().min(2, "Name must have at least 2 letters"),
   description: z.string().min(2, "Event description is required").optional(),
+  isPublic: z.boolean({
+    error: "Event mode is required",
+  }),
   category: z.string().optional(),
   locationName: z.string().optional(),
   startsAt: z.date().nullable().optional(),
@@ -61,12 +71,14 @@ const BasicInfo = () => {
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
       locationName: "",
+      isPublic: false,
     },
   });
 
   const flier = watch("flier");
   const locationName = watch("locationName");
   const promotionalVideo = watch("promoVideo");
+  const isPublic = watch("isPublic");
 
   const handleDateTimeChange = (date: string, time: string) => {
     if (date && time) {
@@ -82,18 +94,20 @@ const BasicInfo = () => {
       name: values.name,
       description: values.description,
       locationName: values.locationName,
+      isPublic: values.isPublic,
       flier: values.flier,
       promoVideo: values.promoVideo,
       startsAt: values.startsAt?.toISOString(),
     };
 
+    console.log("Final body:", body);
     const request = await createEventMutation(body).unwrap();
 
     if (request?.success) {
       if (typeof window !== "undefined") {
         localStorage.setItem("event_id", request?.data?.id ?? "");
       }
-      router.replace(`/dashboard/event/edit/${request?.data?.id}/?step=2`);
+      // router.replace(`/dashboard/event/edit/${request?.data?.id}/?step=2`);
     }
 
     console.log("Final body:", body);
@@ -143,6 +157,38 @@ const BasicInfo = () => {
               <p className="text-xs text-red-500">
                 {errors.description?.message}
               </p>
+            )}
+          </div>
+
+          {/* Event Type */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Event Type</Label>
+            <Select
+              onValueChange={(value) =>
+                setValue("isPublic", value === "public", {
+                  shouldValidate: true,
+                })
+              }
+              value={
+                isPublic === undefined
+                  ? undefined
+                  : isPublic
+                  ? "public"
+                  : "private"
+              }
+            >
+              <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
+                <SelectValue placeholder="Select event mode" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {errors.isPublic && (
+              <p className="text-xs text-red-500">{errors.isPublic?.message}</p>
             )}
           </div>
 
