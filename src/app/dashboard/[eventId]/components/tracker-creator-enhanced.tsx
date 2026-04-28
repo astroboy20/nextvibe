@@ -43,8 +43,12 @@ interface TicketType {
   sold: number;
 }
 
+
+
+
 interface TicketCreatorEnhancedProps {
   eventId: string;
+  eventDetails?: any; // Optional prop to receive existing ticket details
 }
 
 // Mock data for tickets
@@ -75,7 +79,10 @@ const mockTickets: TicketType[] = [
   },
 ];
 
-export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
+export function TicketCreatorEnhanced({
+  eventId,
+  eventDetails,
+}: TicketCreatorEnhancedProps) {
   const [tickets, setTickets] = useState<TicketType[]>(mockTickets);
   const [isCreating, setIsCreating] = useState(false);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
@@ -87,37 +94,43 @@ export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
     quantity: "",
     currency: "NGN",
     perks: "",
-    tickectEndDate: "",
+    ticketEndDate: "",
     ticketLink: "",
   });
 
   const [createTicketMutation, { isLoading }] = useCreateTicketMutation();
 
-  const totalRevenue = tickets.reduce((sum, t) => sum + t.price * t.sold, 0);
-  const totalSold = tickets.reduce((sum, t) => sum + t.sold, 0);
+  const totalRevenue = eventDetails?.reduce(
+    (sum, t) => sum + t.price * t.sold,
+    0
+  );
+  const totalSold = eventDetails?.reduce(
+    (sum, t) => sum + t.sold,
+    0
+  );
 
   const handleCreateTicket = async () => {
-      if (!newTicket.name || !newTicket.price) return;
-  
-      const request = await createTicketMutation({
-        ticketData: newTicket,
-        eventId: eventId,
-      }).unwrap();
-  
-      if (request?.success) {
-        setNewTicket({
-          name: "",
-          description: "",
-          price: "",
-          quantity: "",
-          currency: "NGN",
-          perks: "",
-          tickectEndDate: "",
-          ticketLink: "",
-        });
-        setIsCreating(false);
-      }
-    };
+    if (!newTicket.name || !newTicket.price) return;
+
+    const request = await createTicketMutation({
+      ticketData: newTicket,
+      eventId: eventId,
+    }).unwrap();
+
+    if (request?.success) {
+      setNewTicket({
+        name: "",
+        description: "",
+        price: "",
+        quantity: "",
+        currency: "NGN",
+        perks: "",
+        ticketEndDate: "",
+        ticketLink: "",
+      });
+      setIsCreating(false);
+    }
+  };
 
   const handleEditTicket = () => {
     if (!editingTicket) return;
@@ -154,13 +167,13 @@ export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-green-500/10 p-3 text-center">
           <p className="font-display text-lg font-bold text-green-600">
-            {formatPrice(totalRevenue)}
+            {formatPrice(totalRevenue || 0)}
           </p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
         <div className="rounded-xl bg-[#531342]/10 p-3 text-center">
           <p className="font-display text-lg font-bold text-primary">
-            {totalSold}
+            {totalSold || 0}
           </p>
           <p className="text-xs text-muted-foreground">Tickets Sold</p>
         </div>
@@ -259,11 +272,11 @@ export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
                   id="ticket-end-date"
                   type="datetime-local"
                   placeholder="What's included?"
-                  value={newTicket.tickectEndDate}
+                  value={newTicket.ticketEndDate}
                   onChange={(e) =>
                     setNewTicket({
                       ...newTicket,
-                      tickectEndDate: e.target.value,
+                      ticketEndDate: e.target.value,
                     })
                   }
                 />
@@ -286,149 +299,152 @@ export function TicketCreatorEnhanced({ eventId }: TicketCreatorEnhancedProps) {
 
       {/* Ticket Types */}
       <div className="space-y-2">
-        {tickets.map((ticket) => (
-          <div
-            key={ticket.id}
-            className={cn(
-              "flex items-center justify-between rounded-xl border p-3 transition-all",
-              isSoldOut(ticket)
-                ? "border-red-500/30 bg-red-500/5"
-                : "border-border"
-            )}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-sm">{ticket.name}</span>
-                <Badge variant="outline" className="text-xs">
-                  {formatPrice(ticket.price)}
-                </Badge>
-                {isSoldOut(ticket) && (
-                  <Badge className="bg-red-500 text-white text-xs">
-                    SOLD OUT
+        {eventDetails?.map((ticket) => {
+          console.log("Rendering ticket:", ticket);
+          return (
+            <div
+              key={ticket.id}
+              className={cn(
+                "flex items-center justify-between rounded-xl border p-3 transition-all",
+                isSoldOut(ticket)
+                  ? "border-red-500/30 bg-red-500/5"
+                  : "border-border"
+              )}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{ticket.name}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {formatPrice(ticket.price)}
                   </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground truncate">
-                {ticket.description}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {ticket.sold}/{ticket.quantity || "∞"} sold
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Edit Button */}
-              <Dialog
-                open={editingTicket?.id === ticket.id}
-                onOpenChange={(open) => !open && setEditingTicket(null)}
-              >
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setEditingTicket({ ...ticket })}
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit Ticket Type</DialogTitle>
-                    <DialogDescription>
-                      Update the details for this ticket type.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {editingTicket && (
-                    <div className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <Label>Ticket Name</Label>
-                        <Input
-                          value={editingTicket.name}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              name: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Description</Label>
-                        <Input
-                          value={editingTicket.description}
-                          onChange={(e) =>
-                            setEditingTicket({
-                              ...editingTicket,
-                              description: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Price (₦)</Label>
-                          <Input
-                            type="number"
-                            value={editingTicket.price}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                price: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Quantity</Label>
-                          <Input
-                            type="number"
-                            value={editingTicket.quantity}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                quantity: parseInt(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="rounded-lg bg-muted p-3">
-                        <p className="text-xs text-muted-foreground">
-                          <strong>{editingTicket.sold}</strong> tickets already
-                          sold
-                        </p>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setEditingTicket(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleEditTicket}
-                          className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
-                        >
-                          Save Changes
-                        </Button>
-                      </DialogFooter>
-                    </div>
+                  {isSoldOut(ticket) && (
+                    <Badge className="bg-red-500 text-white text-xs">
+                      SOLD OUT
+                    </Badge>
                   )}
-                </DialogContent>
-              </Dialog>
+                </div>
+                <p className="text-xs text-muted-foreground truncate capitalize">
+                  {ticket.description}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {ticket?.quantitySold}/{ticket?.quantity || "∞"} sold
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Edit Button */}
+                <Dialog
+                  open={editingTicket?.id === ticket.id}
+                  onOpenChange={(open) => !open && setEditingTicket(null)}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setEditingTicket({ ...ticket })}
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Ticket Type</DialogTitle>
+                      <DialogDescription>
+                        Update the details for this ticket type.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {editingTicket && (
+                      <div className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                          <Label>Ticket Name</Label>
+                          <Input
+                            value={editingTicket.name}
+                            onChange={(e) =>
+                              setEditingTicket({
+                                ...editingTicket,
+                                name: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input
+                            value={editingTicket.description}
+                            onChange={(e) =>
+                              setEditingTicket({
+                                ...editingTicket,
+                                description: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Price (₦)</Label>
+                            <Input
+                              type="number"
+                              value={editingTicket.price}
+                              onChange={(e) =>
+                                setEditingTicket({
+                                  ...editingTicket,
+                                  price: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Quantity</Label>
+                            <Input
+                              type="number"
+                              value={editingTicket.quantity}
+                              onChange={(e) =>
+                                setEditingTicket({
+                                  ...editingTicket,
+                                  quantity: parseInt(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-muted p-3">
+                          <p className="text-xs text-muted-foreground">
+                            <strong>{editingTicket.sold}</strong> tickets
+                            already sold
+                          </p>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setEditingTicket(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleEditTicket}
+                            className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
+                          >
+                            Save Changes
+                          </Button>
+                        </DialogFooter>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
 
-              {/* Delete Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => setDeletingTicketId(ticket.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+                {/* Delete Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => setDeletingTicketId(ticket.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {tickets.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-6 text-center">

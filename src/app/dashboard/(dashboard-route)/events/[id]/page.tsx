@@ -173,9 +173,9 @@ export default function EventPage({
               <EventRSVPTab event={mockEvent} />
             </TabsContent> */}
 
-            {/* <TabsContent value="qr" className="mt-0">
-              <EventQRTab event={mockEvent} />
-            </TabsContent> */}
+            <TabsContent value="qr" className="mt-0">
+              <EventQRTab event={eventDetails?.data} />
+            </TabsContent>
 
             <TabsContent value="games" className="mt-0">
               <EventGamesTab />
