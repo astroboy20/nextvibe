@@ -31,6 +31,24 @@ import SuccessModal from "../../../components/success-modal";
 
 const MAX_VIDEO_SIZE = 350 * 1024 * 1024;
 
+const eventTypes = [
+  { id: "concert", name: "Concert" },
+  { id: "conference", name: "Conference" },
+  { id: "workshop", name: "Workshop" },
+  { id: "webinar", name: "Webinar" },
+  { id: "festival", name: "Festival" },
+  { id: "party", name: "Party" },
+  { id: "sports", name: "Sports Event" },
+  { id: "exhibition", name: "Exhibition" },
+  { id: "networking", name: "Networking Event" },
+  { id: "seminar", name: "Seminar" },
+  { id: "wedding", name: "Wedding" },
+  { id: "birthday", name: "Birthday Party" },
+  { id: "religious", name: "Religious Event" },
+  { id: "launch", name: "Product Launch" },
+  { id: "others", name: "Others" },
+];
+
 const basicInfoSchema = z.object({
   flier: z
     .instanceof(File, { message: "Please upload a flyer image" })
@@ -47,9 +65,12 @@ const basicInfoSchema = z.object({
   isPublic: z.boolean({
     error: "Event mode is required",
   }),
-  category: z.string().optional(),
+  tags: z.string().min(1, "Event category is required"),
   locationName: z.string().optional(),
   startsAt: z.date().nullable().optional(),
+  eventMode: z.enum(["onsite", "hybrid", "virtual"], {
+    error: "Event mode is required",
+  }),
   coordinates: z
     .object({
       lon: z.number().optional(),
@@ -72,6 +93,8 @@ const BasicInfo = () => {
     formState: { errors },
   } = useForm<BasicInfoFormValues>({
     resolver: zodResolver(basicInfoSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       locationName: "",
       isPublic: false,
@@ -82,6 +105,7 @@ const BasicInfo = () => {
   const locationName = watch("locationName");
   const promotionalVideo = watch("promoVideo");
   const isPublic = watch("isPublic");
+  // const isPublic = watch("isPublic");
 
   const flierUrl = useMemo(() => {
     if (!flier) return null;
@@ -117,11 +141,22 @@ const BasicInfo = () => {
   };
 
   const onSubmit = async (values: BasicInfoFormValues) => {
+    // const body = {
+    //   name: values.name,
+    //   description: values.description,
+    //   locationName: values.locationName,
+    //   isPublic: values.isPublic,
+    //   flier: values.flier,
+    //   promoVideo: values.promoVideo,
+    //   startsAt: values.startsAt?.toISOString(),
+    // };
     const body = {
       name: values.name,
       description: values.description,
       locationName: values.locationName,
       isPublic: values.isPublic,
+      tags: values.tags,
+      eventMode: values.eventMode,
       flier: values.flier,
       promoVideo: values.promoVideo,
       startsAt: values.startsAt?.toISOString(),
@@ -203,15 +238,10 @@ const BasicInfo = () => {
                 onValueChange={(value) =>
                   setValue("isPublic", value === "public", {
                     shouldValidate: true,
+                    shouldDirty: true,
                   })
                 }
-                value={
-                  isPublic === undefined
-                    ? undefined
-                    : isPublic
-                    ? "public"
-                    : "private"
-                }
+                value={isPublic ? "public" : "private"}
               >
                 <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
                   <SelectValue placeholder="Select event mode" />
@@ -226,6 +256,68 @@ const BasicInfo = () => {
               {errors.isPublic && (
                 <p className="text-xs text-red-500">
                   {errors.isPublic?.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Event Tags</Label>
+
+              <Select
+                onValueChange={(value) =>
+                  setValue("tags", value, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+              >
+                <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
+                  <SelectValue placeholder="Select event category" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {eventTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {errors.tags && (
+                <p className="text-xs text-red-500">{errors.tags.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Event Mode</Label>
+
+              <Select
+                onValueChange={(value) =>
+                  setValue(
+                    "eventMode",
+                    value as "onsite" | "hybrid" | "virtual",
+                    {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    }
+                  )
+                }
+              >
+                <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
+                  <SelectValue placeholder="Select event mode" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="onsite">Onsite</SelectItem>
+                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                  <SelectItem value="virtual">Virtual</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {errors.eventMode && (
+                <p className="text-xs text-red-500">
+                  {errors.eventMode.message}
                 </p>
               )}
             </div>

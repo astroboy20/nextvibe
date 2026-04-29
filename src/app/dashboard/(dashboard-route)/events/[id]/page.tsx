@@ -169,9 +169,9 @@ export default function EventPage({
               <EventAboutTab event={eventDetails?.data} />
             </TabsContent>
 
-            {/* <TabsContent value="rsvp" className="mt-0">
-              <EventRSVPTab event={mockEvent} />
-            </TabsContent> */}
+            <TabsContent value="rsvp" className="mt-0">
+              <EventRSVPTab event={eventDetails?.data} />
+            </TabsContent>
 
             <TabsContent value="qr" className="mt-0">
               <EventQRTab event={eventDetails?.data} />
@@ -182,7 +182,7 @@ export default function EventPage({
             </TabsContent>
 
             <TabsContent value="vibetags" className="mt-0">
-              {/* <EventVibeTagsTab /> */}
+              <EventVibeTagsTab />
             </TabsContent>
 
             <TabsContent value="chat" className="mt-0">

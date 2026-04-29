@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -32,60 +33,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useCreateTicketMutation } from "@/app/provider/api/eventApi";
-
-interface TicketType {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  quantity: number;
-  sold: number;
-}
-
-
-
+import {
+  useCreateTicketMutation,
+  useDeleteTicketMutation,
+  useUpdateTicketMutation,
+} from "@/app/provider/api/eventApi";
+import { toast } from "sonner";
 
 interface TicketCreatorEnhancedProps {
   eventId: string;
-  eventDetails?: any; // Optional prop to receive existing ticket details
+  eventDetails?: any;
 }
-
-// Mock data for tickets
-const mockTickets: TicketType[] = [
-  {
-    id: "1",
-    name: "Regular",
-    description: "General admission ticket",
-    price: 5000,
-    quantity: 200,
-    sold: 89,
-  },
-  {
-    id: "2",
-    name: "VIP",
-    description: "VIP access with exclusive perks",
-    price: 15000,
-    quantity: 50,
-    sold: 50, // Sold out!
-  },
-  {
-    id: "3",
-    name: "Table for 6",
-    description: "Reserved table with 6 seats",
-    price: 75000,
-    quantity: 10,
-    sold: 4,
-  },
-];
 
 export function TicketCreatorEnhanced({
   eventId,
   eventDetails,
 }: TicketCreatorEnhancedProps) {
-  const [tickets, setTickets] = useState<TicketType[]>(mockTickets);
+  const [tickets, setTickets] = useState(eventDetails);
   const [isCreating, setIsCreating] = useState(false);
-  const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
+  const [editingTicket, setEditingTicket] = useState<any | null>(null);
   const [deletingTicketId, setDeletingTicketId] = useState<string | null>(null);
   const [newTicket, setNewTicket] = useState({
     name: "",
@@ -98,53 +64,90 @@ export function TicketCreatorEnhanced({
     ticketLink: "",
   });
 
-  const [createTicketMutation, { isLoading }] = useCreateTicketMutation();
+  const [createTicketMutation, { isLoading: isCreatingLoading }] =
+    useCreateTicketMutation();
+  const [updateTicketMutation, { isLoading: isUpdatingLoading }] =
+    useUpdateTicketMutation();
+  const [deleteTicketMutation, { isLoading: isDeletingLoading }] =
+    useDeleteTicketMutation();
 
   const totalRevenue = eventDetails?.reduce(
-    (sum, t) => sum + t.price * t.sold,
+    (sum: number, t: any) => sum + t.price * t.quantitySold,
     0
   );
   const totalSold = eventDetails?.reduce(
-    (sum, t) => sum + t.sold,
+    (sum: number, t: any) => sum + t.quantitySold,
     0
   );
 
   const handleCreateTicket = async () => {
     if (!newTicket.name || !newTicket.price) return;
 
-    const request = await createTicketMutation({
-      ticketData: newTicket,
-      eventId: eventId,
-    }).unwrap();
+    try {
+      const request = await createTicketMutation({
+        ticketData: newTicket,
+        eventId: eventId,
+      }).unwrap();
 
-    if (request?.success) {
-      setNewTicket({
-        name: "",
-        description: "",
-        price: "",
-        quantity: "",
-        currency: "NGN",
-        perks: "",
-        ticketEndDate: "",
-        ticketLink: "",
-      });
-      setIsCreating(false);
+      if (request?.success) {
+        setTickets((prev) => [...(prev || []), request.data]);
+        toast.success("Ticket created successfully");
+        setIsCreating(false);
+        setNewTicket({
+          name: "",
+          description: "",
+          price: "",
+          quantity: "",
+          currency: "NGN",
+          perks: "",
+          ticketEndDate: "",
+          ticketLink: "",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to create ticket. Please try again.");
     }
   };
 
-  const handleEditTicket = () => {
+  const handleEditTicket = async () => {
     if (!editingTicket) return;
 
-    setTickets(
-      tickets.map((t) => (t.id === editingTicket.id ? editingTicket : t))
-    );
-    setEditingTicket(null);
+    try {
+      const request = await updateTicketMutation({
+        ticketData: editingTicket,
+        eventId: eventId,
+        ticketId: editingTicket.id,
+      }).unwrap();
+
+      if (request?.success) {
+        setTickets(
+          tickets.map((t) => (t.id === editingTicket.id ? editingTicket : t))
+        );
+        toast.success("Ticket updated successfully");
+        setEditingTicket(null);
+      }
+    } catch (error) {
+      toast.error("Failed to update ticket. Please try again.");
+    }
   };
 
-  const handleDeleteTicket = () => {
+  const handleDeleteTicket = async () => {
     if (!deletingTicketId) return;
-    setTickets(tickets.filter((t) => t.id !== deletingTicketId));
-    setDeletingTicketId(null);
+
+    try {
+      const request = await deleteTicketMutation({
+        eventId: eventId,
+        ticketId: deletingTicketId,
+      }).unwrap();
+
+      if (request.success) {
+        toast.success("Ticket deleted successfully");
+        setTickets(tickets.filter((t) => t.id !== deletingTicketId));
+        setDeletingTicketId(null);
+      }
+    } catch (error) {
+      toast.error("Failed to delete ticket. Please try again.",);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -155,11 +158,11 @@ export function TicketCreatorEnhanced({
     }).format(price);
   };
 
-  const isSoldOut = (ticket: TicketType) => {
-    return ticket.quantity > 0 && ticket.sold >= ticket.quantity;
+  const isSoldOut = (ticket: any) => {
+    return ticket.quantity > 0 && ticket.quantitySold >= ticket.quantity;
   };
 
-  const ticketToDelete = tickets.find((t) => t.id === deletingTicketId);
+  const ticketToDelete = tickets?.find((t) => t.id === deletingTicketId);
 
   return (
     <div>
@@ -185,7 +188,7 @@ export function TicketCreatorEnhanced({
           <DialogTrigger asChild>
             <Button
               size="sm"
-              className="w-full gap-1 rounded-xl bg-[#531342] text-white hover:bg-[#531342]/80  font-semibold"
+              className="w-full gap-1 rounded-xl bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Ticket Type
@@ -217,17 +220,17 @@ export function TicketCreatorEnhanced({
                     setNewTicket({ ...newTicket, description: e.target.value })
                   }
                 />
-                <div className="space-y-2">
-                  <Label htmlFor="ticket-perks">Perks</Label>
-                  <Input
-                    id="ticket-perks"
-                    placeholder="What's included?"
-                    value={newTicket.perks}
-                    onChange={(e) =>
-                      setNewTicket({ ...newTicket, perks: e.target.value })
-                    }
-                  />
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticket-perks">Perks</Label>
+                <Input
+                  id="ticket-perks"
+                  placeholder="What's included?"
+                  value={newTicket.perks}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, perks: e.target.value })
+                  }
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -256,7 +259,7 @@ export function TicketCreatorEnhanced({
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ticket-payment-link">PaymentLink</Label>
+                <Label htmlFor="ticket-payment-link">Payment Link</Label>
                 <Input
                   id="ticket-payment-link"
                   placeholder="https://payment-link.com"
@@ -267,11 +270,10 @@ export function TicketCreatorEnhanced({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ticket-end-date"> Ticket End date</Label>
+                <Label htmlFor="ticket-end-date">Ticket End Date</Label>
                 <Input
                   id="ticket-end-date"
                   type="datetime-local"
-                  placeholder="What's included?"
                   value={newTicket.ticketEndDate}
                   onChange={(e) =>
                     setNewTicket({
@@ -283,10 +285,10 @@ export function TicketCreatorEnhanced({
               </div>
               <Button
                 onClick={handleCreateTicket}
-                disabled={isLoading}
+                disabled={isCreatingLoading}
                 className="w-full bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
               >
-                {isLoading ? (
+                {isCreatingLoading ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   "Create Ticket Type"
@@ -299,8 +301,7 @@ export function TicketCreatorEnhanced({
 
       {/* Ticket Types */}
       <div className="space-y-2">
-        {eventDetails?.map((ticket) => {
-          console.log("Rendering ticket:", ticket);
+        {tickets?.map((ticket: any) => {
           return (
             <div
               key={ticket.id}
@@ -358,6 +359,7 @@ export function TicketCreatorEnhanced({
                         <div className="space-y-2">
                           <Label>Ticket Name</Label>
                           <Input
+                            placeholder="e.g., Regular, VIP, Early Bird"
                             value={editingTicket.name}
                             onChange={(e) =>
                               setEditingTicket({
@@ -370,6 +372,7 @@ export function TicketCreatorEnhanced({
                         <div className="space-y-2">
                           <Label>Description</Label>
                           <Input
+                            placeholder="Enter a description for the ticket?"
                             value={editingTicket.description}
                             onChange={(e) =>
                               setEditingTicket({
@@ -379,11 +382,25 @@ export function TicketCreatorEnhanced({
                             }
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label>Perks</Label>
+                          <Input
+                            placeholder="What's included?"
+                            value={editingTicket.perks || ""}
+                            onChange={(e) =>
+                              setEditingTicket({
+                                ...editingTicket,
+                                perks: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Price (₦)</Label>
                             <Input
                               type="number"
+                              placeholder="0"
                               value={editingTicket.price}
                               onChange={(e) =>
                                 setEditingTicket({
@@ -397,6 +414,7 @@ export function TicketCreatorEnhanced({
                             <Label>Quantity</Label>
                             <Input
                               type="number"
+                              placeholder="Unlimited"
                               value={editingTicket.quantity}
                               onChange={(e) =>
                                 setEditingTicket({
@@ -407,10 +425,36 @@ export function TicketCreatorEnhanced({
                             />
                           </div>
                         </div>
+                        <div className="space-y-2">
+                          <Label>Payment Link</Label>
+                          <Input
+                            placeholder="https://payment-link.com"
+                            value={editingTicket.ticketLink || ""}
+                            onChange={(e) =>
+                              setEditingTicket({
+                                ...editingTicket,
+                                ticketLink: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Ticket End Date</Label>
+                          <Input
+                            type="datetime-local"
+                            value={editingTicket.ticketEndDate || ""}
+                            onChange={(e) =>
+                              setEditingTicket({
+                                ...editingTicket,
+                                ticketEndDate: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
                         <div className="rounded-lg bg-muted p-3">
                           <p className="text-xs text-muted-foreground">
-                            <strong>{editingTicket.sold}</strong> tickets
-                            already sold
+                            <strong>{editingTicket.quantitySold}</strong>{" "}
+                            tickets already sold
                           </p>
                         </div>
                         <DialogFooter>
@@ -422,9 +466,14 @@ export function TicketCreatorEnhanced({
                           </Button>
                           <Button
                             onClick={handleEditTicket}
+                            disabled={isUpdatingLoading}
                             className="bg-[#531342] text-white hover:bg-[#531342]/80 font-semibold"
                           >
-                            Save Changes
+                            {isUpdatingLoading ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              "Save Changes"
+                            )}
                           </Button>
                         </DialogFooter>
                       </div>
@@ -446,7 +495,7 @@ export function TicketCreatorEnhanced({
           );
         })}
 
-        {tickets.length === 0 && (
+        {tickets?.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-6 text-center">
             <DollarSign className="mx-auto h-8 w-8 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">
@@ -478,9 +527,10 @@ export function TicketCreatorEnhanced({
             <AlertDialogDescription>
               Are you sure you want to delete the{" "}
               <strong>&quot;{ticketToDelete?.name}&quot;</strong> ticket type?
-              {ticketToDelete && ticketToDelete.sold > 0 && (
+              {ticketToDelete && ticketToDelete.quantitySold > 0 && (
                 <span className="block mt-2 text-destructive font-medium">
-                  Warning: {ticketToDelete.sold} tickets have already been sold!
+                  Warning: {ticketToDelete.quantitySold} tickets have already
+                  been sold!
                 </span>
               )}
               This action cannot be undone.
@@ -490,9 +540,14 @@ export function TicketCreatorEnhanced({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTicket}
+              disabled={isDeletingLoading}
               className="bg-red-500 text-destructive-foreground hover:bg-red-500/90"
             >
-              Delete Ticket
+              {isDeletingLoading ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+              ) : (
+                "Delete Ticket"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
