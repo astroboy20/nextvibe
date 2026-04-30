@@ -8,8 +8,7 @@ export function useCanvas() {
   const [canvas, setCanvas] = useState<any>(() => canvasStore.get());
 
   useEffect(() => {
-    setCanvas(canvasStore.get());
-    // Subscribe to future changes
+    setCanvas(canvasStore.get()); 
     const unsub = canvasStore.onChange((c) => setCanvas(c));
     return unsub;
   }, []);

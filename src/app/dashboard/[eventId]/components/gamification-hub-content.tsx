@@ -13,12 +13,10 @@ import {
   Gamepad2,
   Plus,
   Play,
-  Pause,
   Trophy,
   HelpCircle,
   Puzzle,
   MessageSquare,
-  MoreVertical,
   Clock,
   Users,
   Zap,
@@ -39,6 +37,7 @@ type EventPhase = "pre-event" | "main-event" | "both";
 
 interface GameProps {
   eventId: string;
+  eventName:string
 }
 
 // Raw API shape
@@ -139,7 +138,7 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-4 w-4" />,
 };
 
-export function GamificationHubContent({ eventId }: GameProps) {
+export function GamificationHubContent({ eventId, eventName }: GameProps) {
   const [activePhase, setActivePhase] = useState<
     "all" | "pre-event" | "main-event"
   >("all");
@@ -271,6 +270,7 @@ export function GamificationHubContent({ eventId }: GameProps) {
               onComplete={() => setIsAddingGame(false)}
               onCancel={() => setIsAddingGame(false)}
               eventId={eventId}
+              eventName={eventName}
             />
           </DialogContent>
         </Dialog>

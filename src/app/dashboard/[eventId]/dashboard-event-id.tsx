@@ -43,7 +43,6 @@ const mockEvent = {
     "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=nextvibe.com/event/1",
 };
 
-
 function EventHeaderSkeleton() {
   return (
     <Card className="mb-6 overflow-hidden border-primary/20">
@@ -85,7 +84,6 @@ function DashboardCardSkeleton() {
   );
 }
 
-
 interface OrganizerDashboardProps {
   eventId: string;
 }
@@ -102,7 +100,6 @@ export default function OrganizerDashboard({
   return (
     <div className="min-h-screen bg-background pb-24">
       <main className="container px-4 py-6">
-  
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <BarChart3 className="h-4 w-4 text-primary" />
@@ -117,7 +114,6 @@ export default function OrganizerDashboard({
           </div>
         </div>
 
-    
         {isLoading ? (
           <EventHeaderSkeleton />
         ) : (
@@ -193,7 +189,6 @@ export default function OrganizerDashboard({
         )}
 
         <div className="space-y-4">
-         
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
@@ -265,7 +260,10 @@ export default function OrganizerDashboard({
                 </Badge>
               }
             >
-              <GamificationHubContent eventId={eventId}/>
+              <GamificationHubContent
+                eventId={eventId}
+                eventName={eventDetails?.data?.name}
+              />
             </EventDashboardCard>
           )}
 

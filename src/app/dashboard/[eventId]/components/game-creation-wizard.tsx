@@ -103,16 +103,17 @@ interface GameCreationWizardProps {
   onComplete: (game: any) => void;
   onCancel: () => void;
   eventId: string;
+  eventName: string;
 }
-
 
 export function GameCreationWizard({
   onCancel,
   eventId,
+  eventName,
 }: GameCreationWizardProps) {
   // Step
   const [step, setStep] = useState(1);
-  const totalSteps = 6; 
+  const totalSteps = 6;
 
   // Step 1 — Basic Info
   const [gameName, setGameName] = useState("");
@@ -132,7 +133,21 @@ export function GameCreationWizard({
 
   // Step 3 — Content Mode
   const [contentMode, setContentMode] = useState<ContentMode>("ai");
-  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiPrompt, setAiPrompt] = useState<{
+    topic: string;
+    count: number | null;
+    gameType: GameType;
+    difficulty: string;
+    activityTiming: "" | "pre_event" | "ongoing" | "post_event";
+    eventName: string;
+  }>({
+    topic: "",
+    count: null,
+    gameType: gameType as GameType,
+    difficulty: "",
+    activityTiming: "",
+    eventName,
+  });
 
   // Step 4 — Questions
   const [isGenerating, setIsGenerating] = useState(false);
@@ -147,32 +162,27 @@ export function GameCreationWizard({
   const progress = (step / totalSteps) * 100;
 
   const generateQuestionsWithAI = async () => {
+    if (
+      !aiPrompt.topic.trim() ||
+      aiPrompt.count === null ||
+      aiPrompt.count <= 0 ||
+      !aiPrompt.gameType ||
+      !aiPrompt.difficulty ||
+      !aiPrompt.activityTiming
+    ) {
+      toast.error("Please fill in all AI prompt fields");
+      return;
+    }
     setIsGenerating(true);
     try {
-      const optionCount =
-        gameType === "this-or-that" ? 2 : gameType === "two-truths" ? 3 : 4;
-      const systemPrompt = `You are a quiz game content creator. Return ONLY valid JSON, no markdown, no explanation.`;
-      const userPrompt = `Create ${rounds * 3} questions for a "${
-        gameTypeConfig[gameType].label
-      }" game.
-${aiPrompt ? `Theme/context: ${aiPrompt}` : ""}
-Each question must have:
-- "text": question string
-- "options": array of exactly ${optionCount} strings
-- "correctIndex": integer (0-based index of correct answer)
-- "timeLimitSecs": integer between 10 and 30
-Return JSON array only: [{"text":"...","options":[...],"correctIndex":0,"timeLimitSecs":15},...]`;
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userPrompt }],
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(aiPrompt),
+        }
+      );
 
       const data = await response.json();
       const raw =
@@ -462,7 +472,7 @@ Return JSON array only: [{"text":"...","options":[...],"correctIndex":0,"timeLim
         <StepThree
           contentMode={contentMode}
           setContentMode={setContentMode}
-          aiPrompt={aiPrompt}
+          aiPrompt={{ ...aiPrompt, count: aiPrompt.count ?? 0 }}
           setAiPrompt={setAiPrompt}
         />
       )}

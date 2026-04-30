@@ -14,8 +14,6 @@ const Scene = () => {
   const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const template = useSelector((state: RootState) => state.canvas.template);
 
-  const templateFrame = template?.frame ?? null;
-
   useEffect(() => {
     let isMounted = true;
 
@@ -29,6 +27,7 @@ const Scene = () => {
 
       if (!domCanvasRef.current || !isMounted) return;
 
+      // Dispose any existing canvas first
       const existing = canvasStore.get();
       if (existing) {
         existing.dispose();
@@ -66,30 +65,23 @@ const Scene = () => {
       fabricCanvas.on("object:modified", saveCanvas);
       fabricCanvas.on("object:removed", saveCanvas);
 
-      const loadTemplateAndRestore = async () => {
-        if (templateFrame) {
-          await new Promise<void>((resolve) => {
-            FabricImage.fromURL(templateFrame, {
-              crossOrigin: "anonymous",
-            }).then((img: any) => {
-              if (!isMounted) return resolve();
-              img.scaleX = fabricCanvas.getWidth() / img.width;
-              img.scaleY = fabricCanvas.getHeight() / img.height;
-              fabricCanvas.backgroundImage = img;
-              fabricCanvas.renderAll();
-              resolve();
-            });
-          });
-        }
+      const savedData = localStorage.getItem("fabricCanvas");
+      if (savedData) {
+        dispatch(setHasSavedData(true));
+        dispatch(setIsRestoreModalOpen(true));
+      }
 
-        const savedData = localStorage.getItem("fabricCanvas");
-        if (savedData && isMounted) {
-          dispatch(setHasSavedData(true));
-          dispatch(setIsRestoreModalOpen(true));
-        }
-      };
-
-      await loadTemplateAndRestore();
+      if (template?.frame) {
+        FabricImage.fromURL(template.frame, { crossOrigin: "anonymous" }).then(
+          (img: any) => {
+            if (!isMounted) return;
+            img.scaleX = fabricCanvas.getWidth() / img.width;
+            img.scaleY = fabricCanvas.getHeight() / img.height;
+            fabricCanvas.backgroundImage = img;
+            fabricCanvas.renderAll();
+          }
+        );
+      }
     };
 
     initFabric();
@@ -102,7 +94,7 @@ const Scene = () => {
         canvasStore.set(null);
       }
     };
-  }, [dispatch, templateFrame]);
+  }, [dispatch, template]);
 
   return (
     <div className="w-full flex justify-center items-center">

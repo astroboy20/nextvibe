@@ -8,6 +8,7 @@ import {
   setIsFontsOpen,
   setIsPreviewOpen,
   setIsUploadImgOpen,
+  setView,
 } from "@/app/provider/slices/canvas-slice";
 import base64ToImage from "@/utils/base64ToImg";
 
@@ -56,7 +57,7 @@ interface ControlsProps {
 
 export default function Controls({ onSaveVibeTag }: ControlsProps) {
   const dispatch = useDispatch();
-  const canvas = useCanvas();
+  const canvas = useCanvas(); 
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
 
   useEffect(() => {
@@ -103,13 +104,11 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
 
     switch (id) {
       case "bring-front":
-        // ✅ Fabric v6 correct API
-        canvas.bringObjectForward(selectedObject, true);
+        canvas.bringObjectForward(selectedObject, true); 
         canvas.requestRenderAll();
         break;
       case "send-back":
-        // ✅ Fabric v6 correct API
-        canvas.sendObjectBackwards(selectedObject, true);
+        canvas.sendObjectBackwards(selectedObject, true); 
         canvas.requestRenderAll();
         break;
       case "del":
@@ -123,11 +122,11 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
 
   const handleContinue = () => {
     if (!canvas) return;
-    // ✅ multiplier: 2 for a proper hi-res export
-    const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
+    const dataUrl = canvas.toDataURL({ multiplier: 1, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
     dispatch(setBackdropFile(file));
-    if (onSaveVibeTag) onSaveVibeTag(file); 
+    if (onSaveVibeTag) onSaveVibeTag(file);
+    // dispatch(setView("start"));
   };
 
   return (
@@ -178,6 +177,7 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
         </Button>
       </div>
 
+      {/* Modals receive the live canvas instance */}
       <Fonts canvas={canvas} />
       <Preview canvas={canvas} />
       <UploadImg canvas={canvas} />
