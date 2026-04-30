@@ -1,16 +1,9 @@
 import React from "react";
 import DesignTemplate from "./design-templates";
-import { ChevronLeft } from "lucide-react";
 
-interface VibetagsProps {
-  onBack: () => void;
-}
-const Vibetags = ({ onBack }: VibetagsProps) => {
+const Vibetags = () => {
   return (
-    <div className="flex flex-col gap-8" >
-      <div className="flex gap-2 items-center" onClick={onBack}>
-        <ChevronLeft className="cursor-pointer" /> Back
-      </div>
+    <div className="flex flex-col gap-8  overflow-y-scroll no-scrollbar">
       <DesignTemplate />
     </div>
   );

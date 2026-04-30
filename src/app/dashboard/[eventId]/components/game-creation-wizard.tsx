@@ -19,8 +19,11 @@ import StepFive from "./game-steps/step-five";
 import StepSix from "./game-steps/step-six";
 import { useCreateGameMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
 
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+
+type GameTypeAI = "TRIVIA" | "WORD-PUZZLE" | "TWO-TRUTHS" | "THIS-OR-THAT";
 export type EventPhase = "pre-event" | "main-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -118,6 +121,7 @@ export function GameCreationWizard({
   // Step 1 — Basic Info
   const [gameName, setGameName] = useState("");
   const [gameType, setGameType] = useState<GameType>("trivia");
+  const [gameTypeAI, setGameTypeAI] = useState<GameTypeAI>("TRIVIA");
 
   // Step 2 — Schedule & Pricing
   const [phase, setPhase] = useState<EventPhase>("main-event");
@@ -136,14 +140,14 @@ export function GameCreationWizard({
   const [aiPrompt, setAiPrompt] = useState<{
     topic: string;
     count: number | null;
-    gameType: GameType;
+    gameType: GameTypeAI;
     difficulty: string;
     activityTiming: "" | "pre_event" | "ongoing" | "post_event";
     eventName: string;
   }>({
     topic: "",
     count: null,
-    gameType: gameType as GameType,
+    gameType: gameType as GameTypeAI,
     difficulty: "",
     activityTiming: "",
     eventName,
@@ -160,6 +164,8 @@ export function GameCreationWizard({
   const [createGameMutation, { isLoading }] = useCreateGameMutation();
 
   const progress = (step / totalSteps) * 100;
+  const accessToken = Cookies.get("accessToken");
+  console.log("token:", accessToken);
 
   const generateQuestionsWithAI = async () => {
     if (
@@ -179,7 +185,10 @@ export function GameCreationWizard({
         `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify(aiPrompt),
         }
       );
@@ -208,8 +217,10 @@ export function GameCreationWizard({
         })
       );
 
-      setQuestions(generated);
-      setStep(4);
+      if (response.ok) {
+        setQuestions(generated);
+        setStep(4);
+      }
     } catch (err) {
       console.error("AI generation failed:", err);
       // Fallback mock questions

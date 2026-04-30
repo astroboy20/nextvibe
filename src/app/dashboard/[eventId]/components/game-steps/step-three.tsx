@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Pencil, Sparkles } from "lucide-react";
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+type GameType = "TRIVIA" | "WORD-PUZZLE" | "TWO-TRUTHS" | "THIS-OR-THAT";
 
 interface StepThreeProps {
   contentMode: string;
@@ -23,6 +23,7 @@ interface StepThreeProps {
     gameType: GameType | "";
     difficulty: string;
     activityTiming: "pre_event" | "ongoing" | "post_event" | "";
+
     eventName: string;
   };
   setAiPrompt: any;
@@ -30,19 +31,19 @@ interface StepThreeProps {
 
 const gameTypeConfig: Record<GameType, { label: string; description: string }> =
   {
-    trivia: {
+    TRIVIA: {
       label: "Trivia",
       description: "Multiple choice questions",
     },
-    "word-puzzle": {
+    "WORD-PUZZLE": {
       label: "Word Puzzle",
       description: "Find words from letters",
     },
-    "two-truths": {
+    "TWO-TRUTHS": {
       label: "2 Truths & 1 Lie",
       description: "Guess the lie",
     },
-    "this-or-that": {
+    "THIS-OR-THAT": {
       label: "This or That",
       description: "Choose between options",
     },
@@ -194,9 +195,9 @@ const StepThree = ({
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
+                  <SelectItem value="EASY">Easy</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HARD">Hard</SelectItem>
                 </SelectContent>
               </Select>
             </div>

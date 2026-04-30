@@ -13,6 +13,7 @@ const Scene = () => {
   const dispatch = useDispatch();
   const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const template = useSelector((state: RootState) => state.canvas.template);
+  const templateFrame = template?.frame ?? null;
 
   useEffect(() => {
     let isMounted = true;
@@ -27,7 +28,6 @@ const Scene = () => {
 
       if (!domCanvasRef.current || !isMounted) return;
 
-      // Dispose any existing canvas first
       const existing = canvasStore.get();
       if (existing) {
         existing.dispose();
@@ -39,6 +39,12 @@ const Scene = () => {
         height: 600,
         preserveObjectStacking: true,
       });
+
+      // ✅ Make upper canvas focusable for keyboard input
+      if (fabricCanvas.upperCanvasEl) {
+        fabricCanvas.upperCanvasEl.setAttribute("tabindex", "0");
+        fabricCanvas.upperCanvasEl.style.outline = "none";
+      }
 
       canvasStore.set(fabricCanvas);
 
@@ -65,23 +71,30 @@ const Scene = () => {
       fabricCanvas.on("object:modified", saveCanvas);
       fabricCanvas.on("object:removed", saveCanvas);
 
-      const savedData = localStorage.getItem("fabricCanvas");
-      if (savedData) {
-        dispatch(setHasSavedData(true));
-        dispatch(setIsRestoreModalOpen(true));
-      }
+      const loadTemplateAndRestore = async () => {
+        if (templateFrame) {
+          await new Promise<void>((resolve) => {
+            FabricImage.fromURL(templateFrame, { crossOrigin: "anonymous" }).then(
+              (img: any) => {
+                if (!isMounted) return resolve();
+                img.scaleX = fabricCanvas.getWidth() / img.width;
+                img.scaleY = fabricCanvas.getHeight() / img.height;
+                fabricCanvas.backgroundImage = img;
+                fabricCanvas.renderAll();
+                resolve();
+              }
+            );
+          });
+        }
 
-      if (template?.frame) {
-        FabricImage.fromURL(template.frame, { crossOrigin: "anonymous" }).then(
-          (img: any) => {
-            if (!isMounted) return;
-            img.scaleX = fabricCanvas.getWidth() / img.width;
-            img.scaleY = fabricCanvas.getHeight() / img.height;
-            fabricCanvas.backgroundImage = img;
-            fabricCanvas.renderAll();
-          }
-        );
-      }
+        const savedData = localStorage.getItem("fabricCanvas");
+        if (savedData && isMounted) {
+          dispatch(setHasSavedData(true));
+          dispatch(setIsRestoreModalOpen(true));
+        }
+      };
+
+      await loadTemplateAndRestore();
     };
 
     initFabric();
@@ -94,7 +107,7 @@ const Scene = () => {
         canvasStore.set(null);
       }
     };
-  }, [dispatch, template]);
+  }, [dispatch, templateFrame]);
 
   return (
     <div className="w-full flex justify-center items-center">
@@ -102,7 +115,8 @@ const Scene = () => {
         <div className="bg-gray-100">
           <canvas
             ref={domCanvasRef}
-            className="border border-gray-100 rounded-lg"
+            tabIndex={0}
+            className="border border-gray-100 rounded-lg outline-none"
           />
         </div>
       </div>

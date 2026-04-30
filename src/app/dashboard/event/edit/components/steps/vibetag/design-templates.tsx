@@ -14,7 +14,7 @@ export default function DesignTemplate({ onSaveVibeTag }: DesignTemplateProps) {
   const view = useSelector((state: RootState) => state.canvas.view);
 
   return (
-    <div>
+    <div className="flex flex-col gap-8 ">
       {view === "start" && <Start />}
       {view === "template" && <Templates />}
       {view === "editor" && <Editor onSaveVibeTag={onSaveVibeTag} />}

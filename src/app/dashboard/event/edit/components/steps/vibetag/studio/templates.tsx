@@ -22,7 +22,7 @@ export default function Templates() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 my-20">
       {/* Header & Category Select */}
       <div className="space-y-2 text-center">
         <h2 className="text-lg font-semibold">

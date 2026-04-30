@@ -11,12 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// 👉 import your existing VibeTag component
-import VibeTag from "./vibetag"; // adjust path if needed
 import Vibetags from "../../event/edit/components/steps/vibetag/vibetags";
 
 const VibeTagStudioContent = () => {
-  const [open, setOpen] = useState(false); // ✅ modal state
+  const [open, setOpen] = useState(false);
 
   const [vibeTags] = useState([
     {
@@ -113,12 +111,12 @@ const VibeTagStudioContent = () => {
 
       {/* ✅ MODAL (added, no UI changes above) */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg overflow-y-scroll">
+        <DialogContent className="max-w-lg h-screen z-1000000000000 overflow-y-scroll">
           <DialogHeader>
             <DialogTitle>Create VibeTag</DialogTitle>
           </DialogHeader>
 
-          <Vibetags onClose={() => setOpen(false)} />
+          <Vibetags />
         </DialogContent>
       </Dialog>
     </>

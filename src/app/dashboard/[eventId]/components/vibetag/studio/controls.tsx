@@ -8,7 +8,6 @@ import {
   setIsFontsOpen,
   setIsPreviewOpen,
   setIsUploadImgOpen,
-  setView,
 } from "@/app/provider/slices/canvas-slice";
 import base64ToImage from "@/utils/base64ToImg";
 
@@ -57,7 +56,7 @@ interface ControlsProps {
 
 export default function Controls({ onSaveVibeTag }: ControlsProps) {
   const dispatch = useDispatch();
-  const canvas = useCanvas(); 
+  const canvas = useCanvas();
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
 
   useEffect(() => {
@@ -72,13 +71,11 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
     canvas.on("selection:created", handleSelection);
     canvas.on("selection:updated", handleSelection);
     canvas.on("selection:cleared", handleDeselection);
-    canvas.on("mouse:down", handleSelection);
 
     return () => {
       canvas.off("selection:created", handleSelection);
       canvas.off("selection:updated", handleSelection);
       canvas.off("selection:cleared", handleDeselection);
-      canvas.off("mouse:down", handleSelection);
     };
   }, [canvas]);
 
@@ -104,11 +101,11 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
 
     switch (id) {
       case "bring-front":
-        canvas.bringObjectForward(selectedObject, true); 
+        canvas.bringObjectForward(selectedObject, true);
         canvas.requestRenderAll();
         break;
       case "send-back":
-        canvas.sendObjectBackwards(selectedObject, true); 
+        canvas.sendObjectBackwards(selectedObject, true);
         canvas.requestRenderAll();
         break;
       case "del":
@@ -149,9 +146,7 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
         {/* Selected Object Controls */}
         {selectedObject && (
           <div className="border-t mt-4 pt-2">
-            {selectedObject.type === "textbox" && (
-              <ColorMenu canvas={canvas} />
-            )}
+            {selectedObject.type === "textbox" && <ColorMenu canvas={canvas} />}
             <div className="flex gap-2 mt-2">
               {controlActions.map((item) => (
                 <Card

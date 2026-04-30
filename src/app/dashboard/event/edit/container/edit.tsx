@@ -37,7 +37,7 @@ const Edit = ({ step }: CreateProps) => {
   if (step === 3) {
     return (
       <div className="h-screen pt-10 pb-20 w-full px-5">
-        <Vibetags onBack={() => goToStep(1)} />
+        {/* <Vibetags onBack={() => goToStep(1)} /> */}
       </div>
     );
   }

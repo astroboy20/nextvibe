@@ -29,16 +29,42 @@ export default function Fonts({ canvas }: FontsProps) {
       ...styles,
       fill: "#000",
       fontSize: 20,
-      width: 110,
+      width: 150,
       padding: 5,
       centeredScaling: true,
+      editable: true,        // ✅ explicitly allow editing
+      selectable: true,
+      hasControls: true,
     });
 
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.centerObject(text);
     canvas.requestRenderAll();
+
+    // ✅ Close modal first, then enter editing after animation fully settles
     dispatch(setIsFontsOpen(false));
+
+    // ✅ Radix Dialog exit animation is 150ms, wait beyond that
+    setTimeout(() => {
+      if (!canvas) return;
+
+      // ✅ Re-set active object (dialog close may have cleared it)
+      canvas.setActiveObject(text);
+      canvas.requestRenderAll();
+
+      // ✅ Enter editing mode
+      text.enterEditing();
+      text.selectAll();
+      canvas.requestRenderAll();
+
+      // ✅ Focus the upper-canvas element directly (Fabric v6)
+      // Fabric renders two canvas elements — the upper one handles interaction
+      const upperCanvas = canvas.upperCanvasEl as HTMLCanvasElement | undefined;
+      if (upperCanvas) {
+        upperCanvas.focus();
+      }
+    }, 300);
   };
 
   return (

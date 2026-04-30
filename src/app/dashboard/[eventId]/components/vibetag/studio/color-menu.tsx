@@ -9,9 +9,8 @@ interface ColorMenuProps {
 }
 
 export default function ColorMenu({ canvas }: ColorMenuProps) {
-  const [color, setColor] = useState<string>("#000000"); // Default to black
+  const [color, setColor] = useState<string>("#000000");
 
-  // Function to get the initial color of the selected text
   const getTextColor = useCallback(() => {
     const activeObject = canvas?.getActiveObject();
     if (
@@ -21,36 +20,34 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
         activeObject.type === "textbox")
     ) {
       const fill = activeObject.get("fill");
-      return typeof fill === "string" ? fill : "#000000"; // Ensure valid string color
+      return typeof fill === "string" ? fill : "#000000";
     }
-    return "#000000"; // Fallback if no text or invalid fill
+    return "#000000";
   }, [canvas]);
 
-  // Sync color with selected text
   useEffect(() => {
     if (!canvas) return;
 
-    const updateColor = () => {
-      setColor(getTextColor());
-    };
+    const updateColor = () => setColor(getTextColor());
+    // ✅ Store handler reference so .off() can remove the exact same fn
+    const clearColor = () => setColor("#000000");
 
     updateColor();
 
     canvas.on("selection:created", updateColor);
     canvas.on("selection:updated", updateColor);
-    canvas.on("selection:cleared", () => setColor("#000000"));
+    canvas.on("selection:cleared", clearColor);
 
     return () => {
       canvas.off("selection:created", updateColor);
       canvas.off("selection:updated", updateColor);
-      canvas.off("selection:cleared");
+      canvas.off("selection:cleared", clearColor); // ✅ same reference
     };
   }, [canvas, getTextColor]);
 
   const applyColorToText = useCallback(
     (newColor: string) => {
       if (!canvas) return;
-
       const activeObject = canvas.getActiveObject();
       if (
         activeObject &&
@@ -59,7 +56,7 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
           activeObject.type === "textbox")
       ) {
         activeObject.set("fill", newColor);
-        canvas.renderAll(); 
+        canvas.renderAll();
       }
     },
     [canvas]
@@ -86,7 +83,11 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
             onChange={(e) => handleColorChange(e.target.value)}
             className="w-full h-10 p-0 border-none rounded-lg cursor-pointer"
           />
-          <Button variant="outline" className="w-full mt-2" onClick={() => document.body.click()}>
+          <Button
+            variant="outline"
+            className="w-full mt-2"
+            onClick={() => document.body.click()}
+          >
             Close
           </Button>
         </div>
