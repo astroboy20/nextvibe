@@ -28,6 +28,7 @@ import {
 import { useMemo, useEffect, useState } from "react";
 import { toast } from "sonner";
 import SuccessModal from "../../../components/success-modal";
+import { Badge } from "@/components/ui/badge";
 
 const MAX_VIDEO_SIZE = 350 * 1024 * 1024;
 
@@ -65,10 +66,10 @@ const basicInfoSchema = z.object({
   isPublic: z.boolean({
     error: "Event mode is required",
   }),
-  tags: z.string().min(1, "Event category is required"),
+  tags: z.array(z.string()).min(1, "Select at least one event category"),
   locationName: z.string().optional(),
   startsAt: z.date().nullable().optional(),
-  eventMode: z.enum(["onsite", "hybrid", "virtual"], {
+  eventMode: z.enum(["ONSITE", "HYBRID", "VIRTUAL"], {
     error: "Event mode is required",
   }),
   coordinates: z
@@ -84,6 +85,7 @@ type BasicInfoFormValues = z.infer<typeof basicInfoSchema>;
 const BasicInfo = () => {
   const [createEventMutation, { isLoading }] = useCreateEventMutation();
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const {
     register,
@@ -98,6 +100,7 @@ const BasicInfo = () => {
     defaultValues: {
       locationName: "",
       isPublic: false,
+      tags: [],
     },
   });
 
@@ -105,18 +108,15 @@ const BasicInfo = () => {
   const locationName = watch("locationName");
   const promotionalVideo = watch("promoVideo");
   const isPublic = watch("isPublic");
-  // const isPublic = watch("isPublic");
 
   const flierUrl = useMemo(() => {
     if (!flier) return null;
-    const url = URL.createObjectURL(flier);
-    return url;
+    return URL.createObjectURL(flier);
   }, [flier]);
 
   const promoVideoUrl = useMemo(() => {
     if (!promotionalVideo) return null;
-    const url = URL.createObjectURL(promotionalVideo);
-    return url;
+    return URL.createObjectURL(promotionalVideo);
   }, [promotionalVideo]);
 
   useEffect(() => {
@@ -140,27 +140,39 @@ const BasicInfo = () => {
     }
   };
 
+  const handleTagSelect = (tagId: string) => {
+    // Don't add if already selected
+    if (selectedTags.includes(tagId)) return;
+    const updated = [...selectedTags, tagId];
+    setSelectedTags(updated);
+    setValue("tags", updated, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const handleTagRemove = (tagId: string) => {
+    const updated = selectedTags.filter((t) => t !== tagId);
+    setSelectedTags(updated);
+    setValue("tags", updated, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const getTagName = (tagId: string) =>
+    eventTypes.find((t) => t.id === tagId)?.name ?? tagId;
+
+  // Options not yet selected
+  const availableTags = eventTypes.filter((t) => !selectedTags.includes(t.id));
+
   const onSubmit = async (values: BasicInfoFormValues) => {
-    // const body = {
-    //   name: values.name,
-    //   description: values.description,
-    //   locationName: values.locationName,
-    //   isPublic: values.isPublic,
-    //   flier: values.flier,
-    //   promoVideo: values.promoVideo,
-    //   startsAt: values.startsAt?.toISOString(),
-    // };
     const body = {
       name: values.name,
       description: values.description,
       locationName: values.locationName,
       isPublic: values.isPublic,
-      tags: values.tags,
-      eventMode: values.eventMode,
+      // tagIds: values.tags,
+      mode: values.eventMode,
       flier: values.flier,
       promoVideo: values.promoVideo,
       startsAt: values.startsAt?.toISOString(),
     };
+    console.log(body)
 
     const request = await createEventMutation(body).unwrap();
 
@@ -175,7 +187,6 @@ const BasicInfo = () => {
 
   return (
     <>
-      {/* Success Modal */}
       {createdEventId && (
         <SuccessModal
           eventId={createdEventId}
@@ -231,9 +242,9 @@ const BasicInfo = () => {
               )}
             </div>
 
-            {/* Event Type */}
+            {/* Event Type (public/private) */}
             <div className="space-y-2">
-              <Label htmlFor="description">Event Type</Label>
+              <Label>Event Type</Label>
               <Select
                 onValueChange={(value) =>
                   setValue("isPublic", value === "public", {
@@ -244,15 +255,13 @@ const BasicInfo = () => {
                 value={isPublic ? "public" : "private"}
               >
                 <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
-                  <SelectValue placeholder="Select event mode" />
+                  <SelectValue placeholder="Select event type" />
                 </SelectTrigger>
-
                 <SelectContent>
                   <SelectItem value="public">Public</SelectItem>
                   <SelectItem value="private">Private</SelectItem>
                 </SelectContent>
               </Select>
-
               {errors.isPublic && (
                 <p className="text-xs text-red-500">
                   {errors.isPublic?.message}
@@ -260,61 +269,79 @@ const BasicInfo = () => {
               )}
             </div>
 
+            {/* Event Tags — multi-select */}
             <div className="space-y-2">
               <Label>Event Tags</Label>
 
-              <Select
-                onValueChange={(value) =>
-                  setValue("tags", value, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              >
-                <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
-                  <SelectValue placeholder="Select event category" />
-                </SelectTrigger>
+              {/* Dropdown — only shows unselected options */}
+              {availableTags.length > 0 && (
+                <Select onValueChange={handleTagSelect} value="">
+                  <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
+                    <SelectValue
+                      placeholder={
+                        selectedTags.length > 0
+                          ? `${selectedTags.length} tags selected`
+                          : "Select event category"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTags.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
-                <SelectContent>
-                  {eventTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
+              {/* Selected tags */}
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedTags.map((tagId) => (
+                    <Badge
+                      key={tagId}
+                      className="gap-1 bg-[#531342]/10 text-[#531342] hover:bg-[#531342]/20 border border-[#531342]/20 pr-1"
+                    >
+                      {getTagName(tagId)}
+                      <button
+                        type="button"
+                        onClick={() => handleTagRemove(tagId)}
+                        className="ml-1 rounded-full hover:bg-[#531342]/20 p-0.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
 
               {errors.tags && (
                 <p className="text-xs text-red-500">{errors.tags.message}</p>
               )}
             </div>
 
+            {/* Event Mode */}
             <div className="space-y-2">
               <Label>Event Mode</Label>
-
               <Select
                 onValueChange={(value) =>
                   setValue(
                     "eventMode",
-                    value as "onsite" | "hybrid" | "virtual",
-                    {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    }
+                    value as "ONSITE" | "HYBRID" | "VIRTUAL",
+                    { shouldValidate: true, shouldDirty: true }
                   )
                 }
               >
                 <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
                   <SelectValue placeholder="Select event mode" />
                 </SelectTrigger>
-
                 <SelectContent>
-                  <SelectItem value="onsite">Onsite</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                  <SelectItem value="virtual">Virtual</SelectItem>
+                  <SelectItem value="ONSITE">Onsite</SelectItem>
+                  <SelectItem value="HYBRID">Hybrid</SelectItem>
+                  <SelectItem value="VIRTUAL">Virtual</SelectItem>
                 </SelectContent>
               </Select>
-
               {errors.eventMode && (
                 <p className="text-xs text-red-500">
                   {errors.eventMode.message}
@@ -322,7 +349,7 @@ const BasicInfo = () => {
               )}
             </div>
 
-            {/* Date & Time → merged into startsAt */}
+            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="eventDate">Date</Label>
@@ -535,9 +562,7 @@ const BasicInfo = () => {
                         e.target.value = "";
                         return;
                       }
-                      setValue("promoVideo", file, {
-                        shouldValidate: true,
-                      });
+                      setValue("promoVideo", file, { shouldValidate: true });
                     }}
                   />
                 </label>

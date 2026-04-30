@@ -113,10 +113,19 @@ export function TicketCreatorEnhanced({
     if (!editingTicket) return;
 
     try {
+      const {
+        id,
+        eventId: _eid,
+        createdAt,
+        saleEndsAt,
+        quantitySold,
+        ...ticketData
+      } = editingTicket;
+
       const request = await updateTicketMutation({
-        ticketData: editingTicket,
+        ticketData,
         eventId: eventId,
-        ticketId: editingTicket.id,
+        ticketId: id,
       }).unwrap();
 
       if (request?.success) {
@@ -146,7 +155,7 @@ export function TicketCreatorEnhanced({
         setDeletingTicketId(null);
       }
     } catch (error) {
-      toast.error("Failed to delete ticket. Please try again.",);
+      toast.error("Failed to delete ticket. Please try again.");
     }
   };
 
@@ -342,7 +351,16 @@ export function TicketCreatorEnhanced({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => setEditingTicket({ ...ticket })}
+                      onClick={() =>
+                        setEditingTicket({
+                          ...ticket,
+                          ticketEndDate: ticket.saleEndsAt
+                            ? new Date(ticket.saleEndsAt)
+                                .toISOString()
+                                .slice(0, 16)
+                            : "",
+                        })
+                      }
                     >
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>

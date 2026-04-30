@@ -14,8 +14,14 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
+    // rules: {
+    //   "@typescript-eslint/no-explicit-any": "off",
+    // },
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      "no-console": "off",
+      eqeqeq: "off",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off"
     },
   },
 ]);

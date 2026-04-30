@@ -23,7 +23,7 @@ export const userApi = createApi({
         getUser: build.query<any, void>({
             query() {
                 return {
-                    url: "/users/me",
+                    url: "/v1/users/me",
                     method: "GET",
                 }
             }
@@ -31,7 +31,7 @@ export const userApi = createApi({
         switchRole: build.mutation({
             query(role: string) {
                 return {
-                    url: "/users/me/switch-role",
+                    url: "/v1/users/me/switch-role",
                     method: "POST",
                     body: { role }
                 }

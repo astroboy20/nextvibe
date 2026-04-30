@@ -265,7 +265,7 @@ export default function OrganizerDashboard({
                 </Badge>
               }
             >
-              <GamificationHubContent />
+              <GamificationHubContent eventId={eventId}/>
             </EventDashboardCard>
           )}
 

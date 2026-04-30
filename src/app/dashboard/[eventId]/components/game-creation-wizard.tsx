@@ -1,571 +1,524 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { 
-  Sparkles, 
-  Pencil, 
-  HelpCircle, 
-  Puzzle, 
-  MessageSquare, 
+import {
+  Sparkles,
+  HelpCircle,
+  Puzzle,
+  MessageSquare,
   Zap,
   ArrowLeft,
   ArrowRight,
   Loader2,
-  Check,
-  Eye,
-  Edit2,
-  RefreshCw,
-  Calendar,
-  Play
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import StepOne from "./game-steps/step-one";
+import StepTwo from "./game-steps/step-two";
+import StepThree from "./game-steps/step-three";
+import StepFour from "./game-steps/step-four";
+import StepFive from "./game-steps/step-five";
+import StepSix from "./game-steps/step-six";
+import { useCreateGameMutation } from "@/app/provider/api/eventApi";
+import { toast } from "sonner";
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
-type EventPhase = "pre-event" | "main-event" | "both";
+export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+export type EventPhase = "pre-event" | "main-event" | "both";
 type ContentMode = "ai" | "manual";
-type ScheduleMode = "daily" | "weekly" | "concurrent";
-
-interface Question {
+export type ScheduleMode = "daily" | "weekly" | "concurrent";
+export type RewardType =
+  | "CASH"
+  | "COUPON"
+  | "FREE_TICKET"
+  | "BADGE"
+  | "POINTS"
+  | "OTHERS";
+export type DiscountType = "PERCENTAGE" | "FIXED";
+export interface RewardTier {
+  id: string;
+  rank: number;
+  type: RewardType;
+  title: string;
+  description: string;
+  value: string;
+  discountType: DiscountType;
+  discountValue: number;
+  usageLimit: number;
+  expiryDate: string;
+  quantity: number;
+}
+export interface Question {
   id: string;
   question: string;
   options?: string[];
   correctIndex?: number;
   answer?: string;
+  timeLimitSecs: number;
 }
 
-interface GameCreationWizardProps {
-  onComplete: (game: {
-    name: string;
-    type: GameType;
-    phase: EventPhase;
-    rounds: number;
-    scheduleMode: ScheduleMode;
-    contentMode: ContentMode;
-    questions: Question[];
-  }) => void;
-  onCancel: () => void;
-}
-
-const gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: string; description: string }> = {
-  "trivia": { icon: <HelpCircle className="h-5 w-5" />, label: "Trivia", description: "Multiple choice questions" },
-  "word-puzzle": { icon: <Puzzle className="h-5 w-5" />, label: "Word Puzzle", description: "Find words from letters" },
-  "two-truths": { icon: <MessageSquare className="h-5 w-5" />, label: "2 Truths & 1 Lie", description: "Guess the lie" },
-  "this-or-that": { icon: <Zap className="h-5 w-5" />, label: "This or That", description: "Choose between options" },
+const PHASE_TO_API: Record<EventPhase, string> = {
+  "pre-event": "BEFORE_EVENT",
+  "main-event": "DURING_EVENT",
+  both: "BOTH",
 };
 
-export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardProps) {
+const SCHEDULE_TO_API: Record<ScheduleMode, string> = {
+  concurrent: "ALL_AT_ONCE",
+  daily: "DAILY",
+  weekly: "WEEKLY",
+};
+
+const GAMETYPE_TO_API: Record<GameType, string> = {
+  trivia: "TRIVIA",
+  "word-puzzle": "WORD_PUZZLE",
+  "two-truths": "TWO_TRUTHS",
+  "this-or-that": "THIS_OR_THAT",
+};
+
+const gameTypeConfig: Record<
+  GameType,
+  { icon: React.ReactNode; label: string; description: string }
+> = {
+  trivia: {
+    icon: <HelpCircle className="h-5 w-5" />,
+    label: "Trivia",
+    description: "Multiple choice questions",
+  },
+  "word-puzzle": {
+    icon: <Puzzle className="h-5 w-5" />,
+    label: "Word Puzzle",
+    description: "Find words from letters",
+  },
+  "two-truths": {
+    icon: <MessageSquare className="h-5 w-5" />,
+    label: "2 Truths & 1 Lie",
+    description: "Guess the lie",
+  },
+  "this-or-that": {
+    icon: <Zap className="h-5 w-5" />,
+    label: "This or That",
+    description: "Choose between options",
+  },
+};
+
+interface GameCreationWizardProps {
+  onComplete: (game: any) => void;
+  onCancel: () => void;
+  eventId: string;
+}
+
+
+export function GameCreationWizard({
+  onCancel,
+  eventId,
+}: GameCreationWizardProps) {
+  // Step
   const [step, setStep] = useState(1);
+  const totalSteps = 6; 
+
+  // Step 1 — Basic Info
   const [gameName, setGameName] = useState("");
   const [gameType, setGameType] = useState<GameType>("trivia");
-  const [phase, setPhase] = useState<EventPhase>("pre-event");
+
+  // Step 2 — Schedule & Pricing
+  const [phase, setPhase] = useState<EventPhase>("main-event");
   const [rounds, setRounds] = useState(3);
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("concurrent");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [gameDuration, setGameDuration] = useState(0);
+  const [maxWinners, setMaxWinners] = useState(0);
+  const [basePrice, setBasePrice] = useState(0);
+  const [perRoundPrice, setPerRoundPrice] = useState(0);
+  const [priceCurrency] = useState("NGN");
+
+  // Step 3 — Content Mode
   const [contentMode, setContentMode] = useState<ContentMode>("ai");
   const [aiPrompt, setAiPrompt] = useState("");
+
+  // Step 4 — Questions
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-  // const [showPreview, setShowPreview] = useState(false);
 
-  const totalSteps = 5;
+  // Step 5 — Reward Tiers
+  const [rewardTiers, setRewardTiers] = useState<RewardTier[]>([]);
+
+  const [createGameMutation, { isLoading }] = useCreateGameMutation();
+
   const progress = (step / totalSteps) * 100;
 
   const generateQuestionsWithAI = async () => {
     setIsGenerating(true);
-    
-    // Simulate AI generation - in production this would call the Lovable AI Gateway
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock generated questions based on game type
-    let generatedQuestions: Question[] = [];
-    
-    if (gameType === "trivia") {
-      generatedQuestions = Array.from({ length: rounds * 3 }, (_, i) => ({
-        id: `q-${i + 1}`,
-        question: `AI Generated Question ${i + 1}: ${aiPrompt ? `Related to "${aiPrompt.slice(0, 30)}..."` : "Sample question about the event"}`,
-        options: ["Option A", "Option B", "Option C", "Option D"],
-        correctIndex: Math.floor(Math.random() * 4),
-      }));
-    } else if (gameType === "two-truths") {
-      generatedQuestions = Array.from({ length: rounds }, (_, i) => ({
-        id: `q-${i + 1}`,
-        question: `Statement Set ${i + 1}`,
-        options: ["Truth 1", "Truth 2", "The Lie"],
-        correctIndex: 2,
-      }));
-    } else if (gameType === "this-or-that") {
-      generatedQuestions = Array.from({ length: rounds * 3 }, (_, i) => ({
-        id: `q-${i + 1}`,
-        question: `This or That ${i + 1}`,
-        options: ["Option A", "Option B"],
-      }));
-    } else {
-      generatedQuestions = [{
-        id: "q-1",
-        question: "Find all words from these letters",
-        answer: "PARTY, VIBE, ART",
-      }];
+    try {
+      const optionCount =
+        gameType === "this-or-that" ? 2 : gameType === "two-truths" ? 3 : 4;
+      const systemPrompt = `You are a quiz game content creator. Return ONLY valid JSON, no markdown, no explanation.`;
+      const userPrompt = `Create ${rounds * 3} questions for a "${
+        gameTypeConfig[gameType].label
+      }" game.
+${aiPrompt ? `Theme/context: ${aiPrompt}` : ""}
+Each question must have:
+- "text": question string
+- "options": array of exactly ${optionCount} strings
+- "correctIndex": integer (0-based index of correct answer)
+- "timeLimitSecs": integer between 10 and 30
+Return JSON array only: [{"text":"...","options":[...],"correctIndex":0,"timeLimitSecs":15},...]`;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        }),
+      });
+
+      const data = await response.json();
+      const raw =
+        data.content?.find((b: { type: string }) => b.type === "text")?.text ??
+        "[]";
+      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+
+      const generated: Question[] = parsed.map(
+        (
+          q: {
+            text: string;
+            options: string[];
+            correctIndex: number;
+            timeLimitSecs: number;
+          },
+          i: number
+        ) => ({
+          id: `q-${i + 1}`,
+          question: q.text,
+          options: q.options,
+          correctIndex: q.correctIndex ?? 0,
+          timeLimitSecs: q.timeLimitSecs ?? 15,
+        })
+      );
+
+      setQuestions(generated);
+      setStep(4);
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      // Fallback mock questions
+      setQuestions(
+        Array.from({ length: rounds * 3 }, (_, i) => ({
+          id: `q-${i + 1}`,
+          question: `Sample Question ${i + 1}`,
+          options: ["Option A", "Option B", "Option C", "Option D"],
+          correctIndex: 0,
+          timeLimitSecs: 15,
+        }))
+      );
+      setStep(4);
+    } finally {
+      setIsGenerating(false);
     }
-    
-    setQuestions(generatedQuestions);
-    setIsGenerating(false);
-    setStep(4);
-  };
-
-  const handleQuestionEdit = (id: string, field: string, value: string | number) => {
-    setQuestions(prev => prev.map(q => {
-      if (q.id !== id) return q;
-      if (field === "question") return { ...q, question: value as string };
-      if (field === "correctIndex") return { ...q, correctIndex: value as number };
-      return q;
-    }));
-  };
-
-  const handleOptionEdit = (questionId: string, optionIndex: number, value: string) => {
-    setQuestions(prev => prev.map(q => {
-      if (q.id !== questionId || !q.options) return q;
-      const newOptions = [...q.options];
-      newOptions[optionIndex] = value;
-      return { ...q, options: newOptions };
-    }));
   };
 
   const regenerateQuestion = async (id: string) => {
-    // Mock regeneration
-    setQuestions(prev => prev.map(q => 
-      q.id === id 
-        ? { ...q, question: `Regenerated: ${q.question} (Updated!)` }
-        : q
-    ));
+    try {
+      const q = questions.find((q) => q.id === id);
+      if (!q) return;
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 300,
+          messages: [
+            {
+              role: "user",
+              content: `Generate 1 replacement question for a ${
+                gameTypeConfig[gameType].label
+              } game${
+                aiPrompt ? ` about: ${aiPrompt}` : ""
+              }. Return ONLY JSON: {"text":"...","options":[...],"correctIndex":0,"timeLimitSecs":15}`,
+            },
+          ],
+        }),
+      });
+      const data = await response.json();
+      const raw =
+        data.content?.find((b: { type: string }) => b.type === "text")?.text ??
+        "{}";
+      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                question: parsed.text ?? q.question,
+                options: parsed.options ?? q.options,
+                correctIndex: parsed.correctIndex ?? q.correctIndex,
+                timeLimitSecs: parsed.timeLimitSecs ?? q.timeLimitSecs,
+              }
+            : q
+        )
+      );
+    } catch {
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q.id === id ? { ...q, question: `${q.question} (refreshed)` } : q
+        )
+      );
+    }
   };
 
-  const handleComplete = () => {
-    onComplete({
-      name: gameName,
-      type: gameType,
-      phase,
-      rounds,
-      scheduleMode,
-      contentMode,
-      questions,
-    });
+  const handleQuestionEdit = (
+    id: string,
+    field: string,
+    value: string | number
+  ) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== id) return q;
+        if (field === "question") return { ...q, question: value as string };
+        if (field === "correctIndex")
+          return { ...q, correctIndex: value as number };
+        if (field === "timeLimitSecs")
+          return { ...q, timeLimitSecs: value as number };
+        return q;
+      })
+    );
   };
 
-  const renderStep1 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="space-y-2">
-        <Label>Game Name</Label>
-        <Input
-          placeholder="e.g., Birthday Trivia Challenge"
-          value={gameName}
-          onChange={(e) => setGameName(e.target.value)}
-          className="text-lg"
-        />
-      </div>
+  const handleOptionEdit = (
+    questionId: string,
+    optionIndex: number,
+    value: string
+  ) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== questionId || !q.options) return q;
+        const newOptions = [...q.options];
+        newOptions[optionIndex] = value;
+        return { ...q, options: newOptions };
+      })
+    );
+  };
 
-      <div className="space-y-3">
-        <Label>Game Type</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {(Object.entries(gameTypeConfig) as [GameType, typeof gameTypeConfig.trivia][]).map(([type, config]) => (
-            <button
-              key={type}
-              onClick={() => setGameType(type)}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
-                gameType === type 
-                  ? "border-[#531342] bg-[#531342]/10" 
-                  : "border-border hover:border-[#531342]/50"
-              )}
-            >
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                gameType === type ? "bg-[#531342] text-white" : "bg-muted"
-              )}>
-                {config.icon}
-              </div>
-              <span className="font-medium text-sm">{config.label}</span>
-              <span className="text-xs text-muted-foreground text-center">{config.description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const addRewardTier = () => {
+    const nextRank = rewardTiers.length + 1;
+    setRewardTiers((prev) => [
+      ...prev,
+      {
+        id: `tier-${Date.now()}`,
+        rank: nextRank,
+        type: "CASH",
+        title: `${
+          nextRank === 2 ? "2nd" : nextRank === 3 ? "3rd" : `${nextRank}th`
+        } Place Winner`,
+        description: "",
+        value: "",
+        discountType: "PERCENTAGE",
+        discountValue: 0,
+        usageLimit: 1,
+        expiryDate: "",
+        quantity: 1,
+      },
+    ]);
+  };
 
-  const renderStep2 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="space-y-3">
-        <Label>Event Phase</Label>
-        <ToggleGroup 
-          type="single" 
-          value={phase}
-          onValueChange={(v) => v && setPhase(v as EventPhase)}
-          className="justify-start flex-wrap"
-        >
-          <ToggleGroupItem value="pre-event" className="rounded-full">Pre-Event</ToggleGroupItem>
-          <ToggleGroupItem value="main-event" className="rounded-full">Main Event</ToggleGroupItem>
-          <ToggleGroupItem value="both" className="rounded-full">Both</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+  const updateRewardTier = (
+    id: string,
+    field: keyof RewardTier,
+    value: string | number
+  ) => {
+    setRewardTiers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
+  };
 
-      <div className="space-y-3">
-        <Label>Number of Rounds</Label>
-        <div className="flex gap-2">
-          {[1, 3, 5, 10].map((num) => (
-            <Button
-              key={num}
-              variant={rounds === num ? "default" : "outline"}
-              size="sm"
-              className={`flex-1 rounded-full ${
-                rounds === num ? "bg-[#531342] text-white hover:bg-[#531342]/90" : ""
-              }`}
-      
-              onClick={() => setRounds(num)}
-            >
-              {num}
-            </Button>
-          ))}
-        </div>
-      </div>
+  const removeRewardTier = (id: string) => {
+    setRewardTiers((prev) =>
+      prev.filter((t) => t.id !== id).map((t, i) => ({ ...t, rank: i + 1 }))
+    );
+  };
 
-      <div className="space-y-3">
-        <Label>Schedule Mode</Label>
-        <RadioGroup value={scheduleMode} onValueChange={(v) => setScheduleMode(v as ScheduleMode)}>
-          <div className="space-y-3">
-            <label className={cn(
-              "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "concurrent" ? "border-[#531342] bg-[#531342]/5" : "border-border"
-            )}>
-              <RadioGroupItem value="concurrent" id="concurrent" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Concurrent</div>
-                <p className="text-sm text-muted-foreground">All games available at the same time</p>
-              </div>
-            </label>
-            <label className={cn(
-              "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "daily" ? "border-[#531342] bg-[#531342]/5" : "border-border"
-            )}>
-              <RadioGroupItem value="daily" id="daily" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Daily</div>
-                <p className="text-sm text-muted-foreground">New round unlocks each day</p>
-              </div>
-            </label>
-            <label className={cn(
-              "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              scheduleMode === "weekly" ? "border-[#531342] bg-[#531342]/5" : "border-border"
-            )}>
-              <RadioGroupItem value="weekly" id="weekly" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Weekly</div>
-                <p className="text-sm text-muted-foreground">New round unlocks each week</p>
-              </div>
-            </label>
-          </div>
-        </RadioGroup>
-      </div>
-    </div>
-  );
+  const handleComplete = async () => {
+    const payload = {
+      title: gameName,
+      scheduleType: SCHEDULE_TO_API[scheduleMode],
+      priceCurrency,
+      repetitions: rounds,
+      startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
+      endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
+      activityTiming: PHASE_TO_API[phase],
+      maxWinners,
+      gameDuration,
+      basePrice,
+      perRoundPrice,
+      rounds: questions.map((q, i) => ({
+        title: `Round ${i + 1}`,
+        description: "",
+        gameType: GAMETYPE_TO_API[gameType],
+        config: {
+          questions: [
+            {
+              text: q.question,
+              options: q.options,
+              correctIndex: q.correctIndex,
+              timeLimitSecs: q.timeLimitSecs,
+            },
+          ],
+        },
+        orderIndex: i,
+      })),
+      rewardTiers: rewardTiers.map(({ id, ...tier }) => ({
+        ...tier,
+        expiryDate: tier.expiryDate
+          ? new Date(tier.expiryDate).toISOString()
+          : undefined,
+      })),
+    };
 
-  const renderStep3 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="space-y-3">
-        <Label>Content Creation Method</Label>
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => setContentMode("ai")}
-            className={cn(
-              "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
-              contentMode === "ai" 
-                ? "border-[#531342] bg-linear-to-br from-[#531342]/10 to-accent/10" 
-                : "border-border hover:border-[#531342]/50"
-            )}
-          >
-            <div className={cn(
-              "flex h-14 w-14 items-center justify-center rounded-2xl",
-              contentMode === "ai" 
-                ? "bg-linear-to-br from-[#531342] to-accent text-[#531342]" 
-                : "bg-muted"
-            )}>
-              <Sparkles className="h-7 w-7" />
-            </div>
-            <span className="font-semibold">AI Generated</span>
-            <span className="text-xs text-muted-foreground text-center">
-              Let AI create questions based on your prompt
-            </span>
-          </button>
-          
-          <button
-            onClick={() => setContentMode("manual")}
-            className={cn(
-              "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
-              contentMode === "manual" 
-                ? "border-[#531342] bg-[#531342]/10" 
-                : "border-border hover:border-[#531342]/50"
-            )}
-          >
-            <div className={cn(
-              "flex h-14 w-14 items-center justify-center rounded-2xl",
-              contentMode === "manual" ? "bg-[#531342] text-[#531342]" : "bg-muted"
-            )}>
-              <Pencil className="h-7 w-7" />
-            </div>
-            <span className="font-semibold">Manual Input</span>
-            <span className="text-xs text-muted-foreground text-center">
-              Create your own questions manually
-            </span>
-          </button>
-        </div>
-      </div>
+    const request = await createGameMutation({
+      body: payload,
+      eventId: eventId,
+    }).unwrap();
+    if (request.success) {
+      toast.success("Game created successfully");
+      onCancel();
+    }
 
-      {contentMode === "ai" && (
-        <div className="space-y-3 animate-fade-in">
-          <Label>AI Generation Prompt</Label>
-          <Textarea
-            placeholder="Give AI directions for generating questions. E.g., 'Create fun trivia questions about Nigerian pop culture, Afrobeats music, and Lagos nightlife for a birthday party...'"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            className="min-h-30"
-          />
-          <p className="text-xs text-muted-foreground">
-            Tip: Be specific about the theme, difficulty level, and audience for better results
-          </p>
-        </div>
-      )}
+    // console.log("Final payload:", JSON.stringify(payload, null, 2));
+    // onComplete(payload);
+  };
 
-      {contentMode === "manual" && (
-        <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-          <Pencil className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            You&apos;ll be able to add questions manually in the next step
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  const stepLabel = [
+    "Basic Info",
+    "Schedule & Pricing",
+    "Content Mode",
+    "Questions",
+    "Reward Tiers",
+    "Preview",
+  ][step - 1];
 
-  const renderStep4 = () => (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold">Questions ({questions.length})</h3>
-          <p className="text-sm text-muted-foreground">
-            {contentMode === "ai" ? "Review and edit AI-generated content" : "Add your questions"}
-          </p>
-        </div>
-        {contentMode === "ai" && (
-          <Button variant="outline" size="sm" onClick={generateQuestionsWithAI} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Regenerate All
-          </Button>
-        )}
-      </div>
+  const handleNext = () => {
+    if (step === 3 && contentMode === "ai") {
+      generateQuestionsWithAI();
+    } else if (step === 3 && contentMode === "manual") {
+      setQuestions([]);
+      setStep(4);
+    } else {
+      setStep(step + 1);
+    }
+  };
 
-      <div className="space-y-3 max-h-100 overflow-y-auto pr-2">
-        {questions.map((q, index) => (
-          <Card key={q.id} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <Badge variant="secondary" className="shrink-0">Q{index + 1}</Badge>
-                <div className="flex-1 min-w-0">
-                  {editingQuestion === q.id ? (
-                    <div className="space-y-3">
-                      <Input
-                        value={q.question}
-                        onChange={(e) => handleQuestionEdit(q.id, "question", e.target.value)}
-                        className="font-medium"
-                      />
-                      {q.options && (
-                        <div className="space-y-2">
-                          {q.options.map((opt, optIdx) => (
-                            <div key={optIdx} className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleQuestionEdit(q.id, "correctIndex", optIdx)}
-                                className={cn(
-                                  "flex h-6 w-6 items-center justify-center rounded-full text-xs shrink-0",
-                                  q.correctIndex === optIdx 
-                                    ? "bg-green-500 text-white" 
-                                    : "bg-muted text-muted-foreground"
-                                )}
-                              >
-                                {q.correctIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
-                              </button>
-                              <Input
-                                value={opt}
-                                onChange={(e) => handleOptionEdit(q.id, optIdx, e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => setEditingQuestion(null)}>
-                          <Check className="h-3.5 w-3.5 mr-1" />
-                          Done
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="font-medium text-sm">{q.question}</p>
-                      {q.options && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {q.options.map((opt, optIdx) => (
-                            <Badge 
-                              key={optIdx} 
-                              variant={q.correctIndex === optIdx ? "default" : "outline"}
-                              className="text-xs"
-                            >
-                              {opt}
-                              {q.correctIndex === optIdx && " ✓"}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {editingQuestion !== q.id && (
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => setEditingQuestion(q.id)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => regenerateQuestion(q.id)}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {contentMode === "manual" && (
-        <Button variant="outline" className="w-full" onClick={() => {
-          const newId = `q-${questions.length + 1}`;
-          setQuestions(prev => [...prev, {
-            id: newId,
-            question: "",
-            options: gameType === "trivia" || gameType === "two-truths" 
-              ? ["", "", "", ""] 
-              : gameType === "this-or-that" 
-                ? ["", ""] 
-                : undefined,
-            correctIndex: 0,
-          }]);
-          setEditingQuestion(newId);
-        }}>
-          + Add Question
-        </Button>
-      )}
-    </div>
-  );
-
-  const renderStep5 = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-[#531342] to-accent mx-auto mb-4">
-          <Eye className="h-8 w-8 text-[#531342]" />
-        </div>
-        <h3 className="font-display text-xl font-bold">Preview & Submit</h3>
-        <p className="text-sm text-muted-foreground mt-1">Review your game before publishing</p>
-      </div>
-
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#531342]/10">
-              {gameTypeConfig[gameType].icon}
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold">{gameName || "Untitled Game"}</h4>
-              <p className="text-sm text-muted-foreground">{gameTypeConfig[gameType].label}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg bg-[#531342]/10 p-3">
-              <p className="text-lg font-bold">{rounds}</p>
-              <p className="text-xs text-muted-foreground">Rounds</p>
-            </div>
-            <div className="rounded-lg bg-[#531342]/10 p-3">
-              <p className="text-lg font-bold">{questions.length}</p>
-              <p className="text-xs text-muted-foreground">Questions</p>
-            </div>
-            <div className="rounded-lg bg-[#531342]/10 p-3">
-              <p className="text-xs font-semibold capitalize">{phase.replace("-", " ")}</p>
-              <p className="text-xs text-muted-foreground">Phase</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="outline" className="gap-1">
-              <Calendar className="h-3 w-3" />
-              {scheduleMode.charAt(0).toUpperCase() + scheduleMode.slice(1)}
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              {contentMode === "ai" ? <Sparkles className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
-              {contentMode === "ai" ? "AI Generated" : "Manual"}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button onClick={handleComplete} className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white">
-        <Play className="h-4 w-4" />
-        Create Game
-      </Button>
-    </div>
-  );
+  const canProceed = (): boolean => {
+    if (step === 1) return gameName.trim().length > 0;
+    if (step === 4) return questions.length > 0;
+    return true;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Progress Header */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">Step {step} of {totalSteps}</span>
-          <span className="text-muted-foreground">
-            {step === 1 && "Basic Info"}
-            {step === 2 && "Schedule"}
-            {step === 3 && "Content Mode"}
-            {step === 4 && "Questions"}
-            {step === 5 && "Preview"}
+          <span className="font-medium">
+            Step {step} of {totalSteps}
           </span>
+          <span className="text-muted-foreground">{stepLabel}</span>
         </div>
-        <Progress value={progress} className="h-2 " />
+        <Progress value={progress} className="h-2" />
       </div>
 
-      {/* Step Content */}
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
-      {step === 4 && renderStep4()}
-      {step === 5 && renderStep5()}
+      {step === 1 && (
+        <StepOne
+          gameName={gameName}
+          setGameName={setGameName}
+          gameType={gameType}
+          setGameType={setGameType}
+          gameTypeConfig={gameTypeConfig}
+        />
+      )}
+      {step === 2 && (
+        <StepTwo
+          phase={phase}
+          setPhase={setPhase}
+          startsAt={startsAt}
+          setStartsAt={setStartsAt}
+          endsAt={endsAt}
+          setEndsAt={setEndsAt}
+          rounds={rounds}
+          setRounds={setRounds}
+          gameDuration={gameDuration}
+          setGameDuration={setGameDuration}
+          maxWinners={maxWinners}
+          setMaxWinners={setMaxWinners}
+          priceCurrency={priceCurrency}
+          basePrice={basePrice}
+          setBasePrice={setBasePrice}
+          perRoundPrice={perRoundPrice}
+          setPerRoundPrice={setPerRoundPrice}
+          scheduleMode={scheduleMode}
+          setScheduleMode={setScheduleMode}
+        />
+      )}
+      {step === 3 && (
+        <StepThree
+          contentMode={contentMode}
+          setContentMode={setContentMode}
+          aiPrompt={aiPrompt}
+          setAiPrompt={setAiPrompt}
+        />
+      )}
+      {step === 4 && (
+        <StepFour
+          contentMode={contentMode}
+          questions={questions}
+          generateQuestionsWithAI={generateQuestionsWithAI}
+          editingQuestion={editingQuestion}
+          handleQuestionEdit={handleQuestionEdit}
+          handleOptionEdit={handleOptionEdit}
+          setEditingQuestion={setEditingQuestion}
+          regenerateQuestion={regenerateQuestion}
+          gameType={gameType}
+          setQuestions={setQuestions}
+        />
+      )}
+      {step === 5 && (
+        <StepFive
+          rewardTiers={rewardTiers}
+          addRewardTier={addRewardTier}
+          removeRewardTier={removeRewardTier}
+          updateRewardTier={updateRewardTier}
+          priceCurrency={priceCurrency}
+        />
+      )}
+      {step === 6 && (
+        <StepSix
+          gameName={gameName}
+          gameType={gameType}
+          gameTypeConfig={gameTypeConfig}
+          phase={phase}
+          startsAt={startsAt}
+          endsAt={endsAt}
+          rounds={rounds}
+          gameDuration={gameDuration}
+          maxWinners={maxWinners}
+          priceCurrency={priceCurrency}
+          basePrice={basePrice}
+          perRoundPrice={perRoundPrice}
+          scheduleMode={scheduleMode}
+          questions={questions}
+          contentMode={contentMode}
+          rewardTiers={rewardTiers}
+          handleComplete={handleComplete}
+          isLoading={isLoading}
+        />
+      )}
 
-      {/* Navigation */}
       <div className="flex gap-3 pt-4 border-t border-border">
         {step > 1 ? (
-          <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1 gap-1.5 ">
+          <Button
+            variant="outline"
+            onClick={() => setStep(step - 1)}
+            className="flex-1 gap-1.5"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
@@ -574,20 +527,11 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
             Cancel
           </Button>
         )}
-        
-        {step < totalSteps ? (
-          <Button 
-            onClick={() => {
-              if (step === 3 && contentMode === "ai") {
-                generateQuestionsWithAI();
-              } else if (step === 3 && contentMode === "manual") {
-                setQuestions([]);
-                setStep(4);
-              } else {
-                setStep(step + 1);
-              }
-            }}
-            disabled={(step === 1 && !gameName) || isGenerating}
+
+        {step < totalSteps && (
+          <Button
+            onClick={handleNext}
+            disabled={!canProceed() || isGenerating}
             className="flex-1 gap-1.5 bg-[#531342] hover:bg-[#531342]/90 text-white"
           >
             {isGenerating ? (
@@ -607,7 +551,7 @@ export function GameCreationWizard({ onComplete, onCancel }: GameCreationWizardP
               </>
             )}
           </Button>
-        ) : null}
+        )}
       </div>
     </div>
   );

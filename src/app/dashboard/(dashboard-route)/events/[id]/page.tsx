@@ -95,7 +95,7 @@ export default function EventPage({
       <div className="relative h-56 w-full">
         <img
           src={
-            eventDetails?.image ||
+            eventDetails?.data?.flierUrl ||
             "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop"
           }
           alt={eventDetails?.data?.name}
@@ -181,9 +181,9 @@ export default function EventPage({
               <EventGamesTab />
             </TabsContent>
 
-            <TabsContent value="vibetags" className="mt-0">
+            {/* <TabsContent value="vibetags" className="mt-0">
               <EventVibeTagsTab />
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="chat" className="mt-0">
               <EventChatTab />

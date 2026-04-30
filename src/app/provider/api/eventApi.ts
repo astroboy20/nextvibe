@@ -17,7 +17,7 @@ export const eventsApi = createApi({
     },
   }),
 
-  tagTypes: ["Events", "Event", "Gallery", "Messages"],
+  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games"],
 
   endpoints: (builder) => ({
 
@@ -61,6 +61,10 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [
         { type: "Event", id: eventId },
       ],
+    }),
+    getTickets: builder.query<any, string>({
+      query: (eventId) => `/v1/events/${eventId}/tickets`,
+      providesTags: (_, __, id) => [{ type: "Event", id }],
     }),
 
     //event api
@@ -176,10 +180,11 @@ export const eventsApi = createApi({
       }),
     }),
 
-    rsvp: builder.mutation<any, string>({
-      query: (eventId) => ({
-        url: `/events/${eventId}/rsvp`,
+    rsvp: builder.mutation<any, any>({
+      query: ({ eventId, ticketTierId }: { eventId: string; ticketTierId: any }) => ({
+        url: `/v1/events/${eventId}/rsvp`,
         method: "POST",
+        body: { ticketTierId: ticketTierId },
       }),
     }),
 
@@ -295,6 +300,34 @@ export const eventsApi = createApi({
         body,
       }),
     }),
+
+    //Games
+    createGame: builder.mutation<any, any>({
+      query: ({ body, eventId }: { body: any, eventId: string }) => ({
+        url: `/v1/events/${eventId}/game-sessions`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Games"]
+    }),
+    updateGameStatus: builder.mutation<
+      any,
+      { eventId: string; status: "PUBLISHED" | "ENDED" }
+    >({
+      query: ({ eventId, status }) => ({
+        url: `/v1/events/${eventId}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    getGames: builder.query<any, string>({
+      query: (eventId) => ({
+        url: `/v1/events/${eventId}/game-sessions`,
+      }),
+      providesTags: ["Games"]
+    }),
   }),
 });
 
@@ -325,4 +358,8 @@ export const {
   useCreateTicketMutation,
   useUpdateTicketMutation,
   useDeleteTicketMutation,
+  useGetTicketsQuery,
+  useCreateGameMutation,
+  useGetGamesQuery,
+  useUpdateGameStatusMutation,
 } = eventsApi;
