@@ -29,6 +29,7 @@ import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
 const mockEvent = {
   id: "1",
@@ -96,6 +97,15 @@ export default function OrganizerDashboard({
     (total, tier) => total + tier.quantitySold,
     0
   );
+
+  useEffect(()=>{
+    if(eventDetails?.data){
+      if (typeof window !== "undefined") {
+        localStorage.setItem("eventName", JSON.stringify(eventDetails.data?.name));
+        localStorage.setItem("eventId", eventId);
+      }
+    }
+  })
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -262,6 +272,7 @@ export default function OrganizerDashboard({
             >
               <GamificationHubContent
                 eventId={eventId}
+                roundId={eventDetails?.data.rounds?.id}
                 eventName={eventDetails?.data?.name}
               />
             </EventDashboardCard>
@@ -282,7 +293,10 @@ export default function OrganizerDashboard({
                 </Badge>
               }
             >
-              <VibeTagStudioContent />
+              <VibeTagStudioContent
+                eventId={eventId}
+                name={eventDetails?.data?.name}
+              />
             </EventDashboardCard>
           )}
 

@@ -312,10 +312,10 @@ export const eventsApi = createApi({
     }),
     updateGameStatus: builder.mutation<
       any,
-      { eventId: string; status: "PUBLISHED" | "ENDED" }
+      { roundId: string; status: "ACTIVE" | "ENDED" }
     >({
-      query: ({ eventId, status }) => ({
-        url: `/v1/events/${eventId}/status`,
+      query: ({ roundId, status }) => ({
+        url: `/v1/game-sessions/${roundId}/status`,
         method: "PATCH",
         body: { status },
       }),
@@ -328,6 +328,61 @@ export const eventsApi = createApi({
       }),
       providesTags: ["Games"]
     }),
+
+    createVibeTag: builder.mutation({
+      query: ({ eventId, name, imageKey }) => {
+        const formData = new FormData();
+        formData.append("eventId", eventId as string);
+        formData.append("name", name);
+        formData.append("imageKey", imageKey);
+        return {
+          url: "/v1/vibe-tags",
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+    }),
+
+    getVibeTags: builder.query<any, string>({
+      query: (eventId) => `/v1/vibe-tags?eventId=${eventId}`,
+      providesTags: (_, __, eventId) => [{ type: "Event", id: eventId }],
+    }),
+
+    getEventPostcards: builder.query<any, { eventId: string; phase?: string; page?: number; limit?: number }>({
+      query: ({ eventId, phase, page = 1, limit = 20 }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (phase && phase !== "all") params.set("phase", phase);
+        return `/v1/events/${eventId}/postcards?${params.toString()}`;
+      },
+      providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    createPostcard: builder.mutation<any, { eventId: string; image: string; caption?: string; vibeTagId?: string }>({
+      query: ({ eventId, ...body }) => ({
+        url: `/v1/events/${eventId}/postcards`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    toggleLikePostcard: builder.mutation<any, { eventId: string; postcardId: string }>({
+      query: ({ eventId, postcardId }) => ({
+        url: `/v1/events/${eventId}/postcards/${postcardId}/like`,
+        method: "POST",
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    getPostcardLeaderboard: builder.query<any, { eventId: string; phase?: "pre-event" | "main-event" }>({
+      query: ({ eventId, phase }) => {
+        const params = phase ? `?phase=${phase}` : "";
+        return `/v1/events/${eventId}/postcards/leaderboard${params}`;
+      },
+      providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
   }),
 });
 
@@ -362,4 +417,10 @@ export const {
   useCreateGameMutation,
   useGetGamesQuery,
   useUpdateGameStatusMutation,
+  useCreateVibeTagMutation,
+  useGetVibeTagsQuery,
+  useGetEventPostcardsQuery,
+  useCreatePostcardMutation,
+  useToggleLikePostcardMutation,
+  useGetPostcardLeaderboardQuery,
 } = eventsApi;

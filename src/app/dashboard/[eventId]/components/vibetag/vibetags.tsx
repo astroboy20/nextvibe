@@ -13,24 +13,20 @@ interface VibetagsProps {
 const Vibetags = ({ onClose }: VibetagsProps) => {
   const dispatch = useDispatch();
 
-  const handleBack = () => {
-    dispatch(setView("start"));
-    onClose();
-  };
 
   const handleSaveVibeTag = (file: File) => {
     console.log("VibeTag saved:", file);
-    onClose();
+    // onClose();
   };
 
   return (
     <div className="flex flex-col gap-8">
-      <div
+      {/* <div
         className="flex gap-2 items-center cursor-pointer"
         onClick={handleBack}
       >
         <ChevronLeft /> Back
-      </div>
+      </div> */}
       <DesignTemplate onSaveVibeTag={handleSaveVibeTag} />
     </div>
   );

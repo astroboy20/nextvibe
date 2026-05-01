@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Pencil, Sparkles } from "lucide-react";
 
-type GameType = "TRIVIA" | "WORD-PUZZLE" | "TWO-TRUTHS" | "THIS-OR-THAT";
+type GameType = "trivia" | "word_puzzle" | "two_truths" | "this_or_that";
 
 interface StepThreeProps {
   contentMode: string;
@@ -23,7 +23,6 @@ interface StepThreeProps {
     gameType: GameType | "";
     difficulty: string;
     activityTiming: "pre_event" | "ongoing" | "post_event" | "";
-
     eventName: string;
   };
   setAiPrompt: any;
@@ -31,19 +30,19 @@ interface StepThreeProps {
 
 const gameTypeConfig: Record<GameType, { label: string; description: string }> =
   {
-    TRIVIA: {
+    trivia: {
       label: "Trivia",
       description: "Multiple choice questions",
     },
-    "WORD-PUZZLE": {
+    "word_puzzle": {
       label: "Word Puzzle",
       description: "Find words from letters",
     },
-    "TWO-TRUTHS": {
+    "two_truths": {
       label: "2 Truths & 1 Lie",
       description: "Guess the lie",
     },
-    "THIS-OR-THAT": {
+    "this_or_that": {
       label: "This or That",
       description: "Choose between options",
     },
@@ -69,7 +68,7 @@ const StepThree = ({
         <Label>Content Creation Method</Label>
 
         <div className="grid grid-cols-2 gap-4">
-          <button
+          {/* <button
             onClick={() => setContentMode("ai")}
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
@@ -92,7 +91,7 @@ const StepThree = ({
             <span className="text-xs text-muted-foreground text-center">
               Let AI create questions based on your prompt
             </span>
-          </button>
+          </button> */}
 
           <button
             onClick={() => setContentMode("manual")}
@@ -125,7 +124,7 @@ const StepThree = ({
       {contentMode === "ai" && (
         <>
           <div className="grid grid-cols-2 gap-4">
-            {/* Topic */}
+           
             <div className="space-y-3">
               <Label>Topic</Label>
               <Input
@@ -140,8 +139,16 @@ const StepThree = ({
               <Label>Count</Label>
               <Input
                 type="number"
-                value={aiPrompt.count}
-                onChange={(e) => updateField("count", Number(e.target.value))}
+                
+                value={aiPrompt.count ?? ""} // ✅ show empty instead of 0
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  updateField(
+                    "count",
+                    value === "" ? null : Number(value) // ✅ handle empty properly
+                  );
+                }}
                 placeholder="e.g. 10"
               />
             </div>
@@ -195,9 +202,9 @@ const StepThree = ({
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EASY">Easy</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HARD">Hard</SelectItem>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
                 </SelectContent>
               </Select>
             </div>

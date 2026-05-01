@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { GameScoreShare } from "./game-share";
 import { useRouter } from "next/navigation";
+import { useGetGamesQuery } from "@/app/provider/api/eventApi";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -42,6 +42,10 @@ interface Game {
   currentRound?: number;
 }
 
+interface EventGamesTabProps {
+  event: any;
+}
+
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
   "word-puzzle": <Puzzle className="h-5 w-5" />,
@@ -49,105 +53,53 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-5 w-5" />,
 };
 
-const mockGames: Game[] = [
-  {
-    id: "1",
-    name: "Birthday Trivia",
-    type: "trivia",
-    phase: "pre-event",
-    status: "live",
-    players: 42,
-    rounds: 3,
-    currentRound: 2,
-  },
-  {
-    id: "2",
-    name: "Party Word Hunt",
-    type: "word-puzzle",
-    phase: "main-event",
-    status: "upcoming",
-    players: 0,
-    rounds: 1,
-  },
-  {
-    id: "3",
-    name: "Know the Host",
-    type: "two-truths",
-    phase: "pre-event",
-    status: "live",
-    players: 28,
-    rounds: 5,
-    currentRound: 3,
-  },
-  {
-    id: "4",
-    name: "This or That: Party Edition",
-    type: "this-or-that",
-    phase: "main-event",
-    status: "upcoming",
-    players: 0,
-    rounds: 10,
-  },
-];
-
-const preEventLeaderboard = [
-  {
-    rank: 1,
-    username: "@chioma_vibes",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-    score: 2450,
-  },
-  {
-    rank: 2,
-    username: "@tunde_life",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    score: 2180,
-  },
-  {
-    rank: 3,
-    username: "@ngozi_party",
-    avatar:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    score: 1950,
-  },
-  {
-    rank: 4,
-    username: "@ade_vibes",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    score: 1720,
-  },
-  {
-    rank: 5,
-    username: "@funke_lagos",
-    avatar:
-      "https://images.unsplash.com/photo-1489424731084-a5d8b219a8bb?w=100&h=100&fit=crop&crop=face",
-    score: 1580,
-  },
-];
-
 const rankIcons = [
-  <Crown className="h-4 w-4 text-amber-500" key={1}/>,
-  <Medal className="h-4 w-4 text-gray-400" key={2}/>,
-  <Medal className="h-4 w-4 text-amber-700" key={3}/>,
+  <Crown className="h-4 w-4 text-amber-500" key={1} />,
+  <Medal className="h-4 w-4 text-gray-400" key={2} />,
+  <Medal className="h-4 w-4 text-amber-700" key={3} />,
 ];
 
-export function EventGamesTab() {
+export function EventGamesTab({ event }: EventGamesTabProps) {
+  const { data:gameData } = useGetGamesQuery(event?.id);
+  console.log("Event details in GamesTab:", gameData);
+
   const router = useRouter();
   const [activePhase, setActivePhase] = useState<
     "all" | "pre-event" | "main-event"
   >("all");
   const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] = useState<
-    (typeof preEventLeaderboard)[0] | null
-  >(null);
+  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] =
+    useState<any>(null);
+
+  // ✅ MAP YOUR REAL DATA
+  const games: any[] =
+  gameData && gameData?.data?.map((g: any) => ({
+      id: g.id,
+      name: g.title,
+      type:
+        g.rounds?.[0]?.gameType === "TRIVIA"
+          ? "trivia"
+          : g.rounds?.[0]?.gameType === "WORD_PUZZLE"
+          ? "word-puzzle"
+          : "trivia",
+      phase: g.activityTiming === "DURING_EVENT" ? "main-event" : "pre-event",
+      status:
+        g.status === "PENDING"
+          ? "upcoming"
+          : g.status === "LIVE"
+          ? "live"
+          : "ended",
+      players: g._count?.sessionEntries || 0,
+      rounds: g.rounds?.length || 1,
+      currentRound: 1,
+    })) || [];
+
+  const leaderboard: any[] = []; // (no leaderboard in your data yet)
 
   const filteredGames =
     activePhase === "all"
-      ? mockGames
-      : mockGames.filter((g) => g.phase === activePhase);
+      ? games
+      : games.filter((g) => g.phase === activePhase);
 
   const handlePlayGame = (game: Game) => {
     router.push(
@@ -155,7 +107,7 @@ export function EventGamesTab() {
     );
   };
 
-  const handleShareScore = (entry: (typeof preEventLeaderboard)[0]) => {
+  const handleShareScore = (entry: any) => {
     setSelectedLeaderboardEntry(entry);
     setShowShareModal(true);
   };
@@ -178,7 +130,6 @@ export function EventGamesTab() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Phase Filter */}
       <Tabs value={activePhase} onValueChange={(v) => setActivePhase(v as any)}>
         <TabsList className="w-full grid grid-cols-3 h-10">
           <TabsTrigger value="all" className="text-xs">
@@ -193,7 +144,6 @@ export function EventGamesTab() {
         </TabsList>
       </Tabs>
 
-      {/* Games List */}
       <div className="space-y-3">
         {filteredGames.map((game) => (
           <Card
@@ -261,7 +211,7 @@ export function EventGamesTab() {
         ))}
       </div>
 
-      {/* Leaderboard */}
+      {/* Leaderboard stays unchanged but empty */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -277,47 +227,7 @@ export function EventGamesTab() {
         </div>
 
         <Card>
-          <CardContent className="p-0">
-            {preEventLeaderboard.map((player, index) => (
-              <div
-                key={player.rank}
-                className={cn(
-                  "flex items-center gap-3 p-3",
-                  index !== preEventLeaderboard.length - 1 &&
-                    "border-b border-border",
-                  index === 0 && "bg-amber-500/5"
-                )}
-              >
-                <div className="flex h-8 w-8 items-center justify-center">
-                  {index < 3 ? (
-                    rankIcons[index]
-                  ) : (
-                    <span className="text-sm font-bold text-muted-foreground">
-                      {player.rank}
-                    </span>
-                  )}
-                </div>
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={player.avatar} />
-                  <AvatarFallback>{player.username.charAt(1)}</AvatarFallback>
-                </Avatar>
-                <span className="flex-1 font-medium text-sm">
-                  {player.username}
-                </span>
-                <span className="font-display font-bold text-foreground">
-                  {player.score.toLocaleString()}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleShareScore(player)}
-                >
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </CardContent>
+          <CardContent className="p-0"></CardContent>
         </Card>
 
         <button className="mt-3 w-full text-center text-sm font-medium text-primary hover:underline flex items-center justify-center gap-1">
@@ -325,7 +235,6 @@ export function EventGamesTab() {
         </button>
       </div>
 
-      {/* Share Score Modal */}
       <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -336,7 +245,7 @@ export function EventGamesTab() {
               gameName="Event Games"
               score={selectedLeaderboardEntry.score}
               rank={selectedLeaderboardEntry.rank}
-              totalPlayers={preEventLeaderboard.length}
+              totalPlayers={leaderboard.length}
               eventName="Pre-Event Challenge"
               onClose={() => setShowShareModal(false)}
             />

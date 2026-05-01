@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { canvasStore } from "@/hooks/canvas-store";
 
 interface FontsProps {
   canvas: any | null;
@@ -29,42 +30,35 @@ export default function Fonts({ canvas }: FontsProps) {
       ...styles,
       fill: "#000",
       fontSize: 20,
-      width: 150,
+      width: 200,
       padding: 5,
       centeredScaling: true,
-      editable: true,        // ✅ explicitly allow editing
-      selectable: true,
-      hasControls: true,
     });
 
     canvas.add(text);
-    canvas.setActiveObject(text);
     canvas.centerObject(text);
     canvas.requestRenderAll();
 
-    // ✅ Close modal first, then enter editing after animation fully settles
     dispatch(setIsFontsOpen(false));
 
-    // ✅ Radix Dialog exit animation is 150ms, wait beyond that
+    // ✅ Use the shared enterTextEditing helper from Scene.tsx via canvasStore.
+    // This is the ONLY reliable way in Fabric v6 — it focuses the hidden textarea
+    // that Fabric uses for keyboard input. Without this, text editing breaks
+    // after deselection because the browser focus lands on the wrong element.
     setTimeout(() => {
-      if (!canvas) return;
-
-      // ✅ Re-set active object (dialog close may have cleared it)
-      canvas.setActiveObject(text);
-      canvas.requestRenderAll();
-
-      // ✅ Enter editing mode
-      text.enterEditing();
-      text.selectAll();
-      canvas.requestRenderAll();
-
-      // ✅ Focus the upper-canvas element directly (Fabric v6)
-      // Fabric renders two canvas elements — the upper one handles interaction
-      const upperCanvas = canvas.upperCanvasEl as HTMLCanvasElement | undefined;
-      if (upperCanvas) {
-        upperCanvas.focus();
+      const enterTextEditing = (canvasStore as any).enterTextEditing;
+      if (enterTextEditing) {
+        enterTextEditing(text);
+      } else {
+        // Fallback in case the helper isn't ready yet
+        canvas.setActiveObject(text);
+        text.enterEditing();
+        if (text.hiddenTextarea) {
+          text.hiddenTextarea.focus();
+        }
+        canvas.requestRenderAll();
       }
-    }, 300);
+    }, 50);
   };
 
   return (

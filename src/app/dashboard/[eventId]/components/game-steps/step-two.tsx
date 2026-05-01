@@ -114,7 +114,7 @@ const StepTwo = ({
 
     {/* Game Duration */}
     <div className="space-y-2">
-      <Label>Game Duration (minutes)</Label>
+      <Label>Game Duration (Seconds)</Label>
       <div className="flex gap-2">
         {[15, 30, 45, 60].map((mins) => (
           <Button
@@ -128,7 +128,7 @@ const StepTwo = ({
             }`}
             onClick={() => setGameDuration(mins)}
           >
-            {mins}m
+            {mins}s
           </Button>
         ))}
       </div>

@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
+import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
 
 interface ControlItem {
   label: string;
@@ -117,10 +118,22 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
     }
   };
 
-  const handleContinue = () => {
+  const name  = typeof window !=="undefined" && localStorage.getItem("eventName")
+  const eventId  = typeof window !=="undefined" && localStorage.getItem("eventId")
+  const [createVibeTag] = useCreateVibeTagMutation()
+  
+
+  const handleContinue = async() => {
     if (!canvas) return;
-    const dataUrl = canvas.toDataURL({ multiplier: 1, format: "png" });
+    const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
+    console.log(file)
+    const request = await createVibeTag({
+      eventId:eventId as string,
+      name:name,
+      imageKey:file,
+    });
+    console.log("VibeTag creation response:", request);
     dispatch(setBackdropFile(file));
     if (onSaveVibeTag) onSaveVibeTag(file);
     // dispatch(setView("start"));

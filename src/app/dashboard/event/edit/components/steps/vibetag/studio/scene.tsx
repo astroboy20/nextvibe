@@ -13,7 +13,6 @@ const Scene = () => {
   const dispatch = useDispatch();
   const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const template = useSelector((state: RootState) => state.canvas.template);
-
   const templateFrame = template?.frame ?? null;
 
   useEffect(() => {
@@ -51,6 +50,31 @@ const Scene = () => {
         cornerColor: "#030047",
         transparentCorners: false,
       };
+
+      // ✅ The ONLY reliable way to handle text editing in Fabric v6
+      // Fabric v6 uses a hidden textarea for keyboard input.
+      // We must focus that textarea — NOT the canvas element.
+      const enterTextEditing = (textbox: any) => {
+        fabricCanvas.setActiveObject(textbox);
+        fabricCanvas.requestRenderAll();
+        textbox.enterEditing();
+        // Focus the hidden textarea that Fabric v6 uses for input
+        if (textbox.hiddenTextarea) {
+          textbox.hiddenTextarea.focus();
+        }
+        fabricCanvas.requestRenderAll();
+      };
+
+      // ✅ Handle double click to re-edit existing textboxes
+      fabricCanvas.on("mouse:dblclick", (e: any) => {
+        const target = e.target;
+        if (target && target.type === "textbox") {
+          enterTextEditing(target);
+        }
+      });
+
+      // ✅ Expose helper on store so Fonts.tsx can call it too
+      (canvasStore as any).enterTextEditing = enterTextEditing;
 
       const saveCanvas = () => {
         try {

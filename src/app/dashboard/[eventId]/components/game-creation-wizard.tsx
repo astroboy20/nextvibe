@@ -21,9 +21,7 @@ import { useCreateGameMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
-export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
-
-type GameTypeAI = "TRIVIA" | "WORD-PUZZLE" | "TWO-TRUTHS" | "THIS-OR-THAT";
+export type GameType = "" | "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 export type EventPhase = "pre-event" | "main-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -121,7 +119,6 @@ export function GameCreationWizard({
   // Step 1 — Basic Info
   const [gameName, setGameName] = useState("");
   const [gameType, setGameType] = useState<GameType>("trivia");
-  const [gameTypeAI, setGameTypeAI] = useState<GameTypeAI>("TRIVIA");
 
   // Step 2 — Schedule & Pricing
   const [phase, setPhase] = useState<EventPhase>("main-event");
@@ -136,18 +133,18 @@ export function GameCreationWizard({
   const [priceCurrency] = useState("NGN");
 
   // Step 3 — Content Mode
-  const [contentMode, setContentMode] = useState<ContentMode>("ai");
+  const [contentMode, setContentMode] = useState<ContentMode>("manual");
   const [aiPrompt, setAiPrompt] = useState<{
     topic: string;
     count: number | null;
-    gameType: GameTypeAI;
+    gameType: GameType;
     difficulty: string;
     activityTiming: "" | "pre_event" | "ongoing" | "post_event";
     eventName: string;
   }>({
     topic: "",
     count: null,
-    gameType: gameType as GameTypeAI,
+    gameType: gameType as GameType,
     difficulty: "",
     activityTiming: "",
     eventName,
@@ -165,7 +162,6 @@ export function GameCreationWizard({
 
   const progress = (step / totalSteps) * 100;
   const accessToken = Cookies.get("accessToken");
-  console.log("token:", accessToken);
 
   const generateQuestionsWithAI = async () => {
     if (

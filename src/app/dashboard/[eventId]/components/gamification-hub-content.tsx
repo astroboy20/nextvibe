@@ -37,7 +37,8 @@ type EventPhase = "pre-event" | "main-event" | "both";
 
 interface GameProps {
   eventId: string;
-  eventName:string
+  eventName: string;
+  roundId?: string;
 }
 
 // Raw API shape
@@ -167,13 +168,14 @@ export function GamificationHubContent({ eventId, eventName }: GameProps) {
           (g) => g.mappedPhase === activePhase || g.mappedPhase === "both"
         );
 
-  const [changeGameStatus] = useUpdateGameStatusMutation();
+  const [changeGameStatus, { isLoading: isChangeStatusLoading }] =
+    useUpdateGameStatusMutation();
 
-  const handleStartGame = async () => {
+  const handleStartGame = async (roundId:string) => {
     try {
       await changeGameStatus({
-        eventId,
-        status: "PUBLISHED",
+        roundId: roundId ?? "",
+        status: "ACTIVE",
       }).unwrap();
 
       toast.success("Game started");
@@ -182,10 +184,10 @@ export function GamificationHubContent({ eventId, eventName }: GameProps) {
     }
   };
 
-  const handleEndGame = async () => {
+  const handleEndGame = async (roundId:string) => {
     try {
       await changeGameStatus({
-        eventId,
+        roundId: roundId ?? "",
         status: "ENDED",
       }).unwrap();
 
@@ -408,10 +410,10 @@ export function GamificationHubContent({ eventId, eventName }: GameProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-full"
-                      disabled={isLoading}
-                      onClick={handleEndGame}
+                      disabled={isChangeStatusLoading}
+                      onClick={()=>handleEndGame(game.rounds?.[0]?.id)}
                     >
-                      {isLoading ? (
+                      {isChangeStatusLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <StopCircle className="h-4 w-4 text-red-500" />
@@ -422,15 +424,14 @@ export function GamificationHubContent({ eventId, eventName }: GameProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-full text-green-600"
-                      disabled={isLoading}
-                      onClick={handleStartGame}
+                      disabled={isChangeStatusLoading}
+                      onClick={()=>handleStartGame(game.rounds?.[0]?.id)}
                     >
-                        {isLoading ? (
+                      {isChangeStatusLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Play className="h-4 w-4" />
                       )}
-                    
                     </Button>
                   ) : null}
                 </div>

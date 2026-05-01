@@ -40,12 +40,6 @@ const Scene = () => {
         preserveObjectStacking: true,
       });
 
-      // ✅ Make upper canvas focusable for keyboard input
-      if (fabricCanvas.upperCanvasEl) {
-        fabricCanvas.upperCanvasEl.setAttribute("tabindex", "0");
-        fabricCanvas.upperCanvasEl.style.outline = "none";
-      }
-
       canvasStore.set(fabricCanvas);
 
       InteractiveFabricObject.ownDefaults = {
@@ -56,6 +50,31 @@ const Scene = () => {
         cornerColor: "#030047",
         transparentCorners: false,
       };
+
+      // ✅ The ONLY reliable way to handle text editing in Fabric v6
+      // Fabric v6 uses a hidden textarea for keyboard input.
+      // We must focus that textarea — NOT the canvas element.
+      const enterTextEditing = (textbox: any) => {
+        fabricCanvas.setActiveObject(textbox);
+        fabricCanvas.requestRenderAll();
+        textbox.enterEditing();
+        // Focus the hidden textarea that Fabric v6 uses for input
+        if (textbox.hiddenTextarea) {
+          textbox.hiddenTextarea.focus();
+        }
+        fabricCanvas.requestRenderAll();
+      };
+
+      // ✅ Handle double click to re-edit existing textboxes
+      fabricCanvas.on("mouse:dblclick", (e: any) => {
+        const target = e.target;
+        if (target && target.type === "textbox") {
+          enterTextEditing(target);
+        }
+      });
+
+      // ✅ Expose helper on store so Fonts.tsx can call it too
+      (canvasStore as any).enterTextEditing = enterTextEditing;
 
       const saveCanvas = () => {
         try {
@@ -74,16 +93,16 @@ const Scene = () => {
       const loadTemplateAndRestore = async () => {
         if (templateFrame) {
           await new Promise<void>((resolve) => {
-            FabricImage.fromURL(templateFrame, { crossOrigin: "anonymous" }).then(
-              (img: any) => {
-                if (!isMounted) return resolve();
-                img.scaleX = fabricCanvas.getWidth() / img.width;
-                img.scaleY = fabricCanvas.getHeight() / img.height;
-                fabricCanvas.backgroundImage = img;
-                fabricCanvas.renderAll();
-                resolve();
-              }
-            );
+            FabricImage.fromURL(templateFrame, {
+              crossOrigin: "anonymous",
+            }).then((img: any) => {
+              if (!isMounted) return resolve();
+              img.scaleX = fabricCanvas.getWidth() / img.width;
+              img.scaleY = fabricCanvas.getHeight() / img.height;
+              fabricCanvas.backgroundImage = img;
+              fabricCanvas.renderAll();
+              resolve();
+            });
           });
         }
 
@@ -115,8 +134,7 @@ const Scene = () => {
         <div className="bg-gray-100">
           <canvas
             ref={domCanvasRef}
-            tabIndex={0}
-            className="border border-gray-100 rounded-lg outline-none"
+            className="border border-gray-100 rounded-lg"
           />
         </div>
       </div>

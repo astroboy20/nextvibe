@@ -9,41 +9,55 @@ interface ColorMenuProps {
 }
 
 export default function ColorMenu({ canvas }: ColorMenuProps) {
-  const [color, setColor] = useState<string>("#000000"); // Default to black
+  const [color, setColor] = useState<string>("#000000");
 
-  // Function to get the initial color of the selected text
   const getTextColor = useCallback(() => {
-    const activeObject = canvas?.getActiveObject();
+    if (!canvas) return "#000000";
+    const activeObject = canvas.getActiveObject();
     if (
       activeObject &&
       (activeObject.type === "text" ||
         activeObject.type === "i-text" ||
         activeObject.type === "textbox")
     ) {
+      // ✅ If the textbox is in editing mode and has a text selection,
+      // read from the selection's styles rather than the object-level fill.
+      // This gives accurate feedback when different parts have different colors.
+      if (activeObject.isEditing) {
+        const selectionStart = activeObject.selectionStart ?? 0;
+        const styles = activeObject.getSelectionStyles(
+          selectionStart,
+          selectionStart + 1,
+          true
+        );
+        if (styles?.length && styles[0]?.fill) {
+          return styles[0].fill as string;
+        }
+      }
       const fill = activeObject.get("fill");
-      return typeof fill === "string" ? fill : "#000000"; // Ensure valid string color
+      return typeof fill === "string" ? fill : "#000000";
     }
-    return "#000000"; // Fallback if no text or invalid fill
+    return "#000000";
   }, [canvas]);
 
-  // Sync color with selected text
   useEffect(() => {
     if (!canvas) return;
 
-    const updateColor = () => {
-      setColor(getTextColor());
-    };
+    const updateColor = () => setColor(getTextColor());
 
     updateColor();
 
     canvas.on("selection:created", updateColor);
     canvas.on("selection:updated", updateColor);
     canvas.on("selection:cleared", () => setColor("#000000"));
+    // ✅ Also update when the cursor moves within a textbox during editing
+    canvas.on("text:selection:changed", updateColor);
 
     return () => {
       canvas.off("selection:created", updateColor);
       canvas.off("selection:updated", updateColor);
       canvas.off("selection:cleared");
+      canvas.off("text:selection:changed", updateColor);
     };
   }, [canvas, getTextColor]);
 
@@ -53,14 +67,53 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
 
       const activeObject = canvas.getActiveObject();
       if (
-        activeObject &&
-        (activeObject.type === "text" ||
-          activeObject.type === "i-text" ||
-          activeObject.type === "textbox")
+        !activeObject ||
+        (activeObject.type !== "text" &&
+          activeObject.type !== "i-text" &&
+          activeObject.type !== "textbox")
       ) {
-        activeObject.set("fill", newColor);
-        canvas.renderAll(); 
+        return;
       }
+
+      // ✅ CRITICAL: Fabric v6 distinguishes between two states:
+      //
+      // 1. Textbox is in EDITING MODE with characters selected:
+      //    → Use setSelectionStyles() to color only the selected characters.
+      //    → Also update the object-level fill so newly typed chars inherit the color.
+      //
+      // 2. Textbox is SELECTED but NOT in editing mode (object selected on canvas):
+      //    → Use activeObject.set("fill") to recolor the whole text block.
+      //
+      // Using only set("fill") in case 1 changes the whole block color but does NOT
+      // update already-styled characters, making the color picker appear broken.
+
+      if (activeObject.isEditing) {
+        const selectionStart = activeObject.selectionStart ?? 0;
+        const selectionEnd = activeObject.selectionEnd ?? 0;
+
+        if (selectionStart !== selectionEnd) {
+          // Characters are highlighted — color just the selection
+          activeObject.setSelectionStyles(
+            { fill: newColor },
+            selectionStart,
+            selectionEnd
+          );
+        }
+        // Always update object-level fill so new characters typed use this color
+        activeObject.set("fill", newColor);
+      } else {
+        // Not in editing mode — color the whole textbox
+        activeObject.set("fill", newColor);
+        // Clear any per-character style overrides so the new color takes full effect
+        if (typeof activeObject.cleanStyle === "function") {
+          activeObject.cleanStyle("fill");
+        }
+      }
+
+      // ✅ Use requestRenderAll (not renderAll) — this is the correct Fabric v6 API.
+      // renderAll() is synchronous and can cause issues; requestRenderAll() schedules
+      // a proper re-render on the next animation frame.
+      canvas.requestRenderAll();
     },
     [canvas]
   );
@@ -86,7 +139,11 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
             onChange={(e) => handleColorChange(e.target.value)}
             className="w-full h-10 p-0 border-none rounded-lg cursor-pointer"
           />
-          <Button variant="outline" className="w-full mt-2" onClick={() => document.body.click()}>
+          <Button
+            variant="outline"
+            className="w-full mt-2"
+            onClick={() => document.body.click()}
+          >
             Close
           </Button>
         </div>

@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   QrCode,
   Gamepad2,
@@ -26,25 +27,7 @@ import { EventGamesTab } from "./components/event-game-tab";
 import { EventVibeTagsTab } from "./components/event-vibetags-tab";
 import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 
-// const mockEvent = {
-//   id: "1",
-//   title: "Detty December 2025",
-//   date: "Dec 20, 2025",
-//   time: "8:00 PM",
-//   location: "Eko Hotel, Victoria Island, Lagos",
-//   image:
-//     "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop",
-//   organizer: {
-//     name: "Lagos Events Co.",
-//     avatar:
-//       "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=face",
-//   },
-//   description:
-//     "Join us for the biggest end-of-year celebration in Lagos! Experience amazing performances, great food, and unforgettable memories.",
-//   attendees: 156,
-//   hasGames: true,
-//   hasVibeTag: true,
-// };
+
 
 const tabsConfig = [
   {
@@ -78,16 +61,111 @@ const tabsConfig = [
     icon: <MessageCircle className="mr-1.5 h-4 w-4" />,
   },
 ];
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function EventPageSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      {/* Hero skeleton */}
+      <div className="relative h-56 w-full bg-muted">
+        <Skeleton className="h-full w-full rounded-none" />
+
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        {/* Action buttons placeholder */}
+        <div className="absolute right-4 top-4 flex gap-2">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+
+        {/* Title area */}
+        <div className="absolute bottom-4 left-4 right-4 space-y-2">
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-7 w-3/4 rounded-lg" />
+        </div>
+      </div>
+
+      {/* Tabs bar skeleton */}
+      <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
+        <div className="flex gap-1 px-2 py-2 overflow-x-auto no-scrollbar">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-20 shrink-0 rounded-md" />
+          ))}
+        </div>
+
+        {/* Tab content skeleton — mirrors the About tab layout */}
+        <div className="container px-4 py-6 space-y-4">
+          {/* Info rows */}
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-24 rounded" />
+              <Skeleton className="h-3 w-40 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-32 rounded" />
+              <Skeleton className="h-3 w-48 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-20 rounded" />
+              <Skeleton className="h-3 w-36 rounded" />
+            </div>
+          </div>
+
+          {/* Description block */}
+          <div className="space-y-2 pt-2">
+            <Skeleton className="h-4 w-full rounded" />
+            <Skeleton className="h-4 w-5/6 rounded" />
+            <Skeleton className="h-4 w-4/6 rounded" />
+          </div>
+
+          {/* Tags */}
+          <div className="flex gap-2 pt-1">
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-6 w-14 rounded-full" />
+          </div>
+
+          {/* CTA button */}
+          <Skeleton className="h-12 w-full rounded-xl mt-2" />
+        </div>
+      </div>
+
+      <BottomNav />
+    </div>
+  );
+}
+
 export default function EventPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: eventDetails } = useGetEventDetailsQuery(id);
+  const { data: eventDetails, isLoading } = useGetEventDetailsQuery(id);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("about");
   const [isLiked, setIsLiked] = useState(false);
+
+  if (isLoading) {
+    return <EventPageSkeleton onBack={() => router.push("/dashboard/events")} />;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24 ">
@@ -178,12 +256,12 @@ export default function EventPage({
             </TabsContent>
 
             <TabsContent value="games" className="mt-0">
-              <EventGamesTab />
+              <EventGamesTab event={eventDetails?.data} />
             </TabsContent>
 
-            {/* <TabsContent value="vibetags" className="mt-0">
-              <EventVibeTagsTab />
-            </TabsContent> */}
+            <TabsContent value="vibetags" className="mt-0">
+              <EventVibeTagsTab eventId={id} />
+            </TabsContent>
 
             <TabsContent value="chat" className="mt-0">
               <EventChatTab />

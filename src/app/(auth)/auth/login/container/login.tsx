@@ -71,7 +71,7 @@ const LoginContent = () => {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        expires: 1 / 96,
+        expires: 7,
       });
       Cookies.set("refreshToken", res?.data?.refreshToken, {
         secure: process.env.NODE_ENV === "production",

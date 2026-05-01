@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { canvasStore } from "@/hooks/canvas-store";
 
 interface FontsProps {
   canvas: any | null;
@@ -29,16 +30,35 @@ export default function Fonts({ canvas }: FontsProps) {
       ...styles,
       fill: "#000",
       fontSize: 20,
-      width: 110,
+      width: 200,
       padding: 5,
       centeredScaling: true,
     });
 
     canvas.add(text);
-    canvas.setActiveObject(text);
     canvas.centerObject(text);
     canvas.requestRenderAll();
+
     dispatch(setIsFontsOpen(false));
+
+    // ✅ Use the shared enterTextEditing helper from Scene.tsx via canvasStore.
+    // This is the ONLY reliable way in Fabric v6 — it focuses the hidden textarea
+    // that Fabric uses for keyboard input. Without this, text editing breaks
+    // after deselection because the browser focus lands on the wrong element.
+    setTimeout(() => {
+      const enterTextEditing = (canvasStore as any).enterTextEditing;
+      if (enterTextEditing) {
+        enterTextEditing(text);
+      } else {
+        // Fallback in case the helper isn't ready yet
+        canvas.setActiveObject(text);
+        text.enterEditing();
+        if (text.hiddenTextarea) {
+          text.hiddenTextarea.focus();
+        }
+        canvas.requestRenderAll();
+      }
+    }, 50);
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Sparkles, Zap } from "lucide-react";
+import { CheckCircle, Gift, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PricingSkeleton from "./skeleton";
@@ -12,33 +12,33 @@ import { Separator } from "@/components/ui/separator";
 
 const vibeTag = [
   {
-    name: "Basic",
-    USD: 10,
-    NGN: 10000,
+    name: "Micro",
+    NGN: 5000,
+    NGN_ALT: 8000,
     features: ["1-100 Attendees", "Featured listing", "Targeted discovery"],
   },
   {
-    name: "Standard",
-    USD: 20,
-    NGN: 20000,
+    name: "Small",
+    NGN: 10000,
+    NGN_ALT: 15000,
     features: ["101-500 Attendees", "Featured listing", "Targeted discovery"],
   },
   {
-    name: "Premium",
-    USD: 35,
-    NGN: 35000,
+    name: "Medium",
+    NGN: 20000,
+    NGN_ALT: 30000,
     features: ["501-1001 Attendees", "Priority promotion", "Boosted reach"],
   },
   {
-    name: "Gold",
-    USD: 70,
-    NGN: 75000,
+    name: "Large",
+    NGN: 35000,
+    NGN_ALT: 50000,
     features: ["1001-5000 Attendees", "Premium event placement", "Ad support"],
   },
   {
     name: "Enterprise",
-    USD: Infinity,
-    NGN: Infinity,
+    NGN: 50000,
+    NGN_ALT: 75000,
     features: [
       "5000+ Attendees",
       "Sponsored event placement",
@@ -50,21 +50,24 @@ const vibeTag = [
 
 const gamification = [
   {
-    name: "Basic",
-    USD: 15,
-    NGN: 15000,
+    name: "Micro",
+    NGN: 5000,
+    NGN_ALT: 8000,
+    extraGames: 2000,
     features: ["1-100 Attendees", "Basic gamification"],
   },
   {
-    name: "Standard",
-    USD: 30,
-    NGN: 30000,
+    name: "Small",
+    NGN: 10000,
+    NGN_ALT: 15000,
+    extraGames: 3500,
     features: ["101-500 Attendees", "Social sharing incentives", "Giveaways"],
   },
   {
-    name: "Premium",
-    USD: 50,
-    NGN: 50000,
+    name: "Medium",
+    NGN: 20000,
+    NGN_ALT: 30000,
+    extraGames: 6000,
     features: [
       "501-1001 Attendees",
       "Multi-level challenges",
@@ -72,9 +75,10 @@ const gamification = [
     ],
   },
   {
-    name: "Gold",
-    USD: 100,
-    NGN: 100000,
+    name: "Large",
+    NGN: 35000,
+    NGN_ALT: 50000,
+    extraGames: 10000,
     features: [
       "1001-5000 Attendees",
       "Full-scale gamification",
@@ -83,10 +87,65 @@ const gamification = [
   },
   {
     name: "Enterprise",
-    USD: Infinity,
-    NGN: Infinity,
+    NGN: 50000,
+    NGN_ALT: 75000,
+    extraGames: 15000,
     features: [
       "5000+ Attendees",
+      "Advanced gamification",
+      "Sponsored challenges",
+    ],
+    type: "custom",
+  },
+];
+
+const megaBundle = [
+  {
+    name: "Micro",
+    NGN: 8000,
+    NGN_ALT: 12000,
+    features: ["1-100 Attendees", "Featured listing", "Basic gamification"],
+  },
+  {
+    name: "Small",
+    NGN: 15000,
+    NGN_ALT: 25000,
+    features: [
+      "101-500 Attendees",
+      "Featured listing",
+      "Social sharing incentives",
+      "Giveaways",
+    ],
+  },
+  {
+    name: "Medium",
+    NGN: 30000,
+    NGN_ALT: 50000,
+    features: [
+      "501-1001 Attendees",
+      "Priority promotion",
+      "Multi-level challenges",
+      "VIP ticket contests",
+    ],
+  },
+  {
+    name: "Large",
+    NGN: 55000,
+    NGN_ALT: 85000,
+    features: [
+      "1001-5000 Attendees",
+      "Premium event placement",
+      "Full-scale gamification",
+      "Analytics dashboard",
+    ],
+  },
+  {
+    name: "Enterprise",
+    NGN: 85000,
+    NGN_ALT: 135000,
+    features: [
+      "5000+ Attendees",
+      "Sponsored event placement",
       "Advanced gamification",
       "Sponsored challenges",
     ],
@@ -98,10 +157,12 @@ function formatNumber(value: number) {
   return value.toLocaleString();
 }
 
+type TabType = "Vibe Tag" | "Gamification" | "Mega Bundle";
+
 const PricingContent = () => {
   const [currency, setCurrency] = useState<"NGN" | "USD">("USD");
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"Vibe Tag" | "Gamification">("Vibe Tag");
+  const [tab, setTab] = useState<TabType>("Vibe Tag");
 
   useEffect(() => {
     const fetchLocation = async () => {
@@ -121,7 +182,12 @@ const PricingContent = () => {
     fetchLocation();
   }, []);
 
-  const items = tab === "Vibe Tag" ? vibeTag : gamification;
+  const items =
+    tab === "Vibe Tag"
+      ? vibeTag
+      : tab === "Gamification"
+      ? gamification
+      : megaBundle;
 
   return (
     <div className="min-h-screen flex flex-col pt-40">
@@ -143,25 +209,37 @@ const PricingContent = () => {
           {/* Tab toggle */}
           <div className="flex justify-center mb-10">
             <div className="flex items-center bg-gray-100 rounded-full p-1 gap-1">
-              {(["Vibe Tag", "Gamification"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={cn(
-                    "flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer",
-                    tab === t
-                      ? "bg-[#5B1A57] text-white shadow-sm"
-                      : "text-gray-500 hover:text-[#5B1A57]"
-                  )}
-                >
-                  {t === "Vibe Tag" ? (
-                    <Zap className="w-4 h-4" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  {t}
-                </button>
-              ))}
+              {(["Vibe Tag", "Gamification", "Mega Bundle"] as const).map(
+                (t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={cn(
+                      "flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer",
+                      tab === t
+                        ? "bg-[#5B1A57] text-white shadow-sm"
+                        : "text-gray-500 hover:text-[#5B1A57]"
+                    )}
+                  >
+                    {t === "Vibe Tag" ? (
+                      <Zap className="w-4 h-4" />
+                    ) : t === "Gamification" ? (
+                      <Sparkles className="w-4 h-4" />
+                    ) : (
+                      <Gift className="w-4 h-4" />
+                    )}
+                    {t}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Ticketing note */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-[#FFEBEB] text-[#5B1A57] text-sm font-medium px-4 py-2 rounded-full">
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              Ticketing — 0% fee, you keep 100% for both free and paid events
             </div>
           </div>
 
@@ -169,6 +247,8 @@ const PricingContent = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {items.map((item, index) => {
               const isCustom = item.type === "custom";
+              const extraGames = "extraGames" in item ? item.extraGames : null;
+
               return (
                 <Card
                   key={index}
@@ -188,6 +268,8 @@ const PricingContent = () => {
                   >
                     {isCustom ? (
                       <Sparkles className="w-5 h-5 text-white" />
+                    ) : tab === "Mega Bundle" ? (
+                      <Gift className="w-5 h-5 text-[#5B1A57]" />
                     ) : (
                       <Zap className="w-5 h-5 text-[#5B1A57]" />
                     )}
@@ -222,8 +304,13 @@ const PricingContent = () => {
                     ) : (
                       <>
                         <span className="text-4xl font-semibold leading-tight">
-                          {currency === "NGN" ? NAIRA_SIGN : DOLLAR_SIGN}
-                          {formatNumber(item[currency])}
+                          {NAIRA_SIGN}
+                          {formatNumber(item.NGN)}
+                          <span className="text-xl text-gray-400 font-normal">
+                            {" "}
+                            / {NAIRA_SIGN}
+                            {formatNumber(item.NGN_ALT)}
+                          </span>
                         </span>
                         <span
                           className={cn(
@@ -233,6 +320,14 @@ const PricingContent = () => {
                         >
                           / per event
                         </span>
+                        {extraGames !== null && (
+                          <span className="text-xs mt-1 text-[#5B1A57] font-medium">
+                            + Extra Games: {NAIRA_SIGN}
+                            {extraGames !== null &&
+                              extraGames !== undefined &&
+                              typeof extraGames === "number" ? formatNumber(extraGames) : ""}
+                          </span>
+                        )}
                       </>
                     )}
                   </div>
@@ -293,6 +388,35 @@ const PricingContent = () => {
                 </Card>
               );
             })}
+          </div>
+
+          {/* Examples */}
+          <div className="mt-14">
+            <h2 className="text-center text-xl font-bold text-[#5B1A57] mb-6">
+              Pricing Examples
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { label: "Birthday Party (40 pax)", price: 8000 },
+                { label: "House Party (30 pax)", price: 8000 },
+                { label: "Small Wedding (150 pax)", price: 25000 },
+                { label: "Conference (300 pax)", price: 50000 },
+                { label: "Concert (1,000 pax)", price: 85000 },
+              ].map((example, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between bg-[#FFEBEB] rounded-xl px-5 py-4"
+                >
+                  <span className="text-sm text-gray-700 font-medium">
+                    {example.label}
+                  </span>
+                  <span className="text-sm font-bold text-[#5B1A57]">
+                    {NAIRA_SIGN}
+                    {formatNumber(example.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

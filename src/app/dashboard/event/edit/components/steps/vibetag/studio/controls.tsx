@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
+import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
 
 interface ControlItem {
   label: string;
@@ -52,9 +53,14 @@ const controlActions: ControlItem[] = [
 
 interface ControlsProps {
   onSaveVibeTag?: (file: File) => void;
+  // name: string;
+  // eventId: string;
 }
 
-export default function Controls({ onSaveVibeTag }: ControlsProps) {
+export default function Controls({
+  onSaveVibeTag,
+
+}: ControlsProps) {
   const dispatch = useDispatch();
   const canvas = useCanvas();
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
@@ -121,13 +127,25 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
     }
   };
 
-  const handleContinue = () => {
+  const name = typeof window !== "undefined" ? localStorage.getItem("vibeTagName") || "": "";
+  const eventId = typeof window !== "undefined" ? localStorage.getItem("eventId") || "": "";
+
+
+  const [createVibeTag, { data, isLoading, error }] = useCreateVibeTagMutation();
+
+  const handleContinue = async () => {
     if (!canvas) return;
     // ✅ multiplier: 2 for a proper hi-res export
     const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
     dispatch(setBackdropFile(file));
-    if (onSaveVibeTag) onSaveVibeTag(file); 
+    const request = await createVibeTag({
+      eventId:eventId,
+      name:name,
+      imagekey:file,
+    });
+    console.log("VibeTag creation response:", request);
+    if (onSaveVibeTag) onSaveVibeTag(file); // parent closes modal
   };
 
   return (
@@ -150,9 +168,7 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
         {/* Selected Object Controls */}
         {selectedObject && (
           <div className="border-t mt-4 pt-2">
-            {selectedObject.type === "textbox" && (
-              <ColorMenu canvas={canvas} />
-            )}
+            {selectedObject.type === "textbox" && <ColorMenu canvas={canvas} />}
             <div className="flex gap-2 mt-2">
               {controlActions.map((item) => (
                 <Card
