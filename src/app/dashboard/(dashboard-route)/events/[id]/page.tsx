@@ -213,7 +213,7 @@ export default function EventPage({
                 Games
               </Badge>
             )}
-            {eventDetails?.data?.VibeTag && (
+            {eventDetails?.data?.vibeTag && (
               <Badge className="bg-primary/90 text-primary-foreground">
                 <Tag className="mr-1 h-3 w-3" />
                 VibeTag

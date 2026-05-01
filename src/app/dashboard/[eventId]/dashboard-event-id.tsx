@@ -289,13 +289,14 @@ export default function OrganizerDashboard({
                   variant="secondary"
                   className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
                 >
-                  2 Tags
+                  {eventDetails?.data?.vibeTag ? "1 Tag" : "0 Tags"}
                 </Badge>
               }
             >
               <VibeTagStudioContent
                 eventId={eventId}
                 name={eventDetails?.data?.name}
+                vibeTag={eventDetails?.data?.vibeTag ?? null}
               />
             </EventDashboardCard>
           )}

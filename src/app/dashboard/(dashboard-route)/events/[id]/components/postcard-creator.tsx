@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useCreatePostcardMutation } from "@/app/provider/api/eventApi";
+import { useUploadMultipleFilesMutation, useCreatePostcardsMutation } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useDispatch } from "react-redux";
 
@@ -35,6 +35,7 @@ export interface VibeTagOverlay {
 interface PostcardCreatorProps {
   vibeTagName?: string;
   vibeTagOverlay?: VibeTagOverlay | null;
+  vibeTagId?: string;
   eventName?: string;
   eventId?: string;
   onClose?: () => void;
@@ -106,6 +107,7 @@ async function hasMultipleCameras(): Promise<boolean> {
 export function PostcardCreator({
   vibeTagName = "Event VibeTag",
   vibeTagOverlay,
+  vibeTagId,
   eventName = "Event",
   eventId,
   onClose,
@@ -156,7 +158,8 @@ export function PostcardCreator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, dispatch]);
 
-  const [createPostcard] = useCreatePostcardMutation();
+  const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
+  const [createPostcards] = useCreatePostcardsMutation();
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
 
   // ── Bake helper ────────────────────────────────────────────────────────────
@@ -359,29 +362,55 @@ export function PostcardCreator({
     );
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit — two-step upload ───────────────────────────────────────────────
+  // Step 1: POST all baked images to /v1/storage/upload-multiple → get fileKeys[]
+  // Step 2: POST { eventId, vibeTagId, media: [{ fileKey }] } to /v1/postcards
 
   const handleSubmitAll = async (queue: QueuedImage[]) => {
     const ready = queue.filter((item) => !item.baking);
     if (!ready.length) return;
+    if (!eventId) { toast.error("Event ID missing."); return; }
+
     setIsSubmitting(true);
     try {
+      // ── Step 1: upload files ──────────────────────────────────────────────
+      const formData = new FormData();
       for (const item of ready) {
         const src = item.baked ?? item.raw;
-        if (eventId)
-          await createPostcard({
-            eventId,
-            image: src,
-            caption: item.caption,
-          }).unwrap();
-        onSubmit?.({ image: src, caption: item.caption });
+        const blob = dataUrlToBlob(src);
+        // Use a consistent filename; server doesn't care about the name
+        formData.append("files", blob, `postcard-${item.id}.png`);
       }
-      toast.success(
-        `${ready.length} postcard${ready.length > 1 ? "s" : ""} posted!`
-      );
+
+      const uploadResult = await uploadMultipleFiles(formData).unwrap();
+      // Each item in data has { url, fileKey, mediaType }
+      // We only need fileKey and mediaType for the postcards endpoint
+      const uploadedItems: { fileKey: string; mediaType: string }[] =
+        (uploadResult?.data ?? []).map(
+          (item: { fileKey: string; mediaType: string }) => ({
+            fileKey: item.fileKey,
+            mediaType: item.mediaType,
+          })
+        );
+
+      if (!uploadedItems.length) {
+        toast.error("Upload failed — no file keys returned.");
+        return;
+      }
+
+      // ── Step 2: create postcards ──────────────────────────────────────────
+      await createPostcards({
+        eventId,
+        vibeTagId,
+        media: uploadedItems,
+      }).unwrap();
+
+      toast.success(`${ready.length} postcard${ready.length > 1 ? "s" : ""} posted!`);
+      // Notify parent (vibetags tab) so it can refresh the grid
+      ready.forEach((item) => onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption }));
       onClose?.();
-    } catch {
-      toast.error("Failed to post. Please try again.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

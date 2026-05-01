@@ -15,6 +15,20 @@ import {
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 
+// Minio base — resolves storageKey → full URL when mediaUrl is null
+const STORAGE_BASE =
+  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+  "http://minio-production-5cff.up.railway.app:443/nextvibe";
+
+function resolveMediaUrl(media?: {
+  mediaUrl?: string | null;
+  storageKey?: string | null;
+}): string {
+  if (media?.mediaUrl) return media.mediaUrl;
+  if (media?.storageKey) return `${STORAGE_BASE}/${media.storageKey}`;
+  return "";
+}
+
 interface VibeTag {
   id: string;
   name: string;
@@ -45,9 +59,9 @@ export function EventVibeTagsTab({
   const [toggleLike] = useToggleLikePostcardMutation();
 
   // ── Derived data ───────────────────────────────────────────────────────────
-  const postcards: any[] = postcardsData?.data ?? [];
+  // Response shape: { data: { data: [], meta: {} } }
+  const postcards: any[] = postcardsData?.data?.data ?? [];
 
-  // vibeTag.imageUrl is the overlay image from the event details response
   const vibeTagOverlay: VibeTagOverlay | null =
     vibeTag?.imageUrl
       ? { imageUrl: vibeTag.imageUrl, name: vibeTag.name }
@@ -74,6 +88,7 @@ export function EventVibeTagsTab({
         <PostcardCreator
           vibeTagName={vibeTag?.name ?? "Event VibeTag"}
           vibeTagOverlay={vibeTagOverlay}
+          vibeTagId={vibeTag?.id}
           eventName={eventName}
           eventId={eventId}
           onClose={() => setShowCreator(false)}
@@ -103,35 +118,27 @@ export function EventVibeTagsTab({
                 {vibeTag?.imageUrl ? (
                   <img
                     src={vibeTag.imageUrl}
-                    alt={vibeTag.name}
+                    alt={vibeTag?.name}
                     className="absolute inset-0 w-full h-full object-contain z-10"
                   />
                 ) : (
                   <div className="text-center p-4 z-10">
                     <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
                     <p className="font-semibold text-sm text-foreground">VibeTag</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      No VibeTag set
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">No VibeTag set</p>
                   </div>
                 )}
               </div>
             </div>
 
             {vibeTag && (
-              <Badge
-                variant="outline"
-                className="mb-3 w-full justify-center gap-1 text-xs"
-              >
+              <Badge variant="outline" className="mb-3 w-full justify-center gap-1 text-xs">
                 <Sparkles className="h-3 w-3" />
                 This VibeTag will be applied to your postcards
               </Badge>
             )}
 
-            <Button
-              className="w-full rounded-xl gap-2"
-              onClick={() => setShowCreator(true)}
-            >
+            <Button className="w-full rounded-xl gap-2" onClick={() => setShowCreator(true)}>
               <Camera className="h-4 w-4" />
               Create Your Postcard
             </Button>
@@ -139,10 +146,7 @@ export function EventVibeTagsTab({
         </Card>
 
         {/* ── Phase Filter ── */}
-        <Tabs
-          value={activePhase}
-          onValueChange={(v) => setActivePhase(v as typeof activePhase)}
-        >
+        <Tabs value={activePhase} onValueChange={(v) => setActivePhase(v as typeof activePhase)}>
           <TabsList className="w-full grid grid-cols-3 h-10">
             <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
             <TabsTrigger value="pre-event" className="text-xs">Pre-Event</TabsTrigger>
@@ -179,53 +183,55 @@ export function EventVibeTagsTab({
           {!isLoadingPostcards && postcards.length > 0 && (
             <>
               <div className="grid grid-cols-2 gap-3">
-                {postcards.map((postcard: any, index: number) => (
-                  <div
-                    key={postcard._id ?? postcard.id ?? index}
-                    className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <img
-                      src={postcard.imageUrl ?? postcard.image}
-                      alt=""
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                {postcards.map((postcard: any, index: number) => {
+                  const primaryMedia = postcard?.media?.[0];
+                  const src = resolveMediaUrl(primaryMedia);
+                  const authorName =
+                    postcard?.author?.displayName ??
+                    postcard?.author?.username ??
+                    "";
+                  const likeCount = postcard?.likeCount ?? 0;
+                  const commentCount = postcard?.commentCount ?? 0;
 
-                    {postcard.phase && (
-                      <Badge
-                        className={cn(
-                          "absolute top-2 left-2 text-[10px]",
-                          postcard.phase === "pre-event"
-                            ? "bg-amber-500/90 text-white"
-                            : "bg-primary/90 text-primary-foreground"
+                  if (!src) return null;
+
+                  return (
+                    <div
+                      key={postcard?.id ?? index}
+                      className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <img
+                        src={src}
+                        alt={postcard?.caption ?? ""}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        {authorName && (
+                          <p className="text-xs font-medium text-white mb-1 truncate">
+                            @{authorName}
+                          </p>
                         )}
-                      >
-                        {postcard.phase === "pre-event" ? "Pre" : "Main"}
-                      </Badge>
-                    )}
-
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <p className="text-xs font-medium text-white mb-1">
-                        {postcard.user?.name ?? postcard.author ?? ""}
-                      </p>
-                      <div className="flex items-center gap-3 text-white/80">
-                        <button
-                          onClick={() => handleLike(postcard._id ?? postcard.id)}
-                          className="flex items-center gap-1 text-xs hover:text-red-400 transition-colors"
-                          aria-label="Like postcard"
-                        >
-                          <Heart className="h-3.5 w-3.5 fill-current" />
-                          {postcard.likes ?? 0}
-                        </button>
-                        <span className="flex items-center gap-1 text-xs">
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          {postcard.comments ?? 0}
-                        </span>
+                        <div className="flex items-center gap-3 text-white/80">
+                          <button
+                            onClick={() => handleLike(postcard?.id)}
+                            className="flex items-center gap-1 text-xs hover:text-red-400 transition-colors"
+                            aria-label="Like postcard"
+                          >
+                            <Heart className="h-3.5 w-3.5 fill-current" />
+                            {likeCount}
+                          </button>
+                          <span className="flex items-center gap-1 text-xs">
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            {commentCount}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button className="mt-4 w-full text-center text-sm font-medium text-primary hover:underline">

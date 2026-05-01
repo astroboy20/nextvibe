@@ -367,6 +367,31 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
+    // Step 1: upload raw files, get back fileKeys
+    uploadMultipleFiles: builder.mutation<
+      { success: boolean; data: { url: string; fileKey: string; mediaType: string }[] },
+      FormData
+    >({
+      query: (formData) => ({
+        url: "/v1/storage/upload-multiple",
+        method: "POST",
+        body: formData,
+      }),
+    }),
+
+    // Step 2: create postcards with the returned fileKeys
+    createPostcards: builder.mutation<
+      any,
+      { eventId: string; vibeTagId?: string; media: { fileKey: string; mediaType: string }[] }
+    >({
+      query: ({ eventId, vibeTagId, media }) => ({
+        url: "/v1/postcards",
+        method: "POST",
+        body: { eventId, vibeTagId, media },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
     toggleLikePostcard: builder.mutation<any, { eventId: string; postcardId: string }>({
       query: ({ eventId, postcardId }) => ({
         url: `/v1/events/${eventId}/postcards/${postcardId}/like`,
@@ -381,6 +406,18 @@ export const eventsApi = createApi({
         return `/v1/events/${eventId}/postcards/leaderboard${params}`;
       },
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    // Global postcards feed — /v1/postcards
+    getPostcards: builder.query<any, { page?: number; limit?: number } | void>({
+      query: (params) => {
+        const p = new URLSearchParams();
+        if (params?.page) p.set("page", String(params.page));
+        if (params?.limit) p.set("limit", String(params.limit));
+        const qs = p.toString();
+        return `/v1/postcards${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: ["Gallery"],
     }),
 
   }),
@@ -423,4 +460,7 @@ export const {
   useCreatePostcardMutation,
   useToggleLikePostcardMutation,
   useGetPostcardLeaderboardQuery,
+  useGetPostcardsQuery,
+  useUploadMultipleFilesMutation,
+  useCreatePostcardsMutation,
 } = eventsApi;

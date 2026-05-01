@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tag } from "lucide-react";
+import { Tag, Sparkles } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -12,71 +12,24 @@ import {
 } from "@/components/ui/dialog";
 import Vibetags from "./vibetag/vibetags";
 
+interface VibeTag {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
 
 interface VibeTagStudioContentProps {
   eventId: string;
   name?: string;
+  vibeTag?: VibeTag | null;
 }
-const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
+
+const VibeTagStudioContent = ({
+  eventId,
+  name,
+  vibeTag,
+}: VibeTagStudioContentProps) => {
   const [open, setOpen] = useState(false);
-
-  const [vibeTags] = useState([
-    {
-      id: "1",
-      name: "Detty December Vibes",
-      phase: "main-event",
-      template: "gradient",
-      postcardCount: 24,
-    },
-    {
-      id: "2",
-      name: "Countdown Memories",
-      phase: "pre-event",
-      template: "polaroid",
-      postcardCount: 8,
-    },
-  ]);
-
-  const templatePreviews: Record<string, string> = {
-    classic: "bg-gradient-to-br from-[#531342]/20 to-accent/20",
-    polaroid: "bg-white border-4 border-b-8",
-    minimal: "bg-muted",
-    gradient: "bg-gradient-to-br from-[#531342] via-accent to-[#531342]",
-  };
-
-  const getPhaseBadge = (phase: string) => {
-    switch (phase) {
-      case "pre-event":
-        return (
-          <Badge
-            variant="outline"
-            className="border-amber-500/50 text-amber-600"
-          >
-            Pre-Event
-          </Badge>
-        );
-      case "main-event":
-        return (
-          <Badge
-            variant="outline"
-            className="border-[#531342]/50 text-[#531342]"
-          >
-            Main Event
-          </Badge>
-        );
-      case "both":
-        return (
-          <Badge
-            variant="outline"
-            className="border-accent/50 text-accent-foreground"
-          >
-            Both
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
 
   return (
     <>
@@ -84,43 +37,57 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         <Button
           size="sm"
           className="w-full gap-1.5 rounded-xl mb-4 bg-[#531342] hover:bg-[#531342]/90 text-white"
-          onClick={() => setOpen(true)} // ✅ only addition
+          onClick={() => setOpen(true)}
         >
           <Tag className="h-3.5 w-3.5" />
-          Create VibeTag
+          {vibeTag ? "Update VibeTag" : "Create VibeTag"}
         </Button>
 
-        {vibeTags.map((tag) => (
-          <div
-            key={tag.id}
-            className="flex items-center gap-3 rounded-xl border border-border p-3"
-          >
-            <div
-              className={`h-12 w-10 rounded-lg shrink-0 ${
-                templatePreviews[tag.template]
-              }`}
-            />
+        {vibeTag ? (
+          <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+            {/* VibeTag image preview */}
+            <div className="h-12 w-10 rounded-lg shrink-0 overflow-hidden bg-muted border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={vibeTag.imageUrl}
+                alt={vibeTag.name}
+                className="h-full w-full object-contain"
+              />
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-medium text-sm truncate">{tag.name}</h4>
-                {getPhaseBadge(tag.phase)}
+                <h4 className="font-medium text-sm truncate">{vibeTag.name}</h4>
+                <Badge
+                  variant="outline"
+                  className="border-[#531342]/50 text-[#531342] text-[10px]"
+                >
+                  Active
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {tag.postcardCount} postcards created
+                Applied to all postcards for this event
               </p>
             </div>
           </div>
-        ))}
+        ) : (
+          <div className="flex flex-col items-center justify-center py-6 gap-2 text-center rounded-xl border border-dashed border-border">
+            <Sparkles className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">No VibeTag set yet</p>
+            <p className="text-xs text-muted-foreground/60">
+              Create one to stamp your event&apos;s identity on every postcard
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ✅ MODAL (added, no UI changes above) */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg h-screen  overflow-y-scroll">
+        <DialogContent className="max-w-lg h-screen overflow-y-scroll">
           <DialogHeader>
-            <DialogTitle>Create VibeTag</DialogTitle>
+            <DialogTitle>
+              {vibeTag ? "Update VibeTag" : "Create VibeTag"}
+            </DialogTitle>
           </DialogHeader>
-
-          <Vibetags onClose={()=>setOpen(false)}/>
+          <Vibetags onClose={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

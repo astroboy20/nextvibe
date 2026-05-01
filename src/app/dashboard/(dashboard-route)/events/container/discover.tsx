@@ -1,20 +1,25 @@
 "use client";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-import { useGetEventsQuery } from "@/app/provider/api/eventApi";
+import { useGetEventsQuery, useGetPostcardsQuery } from "@/app/provider/api/eventApi";
 import PostcardGrid from "../components/postcard-grid";
 import ViewToggle from "../components/view-toggle";
 import { EventCard } from "../components/event-card";
 
 const Discover = () => {
-  const { data: events, isLoading } = useGetEventsQuery();
+  const { data: events, isLoading: isLoadingEvents } = useGetEventsQuery();
+  const [activeView, setActiveView] = useState<"events" | "postcards">("events");
 
-  const [activeView, setActiveView] = useState<"events" | "postcards">(
-    "events"
+  // Fetch postcards only when the postcards tab is active
+  const { data: postcardsData, isLoading: isLoadingPostcards } = useGetPostcardsQuery(
+    { page: 1, limit: 40 },
+    { skip: activeView !== "postcards" }
   );
 
-  if (isLoading) {
+  // Response shape: { success, data: { data: PostcardItem[], meta: { total, page, limit, hasNext } } }
+  const postcards = postcardsData?.data?.data ?? [];
+
+  if (isLoadingEvents) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3, 4].map((i) => (
@@ -29,7 +34,7 @@ const Discover = () => {
   }
 
   return (
-    <main className="container  pt-6 mx-auto">
+    <main className="container pt-6 mx-auto">
       {/* View Toggle */}
       <div className="mb-6 flex justify-center">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
@@ -37,8 +42,7 @@ const Discover = () => {
 
       {activeView === "events" ? (
         <>
-          {/* Events Grid */}
-          {events?.length === 0 ? (
+          {events?.data?.length === 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               Nothing to see here yet, check back later!
             </div>
@@ -50,60 +54,24 @@ const Discover = () => {
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="relative">
-                    <EventCard
-                      id={event?.id}
-                      title={event?.name}
-                      date={event?.startsAt}
-                      location={event?.locationName}
-                      image={event?.image}
-                      attendees={event?.attendees}
-                      hasGames={event?.hasGames}
-                      hasVibeTag={event?.hasVibeTag}
-                      colorAccent={event?.colorAccent}
-                    />
-                    {/* Match reasons badges */}
-                    {/* {activeTab === "foryou" &&
-                      event.matchReasons.length > 0 && (
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-                          {event.matchReasons.slice(0, 2).map((reason, i) => (
-                            <Badge
-                              key={i}
-                              variant="secondary"
-                              className="bg-background/90 backdrop-blur text-xs"
-                            >
-                              {reason}
-                            </Badge>
-                          ))}
-                        </div>
-                      )} */}
-                  </div>
+                  <EventCard
+                    id={event?.id}
+                    title={event?.name}
+                    date={event?.startsAt}
+                    location={event?.locationName}
+                    image={event?.image}
+                    attendees={event?.attendees}
+                    hasGames={event?.hasGames}
+                    hasVibeTag={event?.hasVibeTag}
+                    colorAccent={event?.colorAccent}
+                  />
                 </div>
               ))}
             </div>
-            // "messing with event card design, will add back soon :)"
           )}
         </>
       ) : (
-        <>
-          {/* Postcard Filters */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
-            <select className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              <option value="all">All Events</option>
-              <option value="pre">Pre-event</option>
-              <option value="main">Main event</option>
-            </select>
-            <select className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              <option value="">Any Vibe</option>
-              <option value="tech">Tech</option>
-              <option value="music">Music</option>
-              <option value="party">Party</option>
-            </select>
-          </div>
-
-          {/* Postcards Grid */}
-          <PostcardGrid />
-        </>
+        <PostcardGrid postcards={postcards} isLoading={isLoadingPostcards} />
       )}
     </main>
   );
