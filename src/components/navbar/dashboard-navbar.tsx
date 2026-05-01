@@ -1,6 +1,9 @@
+"use client"
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewLogo } from "../logo";
+import { RootState } from "@/app/provider/store";
+import { useSelector } from "react-redux";
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -8,6 +11,10 @@ interface HeaderProps {
 }
 
 const DashboardNavbar = ({ showSearch = true, title }: HeaderProps) => {
+  const hideHeader = useSelector((state: RootState) => state.ui.hideHeader);
+
+  if (hideHeader) return null;
+
   return (
     <header className="sticky top-0 z-1000000   w-full bg-white">
       <div className="container flex h-16 items-center justify-between lg:max-w-7xl mx-auto">

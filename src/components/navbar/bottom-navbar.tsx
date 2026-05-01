@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/provider/store";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard/events" },
@@ -23,6 +25,10 @@ const BottomNav = () => {
   const pathname = usePathname();
   const [unreadCount] = useState(10);
   //   const { unreadCount } = useUnreadMessages();
+
+  const hideNavbar = useSelector((state: RootState) => state.ui.hideHeader);
+
+  if (hideNavbar) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white">
