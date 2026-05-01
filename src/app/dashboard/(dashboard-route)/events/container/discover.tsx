@@ -70,10 +70,12 @@ const Discover = () => {
                     title={event?.name}
                     date={event?.startsAt}
                     location={event?.locationName}
-                    image={event?.image}
+                    image={event?.flierUrl || event?.image || event?.data?.flierUrl}
+                    promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
                     attendees={event?.attendees}
                     hasGames={event?.hasGames}
                     hasVibeTag={event?.hasVibeTag}
+                    rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
                     colorAccent={event?.colorAccent}
                   />
                 </div>

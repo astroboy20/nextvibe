@@ -113,7 +113,7 @@ export function EventVibeTagsTab({
             </div>
 
             {/* VibeTag Preview */}
-            <div className="relative aspect-[4/5] w-full max-w-[200px] mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
+            <div className="relative aspect-video w-full max-w-full mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
               <div className="relative h-full w-full rounded-xl bg-background flex items-center justify-center overflow-hidden">
                 {vibeTag?.imageUrl ? (
                   <img
@@ -138,10 +138,17 @@ export function EventVibeTagsTab({
               </Badge>
             )}
 
-            <Button className="w-full rounded-xl gap-2" onClick={() => setShowCreator(true)}>
-              <Camera className="h-4 w-4" />
-              Create Your Postcard
-            </Button>
+            {vibeTag ? (
+              <Button className="w-full rounded-xl gap-2" onClick={() => setShowCreator(true)}>
+                <Camera className="h-4 w-4" />
+                Create Your Postcard
+              </Button>
+            ) : (
+              <Button className="w-full rounded-xl gap-2" disabled title="Create a VibeTag first">
+                <Camera className="h-4 w-4" />
+                Create Your Postcard
+              </Button>
+            )}
           </CardContent>
         </Card>
 

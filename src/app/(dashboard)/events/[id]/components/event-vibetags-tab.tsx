@@ -188,7 +188,7 @@ export function EventVibeTagsTab({ eventId }: EventVibeTagsTabProps) {
             )}
 
             {/* VibeTag Preview */}
-            <div className="relative aspect-[4/5] w-full max-w-[200px] mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
+            <div className="relative aspect-video w-full max-w-full mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
               <div className="relative h-full w-full rounded-xl bg-background flex items-center justify-center overflow-hidden">
                 {activeVibeTag?.designUrl?.startsWith("http") ? (
                   <img
