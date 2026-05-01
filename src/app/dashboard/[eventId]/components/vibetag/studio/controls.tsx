@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
+import { toast } from "sonner";
 
 interface ControlItem {
   label: string;
@@ -138,6 +139,7 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
 
     if (request?.data) {
       dispatch(setBackdropFile(file));
+      toast.success("VibeTag created successfully!");
       if (onSaveVibeTag) onSaveVibeTag(file);
     }
 
