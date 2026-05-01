@@ -118,24 +118,29 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
     }
   };
 
-  const name  = typeof window !=="undefined" && localStorage.getItem("eventName")
-  const eventId  = typeof window !=="undefined" && localStorage.getItem("eventId")
-  const [createVibeTag] = useCreateVibeTagMutation()
-  
+  const name =
+    typeof window !== "undefined" && localStorage.getItem("eventName");
+  const eventId =
+    typeof window !== "undefined" && localStorage.getItem("eventId");
+  const [createVibeTag, { isLoading }] = useCreateVibeTagMutation();
 
-  const handleContinue = async() => {
+  const handleContinue = async () => {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
-    console.log(file)
+
     const request = await createVibeTag({
-      eventId:eventId as string,
-      name:name,
-      imageKey:file,
+      eventId: eventId as string,
+      name: name,
+      imageKey: file,
     });
-    console.log("VibeTag creation response:", request);
-    dispatch(setBackdropFile(file));
-    if (onSaveVibeTag) onSaveVibeTag(file);
+
+
+    if (request?.data) {
+      dispatch(setBackdropFile(file));
+      if (onSaveVibeTag) onSaveVibeTag(file);
+    }
+
     // dispatch(setView("start"));
   };
 
@@ -180,8 +185,9 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
         <Button
           className="mt-4 bg-primary hover:bg-primary/90 text-white"
           onClick={handleContinue}
+          disabled={isLoading}
         >
-          Save
+          {isLoading ? "Saving..." : "Continue"}
         </Button>
       </div>
 

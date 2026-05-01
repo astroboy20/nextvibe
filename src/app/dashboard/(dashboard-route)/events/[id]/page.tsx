@@ -260,7 +260,11 @@ export default function EventPage({
             </TabsContent>
 
             <TabsContent value="vibetags" className="mt-0">
-              <EventVibeTagsTab eventId={id} />
+              <EventVibeTagsTab
+                eventId={id}
+                vibeTag={eventDetails?.data?.vibeTag ?? null}
+                eventName={eventDetails?.data?.name ?? "Event"}
+              />
             </TabsContent>
 
             <TabsContent value="chat" className="mt-0">
