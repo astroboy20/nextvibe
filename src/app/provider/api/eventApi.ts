@@ -408,12 +408,14 @@ export const eventsApi = createApi({
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
-    // Global postcards feed — /v1/postcards
-    getPostcards: builder.query<any, { page?: number; limit?: number } | void>({
+    // Global postcards feed — /v1/postcards (optionally filtered by eventId or userId)
+    getPostcards: builder.query<any, { page?: number; limit?: number; eventId?: string; userId?: string } | void>({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
         if (params?.limit) p.set("limit", String(params.limit));
+        if (params?.eventId) p.set("eventId", params.eventId);
+        if (params?.userId) p.set("userId", params.userId);
         const qs = p.toString();
         return `/v1/postcards${qs ? `?${qs}` : ""}`;
       },

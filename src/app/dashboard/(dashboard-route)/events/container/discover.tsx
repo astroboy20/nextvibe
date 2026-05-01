@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetEventsQuery, useGetPostcardsQuery } from "@/app/provider/api/eventApi";
 import PostcardGrid from "../components/postcard-grid";
 import ViewToggle from "../components/view-toggle";
 import { EventCard } from "../components/event-card";
+import { PostcardItem } from "../components/postcard-grid";
 
 const Discover = () => {
+  const router = useRouter();
   const { data: events, isLoading: isLoadingEvents } = useGetEventsQuery();
   const [activeView, setActiveView] = useState<"events" | "postcards">("events");
 
@@ -18,6 +21,14 @@ const Discover = () => {
 
   // Response shape: { success, data: { data: PostcardItem[], meta: { total, page, limit, hasNext } } }
   const postcards = postcardsData?.data?.data ?? [];
+
+  // Navigate to the event's postcards page when a card is clicked
+  const handlePostcardClick = (postcard: PostcardItem) => {
+    const eventId = postcard?.event?.id;
+    if (eventId) {
+      router.push(`/dashboard/events/${eventId}/postcards`);
+    }
+  };
 
   if (isLoadingEvents) {
     return (
@@ -71,7 +82,11 @@ const Discover = () => {
           )}
         </>
       ) : (
-        <PostcardGrid postcards={postcards} isLoading={isLoadingPostcards} />
+        <PostcardGrid
+          postcards={postcards}
+          isLoading={isLoadingPostcards}
+          onCardClick={handlePostcardClick}
+        />
       )}
     </main>
   );

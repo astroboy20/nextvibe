@@ -55,11 +55,12 @@ export interface PostcardItem {
 interface PostcardGridProps {
   postcards?: PostcardItem[];
   isLoading?: boolean;
+  onCardClick?: (postcard: PostcardItem) => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const PostcardGrid = ({ postcards = [], isLoading = false }: PostcardGridProps) => {
+const PostcardGrid = ({ postcards = [], isLoading = false, onCardClick }: PostcardGridProps) => {
   if (isLoading) {
     return (
       <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
@@ -104,6 +105,7 @@ const PostcardGrid = ({ postcards = [], isLoading = false }: PostcardGridProps) 
         return (
           <div
             key={postcard?.id ?? index}
+            onClick={() => onCardClick?.(postcard)}
             className={cn(
               "group relative mb-3 break-inside-avoid overflow-hidden rounded-2xl bg-card shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer",
               "animate-fade-in"
