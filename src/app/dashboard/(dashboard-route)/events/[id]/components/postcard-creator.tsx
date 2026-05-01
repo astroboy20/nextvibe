@@ -173,9 +173,23 @@ export function PostcardCreator({
       const markReady = () => setIsCameraReady(true);
       video.addEventListener("loadedmetadata", markReady, { once: true });
       video.addEventListener("canplay", markReady, { once: true });
-      video.play().catch(() => markReady()); // iOS Safari requires explicit .play()
+      // Fallback: if neither event fires within 3s, mark ready anyway
+      const fallback = setTimeout(markReady, 3000);
+      video.addEventListener("loadedmetadata", () => clearTimeout(fallback), { once: true });
+      video.addEventListener("canplay", () => clearTimeout(fallback), { once: true });
+      // iOS Safari requires explicit .play()
+      video.play().catch(() => markReady());
 
-      hasMultipleCameras().then(setCanFlip);
+      // Detect multiple cameras AFTER permission is granted (labels are only
+      // available post-permission on Android Chrome / iOS Safari)
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoCams = devices.filter((d) => d.kind === "videoinput");
+        setCanFlip(videoCams.length > 1);
+      } catch {
+        // If enumeration fails, show flip button anyway on mobile
+        setCanFlip(/android|iphone|ipad|ipod/i.test(navigator.userAgent));
+      }
     } catch (err: any) {
       const msg =
         err?.name === "NotAllowedError"  ? "Camera permission denied. Allow access in browser settings." :
@@ -323,18 +337,7 @@ export function PostcardCreator({
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-background" style={{ height: "100dvh" }}>
 
-      {/* Always-mounted video — videoRef.current is NEVER null */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover",
-          facingMode === "user" && "[transform:scaleX(-1)]",
-          mode !== "camera" && "hidden"
-        )}
-      />
+      {/* canvas always in DOM for capture */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ── Header ── */}
@@ -369,12 +372,8 @@ export function PostcardCreator({
           )}
         </div>
 
-        {/* Right action per mode */}
-        {mode === "camera" && canFlip ? (
-          <button onClick={handleFlipCamera} className="p-2 rounded-full text-white hover:bg-white/10 transition-colors" aria-label="Flip camera">
-            <SwitchCamera className="h-5 w-5" />
-          </button>
-        ) : mode === "camera-review" && cameraQueue.length < MAX_IMAGES ? (
+        {/* Right action per mode — flip is now in the shutter bar */}
+        {mode === "camera-review" && cameraQueue.length < MAX_IMAGES ? (
           <button onClick={() => startCamera(facingMode)} className="p-2 rounded-full hover:bg-muted transition-colors" aria-label="Take more photos">
             <Camera className="h-5 w-5" />
           </button>
@@ -403,8 +402,21 @@ export function PostcardCreator({
       {/* ══ CAMERA MODE ══════════════════════════════════════════════════════ */}
       {mode === "camera" && (
         <div className="absolute inset-0 bg-black">
+          {/* Live viewfinder — inside camera div so z-order is correct */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover",
+              facingMode === "user" && "[transform:scaleX(-1)]"
+            )}
+          />
+
+          {/* Spinner — only while stream hasn't started yet */}
           {!isCameraReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-black">
               <Loader2 className="h-9 w-9 animate-spin text-white" />
               <p className="text-white/70 text-sm">Starting camera…</p>
             </div>
@@ -448,8 +460,17 @@ export function PostcardCreator({
               <span className="h-[60px] w-[60px] rounded-full bg-white" />
             </button>
 
-            {/* Spacer to keep shutter centred */}
-            <div className="w-[52px]" />
+            {/* Flip camera — always shown in shutter bar on mobile, hidden on desktop if only 1 cam */}
+            <button
+              onClick={handleFlipCamera}
+              className="flex flex-col items-center gap-1 text-white"
+              aria-label="Flip camera"
+            >
+              <div className="h-12 w-12 rounded-xl border-2 border-white/60 bg-black/40 flex items-center justify-center">
+                <SwitchCamera className="h-5 w-5" />
+              </div>
+              <span className="text-[10px]">Flip</span>
+            </button>
           </div>
         </div>
       )}
