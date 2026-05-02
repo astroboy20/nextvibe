@@ -77,6 +77,17 @@ export const messagingApi = createApi({
         { type: "Messages", id: conversationId },
       ],
     }),
+
+    /** GET /v1/events/{eventId}/chat/{section} — load message history */
+    getEventChat: build.query<any, { eventId: string; section: "pre-event" | "during" | "post-event" }>({
+      query: ({ eventId, section }) => ({
+        url: `/v1/events/${eventId}/chat/${section}`,
+        method: "GET",
+      }),
+      providesTags: (_result, _err, { eventId, section }) => [
+        { type: "Messages", id: `${eventId}-${section}` },
+      ],
+    }),
   }),
 });
 
@@ -84,4 +95,5 @@ export const {
   useGetConversationsQuery,
   useStartConversationMutation,
   useGetMessagesQuery,
+  useGetEventChatQuery,
 } = messagingApi;

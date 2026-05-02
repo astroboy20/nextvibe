@@ -10,9 +10,12 @@ import { Start } from "./studio/start";
 
 interface DesignTemplateProps {
   onSaveVibeTag?: (file: File) => void;
+  activityTiming?: string;
+  eventId?: string;
+  eventName?: string;
 }
 
-export default function DesignTemplate({ onSaveVibeTag }: DesignTemplateProps) {
+export default function DesignTemplate({ onSaveVibeTag, activityTiming, eventId, eventName }: DesignTemplateProps) {
   const dispatch = useDispatch();
   const view = useSelector((state: RootState) => state.canvas.view);
 
@@ -24,7 +27,14 @@ export default function DesignTemplate({ onSaveVibeTag }: DesignTemplateProps) {
     <div>
       {view === "start" && <Start />}
       {view === "template" && <Templates />}
-      {view === "editor" && <Editor onSaveVibeTag={onSaveVibeTag} />}
+      {view === "editor" && (
+        <Editor
+          onSaveVibeTag={onSaveVibeTag}
+          activityTiming={activityTiming}
+          eventId={eventId}
+          eventName={eventName}
+        />
+      )}
     </div>
   );
 }

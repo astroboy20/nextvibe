@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback,useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -381,7 +381,7 @@ export default function EventPage({
             </TabsContent>
 
             <TabsContent value="chat" className="mt-0">
-              <EventChatTab />
+              <EventChatTab eventId={id} />
             </TabsContent>
           </div>
         </Tabs>

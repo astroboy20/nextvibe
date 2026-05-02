@@ -55,9 +55,12 @@ const controlActions: ControlItem[] = [
 
 interface ControlsProps {
   onSaveVibeTag?: (file: File) => void;
+  activityTiming?: string;
+  eventId?: string;
+  eventName?: string;
 }
 
-export default function Controls({ onSaveVibeTag }: ControlsProps) {
+export default function Controls({ onSaveVibeTag, activityTiming, eventId: eventIdProp, eventName: eventNameProp }: ControlsProps) {
   const dispatch = useDispatch();
   const canvas = useCanvas();
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
@@ -127,13 +130,19 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
   };
 
   const name =
-    typeof window !== "undefined" && localStorage.getItem("eventName");
+    eventNameProp ?? (typeof window !== "undefined" ? localStorage.getItem("eventName") : null);
   const eventId =
-    typeof window !== "undefined" && localStorage.getItem("eventId");
+    eventIdProp ?? (typeof window !== "undefined" ? localStorage.getItem("eventId") : null);
   const [createVibeTag, { isLoading }] = useCreateVibeTagMutation();
 
   const handleContinue = async () => {
     if (!canvas) return;
+
+    if (!activityTiming) {
+      toast.error("Activity timing is required. Please close and select a phase.");
+      return;
+    }
+
     const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
 
@@ -141,16 +150,14 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
       eventId: eventId as string,
       name: name,
       imageKey: file,
+      activityTiming,
     });
-
 
     if (request?.data) {
       dispatch(setBackdropFile(file));
       toast.success("VibeTag created successfully!");
       if (onSaveVibeTag) onSaveVibeTag(file);
     }
-
-    // dispatch(setView("start"));
   };
 
   return (

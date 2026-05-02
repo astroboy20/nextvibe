@@ -399,11 +399,12 @@ export const eventsApi = createApi({
     }),
 
     createVibeTag: builder.mutation({
-      query: ({ eventId, name, imageKey }) => {
+      query: ({ eventId, name, imageKey, activityTiming }) => {
         const formData = new FormData();
         formData.append("eventId", eventId as string);
         formData.append("name", name);
         formData.append("imageKey", imageKey);
+        formData.append("activityTiming", activityTiming);
         return {
           url: "/v1/vibe-tags",
           method: "POST",
@@ -413,9 +414,9 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
-    getVibeTags: builder.query<any, string>({
-      query: (eventId) => `/v1/vibe-tags?eventId=${eventId}`,
-      providesTags: (_, __, eventId) => [{ type: "Event", id: eventId }],
+    getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
+      query: ({ eventId }) => `/v1/vibe-tags?eventId=${eventId}`,
+      providesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
     getEventPostcards: builder.query<any, { eventId: string; phase?: string; page?: number; limit?: number }>({

@@ -491,7 +491,7 @@ export default function OrganizerDashboard({
                   <div className="space-y-2">
                     <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
                       <p className="text-sm text-muted-foreground">
-                        Mark the event as ended once it's over. Rewards will be distributed automatically.
+                        Mark the event as ended once it&apos;s over. Rewards will be distributed automatically.
                       </p>
                       <Button
                         variant="outline"
