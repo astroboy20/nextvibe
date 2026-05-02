@@ -9,6 +9,7 @@ import { gamesApi } from "./api/gameApi";
 import { eventsApi } from "./api/eventApi";
 import { userApi } from "./api/userApi";
 import { messagingApi } from "./api/messagingApi";
+import { socialApi } from "./api/socialApi";
 
 export const store = configureStore({
     reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
         [eventsApi.reducerPath]: eventsApi.reducer,
         [userApi.reducerPath]: userApi.reducer,
         [messagingApi.reducerPath]: messagingApi.reducer,
+        [socialApi.reducerPath]: socialApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -29,7 +31,8 @@ export const store = configureStore({
             gamesApi.middleware,
             eventsApi.middleware,
             userApi.middleware,
-            messagingApi.middleware
+            messagingApi.middleware,
+            socialApi.middleware
         )
     }
 })
