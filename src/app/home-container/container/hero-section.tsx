@@ -58,7 +58,7 @@ const HeroSection = () => {
               </Link>
 
               <Link
-                href="/explore"
+                href="/auth/register"
                 data-tour="explore-btn"
                 className="w-full sm:w-auto border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-white flex gap-2 items-center justify-center h-16 px-6 text-lg rounded-md"
               >
