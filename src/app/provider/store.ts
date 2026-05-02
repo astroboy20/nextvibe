@@ -8,6 +8,7 @@ import canvasReducer from "./slices/canvas-slice";
 import { gamesApi } from "./api/gameApi";
 import { eventsApi } from "./api/eventApi";
 import { userApi } from "./api/userApi";
+import { messagingApi } from "./api/messagingApi";
 
 export const store = configureStore({
     reducer: {
@@ -20,13 +21,15 @@ export const store = configureStore({
         [gamesApi.reducerPath]: gamesApi.reducer,
         [eventsApi.reducerPath]: eventsApi.reducer,
         [userApi.reducerPath]: userApi.reducer,
+        [messagingApi.reducerPath]: messagingApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
             authApi.middleware,
             gamesApi.middleware,
             eventsApi.middleware,
-            userApi.middleware
+            userApi.middleware,
+            messagingApi.middleware
         )
     }
 })
