@@ -9,16 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   Image as ImageIcon,
-  Trophy,
-  Gift,
   Settings,
   Share2,
   MapPin,
-  Gamepad2,
   ChevronRight,
   Ticket,
-  Crown,
-  Medal,
   Heart,
   Eye,
   LayoutDashboard,
@@ -26,149 +21,36 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import BottomNav from "@/components/navbar/bottom-navbar";
-import { useGetUserQuery } from "@/app/provider/api/authApi";
+import { useGetUserQuery, useGetUserBasicQuery, useGetUserActivityQuery } from "@/app/provider/api/authApi";
 
-const userEvents = [
-  {
-    id: "1",
-    title: "Japan Group Trip",
-    date: "Jan 2, 2026",
-    image:
-      "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=200&h=200&fit=crop",
-    status: "going" as const,
-  },
-  {
-    id: "2",
-    title: "Detty December 1",
-    date: "Dec 20, 2025",
-    image:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&h=200&fit=crop",
-    status: "maybe" as const,
-  },
-  {
-    id: "3",
-    title: "Tech Summit 2025",
-    date: "Mar 15, 2025",
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop",
-    status: "going" as const,
-  },
-];
+// Type definitions — matched to real API response shapes
+interface ActivityEvent {
+  id: string;
+  name: string;
+  flierUrl?: string;
+  startsAt: string;
+  status: string;
+  locationName?: string;
+  category?: string;
+  mode?: string;
+}
 
-const userPostcards = [
-  {
-    id: "1",
-    image:
-      "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&h=400&fit=crop",
-    likes: 42,
-    views: 156,
-    engagementRate: 26.9,
-  },
-  {
-    id: "2",
-    image:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=400&fit=crop",
-    likes: 28,
-    views: 98,
-    engagementRate: 28.6,
-  },
-  {
-    id: "3",
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=300&h=400&fit=crop",
-    likes: 56,
-    views: 234,
-    engagementRate: 23.9,
-  },
-  {
-    id: "4",
-    image:
-      "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=300&h=400&fit=crop",
-    likes: 19,
-    views: 67,
-    engagementRate: 28.4,
-  },
-];
+interface Postcard {
+  id: string;
+  image: string;
+  likes?: number;
+  views?: number;
+  engagementRate?: number;
+}
 
-const userGameHistory = [
-  {
-    id: "1",
-    game: "Birthday Trivia",
-    score: 850,
-    rank: 3,
-    totalPlayers: 42,
-    event: "Birthday Bash",
-    date: "Jan 15, 2026",
-  },
-  {
-    id: "2",
-    game: "Music Quiz",
-    score: 720,
-    rank: 5,
-    totalPlayers: 38,
-    event: "Detty December",
-    date: "Dec 22, 2025",
-  },
-  {
-    id: "3",
-    game: "Travel Bingo",
-    score: 1200,
-    rank: 1,
-    totalPlayers: 25,
-    event: "Japan Group Trip",
-    date: "Jan 3, 2026",
-  },
-  {
-    id: "4",
-    game: "This or That",
-    score: 450,
-    rank: 8,
-    totalPlayers: 50,
-    event: "Tech Summit",
-    date: "Mar 16, 2025",
-  },
-];
-
-const userLeaderboardPositions = [
-  { event: "Japan Group Trip", rank: 1, totalScore: 3250, badge: "champion" },
-  { event: "Birthday Bash", rank: 3, totalScore: 2100, badge: "top5" },
-  { event: "Detty December", rank: 5, totalScore: 1850, badge: "top10" },
-];
-
-const userRewards = [
-  {
-    id: "1",
-    title: "20% Off TechMart",
-    brand: "TechMart",
-    claimed: false,
-    expires: "Feb 28, 2025",
-    source: "Birthday Trivia - 3rd Place",
-  },
-  {
-    id: "2",
-    title: "Free Coffee",
-    brand: "CaféBlend",
-    claimed: true,
-    expires: "Jan 15, 2025",
-    source: "Travel Bingo - 1st Place",
-  },
-  {
-    id: "3",
-    title: "VIP Access Pass",
-    brand: "NextVibe",
-    claimed: false,
-    expires: "Mar 30, 2025",
-    source: "Weekly Challenge",
-  },
-  {
-    id: "4",
-    title: "Event Merch Bundle",
-    brand: "Detty December",
-    claimed: false,
-    expires: "Jan 31, 2026",
-    source: "Top 10 Leaderboard",
-  },
-];
+interface ActivityTicket {
+  id: string;
+  eventName?: string;
+  ticketType?: string;
+  date?: string;
+  ticketNumber?: string;
+  status?: string;
+}
 
 const tabList = [
   {
@@ -189,397 +71,289 @@ const tabList = [
     icon: <ImageIcon className="mr-1.5 h-4 w-4" />,
     value: "postcards",
   },
-  {
-    id: 4,
-    title: "Games",
-    icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
-    value: "activity",
-  },
-  {
-    id: 5,
-    title: "Rankings",
-    icon: <Trophy className="mr-1.5 h-4 w-4" />,
-    value: "leaderboards",
-  },
-  {
-    id: 6,
-    title: "Rewards",
-    icon: <Gift className="mr-1.5 h-4 w-4" />,
-    value: "rewards",
-  },
 ];
-
-const getStatusBadge = (status: "going" | "maybe") => {
-  if (status === "going") {
-    return (
-      <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
-        Going
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
-      Maybe
-    </span>
-  );
-};
-
-const getRankIcon = (rank: number) => {
-  if (rank === 1) return <Crown className="h-4 w-4 text-amber-500" />;
-  if (rank === 2) return <Medal className="h-4 w-4 text-gray-400" />;
-  if (rank === 3) return <Medal className="h-4 w-4 text-amber-700" />;
-  return (
-    <span className="text-xs font-bold text-muted-foreground">#{rank}</span>
-  );
-};
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("events");
-  const { data: profile } = useGetUserQuery();
+  const { data: currentUser, isLoading: isLoadingUser } = useGetUserQuery();
+  const userId = currentUser?.data?.id;
+  
+  // Fetch basic user information
+  const { data: userBasic, isLoading: isLoadingBasic } = useGetUserBasicQuery(userId, {
+    skip: !userId,
+  });
+  
+  // Fetch user activity (events, postcards, games, etc.)
+  const { data: userActivity, isLoading: isLoadingActivity } = useGetUserActivityQuery(userId, {
+    skip: !userId,
+  });
+
+  const profile = userBasic?.data;
+  const activity = userActivity?.data;
+  
+  // Overall loading state
+  const isLoading = isLoadingUser || isLoadingBasic || isLoadingActivity;
 
   return (
     <>
       <main className="container px-4 py-6 mx-auto">
-        {/* Profile Header */}
-        <div className="mb-6 flex flex-col items-center text-center">
-          <Avatar className="h-24 w-24 ring-4 ring-primary/20">
-            <AvatarImage src={profile?.data?.avatar} />
-            <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
-              NV
-            </AvatarFallback>
-          </Avatar>
-
-          <h1 className="mt-4 font-display text-2xl font-bold">
-            {profile?.data?.name}
-          </h1>
-          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            Lagos, Nigeria
-          </p>
-
-          {/* Stats */}
-          <div className="mt-6 flex gap-8">
-            <div className="text-center">
-              <p className="font-display text-2xl font-bold text-foreground">
-                12
-              </p>
-              <p className="text-xs text-muted-foreground">Events</p>
-            </div>
-            <div className="text-center">
-              <p className="font-display text-2xl font-bold text-foreground">
-                48
-              </p>
-              <p className="text-xs text-muted-foreground">Postcards</p>
-            </div>
-            <div className="text-center">
-              <p className="font-display text-2xl font-bold text-foreground">
-                5
-              </p>
-              <p className="text-xs text-muted-foreground">Rewards</p>
-            </div>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p className="mt-4 text-muted-foreground">Loading profile...</p>
           </div>
+        ) : (
+          <>
+            {/* Profile Header */}
+            <div className="mb-6 flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 ring-4 ring-primary/20">
+                <AvatarImage src={profile?.avatar || currentUser?.data?.avatar} />
+                <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
+                  {(profile?.displayName || currentUser?.data?.name)?.charAt(0)?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
 
-          {/* Action Buttons */}
-          <div className="mt-6 flex gap-3">
-            <Link href="/profile/edit">
-              <Button size="sm" className="gap-2 rounded-full  bg-[#531342]">
-                Edit Profile
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 rounded-full text-[#531342] border-2 border-[#531342]"
-            >
-              <Share2 className="h-4 w-4 text-[#531342]" />
-              Share
-            </Button>
-            <Link href="/settings">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Settings className="h-5 w-5 text-primary" />
-              </Button>
-            </Link>
-          </div>
-        </div>
+              <h1 className="mt-4 font-display text-2xl font-bold">
+                {profile?.displayName || currentUser?.data?.name || "User"}
+              </h1>
 
-        {/* Quick Links */}
-        <div className="mb-6 space-y-3">
-          <div className="grid grid-cols-1 gap-3">
-            <Link href="/dashboard">
-              <Card className="overflow-hidden border-[#4d143d]/20 bg-linear-to-br from-[#4d143d]/10 to-accent/10 hover:shadow-card transition-all">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4d143d]/20">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-foreground text-2l">
-                      Dashboard
-                    </h3>
-                    <p className="text-base ">Manage your events</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
+              {/* Stats */}
+              <div className="mt-6 flex gap-8">
+                <div className="text-center">
+                  <p className="font-display text-2xl font-bold text-foreground">
+                    {activity?.events?.length || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Events</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-display text-2xl font-bold text-foreground">
+                    {activity?.postcards?.length || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Postcards</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-display text-2xl font-bold text-foreground">
+                    {activity?.tickets?.length || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Tickets</p>
+                </div>
+              </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
-            {tabList.map((tab) => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.value}
-                className="rounded-none border-b-2 shadow-none! px-3 pb-3 data-[state=active]:border-b-[#531342] data-[state=active]:bg-transparent"
-              >
-                {tab.icon}
-                {tab.title}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+              {/* Action Buttons */}
+              <div className="mt-6 flex gap-3">
+                <Link href="/profile/edit">
+                  <Button size="sm" className="gap-2 rounded-full  bg-[#531342]">
+                    Edit Profile
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full text-[#531342] border-2 border-[#531342]"
+                >
+                  <Share2 className="h-4 w-4 text-[#531342]" />
+                  Share
+                </Button>
+                <Link href="/dashboard/settings">
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Settings className="h-5 w-5 text-primary" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="mb-6 space-y-3">
+              <div className="grid grid-cols-1 gap-3">
+                <Link href="/dashboard">
+                  <Card className="overflow-hidden border-[#4d143d]/20 bg-linear-to-br from-[#4d143d]/10 to-accent/10 hover:shadow-card transition-all">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4d143d]/20">
+                        <LayoutDashboard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground text-2l">
+                          Dashboard
+                        </h3>
+                        <p className="text-base ">Manage your events</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
+                {tabList.map((tab) => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.value}
+                    className="rounded-none border-b-2 shadow-none! px-3 pb-3 data-[state=active]:border-b-[#531342] data-[state=active]:bg-transparent"
+                  >
+                    {tab.icon}
+                    {tab.title}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
           {/* My Events Tab */}
           <TabsContent value="events" className="mt-6">
             <div className="space-y-3">
-              {userEvents.map((event, index) => (
-                <Link href={`/event/${event.id}`} key={event.id}>
-                  <div
-                    className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-card animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="h-16 w-16 rounded-xl object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground truncate">
-                          {event.title}
-                        </h3>
-                        {getStatusBadge(event.status)}
+              {isLoadingActivity ? (
+                <p className="text-center text-muted-foreground">Loading events...</p>
+              ) : activity?.events && activity.events.length > 0 ? (
+                (activity.events as ActivityEvent[]).map((event, index) => (
+                  <Link href={`/dashboard/events/${event.id}`} key={event.id}>
+                    <div
+                      className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-card animate-fade-in"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <img
+                        src={event.flierUrl || "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=200&h=200&fit=crop"}
+                        alt={event.name}
+                        className="h-16 w-16 rounded-xl object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-foreground truncate">
+                            {event.name}
+                          </h3>
+                          <span className={cn(
+                            "rounded-full px-2 py-0.5 text-xs font-medium shrink-0",
+                            event.status === "PUBLISHED"
+                              ? "bg-green-500/10 text-green-600"
+                              : event.status === "DRAFT"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-muted text-muted-foreground"
+                          )}>
+                            {event.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {new Date(event.startsAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                        {event.locationName && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {event.locationName}
+                          </p>
+                        )}
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {event.date}
-                      </p>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No events yet</p>
+              )}
             </div>
           </TabsContent>
 
           {/* Postcards Tab */}
           <TabsContent value="postcards" className="mt-6">
             <div className="grid grid-cols-2 gap-3">
-              {userPostcards.map((postcard, index) => (
-                <div
-                  key={postcard.id}
-                  className="group relative aspect-3/4 overflow-hidden rounded-2xl animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <img
-                    src={postcard.image}
-                    alt=""
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <div className="flex items-center justify-between text-white">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Heart className="h-4 w-4 fill-current" />
-                          <span className="text-sm font-medium">
-                            {postcard.likes}
-                          </span>
+              {isLoadingActivity ? (
+                <p className="col-span-2 text-center text-muted-foreground">Loading postcards...</p>
+              ) : activity?.postcards && activity.postcards.length > 0 ? (
+                (activity.postcards as Postcard[]).map((postcard, index) => (
+                  <div
+                    key={postcard.id}
+                    className="group relative aspect-3/4 overflow-hidden rounded-2xl animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <img
+                      src={postcard.image || "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&h=400&fit=crop"}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <div className="flex items-center justify-between text-white">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Heart className="h-4 w-4 fill-current" />
+                            <span className="text-sm font-medium">
+                              {postcard.likes || 0}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-4 w-4" />
+                            <span className="text-sm">{postcard.views || 0}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          <span className="text-sm">{postcard.views}</span>
-                        </div>
+                        {postcard.engagementRate && (
+                          <Badge className="bg-white/20 text-white text-xs">
+                            {postcard.engagementRate}%
+                          </Badge>
+                        )}
                       </div>
-                      <Badge className="bg-white/20 text-white text-xs">
-                        {postcard.engagementRate}%
-                      </Badge>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="col-span-2 text-center text-muted-foreground py-8">No postcards yet</p>
+              )}
             </div>
           </TabsContent>
 
-          {/* Games History Tab */}
-          <TabsContent value="activity" className="mt-6">
+
+
+          {/* Tickets Tab */}
+          <TabsContent value="tickets" className="mt-6">
             <div className="space-y-3">
-              {userGameHistory.map((game, index) => (
-                <Card
-                  key={game.id}
-                  className="overflow-hidden animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={cn(
-                          "flex h-12 w-12 items-center justify-center rounded-xl",
-                          game.rank === 1
-                            ? "bg-amber-500/10"
-                            : game.rank <= 3
-                            ? "bg-primary/10"
-                            : "bg-muted"
-                        )}
-                      >
-                        {getRankIcon(game.rank)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+              {isLoadingActivity ? (
+                <p className="text-center text-muted-foreground">Loading tickets...</p>
+              ) : activity?.tickets && activity.tickets.length > 0 ? (
+                (activity.tickets as ActivityTicket[]).map((ticket, index) => (
+                  <Card
+                    key={ticket.id}
+                    className="overflow-hidden animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <Ticket className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground">
-                            {game.game}
+                            {ticket.eventName}
                           </h3>
-                          {game.rank === 1 && (
-                            <Badge className="bg-amber-500/10 text-amber-600">
-                              Winner!
-                            </Badge>
+                          <p className="text-sm text-muted-foreground">
+                            {ticket.ticketType}
+                            {ticket.date && ` • ${new Date(ticket.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                          </p>
+                          {ticket.ticketNumber && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              #{ticket.ticketNumber}
+                            </p>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {game.event}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {game.date}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-display text-lg font-bold text-foreground">
-                          {game.score.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          #{game.rank} of {game.totalPlayers}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Leaderboards Tab */}
-          <TabsContent value="leaderboards" className="mt-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                Your Event Rankings
-              </h3>
-              {userLeaderboardPositions.map((position, index) => (
-                <Card
-                  key={index}
-                  className={cn(
-                    "overflow-hidden animate-fade-in",
-                    position.rank === 1 && "border-amber-500/30 bg-amber-500/5"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={cn(
-                          "flex h-14 w-14 items-center justify-center rounded-full",
-                          position.rank === 1
-                            ? "bg-linear-to-br from-amber-400 to-amber-600"
-                            : position.rank === 2
-                            ? "bg-linear-to-br from-gray-300 to-gray-500"
-                            : position.rank === 3
-                            ? "bg-linear-to-br from-amber-600 to-amber-800"
-                            : "bg-muted"
-                        )}
-                      >
-                        {position.rank === 1 ? (
-                          <Crown className="h-7 w-7 text-white" />
-                        ) : position.rank <= 3 ? (
-                          <Medal className="h-7 w-7 text-white" />
-                        ) : (
-                          <span className="text-lg font-bold text-muted-foreground">
-                            #{position.rank}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-foreground">
-                          {position.event}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {position.badge === "champion"
-                              ? "🏆 Champion"
-                              : position.badge === "top5"
-                              ? "⭐ Top 5"
-                              : "🎯 Top 10"}
+                        {ticket.status && (
+                          <Badge variant={ticket.status === "active" ? "default" : "secondary"}>
+                            {ticket.status}
                           </Badge>
-                        </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-display text-xl font-bold text-foreground">
-                          {position.totalScore.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Total Points
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No tickets yet</p>
+              )}
             </div>
           </TabsContent>
-
-          {/* Rewards Tab */}
-          <TabsContent value="rewards" className="mt-6">
-            <div className="space-y-3">
-              {userRewards.map((reward, index) => (
-                <Card
-                  key={reward.id}
-                  className={cn(
-                    "overflow-hidden transition-all animate-fade-in",
-                    reward.claimed
-                      ? "border-border bg-muted/30 opacity-60"
-                      : "border-primary/20 bg-primary/5"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-accent">
-                        <Gift className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground">
-                          {reward.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {reward.brand} • Expires {reward.expires}
-                        </p>
-                        <p className="text-xs text-primary mt-0.5">
-                          Won from: {reward.source}
-                        </p>
-                      </div>
-                      <Button
-                        variant={reward.claimed ? "secondary" : "default"}
-                        size="sm"
-                        className="rounded-full"
-                        disabled={reward.claimed}
-                      >
-                        {reward.claimed ? "Claimed" : "Claim"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+            </Tabs>
+          </>
+        )}
       </main>
       <BottomNav />
     </>

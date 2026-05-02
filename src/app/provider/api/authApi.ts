@@ -76,8 +76,32 @@ export const authApi = createApi({
         getUser: build.query<any, void>({
             query() {
                 return {
-                    url: "/users/me",
+                    url: "/v1/users/me",
                     method: "GET",
+                }
+            }
+        }),
+        getUserBasic: build.query<any, string>({
+            query(userId) {
+                return {
+                    url: `/v1/users/${userId}/basic`,
+                    method: "GET",
+                }
+            }
+        }),
+        getUserActivity: build.query<any, string>({
+            query(userId) {
+                return {
+                    url: `/v1/users/${userId}/activity`,
+                    method: "GET",
+                }
+            }
+        }),
+        logout: build.mutation<void, void>({
+            query() {
+                return {
+                    url: "/v1/auth/logout",
+                    method: "POST",
                 }
             }
         }),
@@ -87,4 +111,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useForgotPasswordMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetUserBasicQuery, useGetUserActivityQuery, useForgotPasswordMutation, useLogoutMutation } = authApi

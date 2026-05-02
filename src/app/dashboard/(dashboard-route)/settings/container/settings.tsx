@@ -22,40 +22,12 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useLogoutMutation } from "@/app/provider/api/authApi";
+import Cookies from "js-cookie";
 
-type UserRole = "attendee" | "organizer";
-
-export const useAuth = () => {
-  const signOut = async () => {
-    console.log("User signed out (mock)");
-  };
-
-  return {
-    user: {
-      id: "demo-user-id",
-      email: "demo@email.com",
-    },
-
-    profile: {
-      role: "attendee" as UserRole,
-    },
-
-    isAuthenticated: true,
-
-    isLoading: false,
-
-    signOut,
-
-    refetchProfile: async () => {
-      console.log("Refetch profile (mock)");
-    },
-  };
-};
-
-const Settings =()=> {
+const Settings = () => {
   const router = useRouter();
-  const { signOut, isLoading: authLoading } = useAuth();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [logout, { isLoading: isSigningOut }] = useLogoutMutation();
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [userLocation, setUserLocation] = useState<{
     city: string;
@@ -76,33 +48,23 @@ const Settings =()=> {
   }, []);
 
   const handleSignOut = async () => {
-    setIsSigningOut(true);
     try {
-      await signOut();
-      toast.success("See you next time! ");
-      router.push("/");
-    } catch (error: any) {
-      toast.error(error.message || "Please try again");
+      await logout().unwrap();
+    } catch {
+      // proceed with local cleanup even if the API call fails
     } finally {
-      setIsSigningOut(false);
+      Cookies.remove("accessToken");
+      toast.success("See you next time!");
+      router.push("/auth/login");
     }
   };
 
   const handleUpdateInterests = () => {
-    // Clear the onboarding complete flag to allow re-selecting interests
     localStorage.removeItem("nextvibe_onboarding_complete");
     toast.success(
       "Your interests have been reset. Refresh the page to update your feed."
     );
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -120,7 +82,6 @@ const Settings =()=> {
       </div>
 
       <main className="container px-4 py-6 max-w-lg mx-auto space-y-6">
-       
 
         {/* Preferences */}
         <Card>
@@ -235,6 +196,6 @@ const Settings =()=> {
       </main>
     </div>
   );
-}
+};
 
 export default Settings;
