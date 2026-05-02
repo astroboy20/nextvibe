@@ -147,7 +147,7 @@ export function EventCard({
         className
       )}
     >
-      <div className={cn("relative h-48 overflow-hidden rounded-t-2xl border-2", accentBorder)}>
+      <div className={cn("relative h-64 overflow-hidden rounded-t-2xl border-2", accentBorder)}>
 
         {!image && (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/10" />
@@ -173,7 +173,7 @@ export function EventCard({
             src={image}
             alt={title}
             style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
 

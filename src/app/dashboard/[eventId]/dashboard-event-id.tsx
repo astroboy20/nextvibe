@@ -14,6 +14,7 @@ import {
   Image as ImageIcon,
   Settings,
   ShoppingCart,
+  X,
 } from "lucide-react";
 import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
@@ -29,7 +30,9 @@ import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 
 const mockEvent = {
   id: "1",
@@ -37,11 +40,7 @@ const mockEvent = {
   date: "Dec 20, 2025",
   time: "8:00 PM",
   location: "Eko Hotel, Lagos",
-  image:
-    "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=400&fit=crop",
   isLive: true,
-  qrCode:
-    "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=nextvibe.com/event/1",
 };
 
 function EventHeaderSkeleton() {
@@ -93,19 +92,46 @@ export default function OrganizerDashboard({
   eventId,
 }: OrganizerDashboardProps) {
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(eventId);
-  const totalTicketsSold = eventDetails?.data?.tickticketTiers?.reduce(
-    (total, tier) => total + tier.quantitySold,
-    0
-  );
+  const [showQR, setShowQR] = useState(false);
 
-  useEffect(()=>{
-    if(eventDetails?.data){
+  const event = eventDetails?.data;
+
+  const totalTicketsSold = event?.ticketTiers?.reduce(
+    (total: number, tier: any) => total + (tier.quantitySold ?? 0),
+    0
+  ) ?? 0;
+
+  const rsvpCount = event?.attendingCount ?? event?.rsvpCount ?? 0;
+
+  const eventUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/dashboard/events/${eventId}`
+    : "";
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: event?.name ?? "Event",
+          text: "Check out this event",
+          url: eventUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(eventUrl);
+        toast.success("Link copied to clipboard");
+      }
+    } catch {
+      // user cancelled — ignore
+    }
+  };
+
+  useEffect(() => {
+    if (event) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("eventName", JSON.stringify(eventDetails.data?.name));
+        localStorage.setItem("eventName", JSON.stringify(event.name));
         localStorage.setItem("eventId", eventId);
       }
     }
-  })
+  });
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -130,47 +156,49 @@ export default function OrganizerDashboard({
           <Card className="mb-6 overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-accent/5">
             <div className="flex gap-4 p-4">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
-                <Image
-                  width={96}
-                  height={96}
-                  src={mockEvent.image}
-                  alt={mockEvent.title}
-                  className="h-full w-full object-cover"
-                />
-                {eventDetails?.data?.status === "LIVE" && (
-                  <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-green-500 px-2 py-0.5">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                    <span className="text-[10px] font-semibold text-white">
-                      LIVE
-                    </span>
+                {event?.flierUrl ? (
+                  <Image
+                    width={96}
+                    height={96}
+                    src={event.flierUrl}
+                    alt={event?.name ?? "Event"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-primary/10 flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-primary/40" />
                   </div>
                 )}
-                {eventDetails?.data?.status === "DRAFT" && (
+                {event?.status === "LIVE" && (
+                  <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-green-500 px-2 py-0.5">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    <span className="text-[10px] font-semibold text-white">LIVE</span>
+                  </div>
+                )}
+                {event?.status === "DRAFT" && (
                   <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-gray-500 px-2 py-0.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    <span className="text-[10px] font-semibold text-white">
-                      DRAFT
-                    </span>
+                    <span className="text-[10px] font-semibold text-white">DRAFT</span>
                   </div>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
                 <h1 className="font-display text-xl font-bold text-foreground truncate">
-                  {eventDetails?.data?.name}
+                  {event?.name}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formatDate(eventDetails?.data?.startsAt)} •{" "}
-                  {formatTime(eventDetails?.data?.startsAt)}
+                  {formatDate(event?.startsAt)} • {formatTime(event?.startsAt)}
                 </p>
                 <p className="text-sm text-muted-foreground truncate">
-                  {eventDetails?.data?.locationName}
+                  {event?.locationName}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1.5 rounded-full border border-[#531342] text-[#531342] hover:bg-[#531342]/10"
+                    onClick={() => setShowQR(true)}
                   >
                     <QrCode className="h-3.5 w-3.5" />
                     QR
@@ -179,6 +207,7 @@ export default function OrganizerDashboard({
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1.5 rounded-full border border-[#531342] text-[#531342] hover:bg-[#531342]/10"
+                    onClick={handleShare}
                   >
                     <Share2 className="h-3.5 w-3.5" />
                     Share
@@ -198,6 +227,42 @@ export default function OrganizerDashboard({
           </Card>
         )}
 
+        {/* QR Modal */}
+        {showQR && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowQR(false)}
+          >
+            <div
+              className="relative bg-background rounded-2xl p-6 flex flex-col items-center gap-4 shadow-xl mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowQR(false)}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="font-semibold text-foreground">{event?.name}</h3>
+              <div className="rounded-xl bg-white p-4 shadow">
+                <QRCodeSVG value={eventUrl} size={200} />
+              </div>
+              <p className="text-xs text-muted-foreground text-center max-w-[220px] break-all">
+                {eventUrl}
+              </p>
+              <Button
+                className="w-full rounded-xl"
+                onClick={() => {
+                  navigator.clipboard.writeText(eventUrl);
+                  toast.success("Link copied!");
+                }}
+              >
+                Copy Link
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           {isLoading ? (
             <DashboardCardSkeleton />
@@ -210,7 +275,7 @@ export default function OrganizerDashboard({
                   variant="secondary"
                   className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
                 >
-                  156 Going
+                  {rsvpCount} Going
                 </Badge>
               }
               defaultOpen={true}
@@ -226,17 +291,14 @@ export default function OrganizerDashboard({
               title="Ticket Management"
               icon={<Ticket className="h-4 w-4" />}
               badge={
-                <Badge
-                  variant="secondary"
-                  className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
-                >
-                  {totalTicketsSold ?? 0} Sold
+                <Badge className="bg-green-500/10 text-green-600 text-xs">
+                  {totalTicketsSold} Sold
                 </Badge>
               }
             >
               <TicketCreatorEnhanced
                 eventId={eventId}
-                eventDetails={eventDetails?.data?.ticketTiers}
+                eventDetails={event?.ticketTiers}
               />
             </EventDashboardCard>
           )}
@@ -250,7 +312,7 @@ export default function OrganizerDashboard({
               icon={<ShoppingCart className="h-4 w-4" />}
               badge={
                 <Badge className="bg-green-500/10 text-green-600 text-xs">
-                  ₦125K
+                  {event?.totalRevenue ? `₦${(event.totalRevenue / 100).toLocaleString()}` : "₦0"}
                 </Badge>
               }
             >
@@ -266,15 +328,15 @@ export default function OrganizerDashboard({
               icon={<Gamepad2 className="h-4 w-4" />}
               badge={
                 <Badge className="bg-green-500/10 text-green-600 text-xs">
-                  2 Live
+                  {event?.activeGameSessions ?? 0} Live
                 </Badge>
               }
             >
               <GamificationHubContent
                 eventId={eventId}
-                roundId={eventDetails?.data?.rounds?.id}
-                eventName={eventDetails?.data?.name}
-                eventStartsAt={eventDetails?.data?.startsAt}
+                roundId={event?.rounds?.id}
+                eventName={event?.name}
+                eventStartsAt={event?.startsAt}
               />
             </EventDashboardCard>
           )}
@@ -290,14 +352,14 @@ export default function OrganizerDashboard({
                   variant="secondary"
                   className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
                 >
-                  {eventDetails?.data?.vibeTag ? "1 Tag" : "0 Tags"}
+                  {event?.vibeTag ? "1 Tag" : "0 Tags"}
                 </Badge>
               }
             >
               <VibeTagStudioContent
                 eventId={eventId}
-                name={eventDetails?.data?.name}
-                vibeTag={eventDetails?.data?.vibeTag ?? null}
+                name={event?.name}
+                vibeTag={event?.vibeTag ?? null}
               />
             </EventDashboardCard>
           )}
@@ -313,7 +375,7 @@ export default function OrganizerDashboard({
                   variant="secondary"
                   className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
                 >
-                  32 Posts
+                  {event?.postcardCount ?? 0} Posts
                 </Badge>
               }
             >

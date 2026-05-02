@@ -113,21 +113,23 @@ export function EventVibeTagsTab({
             </div>
 
             {/* VibeTag Preview */}
-            <div className="relative aspect-video w-full max-w-full mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
-              <div className="relative h-full w-full rounded-xl bg-background flex items-center justify-center overflow-hidden">
-                {vibeTag?.imageUrl ? (
-                  <img
-                    src={vibeTag.imageUrl}
-                    alt={vibeTag?.name}
-                    className="absolute inset-0 w-full h-full object-contain z-10"
-                  />
-                ) : (
-                  <div className="text-center p-4 z-10">
-                    <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
-                    <p className="font-semibold text-sm text-foreground">VibeTag</p>
-                    <p className="text-xs text-muted-foreground mt-1">No VibeTag set</p>
-                  </div>
-                )}
+            <div className="flex justify-center mb-4">
+              <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
+                <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
+                  {vibeTag?.imageUrl ? (
+                    <img
+                      src={vibeTag.imageUrl}
+                      alt={vibeTag?.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center p-4">
+                      <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
+                      <p className="font-semibold text-sm text-foreground">VibeTag</p>
+                      <p className="text-xs text-muted-foreground mt-1">No VibeTag set</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { use, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,8 +26,10 @@ import { EventChatTab } from "./components/event-chat-tab";
 import { EventGamesTab } from "./components/event-game-tab";
 import { EventVibeTagsTab } from "./components/event-vibetags-tab";
 import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import { toast } from "sonner";
 
-
+const FLIER_MS = 5000;
+const FADE_MS  = 700;
 
 const tabsConfig = [
   {
@@ -68,7 +70,7 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Hero skeleton */}
-      <div className="relative h-56 w-full bg-muted">
+      <div className="relative h-72 w-full bg-muted">
         <Skeleton className="h-full w-full rounded-none" />
 
         {/* Back button */}
@@ -163,6 +165,101 @@ export default function EventPage({
   const [activeTab, setActiveTab] = useState("about");
   const [isLiked, setIsLiked] = useState(false);
 
+  const eventUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/dashboard/events/${id}`
+    : "";
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: eventDetails?.data?.name ?? "Event",
+          text: "Check out this event",
+          url: eventUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(eventUrl);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (err) {
+      // user cancelled or share failed — silently ignore
+    }
+  };
+
+  // Image / video fade state
+  const [flierOpacity, setFlierOpacity] = useState(1);
+  const [videoOpacity, setVideoOpacity] = useState(0);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  const promoVideoUrl =
+    eventDetails?.data?.promoVideoUrl ||
+    eventDetails?.data?.promotionalVideoUrl ||
+    eventDetails?.data?.data?.promotionalVideoUrl;
+
+  const videoRefCallback = useCallback(
+    (vid: HTMLVideoElement | null) => {
+      if (!vid) {
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+        return;
+      }
+
+      if (!promoVideoUrl) return;
+
+      let destroyed = false;
+      const timers: ReturnType<typeof setTimeout>[] = [];
+
+      const after = (ms: number, fn: () => void) => {
+        const t = setTimeout(fn, ms);
+        timers.push(t);
+      };
+
+      const playVideo = () => {
+        if (destroyed) return;
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+        setVideoOpacity(1);
+        after(FADE_MS, () => {
+          if (!destroyed) setFlierOpacity(0);
+        });
+      };
+
+      const backToFlier = () => {
+        if (destroyed) return;
+        setFlierOpacity(1);
+        after(FADE_MS, () => {
+          if (!destroyed) setVideoOpacity(0);
+          after(FLIER_MS, () => {
+            if (!destroyed) playVideo();
+          });
+        });
+      };
+
+      vid.onended = backToFlier;
+
+      const begin = () => {
+        if (destroyed) return;
+        after(FLIER_MS, playVideo);
+      };
+
+      vid.load();
+
+      if (vid.readyState >= 3) {
+        begin();
+      } else {
+        vid.addEventListener("loadeddata", begin, { once: true });
+      }
+
+      cleanupRef.current = () => {
+        destroyed = true;
+        timers.forEach(clearTimeout);
+        vid.onended = null;
+        vid.removeEventListener("loadeddata", begin);
+      };
+    },
+    [promoVideoUrl]
+  );
+
   if (isLoading) {
     return <EventPageSkeleton onBack={() => router.push("/dashboard/events")} />;
   }
@@ -170,15 +267,31 @@ export default function EventPage({
   return (
     <div className="min-h-screen bg-background pb-24 ">
       {/* Hero Image */}
-      <div className="relative h-56 w-full">
+      <div className="relative h-72 w-full overflow-hidden">
+        {/* Video — underneath the flier */}
+        {promoVideoUrl && (
+          <video
+            ref={videoRefCallback}
+            src={promoVideoUrl}
+            muted
+            playsInline
+            preload="none"
+            style={{ opacity: videoOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+        )}
+
+        {/* Flier — on top, fades out to reveal video */}
         <img
           src={
             eventDetails?.data?.flierUrl ||
             "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop"
           }
           alt={eventDetails?.data?.name}
-          className="h-full w-full object-cover"
+          style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+          className="absolute inset-0 h-full w-full object-cover object-center"
         />
+
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
 
         {/* Back Button */}
@@ -199,7 +312,7 @@ export default function EventPage({
               className={cn("h-5 w-5", isLiked && "fill-red-500 text-red-500")}
             />
           </button>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+          <button onClick={handleShare} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
             <Share2 className="h-5 w-5" />
           </button>
         </div>

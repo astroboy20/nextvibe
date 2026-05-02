@@ -5,12 +5,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import { Calendar, MapPin, Users, ExternalLink } from "lucide-react";
 import { DisplayMap } from "./display-map";
+import { useGetUserQuery } from "@/app/provider/api/userApi";
 
 interface EventAboutTabProps {
   event: any;
 }
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
+  const { data: me } = useGetUserQuery();
+  const isOrganizer = me?.data?.id && event?.organizer?.id
+    ? me.data.id === event.organizer.id
+    : false;
+
   const openMap = () => {
     const query = encodeURIComponent(event?.locationName);
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
@@ -89,13 +95,15 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
                 <p className="text-xs text-muted-foreground">Event Organizer</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full text-primary font-bold border-2 border-primary hover:bg-primary/10"
-            >
-              Follow
-            </Button>
+            {!isOrganizer && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full text-primary font-bold border-2 border-primary hover:bg-primary/10"
+              >
+                Follow
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
