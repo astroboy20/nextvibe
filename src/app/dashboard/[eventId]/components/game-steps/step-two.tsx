@@ -4,47 +4,49 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { Lock } from "lucide-react";
 import { EventPhase, ScheduleMode } from "../game-creation-wizard";
 
 interface StepTwoProps {
   phase: string;
-  setPhase: any;
-  startsAt: any;
-  setStartsAt: any;
-  endsAt: any;
-  setEndsAt: any;
-  rounds: any;
-  setRounds: any;
-  gameDuration: any;
-  setGameDuration: any;
-  maxWinners: any;
-  setMaxWinners: any;
-  priceCurrency: any;
-  basePrice: any;
-  setBasePrice: any;
-  perRoundPrice: any;
-  setPerRoundPrice: any;
-  scheduleMode: any;
-  setScheduleMode: any;
+  setPhase: (v: EventPhase) => void;
+  startsAt: string;
+  setStartsAt: (v: string) => void;
+  maxStartsAt: string;   // ceiling: must be before event start
+  gameEndsAt: string;    // auto-derived: 1 min before event — read-only
+  rounds: number;
+  setRounds: (v: number) => void;
+  gameDuration: number;
+  setGameDuration: (v: number) => void;
+  maxWinners: number;
+  setMaxWinners: (v: number) => void;
+  priceCurrency: string;
+  basePrice: number;
+  setBasePrice: (v: number) => void;
+  perRoundPrice: number;
+  setPerRoundPrice: (v: number) => void;
+  scheduleMode: ScheduleMode;
+  setScheduleMode: (v: ScheduleMode) => void;
 }
+
 const StepTwo = ({
   phase,
   setPhase,
   startsAt,
-  endsAt,
-  setEndsAt,
   setStartsAt,
+  maxStartsAt,
+  gameEndsAt,
   rounds,
   setRounds,
   gameDuration,
   setGameDuration,
   maxWinners,
   setMaxWinners,
-  priceCurrency,
-  basePrice,
-  setBasePrice,
-  perRoundPrice,
-  setPerRoundPrice,
+  priceCurrency: _priceCurrency,
+  basePrice: _basePrice,
+  setBasePrice: _setBasePrice,
+  perRoundPrice: _perRoundPrice,
+  setPerRoundPrice: _setPerRoundPrice,
   scheduleMode,
   setScheduleMode,
 }: StepTwoProps) => (
@@ -77,16 +79,29 @@ const StepTwo = ({
         <Input
           type="datetime-local"
           value={startsAt}
+          max={maxStartsAt || undefined}
           onChange={(e) => setStartsAt(e.target.value)}
         />
+        {maxStartsAt && (
+          <p className="text-xs text-muted-foreground">
+            Must be before the event starts
+          </p>
+        )}
       </div>
       <div className="space-y-2">
-        <Label>End Date & Time</Label>
+        <Label className="flex items-center gap-1.5">
+          End Date & Time
+          <Lock className="h-3 w-3 text-muted-foreground" />
+        </Label>
         <Input
           type="datetime-local"
-          value={endsAt}
-          onChange={(e) => setEndsAt(e.target.value)}
+          value={gameEndsAt}
+          disabled
+          className="cursor-not-allowed opacity-60"
         />
+        <p className="text-xs text-muted-foreground">
+          Auto-set to 1 min before event
+        </p>
       </div>
     </div>
 
@@ -100,9 +115,7 @@ const StepTwo = ({
             variant={rounds === num ? "default" : "outline"}
             size="sm"
             className={`flex-1 rounded-full ${
-              rounds === num
-                ? "bg-[#531342] text-white hover:bg-[#531342]/90"
-                : ""
+              rounds === num ? "bg-[#531342] text-white hover:bg-[#531342]/90" : ""
             }`}
             onClick={() => setRounds(num)}
           >
@@ -116,19 +129,17 @@ const StepTwo = ({
     <div className="space-y-2">
       <Label>Game Duration (Seconds)</Label>
       <div className="flex gap-2">
-        {[15, 30, 45, 60].map((mins) => (
+        {[15, 30, 45, 60].map((secs) => (
           <Button
-            key={mins}
-            variant={gameDuration === mins ? "default" : "outline"}
+            key={secs}
+            variant={gameDuration === secs ? "default" : "outline"}
             size="sm"
             className={`flex-1 rounded-full ${
-              gameDuration === mins
-                ? "bg-[#531342] text-white hover:bg-[#531342]/90"
-                : ""
+              gameDuration === secs ? "bg-[#531342] text-white hover:bg-[#531342]/90" : ""
             }`}
-            onClick={() => setGameDuration(mins)}
+            onClick={() => setGameDuration(secs)}
           >
-            {mins}s
+            {secs}s
           </Button>
         ))}
       </div>
@@ -144,9 +155,7 @@ const StepTwo = ({
             variant={maxWinners === num ? "default" : "outline"}
             size="sm"
             className={`flex-1 rounded-full ${
-              maxWinners === num
-                ? "bg-[#531342] text-white hover:bg-[#531342]/90"
-                : ""
+              maxWinners === num ? "bg-[#531342] text-white hover:bg-[#531342]/90" : ""
             }`}
             onClick={() => setMaxWinners(num)}
           >
@@ -155,30 +164,6 @@ const StepTwo = ({
         ))}
       </div>
     </div>
-
-    {/* Pricing */}
-    {/* <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label>Base Price ({priceCurrency})</Label>
-        <Input
-          type="number"
-          min={0}
-          value={basePrice}
-          onChange={(e) => setBasePrice(Number(e.target.value))}
-          placeholder="500"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Per Round Price ({priceCurrency})</Label>
-        <Input
-          type="number"
-          min={0}
-          value={perRoundPrice}
-          onChange={(e) => setPerRoundPrice(Number(e.target.value))}
-          placeholder="100"
-        />
-      </div>
-    </div> */}
 
     {/* Schedule Mode */}
     <div className="space-y-3">
@@ -190,30 +175,16 @@ const StepTwo = ({
         <div className="space-y-3">
           {(
             [
-              {
-                value: "concurrent",
-                label: "All at Once",
-                desc: "All games available at the same time",
-              },
-              {
-                value: "daily",
-                label: "Daily",
-                desc: "New round unlocks each day",
-              },
-              {
-                value: "weekly",
-                label: "Weekly",
-                desc: "New round unlocks each week",
-              },
+              { value: "concurrent", label: "All at Once", desc: "All games available at the same time" },
+              { value: "daily",      label: "Daily",       desc: "New round unlocks each day" },
+              { value: "weekly",     label: "Weekly",      desc: "New round unlocks each week" },
             ] as { value: ScheduleMode; label: string; desc: string }[]
           ).map(({ value, label, desc }) => (
             <label
               key={value}
               className={cn(
                 "flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all",
-                scheduleMode === value
-                  ? "border-[#531342] bg-[#531342]/5"
-                  : "border-border"
+                scheduleMode === value ? "border-[#531342] bg-[#531342]/5" : "border-border"
               )}
             >
               <RadioGroupItem value={value} id={value} className="mt-0.5" />

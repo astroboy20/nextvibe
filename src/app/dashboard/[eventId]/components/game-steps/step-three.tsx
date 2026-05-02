@@ -12,41 +12,28 @@ import {
 import { cn } from "@/lib/utils";
 import { Pencil, Sparkles } from "lucide-react";
 
-type GameType = "trivia" | "word_puzzle" | "two_truths" | "this_or_that";
+import { GameTypeOrEmpty } from "../game-creation-wizard";
 
 interface StepThreeProps {
   contentMode: string;
-  setContentMode: any;
+  setContentMode: (v: string) => void;
   aiPrompt: {
     topic: string;
-    count: number;
-    gameType: GameType | "";
+    count: number | null;  // null = empty field, not 0
+    gameType: GameTypeOrEmpty;
     difficulty: string;
     activityTiming: "pre_event" | "ongoing" | "post_event" | "";
     eventName: string;
   };
-  setAiPrompt: any;
+  setAiPrompt: React.Dispatch<React.SetStateAction<any>>;
 }
 
-const gameTypeConfig: Record<GameType, { label: string; description: string }> =
-  {
-    trivia: {
-      label: "Trivia",
-      description: "Multiple choice questions",
-    },
-    "word_puzzle": {
-      label: "Word Puzzle",
-      description: "Find words from letters",
-    },
-    "two_truths": {
-      label: "2 Truths & 1 Lie",
-      description: "Guess the lie",
-    },
-    "this_or_that": {
-      label: "This or That",
-      description: "Choose between options",
-    },
-  };
+const gameTypeConfig: Record<string, { label: string; description: string }> = {
+  trivia: { label: "Trivia", description: "Multiple choice questions" },
+  "word-puzzle": { label: "Word Puzzle", description: "Find words from letters" },
+  "two-truths": { label: "2 Truths & 1 Lie", description: "Guess the lie" },
+  "this-or-that": { label: "This or That", description: "Choose between options" },
+};
 
 const StepThree = ({
   contentMode,
@@ -68,7 +55,7 @@ const StepThree = ({
         <Label>Content Creation Method</Label>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* <button
+          <button
             onClick={() => setContentMode("ai")}
             className={cn(
               "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
@@ -91,7 +78,7 @@ const StepThree = ({
             <span className="text-xs text-muted-foreground text-center">
               Let AI create questions based on your prompt
             </span>
-          </button> */}
+          </button>
 
           <button
             onClick={() => setContentMode("manual")}
@@ -139,15 +126,11 @@ const StepThree = ({
               <Label>Count</Label>
               <Input
                 type="number"
-                
-                value={aiPrompt.count ?? ""} // ✅ show empty instead of 0
+                min={1}
+                value={aiPrompt.count === null ? "" : aiPrompt.count}
                 onChange={(e) => {
-                  const value = e.target.value;
-
-                  updateField(
-                    "count",
-                    value === "" ? null : Number(value) // ✅ handle empty properly
-                  );
+                  const raw = e.target.value;
+                  updateField("count", raw === "" ? null : Number(raw));
                 }}
                 placeholder="e.g. 10"
               />

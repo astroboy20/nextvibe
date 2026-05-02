@@ -51,8 +51,8 @@ const tabsConfig = [
     icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
   },
   {
-    value: "vibetags",
-    label: "VibeTags",
+    value: "postcard",
+    label: "Post Cards",
     icon: <Tag className="mr-1.5 h-4 w-4" />,
   },
   {
@@ -259,7 +259,7 @@ export default function EventPage({
               <EventGamesTab event={eventDetails?.data} />
             </TabsContent>
 
-            <TabsContent value="vibetags" className="mt-0">
+            <TabsContent value="postcard" className="mt-0">
               <EventVibeTagsTab
                 eventId={id}
                 vibeTag={eventDetails?.data?.vibeTag ?? null}

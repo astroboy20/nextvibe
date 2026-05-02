@@ -81,6 +81,22 @@ export const authApi = createApi({
                 }
             }
         }),
+        getMe: build.query<any, void>({
+            query() {
+                return {
+                    url: "/v1/me",
+                    method: "GET",
+                }
+            }
+        }),
+        getOrganizerEvents: build.query<any, string>({
+            query(organizerId) {
+                return {
+                    url: `/v1/events/organizer/${organizerId}`,
+                    method: "GET",
+                }
+            }
+        }),
         getUserBasic: build.query<any, string>({
             query(userId) {
                 return {
@@ -111,4 +127,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetUserBasicQuery, useGetUserActivityQuery, useForgotPasswordMutation, useLogoutMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useLogoutMutation } = authApi

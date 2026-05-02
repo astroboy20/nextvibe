@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 
 interface StepOneProps {
   gameName: string;
-  setGameName: any;
-  gameType: any;
-  gameTypeConfig: any;
-  setGameType: any;
+  setGameName: (v: string) => void;
+  gameType: GameType;
+  gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: string; description: string }>;
+  setGameType: (v: GameType) => void;
 }
 const StepOne = ({
   gameName,

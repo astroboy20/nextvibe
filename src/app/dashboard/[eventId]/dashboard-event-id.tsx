@@ -272,8 +272,9 @@ export default function OrganizerDashboard({
             >
               <GamificationHubContent
                 eventId={eventId}
-                roundId={eventDetails?.data.rounds?.id}
+                roundId={eventDetails?.data?.rounds?.id}
                 eventName={eventDetails?.data?.name}
+                eventStartsAt={eventDetails?.data?.startsAt}
               />
             </EventDashboardCard>
           )}

@@ -21,7 +21,9 @@ import { useCreateGameMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
-export type GameType = "" | "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+// "" is excluded from the non-empty type used in maps/configs
+export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+export type GameTypeOrEmpty = "" | GameType;
 export type EventPhase = "pre-event" | "main-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -33,6 +35,7 @@ export type RewardType =
   | "POINTS"
   | "OTHERS";
 export type DiscountType = "PERCENTAGE" | "FIXED";
+
 export interface RewardTier {
   id: string;
   rank: number;
@@ -46,6 +49,7 @@ export interface RewardTier {
   expiryDate: string;
   quantity: number;
 }
+
 export interface Question {
   id: string;
   question: string;
@@ -74,7 +78,15 @@ const GAMETYPE_TO_API: Record<GameType, string> = {
   "this-or-that": "THIS_OR_THAT",
 };
 
-const gameTypeConfig: Record<
+// Map wizard hyphenated keys → StepThree underscored keys for AI prompt
+const GAMETYPE_TO_AI_KEY: Record<GameType, GameTypeOrEmpty> = {
+  trivia: "trivia",
+  "word-puzzle": "word-puzzle",
+  "two-truths": "two-truths",
+  "this-or-that": "this-or-that",
+};
+
+export const gameTypeConfig: Record<
   GameType,
   { icon: React.ReactNode; label: string; description: string }
 > = {
@@ -105,16 +117,27 @@ interface GameCreationWizardProps {
   onCancel: () => void;
   eventId: string;
   eventName: string;
+  eventStartsAt?: string; // ISO string from the event — used to constrain game dates
 }
 
 export function GameCreationWizard({
   onCancel,
   eventId,
   eventName,
+  eventStartsAt,
 }: GameCreationWizardProps) {
-  // Step
   const [step, setStep] = useState(1);
   const totalSteps = 6;
+
+  // Derive the game's hard end time: 1 minute before the event starts
+  const gameEndsAt = eventStartsAt
+    ? new Date(new Date(eventStartsAt).getTime() - 60 * 1000)
+        .toISOString()
+        .slice(0, 16) // "YYYY-MM-DDTHH:mm" for datetime-local
+    : "";
+
+  // The latest the game can start: also before the event (same ceiling)
+  const maxStartsAt = gameEndsAt;
 
   // Step 1 — Basic Info
   const [gameName, setGameName] = useState("");
@@ -125,28 +148,27 @@ export function GameCreationWizard({
   const [rounds, setRounds] = useState(3);
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("concurrent");
   const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
-  const [gameDuration, setGameDuration] = useState(0);
-  const [maxWinners, setMaxWinners] = useState(0);
+  const [gameDuration, setGameDuration] = useState(30);
+  const [maxWinners, setMaxWinners] = useState(3);
   const [basePrice, setBasePrice] = useState(0);
   const [perRoundPrice, setPerRoundPrice] = useState(0);
   const [priceCurrency] = useState("NGN");
 
   // Step 3 — Content Mode
-  const [contentMode, setContentMode] = useState<ContentMode>("manual");
+  const [contentMode, setContentMode] = useState<ContentMode>("ai");
   const [aiPrompt, setAiPrompt] = useState<{
     topic: string;
     count: number | null;
-    gameType: GameType;
+    gameType: GameTypeOrEmpty;
     difficulty: string;
     activityTiming: "" | "pre_event" | "ongoing" | "post_event";
     eventName: string;
   }>({
     topic: "",
-    count: null,
-    gameType: gameType as GameType,
+    count: null as number | null,
+    gameType: GAMETYPE_TO_AI_KEY[gameType],
     difficulty: "",
-    activityTiming: "",
+    activityTiming: "" as "" | "pre_event" | "ongoing" | "post_event",
     eventName,
   });
 
@@ -159,22 +181,66 @@ export function GameCreationWizard({
   const [rewardTiers, setRewardTiers] = useState<RewardTier[]>([]);
 
   const [createGameMutation, { isLoading }] = useCreateGameMutation();
-
   const progress = (step / totalSteps) * 100;
   const accessToken = Cookies.get("accessToken");
 
+  // ─── Validation per step ────────────────────────────────────────────────────
+  const [validationError, setValidationError] = useState("");
+
+  const validateStep = (s: number): string => {
+    switch (s) {
+      case 1:
+        if (!gameName.trim()) return "Please enter a game name.";
+        if (!gameType) return "Please select a game type.";
+        return "";
+      case 2:
+        if (!startsAt) return "Please set a start date and time.";
+        if (gameEndsAt && new Date(startsAt) >= new Date(gameEndsAt))
+          return "Game must start before the event begins.";
+        if (gameDuration <= 0) return "Please select a game duration.";
+        if (maxWinners <= 0) return "Please select the number of max winners.";
+        return "";
+      case 3:
+        if (contentMode === "ai") {
+          if (!aiPrompt.topic.trim()) return "Please enter a topic for AI generation.";
+          if (!aiPrompt.count || aiPrompt.count <= 0)
+            return "Please enter a valid question count.";
+          if (!aiPrompt.gameType) return "Please select a game type for AI.";
+          if (!aiPrompt.difficulty) return "Please select a difficulty level.";
+          if (!aiPrompt.activityTiming) return "Please select an activity timing.";
+        }
+        return "";
+      case 4:
+        if (questions.length === 0) return "Please add at least one question.";
+        for (const q of questions) {
+          if (!q.question.trim()) return "All questions must have text.";
+          if (q.options) {
+            if (q.options.some((o) => !o.trim()))
+              return "All answer options must be filled in.";
+          }
+        }
+        return "";
+      case 5:
+        for (const tier of rewardTiers) {
+          if (!tier.title.trim()) return `Reward tier #${tier.rank} needs a title.`;
+          if (!tier.value || Number(tier.value) <= 0)
+            return `Reward tier #${tier.rank} needs a valid value.`;
+        }
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  // ─── AI generation ──────────────────────────────────────────────────────────
   const generateQuestionsWithAI = async () => {
-    if (
-      !aiPrompt.topic.trim() ||
-      aiPrompt.count === null ||
-      aiPrompt.count <= 0 ||
-      !aiPrompt.gameType ||
-      !aiPrompt.difficulty ||
-      !aiPrompt.activityTiming
-    ) {
-      toast.error("Please fill in all AI prompt fields");
+    const err = validateStep(3);
+    if (err) {
+      toast.error(err);
+      setValidationError(err);
       return;
     }
+    setValidationError("");
     setIsGenerating(true);
     try {
       const response = await fetch(
@@ -190,6 +256,11 @@ export function GameCreationWizard({
       );
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "AI generation failed");
+      }
+
       const raw =
         data.content?.find((b: { type: string }) => b.type === "text")?.text ??
         "[]";
@@ -213,74 +284,54 @@ export function GameCreationWizard({
         })
       );
 
-      if (response.ok) {
-        setQuestions(generated);
-        setStep(4);
-      }
-    } catch (err) {
-      console.error("AI generation failed:", err);
-      // Fallback mock questions
-      setQuestions(
-        Array.from({ length: rounds * 3 }, (_, i) => ({
-          id: `q-${i + 1}`,
-          question: `Sample Question ${i + 1}`,
-          options: ["Option A", "Option B", "Option C", "Option D"],
-          correctIndex: 0,
-          timeLimitSecs: 15,
-        }))
-      );
+      setQuestions(generated);
       setStep(4);
+    } catch (err: any) {
+      toast.error(err?.message || "AI generation failed. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const regenerateQuestion = async (id: string) => {
+    const q = questions.find((q) => q.id === id);
+    if (!q) return;
     try {
-      const q = questions.find((q) => q.id === id);
-      if (!q) return;
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 300,
-          messages: [
-            {
-              role: "user",
-              content: `Generate 1 replacement question for a ${
-                gameTypeConfig[gameType].label
-              } game${
-                aiPrompt ? ` about: ${aiPrompt}` : ""
-              }. Return ONLY JSON: {"text":"...","options":[...],"correctIndex":0,"timeLimitSecs":15}`,
-            },
-          ],
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ ...aiPrompt, count: 1 }),
+        }
+      );
       const data = await response.json();
+      if (!response.ok) throw new Error(data?.message);
+
       const raw =
         data.content?.find((b: { type: string }) => b.type === "text")?.text ??
-        "{}";
+        "[]";
       const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      const replacement = Array.isArray(parsed) ? parsed[0] : parsed;
+
       setQuestions((prev) =>
         prev.map((q) =>
           q.id === id
             ? {
                 ...q,
-                question: parsed.text ?? q.question,
-                options: parsed.options ?? q.options,
-                correctIndex: parsed.correctIndex ?? q.correctIndex,
-                timeLimitSecs: parsed.timeLimitSecs ?? q.timeLimitSecs,
+                question: replacement?.text ?? q.question,
+                options: replacement?.options ?? q.options,
+                correctIndex: replacement?.correctIndex ?? q.correctIndex,
+                timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
               }
             : q
         )
       );
     } catch {
-      setQuestions((prev) =>
-        prev.map((q) =>
-          q.id === id ? { ...q, question: `${q.question} (refreshed)` } : q
-        )
-      );
+      toast.error("Could not regenerate question. Please edit it manually.");
     }
   };
 
@@ -293,10 +344,8 @@ export function GameCreationWizard({
       prev.map((q) => {
         if (q.id !== id) return q;
         if (field === "question") return { ...q, question: value as string };
-        if (field === "correctIndex")
-          return { ...q, correctIndex: value as number };
-        if (field === "timeLimitSecs")
-          return { ...q, timeLimitSecs: value as number };
+        if (field === "correctIndex") return { ...q, correctIndex: value as number };
+        if (field === "timeLimitSecs") return { ...q, timeLimitSecs: value as number };
         return q;
       })
     );
@@ -326,7 +375,13 @@ export function GameCreationWizard({
         rank: nextRank,
         type: "CASH",
         title: `${
-          nextRank === 2 ? "2nd" : nextRank === 3 ? "3rd" : `${nextRank}th`
+          nextRank === 1
+            ? "1st"
+            : nextRank === 2
+            ? "2nd"
+            : nextRank === 3
+            ? "3rd"
+            : `${nextRank}th`
         } Place Winner`,
         description: "",
         value: "",
@@ -355,54 +410,82 @@ export function GameCreationWizard({
     );
   };
 
+  // ─── Submit ──────────────────────────────────────────────────────────────────
   const handleComplete = async () => {
-    const payload = {
-      title: gameName,
-      scheduleType: SCHEDULE_TO_API[scheduleMode],
-      priceCurrency,
-      repetitions: rounds,
-      startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
-      endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
-      activityTiming: PHASE_TO_API[phase],
-      maxWinners,
-      gameDuration,
-      basePrice,
-      perRoundPrice,
-      rounds: questions.map((q, i) => ({
-        title: `Round ${i + 1}`,
-        description: "",
-        gameType: GAMETYPE_TO_API[gameType],
-        config: {
-          questions: [
-            {
-              text: q.question,
-              options: q.options,
-              correctIndex: q.correctIndex,
-              timeLimitSecs: q.timeLimitSecs,
-            },
-          ],
-        },
-        orderIndex: i,
-      })),
-      rewardTiers: rewardTiers.map(({ id, ...tier }) => ({
-        ...tier,
-        expiryDate: tier.expiryDate
-          ? new Date(tier.expiryDate).toISOString()
-          : undefined,
-      })),
-    };
+    try {
+      const payload = {
+        title: gameName,
+        scheduleType: SCHEDULE_TO_API[scheduleMode],
+        priceCurrency,
+        repetitions: rounds,
+        startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
+        endsAt: gameEndsAt ? new Date(gameEndsAt).toISOString() : undefined,
+        activityTiming: PHASE_TO_API[phase],
+        maxWinners,
+        gameDuration,
+        basePrice,
+        perRoundPrice,
+        rounds: questions.map((q, i) => ({
+          title: `Round ${i + 1}`,
+          description: "",
+          gameType: GAMETYPE_TO_API[gameType],
+          config: {
+            questions: [
+              {
+                text: q.question,
+                options: q.options,
+                correctIndex: q.correctIndex,
+                timeLimitSecs: q.timeLimitSecs,
+              },
+            ],
+          },
+          orderIndex: i,
+        })),
+        rewardTiers: rewardTiers.map(({ id: _id, ...tier }) => ({
+          ...tier,
+          expiryDate: tier.expiryDate
+            ? new Date(tier.expiryDate).toISOString()
+            : undefined,
+        })),
+      };
 
-    const request = await createGameMutation({
-      body: payload,
-      eventId: eventId,
-    }).unwrap();
-    if (request.success) {
-      toast.success("Game created successfully");
-      onCancel();
+      const request = await createGameMutation({
+        body: payload,
+        eventId,
+      }).unwrap();
+
+      if (request.success) {
+        toast.success("Game created successfully!");
+        onCancel();
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Failed to create game. Please try again.");
     }
+  };
 
-    // console.log("Final payload:", JSON.stringify(payload, null, 2));
-    // onComplete(payload);
+  // ─── Navigation ──────────────────────────────────────────────────────────────
+  const handleNext = () => {
+    const err = validateStep(step);
+    if (err) {
+      toast.error(err);
+      setValidationError(err);
+      return;
+    }
+    setValidationError("");
+
+    if (step === 3 && contentMode === "ai") {
+      generateQuestionsWithAI();
+    } else if (step === 3 && contentMode === "manual") {
+      setQuestions([]);
+      setStep(4);
+    } else {
+      setStep((s) => s + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setValidationError("");
+    setStep((s) => s - 1);
   };
 
   const stepLabel = [
@@ -414,25 +497,15 @@ export function GameCreationWizard({
     "Preview",
   ][step - 1];
 
-  const handleNext = () => {
-    if (step === 3 && contentMode === "ai") {
-      generateQuestionsWithAI();
-    } else if (step === 3 && contentMode === "manual") {
-      setQuestions([]);
-      setStep(4);
-    } else {
-      setStep(step + 1);
-    }
-  };
-
-  const canProceed = (): boolean => {
-    if (step === 1) return gameName.trim().length > 0;
-    if (step === 4) return questions.length > 0;
-    return true;
+  // Keep aiPrompt.gameType in sync when gameType changes in step 1
+  const handleSetGameType = (type: GameType) => {
+    setGameType(type);
+    setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_AI_KEY[type] }));
   };
 
   return (
     <div className="space-y-6">
+      {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
@@ -443,12 +516,20 @@ export function GameCreationWizard({
         <Progress value={progress} className="h-2" />
       </div>
 
+      {/* Validation error banner */}
+      {validationError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {validationError}
+        </div>
+      )}
+
+      {/* Steps */}
       {step === 1 && (
         <StepOne
           gameName={gameName}
           setGameName={setGameName}
           gameType={gameType}
-          setGameType={setGameType}
+          setGameType={handleSetGameType}
           gameTypeConfig={gameTypeConfig}
         />
       )}
@@ -458,8 +539,8 @@ export function GameCreationWizard({
           setPhase={setPhase}
           startsAt={startsAt}
           setStartsAt={setStartsAt}
-          endsAt={endsAt}
-          setEndsAt={setEndsAt}
+          maxStartsAt={maxStartsAt}
+          gameEndsAt={gameEndsAt}
           rounds={rounds}
           setRounds={setRounds}
           gameDuration={gameDuration}
@@ -478,8 +559,8 @@ export function GameCreationWizard({
       {step === 3 && (
         <StepThree
           contentMode={contentMode}
-          setContentMode={setContentMode}
-          aiPrompt={{ ...aiPrompt, count: aiPrompt.count ?? 0 }}
+          setContentMode={(v) => setContentMode(v as ContentMode)}
+          aiPrompt={aiPrompt}
           setAiPrompt={setAiPrompt}
         />
       )}
@@ -513,7 +594,7 @@ export function GameCreationWizard({
           gameTypeConfig={gameTypeConfig}
           phase={phase}
           startsAt={startsAt}
-          endsAt={endsAt}
+          endsAt={gameEndsAt}
           rounds={rounds}
           gameDuration={gameDuration}
           maxWinners={maxWinners}
@@ -529,11 +610,12 @@ export function GameCreationWizard({
         />
       )}
 
+      {/* Navigation */}
       <div className="flex gap-3 pt-4 border-t border-border">
         {step > 1 ? (
           <Button
             variant="outline"
-            onClick={() => setStep(step - 1)}
+            onClick={handleBack}
             className="flex-1 gap-1.5"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -548,7 +630,7 @@ export function GameCreationWizard({
         {step < totalSteps && (
           <Button
             onClick={handleNext}
-            disabled={!canProceed() || isGenerating}
+            disabled={isGenerating}
             className="flex-1 gap-1.5 bg-[#531342] hover:bg-[#531342]/90 text-white"
           >
             {isGenerating ? (

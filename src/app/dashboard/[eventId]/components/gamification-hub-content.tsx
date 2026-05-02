@@ -39,6 +39,7 @@ interface GameProps {
   eventId: string;
   eventName: string;
   roundId?: string;
+  eventStartsAt?: string; // ISO string — used to constrain game dates
 }
 
 // Raw API shape
@@ -139,7 +140,7 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-4 w-4" />,
 };
 
-export function GamificationHubContent({ eventId, eventName }: GameProps) {
+export function GamificationHubContent({ eventId, eventName, eventStartsAt }: GameProps) {
   const [activePhase, setActivePhase] = useState<
     "all" | "pre-event" | "main-event"
   >("all");
@@ -273,6 +274,7 @@ export function GamificationHubContent({ eventId, eventName }: GameProps) {
               onCancel={() => setIsAddingGame(false)}
               eventId={eventId}
               eventName={eventName}
+              eventStartsAt={eventStartsAt}
             />
           </DialogContent>
         </Dialog>
