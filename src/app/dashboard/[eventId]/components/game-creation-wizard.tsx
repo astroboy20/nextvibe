@@ -24,7 +24,7 @@ import Cookies from "js-cookie";
 // "" is excluded from the non-empty type used in maps/configs
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 export type GameTypeOrEmpty = "" | GameType;
-export type EventPhase = "pre-event" | "main-event" | "both";
+export type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
 export type RewardType =
@@ -60,9 +60,10 @@ export interface Question {
 }
 
 const PHASE_TO_API: Record<EventPhase, string> = {
-  "pre-event": "BEFORE_EVENT",
+  "pre-event":  "PRE_EVENT",
   "main-event": "DURING_EVENT",
-  both: "BOTH",
+  "post-event": "POST_EVENT",
+  both:         "BOTH",
 };
 
 const SCHEDULE_TO_API: Record<ScheduleMode, string> = {
@@ -161,14 +162,14 @@ export function GameCreationWizard({
     count: number | null;
     gameType: GameTypeOrEmpty;
     difficulty: string;
-    activityTiming: "" | "pre_event" | "ongoing" | "post_event";
+    activityTiming: "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
     eventName: string;
   }>({
     topic: "",
     count: null as number | null,
     gameType: GAMETYPE_TO_AI_KEY[gameType],
     difficulty: "",
-    activityTiming: "" as "" | "pre_event" | "ongoing" | "post_event",
+    activityTiming: "" as "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH",
     eventName,
   });
 

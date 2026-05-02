@@ -124,6 +124,22 @@ export const eventsApi = createApi({
       ],
     }),
 
+    /** PATCH /v1/events/:id/status — DRAFT→PUBLISHED, PUBLISHED→CANCELLED or PUBLISHED→ENDED */
+    updateEventStatus: builder.mutation<
+      any,
+      { eventId: string; status: "PUBLISHED" | "CANCELLED" | "ENDED" }
+    >({
+      query: ({ eventId, status }) => ({
+        url: `/v1/events/${eventId}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Event", id: eventId },
+        "Events",
+      ],
+    }),
+
 
 
     updateMedia: builder.mutation<
@@ -310,6 +326,7 @@ export const eventsApi = createApi({
       }),
       invalidatesTags: ["Games"]
     }),
+
     updateGameStatus: builder.mutation<
       any,
       { roundId: string; status: "ACTIVE" | "ENDED" }
@@ -322,11 +339,63 @@ export const eventsApi = createApi({
       invalidatesTags: ["Games"],
     }),
 
+    updateRoundStatus: builder.mutation<
+      any,
+      { roundId: string; status: "ACTIVE" | "ENDED" }
+    >({
+      query: ({ roundId, status }) => ({
+        url: `/v1/game-rounds/${roundId}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
     getGames: builder.query<any, string>({
       query: (eventId) => ({
         url: `/v1/events/${eventId}/game-sessions`,
       }),
       providesTags: ["Games"]
+    }),
+
+    /** POST /v1/game-sessions/:sessionId/join */
+    joinGameSession: builder.mutation<any, string>({
+      query: (sessionId) => ({
+        url: `/v1/game-sessions/${sessionId}/join`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    /** POST /v1/game-rounds/:roundId/submit */
+    submitRoundAnswers: builder.mutation<
+      any,
+      { roundId: string; answers: (number | string)[]; timeTakenMs?: number }
+    >({
+      query: ({ roundId, answers, timeTakenMs }) => ({
+        url: `/v1/game-rounds/${roundId}/submit`,
+        method: "POST",
+        body: {
+          answers,
+          metadata: { timeTakenMs: timeTakenMs ?? 0 },
+        },
+      }),
+    }),
+
+    /** GET /v1/game-sessions/:sessionId/leaderboard */
+    getSessionLeaderboard: builder.query<any, string>({
+      query: (sessionId) => `/v1/game-sessions/${sessionId}/leaderboard`,
+      providesTags: ["Games"],
+    }),
+
+    /** POST /v1/events/checkin  { qrCode: event.qrCode } */
+    checkinEvent: builder.mutation<any, { qrCode: string; eventId: string }>({
+      query: ({ qrCode }) => ({
+        url: `/v1/events/checkin`,
+        method: "POST",
+        body: { qrCode },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
     createVibeTag: builder.mutation({
@@ -430,6 +499,7 @@ export const {
   useGetEventDetailsQuery,
   useDeleteEventMutation,
   useUpdateEventMutation,
+  useUpdateEventStatusMutation,
   useCreateEventMutation,
   useToggleLikeEventMutation,
   useToggleBookmarkEventMutation,
@@ -456,6 +526,11 @@ export const {
   useCreateGameMutation,
   useGetGamesQuery,
   useUpdateGameStatusMutation,
+  useUpdateRoundStatusMutation,
+  useJoinGameSessionMutation,
+  useSubmitRoundAnswersMutation,
+  useGetSessionLeaderboardQuery,
+  useCheckinEventMutation,
   useCreateVibeTagMutation,
   useGetVibeTagsQuery,
   useGetEventPostcardsQuery,

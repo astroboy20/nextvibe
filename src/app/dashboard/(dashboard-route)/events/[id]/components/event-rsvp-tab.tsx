@@ -105,27 +105,26 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
   /**
    * ✅ AFTER TICKET SELECTION / PURCHASE
    */
-  const handleTicketPurchased = async (tierId?: string) => {
-    const finalTierId = tierId || ticketTierId;
+  const handleTicketPurchased = async (tierId: string) => {
+    if (!tierId) return;
 
-    if (!finalTierId) return;
-
-    setTicketTierId(finalTierId);
+    setTicketTierId(tierId);
     setHasTicket(true);
 
-    // 🚀 Auto RSVP after ticket selection
+    // 🚀 Auto RSVP after payment confirmed
     try {
       setIsRsvping(true);
 
       const request = await rsvpMutation({
         eventId: event.id,
-        ticketTierId: finalTierId,
+        ticketTierId: tierId,
       }).unwrap();
 
       if (request.success) {
         setRsvpStatus("going");
+        toast.success("🎉 You're going! See you at the event.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to RSVP. Please try again.");
     } finally {
       setIsRsvping(false);

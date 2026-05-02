@@ -19,10 +19,10 @@ interface StepThreeProps {
   setContentMode: (v: string) => void;
   aiPrompt: {
     topic: string;
-    count: number | null;  // null = empty field, not 0
+    count: number | null;
     gameType: GameTypeOrEmpty;
     difficulty: string;
-    activityTiming: "pre_event" | "ongoing" | "post_event" | "";
+    activityTiming: "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH" | "";
     eventName: string;
   };
   setAiPrompt: React.Dispatch<React.SetStateAction<any>>;
@@ -147,9 +147,10 @@ const StepThree = ({
                   <SelectValue placeholder="Select timing" className="w-full" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pre_event">Pre Event</SelectItem>
-                  <SelectItem value="ongoing">Ongoing</SelectItem>
-                  <SelectItem value="post_event">Post Event</SelectItem>
+                  <SelectItem value="PRE_EVENT">Pre Event</SelectItem>
+                  <SelectItem value="DURING_EVENT">During Event</SelectItem>
+                  <SelectItem value="POST_EVENT">Post Event</SelectItem>
+                  <SelectItem value="BOTH">Both</SelectItem>
                 </SelectContent>
               </Select>
             </div>

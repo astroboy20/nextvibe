@@ -3,48 +3,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Trophy,
-  Play,
-  Clock,
-  Users,
-  Crown,
-  Medal,
-  HelpCircle,
-  Puzzle,
-  MessageSquare,
-  Zap,
-  ChevronRight,
-  Share2,
+  Trophy, Play, Clock, Users, Crown, Medal, HelpCircle,
+  Puzzle, MessageSquare, Zap, ChevronRight, Loader2,
+  QrCode, CheckCircle2, Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GameScoreShare } from "./game-share";
-import { useRouter } from "next/navigation";
-import { useGetGamesQuery } from "@/app/provider/api/eventApi";
+import {
+  useGetGamesQuery,
+  useGetEventDetailsQuery,
+  useJoinGameSessionMutation,
+  useSubmitRoundAnswersMutation,
+  useGetSessionLeaderboardQuery,
+  useCheckinEventMutation,
+} from "@/app/provider/api/eventApi";
+import { toast } from "sonner";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
-
-interface Game {
-  id: string;
-  name: string;
-  type: GameType;
-  phase: "pre-event" | "main-event";
-  status: "live" | "upcoming" | "ended";
-  players: number;
-  rounds: number;
-  currentRound?: number;
-}
-
-interface EventGamesTabProps {
-  event: any;
-}
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
@@ -53,205 +29,449 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-5 w-5" />,
 };
 
-const rankIcons = [
-  <Crown className="h-4 w-4 text-amber-500" key={1} />,
-  <Medal className="h-4 w-4 text-gray-400" key={2} />,
-  <Medal className="h-4 w-4 text-amber-700" key={3} />,
-];
+const mapType = (t: string): GameType =>
+  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS: "two-truths", THIS_OR_THAT: "this-or-that" }[t] ?? "trivia") as GameType;
 
-export function EventGamesTab({ event }: EventGamesTabProps) {
-  const { data:gameData } = useGetGamesQuery(event?.id);
-  console.log("Event details in GamesTab:", gameData);
+const mapStatus = (s: string): "pending" | "live" | "ended" =>
+  ({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as "pending" | "live" | "ended";
 
-  const router = useRouter();
-  const [activePhase, setActivePhase] = useState<
-    "all" | "pre-event" | "main-event"
-  >("all");
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] =
-    useState<any>(null);
+// ── Leaderboard ──────────────────────────────────────────────────────────────
+function SessionLeaderboard({ sessionId }: { sessionId: string }) {
+  const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
+  const entries: any[] = data?.data ?? [];
 
-  // ✅ MAP YOUR REAL DATA
-  const games: any[] =
-  gameData && gameData?.data?.map((g: any) => ({
-      id: g.id,
-      name: g.title,
-      type:
-        g.rounds?.[0]?.gameType === "TRIVIA"
-          ? "trivia"
-          : g.rounds?.[0]?.gameType === "WORD_PUZZLE"
-          ? "word-puzzle"
-          : "trivia",
-      phase: g.activityTiming === "DURING_EVENT" ? "main-event" : "pre-event",
-      status:
-        g.status === "PENDING"
-          ? "upcoming"
-          : g.status === "LIVE"
-          ? "live"
-          : "ended",
-      players: g._count?.sessionEntries || 0,
-      rounds: g.rounds?.length || 1,
-      currentRound: 1,
-    })) || [];
+  if (isLoading) return <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" /></div>;
+  if (!entries.length) return <p className="text-sm text-muted-foreground text-center py-4">No scores yet.</p>;
 
-  const leaderboard: any[] = []; // (no leaderboard in your data yet)
+  const icons = [
+    <Crown className="h-4 w-4 text-amber-500" key={1} />,
+    <Medal className="h-4 w-4 text-gray-400" key={2} />,
+    <Medal className="h-4 w-4 text-amber-700" key={3} />,
+  ];
 
-  const filteredGames =
-    activePhase === "all"
-      ? games
-      : games.filter((g) => g.phase === activePhase);
+  return (
+    <div className="space-y-2">
+      {entries.map((e: any, i: number) => (
+        <div key={e.id ?? i} className="flex items-center gap-3 rounded-xl border border-border p-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
+            {icons[i] ?? <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {e.user?.displayName ?? e.user?.username ?? "Player"}
+            </p>
+          </div>
+          <span className="font-bold text-primary text-sm">{e.totalScore ?? 0} pts</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  const handlePlayGame = (game: Game) => {
-    router.push(
-      `/game?type=${game.type}&name=${encodeURIComponent(game.name)}`
-    );
+// ── Round Player ─────────────────────────────────────────────────────────────
+function RoundPlayer({
+  round,
+  onSubmit,
+  isSubmitting,
+}: {
+  round: any;
+  onSubmit: (roundId: string, answers: (number | string)[], timeTakenMs: number) => void;
+  isSubmitting: boolean;
+}) {
+  const questions: any[] = round.config?.questions ?? [];
+  const gameType = mapType(round.gameType ?? "TRIVIA");
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState<(number | string)[]>([]);
+  const [wordInput, setWordInput] = useState("");
+  const [startTime] = useState(Date.now());
+  const [submitted, setSubmitted] = useState(false);
+
+  const q = questions[currentQ];
+  const progress = questions.length > 0 ? ((currentQ) / questions.length) * 100 : 0;
+
+  const handleSelectOption = (idx: number) => {
+    const newAnswers = [...answers];
+    newAnswers[currentQ] = idx;
+    setAnswers(newAnswers);
   };
 
-  const handleShareScore = (entry: any) => {
-    setSelectedLeaderboardEntry(entry);
-    setShowShareModal(true);
-  };
-
-  const getStatusBadge = (status: Game["status"]) => {
-    switch (status) {
-      case "live":
-        return (
-          <Badge className="bg-green-500 text-white animate-pulse">
-            <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white" />
-            Live
-          </Badge>
-        );
-      case "upcoming":
-        return <Badge variant="secondary">Upcoming</Badge>;
-      case "ended":
-        return <Badge variant="outline">Ended</Badge>;
+  const handleNext = () => {
+    // For word-puzzle without options, save the typed input
+    if (gameType === "word-puzzle" && !q?.options?.length) {
+      const newAnswers = [...answers];
+      newAnswers[currentQ] = wordInput;
+      setAnswers(newAnswers);
+      setWordInput("");
+    }
+    if (currentQ < questions.length - 1) {
+      setCurrentQ((c) => c + 1);
+    } else {
+      // Build final answers — one entry per question
+      const finalAnswers: (number | string)[] = questions.map((_, i) => {
+        if (gameType === "word-puzzle" && !q?.options?.length) {
+          // last question uses current wordInput, others from answers array
+          return i === currentQ ? wordInput : (answers[i] ?? "");
+        }
+        // trivia / this-or-that / two-truths — index-based
+        return typeof answers[i] === "number" ? answers[i] : 0;
+      });
+      setSubmitted(true);
+      onSubmit(round.id, finalAnswers, Date.now() - startTime);
     }
   };
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <Tabs value={activePhase} onValueChange={(v) => setActivePhase(v as any)}>
-        <TabsList className="w-full grid grid-cols-3 h-10">
-          <TabsTrigger value="all" className="text-xs">
-            All Games
-          </TabsTrigger>
-          <TabsTrigger value="pre-event" className="text-xs">
-            Pre-Event
-          </TabsTrigger>
-          <TabsTrigger value="main-event" className="text-xs">
-            Main Event
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <CheckCircle2 className="h-12 w-12 text-green-500" />
+        <p className="font-semibold text-foreground">Answers submitted!</p>
+        <p className="text-sm text-muted-foreground">Wait for the round to end to see results.</p>
+      </div>
+    );
+  }
 
-      <div className="space-y-3">
-        {filteredGames.map((game) => (
+  if (!q) return <p className="text-sm text-muted-foreground text-center py-4">No questions in this round.</p>;
+
+  return (
+    <div className="space-y-4">
+      {/* Progress */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Question {currentQ + 1} of {questions.length}</span>
+          <span className="flex items-center gap-1"><Timer className="h-3 w-3" /> Round {round.title}</span>
+        </div>
+        <Progress value={progress} className="h-1.5" />
+      </div>
+
+      {/* Question */}
+      <p className="font-semibold text-foreground text-base">{q.text}</p>
+
+      {/* Options — Trivia / This-or-That / Two-Truths */}
+      {q.options && (
+        <div className="space-y-2">
+          {q.options.map((opt: string, idx: number) => (
+            <button
+              key={idx}
+              onClick={() => handleSelectOption(idx)}
+              className={cn(
+                "w-full rounded-xl border-2 p-3 text-left text-sm transition-all",
+                answers[currentQ] === idx
+                  ? "border-primary bg-primary/10 font-medium"
+                  : "border-border hover:border-primary/50"
+              )}
+            >
+              <span className="mr-2 font-bold text-muted-foreground">
+                {String.fromCharCode(65 + idx)}.
+              </span>
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Word puzzle input — only when no options */}
+      {gameType === "word-puzzle" && !q.options?.length && (
+        <input
+          className="w-full rounded-xl border-2 border-border p-3 text-sm focus:border-primary outline-none"
+          placeholder="Type your answer..."
+          value={wordInput}
+          onChange={(e) => setWordInput(e.target.value)}
+        />
+      )}
+
+      <Button
+        className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+        disabled={
+          isSubmitting || (() => {
+            // Has options → must have selected one
+            if (q.options?.length) return answers[currentQ] === undefined;
+            // Word puzzle without options → must have typed something
+            return !wordInput.trim();
+          })()
+        }
+        onClick={handleNext}
+      >
+        {isSubmitting && currentQ === questions.length - 1 ? (
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting...</>
+        ) : currentQ < questions.length - 1 ? (
+          "Next Question"
+        ) : (
+          "Submit Answers"
+        )}
+      </Button>
+    </div>
+  );
+}
+
+// ── Main Tab ─────────────────────────────────────────────────────────────────
+interface EventGamesTabProps {
+  event: any;
+}
+
+export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
+  // Fetch fresh event data so isCheckedIn reflects latest state
+  const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
+    eventProp?.id,
+    { skip: !eventProp?.id, refetchOnMountOrArgChange: true }
+  );
+  const event = eventDetails?.data ?? eventProp;
+
+  const { data: gamesData, isLoading } = useGetGamesQuery(event?.id, { skip: !event?.id, refetchOnMountOrArgChange: true });
+  const [joinSession, { isLoading: isJoining }] = useJoinGameSessionMutation();
+  const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
+  const [checkinEvent, { isLoading: isCheckingIn }] = useCheckinEventMutation();
+
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
+  const [joinedSessions, setJoinedSessions] = useState<Set<string>>(new Set());
+  const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
+  // Local override so UI updates immediately after check-in without waiting for refetch
+  const [localCheckedIn, setLocalCheckedIn] = useState(false);
+
+  const isCheckedIn = localCheckedIn || (event?.isCheckedIn ?? false);
+
+  const sessions = (gamesData?.data ?? []).map((g: any) => ({
+    ...g,
+    mappedType: mapType(g.rounds?.[0]?.gameType ?? "TRIVIA"),
+    mappedStatus: mapStatus(g.status),
+  }));
+
+  // ── Check-in ──────────────────────────────────────────────────────────────
+  const handleCheckin = async () => {
+    try {
+      await checkinEvent({ qrCode: event?.qrCode ?? event?.id, eventId: event?.id }).unwrap();
+      setLocalCheckedIn(true);
+      refetchEvent();
+      toast.success("Checked in! You can now join games.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Check-in failed. Try again.");
+    }
+  };
+
+  // ── Join session ──────────────────────────────────────────────────────────
+  const handleJoin = async (sessionId: string) => {
+    try {
+      await joinSession(sessionId).unwrap();
+      setJoinedSessions((prev) => new Set(prev).add(sessionId));
+      setActiveSessionId(sessionId);
+      toast.success("Joined! Wait for the organizer to start a round.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Could not join session.");
+    }
+  };
+
+  // ── Submit answers ────────────────────────────────────────────────────────
+  const handleSubmit = async (
+    roundId: string,
+    answers: (number | string)[],
+    timeTakenMs: number
+  ) => {
+    try {
+      await submitAnswers({ roundId, answers, timeTakenMs }).unwrap();
+      toast.success("Answers submitted!");
+      setPlayingRoundId(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Submission failed.");
+    }
+  };
+
+  // ── Check-in guard ────────────────────────────────────────────────────────
+  if (!isCheckedIn) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <QrCode className="h-8 w-8 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">Check In First</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+            You need to check in to this event before you can join any games.
+          </p>
+        </div>
+        <Button
+          className="gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+          onClick={handleCheckin}
+          disabled={isCheckingIn}
+        >
+          {isCheckingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+          Check In to Event
+        </Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!sessions.length) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <Zap className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <p className="font-medium text-muted-foreground">No games yet</p>
+        <p className="text-xs text-muted-foreground">The organizer hasn't added any games.</p>
+      </div>
+    );
+  }
+
+  // ── Active round play view ────────────────────────────────────────────────
+  if (playingRoundId) {
+    const session = sessions.find((s: any) => s.id === activeSessionId);
+    const round = session?.rounds?.find((r: any) => r.id === playingRoundId);
+
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <div className="flex items-center gap-2">
+          <button
+            className="text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setPlayingRoundId(null)}
+          >
+            ← Back
+          </button>
+          <span className="text-sm font-medium">{session?.title}</span>
+        </div>
+        {round ? (
+          <RoundPlayer
+            round={round}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>
+        )}
+      </div>
+    );
+  }
+
+  // ── Session list ──────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {sessions.map((session: any) => {
+        const isJoined = joinedSessions.has(session.id);
+        const isActive = session.mappedStatus === "live";
+        const isEnded = session.mappedStatus === "ended";
+        const activeRound = session.rounds?.find((r: any) => r.status === "ACTIVE");
+
+        return (
           <Card
-            key={game.id}
+            key={session.id}
             className={cn(
               "overflow-hidden transition-all",
-              game.status === "live" && "border-green-500/30 bg-green-500/5"
+              isActive && "border-green-500/30 bg-green-500/5"
             )}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-3">
+              {/* Header */}
               <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-xl flex-shrink-0",
-                    game.status === "live"
-                      ? "bg-green-500/10 text-green-600"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {gameTypeIcons[game.type]}
+                <div className={cn(
+                  "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+                  isActive ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"
+                )}>
+                  {gameTypeIcons[session.mappedType as GameType]}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h4 className="font-semibold text-foreground">
-                      {game.name}
-                    </h4>
-                    {getStatusBadge(game.status)}
+                    <h4 className="font-semibold text-foreground">{session.title}</h4>
+                    {isActive && (
+                      <Badge className="bg-green-500 text-white text-[10px] animate-pulse">
+                        <span className="mr-1 h-1.5 w-1.5 rounded-full bg-white inline-block" />
+                        Live
+                      </Badge>
+                    )}
+                    {!isActive && !isEnded && (
+                      <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                    )}
+                    {isEnded && (
+                      <Badge variant="outline" className="text-[10px]">Ended</Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {game.currentRound
-                        ? `Round ${game.currentRound}/${game.rounds}`
-                        : `${game.rounds} rounds`}
+                      {session.rounds?.length ?? 0} round{session.rounds?.length !== 1 ? "s" : ""}
                     </span>
-                    {game.status === "live" && (
+                    {session._count?.sessionEntries > 0 && (
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {game.players} playing
+                        {session._count.sessionEntries} joined
                       </span>
                     )}
                   </div>
                 </div>
-                {game.status === "live" ? (
-                  <Button
-                    size="sm"
-                    className="rounded-full gap-1.5 bg-green-600 hover:bg-green-700"
-                    onClick={() => handlePlayGame(game)}
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                    Play
-                  </Button>
-                ) : game.status === "upcoming" ? (
-                  <Button size="sm" variant="outline" className="rounded-full">
-                    Notify Me
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="ghost" className="rounded-full">
-                    Results
-                  </Button>
-                )}
               </div>
+
+              {/* PENDING state */}
+              {!isActive && !isEnded && (
+                <div className="rounded-xl bg-muted/50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Waiting for the organizer to start this session.
+                  </p>
+                </div>
+              )}
+
+              {/* ACTIVE state — join or play */}
+              {isActive && (
+                <div className="space-y-2">
+                  {!isJoined ? (
+                    <Button
+                      className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleJoin(session.id)}
+                      disabled={isJoining}
+                    >
+                      {isJoining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                      Join Game
+                    </Button>
+                  ) : activeRound ? (
+                    <Button
+                      className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+                      onClick={() => {
+                        setActiveSessionId(session.id);
+                        setPlayingRoundId(activeRound.id);
+                      }}
+                    >
+                      <Play className="h-4 w-4" />
+                      Play Round: {activeRound.title}
+                    </Button>
+                  ) : (
+                    <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 text-center">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                      <p className="text-xs text-green-700 font-medium">You&apos;re in the lobby!</p>
+                      <p className="text-xs text-muted-foreground">Waiting for the organizer to start a round.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ENDED state — show leaderboard */}
+              {isEnded && (
+                <div className="space-y-2">
+                  <button
+                    className="w-full flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/50 transition-colors"
+                    onClick={() => setShowLeaderboard(showLeaderboard === session.id ? null : session.id)}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <Trophy className="h-4 w-4 text-amber-500" />
+                      View Leaderboard
+                    </span>
+                    <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showLeaderboard === session.id && "rotate-90")} />
+                  </button>
+
+                  {showLeaderboard === session.id && (
+                    <SessionLeaderboard sessionId={session.id} />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      {/* Leaderboard stays unchanged but empty */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-500" />
-            Leaderboard
-          </h3>
-          <Badge
-            variant="outline"
-            className="border-amber-500/50 text-amber-600"
-          >
-            Pre-Event
-          </Badge>
-        </div>
-
-        <Card>
-          <CardContent className="p-0"></CardContent>
-        </Card>
-
-        <button className="mt-3 w-full text-center text-sm font-medium text-primary hover:underline flex items-center justify-center gap-1">
-          View Full Leaderboard <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-center">Share Score</DialogTitle>
-          </DialogHeader>
-          {selectedLeaderboardEntry && (
-            <GameScoreShare
-              gameName="Event Games"
-              score={selectedLeaderboardEntry.score}
-              rank={selectedLeaderboardEntry.rank}
-              totalPlayers={leaderboard.length}
-              eventName="Pre-Event Challenge"
-              onClose={() => setShowShareModal(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        );
+      })}
     </div>
   );
 }

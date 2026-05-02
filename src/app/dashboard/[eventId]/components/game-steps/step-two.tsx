@@ -66,6 +66,9 @@ const StepTwo = ({
         <ToggleGroupItem value="main-event" className="rounded-full">
           Main Event
         </ToggleGroupItem>
+        <ToggleGroupItem value="post-event" className="rounded-full">
+          Post-Event
+        </ToggleGroupItem>
         <ToggleGroupItem value="both" className="rounded-full">
           Both
         </ToggleGroupItem>

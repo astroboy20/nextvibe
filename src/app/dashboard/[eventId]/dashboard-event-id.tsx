@@ -12,9 +12,11 @@ import {
   ExternalLink,
   Ticket,
   Image as ImageIcon,
-  Settings,
-  ShoppingCart,
   X,
+  CheckCircle2,
+  XCircle,
+  StopCircle,
+  ChevronDown,
 } from "lucide-react";
 import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
@@ -26,7 +28,7 @@ import Image from "next/image";
 import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 import PostcardLeaderboardContent from "./components/leaderboard-content";
-import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,7 +94,10 @@ export default function OrganizerDashboard({
   eventId,
 }: OrganizerDashboardProps) {
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(eventId);
+  const { data: gamesData } = useGetGamesQuery(eventId);
+  const [updateEventStatus, { isLoading: isUpdatingStatus }] = useUpdateEventStatusMutation();
   const [showQR, setShowQR] = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState<"PUBLISHED" | "CANCELLED" | "ENDED" | null>(null);
 
   const event = eventDetails?.data;
 
@@ -102,6 +107,10 @@ export default function OrganizerDashboard({
   ) ?? 0;
 
   const rsvpCount = event?.attendingCount ?? event?.rsvpCount ?? 0;
+
+  const liveGameCount = (gamesData?.data ?? []).filter(
+    (g: any) => g.status === "ACTIVE"
+  ).length;
 
   const eventUrl = typeof window !== "undefined"
     ? `${window.location.origin}/dashboard/events/${eventId}`
@@ -121,6 +130,20 @@ export default function OrganizerDashboard({
       }
     } catch {
       // user cancelled — ignore
+    }
+  };
+
+  const handleStatusUpdate = async (status: "PUBLISHED" | "CANCELLED" | "ENDED") => {
+    try {
+      await updateEventStatus({ eventId, status }).unwrap();
+      toast.success(
+        status === "PUBLISHED" ? "Event published! It's now live." :
+        status === "ENDED" ? "Event marked as ended." :
+        "Event cancelled."
+      );
+      setConfirmStatus(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to update event status.");
     }
   };
 
@@ -245,7 +268,7 @@ export default function OrganizerDashboard({
               </button>
               <h3 className="font-semibold text-foreground">{event?.name}</h3>
               <div className="rounded-xl bg-white p-4 shadow">
-                <QRCodeSVG value={eventUrl} size={200} />
+                <QRCodeSVG value={event?.qrCode || eventUrl} size={200} />
               </div>
               <p className="text-xs text-muted-foreground text-center max-w-[220px] break-all">
                 {eventUrl}
@@ -259,6 +282,69 @@ export default function OrganizerDashboard({
               >
                 Copy Link
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Status Modal */}
+        {confirmStatus && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmStatus(null)}
+          >
+            <div
+              className="relative bg-background rounded-2xl p-6 flex flex-col gap-4 shadow-xl mx-4 w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                {confirmStatus === "ENDED" ? (
+                  <StopCircle className="h-6 w-6 text-red-500 shrink-0" />
+                ) : confirmStatus === "CANCELLED" ? (
+                  <XCircle className="h-6 w-6 text-gray-500 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-6 w-6 text-[#531342] shrink-0" />
+                )}
+                <h3 className="font-semibold text-foreground">
+                  {confirmStatus === "ENDED" ? "End Event?" :
+                   confirmStatus === "CANCELLED" ? "Cancel Event?" :
+                   "Publish Event?"}
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {confirmStatus === "ENDED"
+                  ? "This will mark the event as ended. This action cannot be undone."
+                  : confirmStatus === "CANCELLED"
+                  ? "This will cancel the event. Attendees will be notified. This action cannot be undone."
+                  : "This will publish your event and make it visible to attendees."}
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setConfirmStatus(null)}
+                  disabled={isUpdatingStatus}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  className={`flex-1 rounded-xl text-white ${
+                    confirmStatus === "ENDED" ? "bg-red-500 hover:bg-red-600" :
+                    confirmStatus === "CANCELLED" ? "bg-gray-500 hover:bg-gray-600" :
+                    "bg-[#531342] hover:bg-[#531342]/90"
+                  }`}
+                  onClick={() => confirmStatus && handleStatusUpdate(confirmStatus)}
+                  disabled={isUpdatingStatus}
+                >
+                  {isUpdatingStatus ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Updating...
+                    </span>
+                  ) : confirmStatus === "ENDED" ? "End Event" :
+                     confirmStatus === "CANCELLED" ? "Cancel Event" :
+                     "Publish"}
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -304,7 +390,7 @@ export default function OrganizerDashboard({
           )}
 
           {/* Recent Purchases */}
-          {isLoading ? (
+          {/* {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
             <EventDashboardCard
@@ -318,7 +404,7 @@ export default function OrganizerDashboard({
             >
               <RecentPurchasesContent />
             </EventDashboardCard>
-          )}
+          )} */}
 
           {isLoading ? (
             <DashboardCardSkeleton />
@@ -328,7 +414,7 @@ export default function OrganizerDashboard({
               icon={<Gamepad2 className="h-4 w-4" />}
               badge={
                 <Badge className="bg-green-500/10 text-green-600 text-xs">
-                  {event?.activeGameSessions ?? 0} Live
+                  {liveGameCount} Live
                 </Badge>
               }
             >
@@ -364,7 +450,88 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )}
 
-          {isLoading ? (
+          {/* Update Event Status */}
+          {!isLoading && (
+            <EventDashboardCard
+              title="Update Event Status"
+              icon={<ChevronDown className="h-4 w-4" />}
+              badge={
+                <Badge
+                  variant="outline"
+                  className={
+                    event?.status === "PUBLISHED" ? "border-green-500 text-green-600" :
+                    event?.status === "LIVE" ? "border-green-500 text-green-600 animate-pulse" :
+                    event?.status === "ENDED" ? "border-gray-400 text-gray-500" :
+                    event?.status === "CANCELLED" ? "border-red-400 text-red-500" :
+                    "border-amber-500 text-amber-600"
+                  }
+                >
+                  {event?.status ?? "DRAFT"}
+                </Badge>
+              }
+            >
+              <div className="space-y-3">
+                {event?.status === "DRAFT" && (
+                  <div className="rounded-xl border border-border p-4 space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Your event is a draft. Publish it to make it visible to attendees.
+                    </p>
+                    <Button
+                      className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+                      onClick={() => setConfirmStatus("PUBLISHED")}
+                      disabled={isUpdatingStatus}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Publish Event
+                    </Button>
+                  </div>
+                )}
+
+                {(event?.status === "PUBLISHED" || event?.status === "LIVE") && (
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Mark the event as ended once it's over. Rewards will be distributed automatically.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10"
+                        onClick={() => setConfirmStatus("ENDED")}
+                        disabled={isUpdatingStatus}
+                      >
+                        <StopCircle className="h-4 w-4" />
+                        End Event
+                      </Button>
+                    </div>
+                    <div className="rounded-xl border border-gray-300 bg-muted/30 p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Cancel the event. Attendees will be notified.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 rounded-xl border-gray-400 text-gray-500 hover:bg-gray-100"
+                        onClick={() => setConfirmStatus("CANCELLED")}
+                        disabled={isUpdatingStatus}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Cancel Event
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {(event?.status === "ENDED" || event?.status === "CANCELLED") && (
+                  <div className="rounded-xl border border-border p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      This event has been {event?.status === "ENDED" ? "ended" : "cancelled"} and cannot be modified.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </EventDashboardCard>
+          )}
+
+          {/* {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
             <EventDashboardCard
@@ -381,9 +548,9 @@ export default function OrganizerDashboard({
             >
               <PostcardLeaderboardContent />
             </EventDashboardCard>
-          )}
+          )} */}
 
-          {isLoading ? (
+          {/* {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
             <EventDashboardCard
@@ -397,11 +564,11 @@ export default function OrganizerDashboard({
             >
               <AnalyticsPanelContent />
             </EventDashboardCard>
-          )}
+          )} */}
 
-          {isLoading ? <DashboardCardSkeleton /> : <PaymentModule />}
+          {/* {isLoading ? <DashboardCardSkeleton /> : <PaymentModule />} */}
 
-          {isLoading ? (
+          {/* {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
             <EventDashboardCard
@@ -443,7 +610,7 @@ export default function OrganizerDashboard({
                 </div>
               </div>
             </EventDashboardCard>
-          )}
+          )} */}
         </div>
       </main>
     </div>
