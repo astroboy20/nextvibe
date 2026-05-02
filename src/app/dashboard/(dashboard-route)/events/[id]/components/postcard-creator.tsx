@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useUploadMultipleFilesMutation, useCreatePostcardsMutation } from "@/app/provider/api/eventApi";
+import {
+  useUploadMultipleFilesMutation,
+  useCreatePostcardsMutation,
+} from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useDispatch } from "react-redux";
 
@@ -59,13 +62,17 @@ interface QueuedItem {
   blob?: Blob;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-async function bakeOverlay(baseDataUrl: string, overlayUrl: string): Promise<string> {
+async function bakeOverlay(
+  baseDataUrl: string,
+  overlayUrl: string
+): Promise<string> {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) { resolve(baseDataUrl); return; }
+    if (!ctx) {
+      resolve(baseDataUrl);
+      return;
+    }
     const base = new Image();
     base.crossOrigin = "anonymous";
     base.onload = () => {
@@ -95,8 +102,6 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
-
 export function PostcardCreator({
   vibeTagName = "Event VibeTag",
   vibeTagOverlay,
@@ -108,14 +113,10 @@ export function PostcardCreator({
 }: PostcardCreatorProps) {
   const dispatch = useDispatch();
 
-  // Modes:
-  //  "choose"        → landing
-  //  "camera"        → live viewfinder (photo + video)
-  //  "camera-review" → review camera captures
-  //  "upload-review" → review uploaded files
-  const [mode, setMode] = useState<"choose" | "camera" | "camera-review" | "upload-review">("choose");
+  const [mode, setMode] = useState<
+    "choose" | "camera" | "camera-review" | "upload-review"
+  >("choose");
 
-  // Camera sub-mode: photo or video
   const [cameraMode, setCameraMode] = useState<"photo" | "video">("photo");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -126,7 +127,9 @@ export function PostcardCreator({
 
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">(
+    "environment"
+  );
   const [isFlipping, setIsFlipping] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -140,7 +143,9 @@ export function PostcardCreator({
 
   useEffect(() => {
     dispatch(setHideHeader(mode === "camera"));
-    return () => { dispatch(setHideHeader(false)); };
+    return () => {
+      dispatch(setHideHeader(false));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -148,37 +153,66 @@ export function PostcardCreator({
   const [createPostcards] = useCreatePostcardsMutation();
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
 
-  // ── Bake helper ────────────────────────────────────────────────────────────
+  const bakeImage = useCallback(
+    async (raw: string): Promise<string> => {
+      if (!hasOverlay) return raw;
+      return bakeOverlay(raw, vibeTagOverlay!.imageUrl);
+    },
+    [hasOverlay, vibeTagOverlay]
+  );
 
-  const bakeImage = useCallback(async (raw: string): Promise<string> => {
-    if (!hasOverlay) return raw;
-    return bakeOverlay(raw, vibeTagOverlay!.imageUrl);
-  }, [hasOverlay, vibeTagOverlay]);
+  const addImageToQueue = useCallback(
+    async (
+      raw: string,
+      setter: React.Dispatch<React.SetStateAction<QueuedItem[]>>,
+      currentLength: number
+    ) => {
+      if (currentLength >= MAX_ITEMS) {
+        toast.error(`Maximum ${MAX_ITEMS} items allowed.`);
+        return;
+      }
+      const id = `${Date.now()}-${Math.random()}`;
+      setter((q) => [
+        ...q,
+        { id, kind: "image", raw, baked: null, caption: "", baking: true },
+      ]);
+      const baked = await bakeImage(raw);
+      setter((q) =>
+        q.map((item) =>
+          item.id === id ? { ...item, baked, baking: false } : item
+        )
+      );
+    },
+    [bakeImage]
+  );
 
-  const addImageToQueue = useCallback(async (
-    raw: string,
-    setter: React.Dispatch<React.SetStateAction<QueuedItem[]>>,
-    currentLength: number
-  ) => {
-    if (currentLength >= MAX_ITEMS) { toast.error(`Maximum ${MAX_ITEMS} items allowed.`); return; }
-    const id = `${Date.now()}-${Math.random()}`;
-    setter((q) => [...q, { id, kind: "image", raw, baked: null, caption: "", baking: true }]);
-    const baked = await bakeImage(raw);
-    setter((q) => q.map((item) => item.id === id ? { ...item, baked, baking: false } : item));
-  }, [bakeImage]);
-
-  const addVideoToQueue = useCallback((
-    blob: Blob,
-    setter: React.Dispatch<React.SetStateAction<QueuedItem[]>>,
-    currentLength: number
-  ) => {
-    if (currentLength >= MAX_ITEMS) { toast.error(`Maximum ${MAX_ITEMS} items allowed.`); return; }
-    const id = `${Date.now()}-${Math.random()}`;
-    const raw = URL.createObjectURL(blob);
-    setter((q) => [...q, { id, kind: "video", raw, baked: raw, caption: "", baking: false, blob }]);
-  }, []);
-
-  // ── Camera ─────────────────────────────────────────────────────────────────
+  const addVideoToQueue = useCallback(
+    (
+      blob: Blob,
+      setter: React.Dispatch<React.SetStateAction<QueuedItem[]>>,
+      currentLength: number
+    ) => {
+      if (currentLength >= MAX_ITEMS) {
+        toast.error(`Maximum ${MAX_ITEMS} items allowed.`);
+        return;
+      }
+      const id = `${Date.now()}-${Math.random()}`;
+      const raw = URL.createObjectURL(blob);
+      setter((q) => [
+        ...q,
+        {
+          id,
+          kind: "video",
+          raw,
+          baked: raw,
+          caption: "",
+          baking: false,
+          blob,
+        },
+      ]);
+    },
+    []
+  );
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -186,59 +220,72 @@ export function PostcardCreator({
     setIsCameraReady(false);
   }, []);
 
-  const startCamera = useCallback(async (facing: "environment" | "user") => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Camera not supported in this browser.");
-      return;
-    }
-    stopCamera();
-    setIsCameraReady(false);
-    setCameraError(null);
-    setMode("camera");
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      });
-      streamRef.current = stream;
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      const markReady = () => setIsCameraReady(true);
-      video.addEventListener("loadedmetadata", markReady, { once: true });
-      video.addEventListener("canplay", markReady, { once: true });
-      const fallback = setTimeout(markReady, 3000);
-      video.addEventListener("loadedmetadata", () => clearTimeout(fallback), { once: true });
-      video.addEventListener("canplay", () => clearTimeout(fallback), { once: true });
-      video.play().catch(() => markReady());
+  const startCamera = useCallback(
+    async (facing: "environment" | "user") => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("Camera not supported in this browser.");
+        return;
+      }
+      stopCamera();
+      setIsCameraReady(false);
+      setCameraError(null);
+      setMode("camera");
 
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        // multiple cameras detected — flip button is always shown anyway
-        void devices;
-      } catch {
-        // ignore
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+        streamRef.current = stream;
+        const video = videoRef.current!;
+        video.srcObject = stream;
+        const markReady = () => setIsCameraReady(true);
+        video.addEventListener("loadedmetadata", markReady, { once: true });
+        video.addEventListener("canplay", markReady, { once: true });
+        const fallback = setTimeout(markReady, 3000);
+        video.addEventListener("loadedmetadata", () => clearTimeout(fallback), {
+          once: true,
+        });
+        video.addEventListener("canplay", () => clearTimeout(fallback), {
+          once: true,
+        });
+        video.play().catch(() => markReady());
+
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          // multiple cameras detected — flip button is always shown anyway
+          void devices;
+        } catch {
+          // ignore
+        }
+      } catch (err: any) {
+        const msg =
+          err?.name === "NotAllowedError"
+            ? "Camera permission denied. Allow access in browser settings."
+            : err?.name === "NotFoundError"
+            ? "No camera found on this device."
+            : err?.name === "NotReadableError"
+            ? "Camera is in use by another app."
+            : "Could not start camera.";
+        setCameraError(msg);
+        toast.error(msg);
+        setMode("choose");
       }
-    } catch (err: any) {
-      const msg =
-        err?.name === "NotAllowedError" ? "Camera permission denied. Allow access in browser settings." :
-        err?.name === "NotFoundError" ? "No camera found on this device." :
-        err?.name === "NotReadableError" ? "Camera is in use by another app." :
-        "Could not start camera.";
-      setCameraError(msg);
-      toast.error(msg);
-      setMode("choose");
-    }
-  }, [stopCamera]);
+    },
+    [stopCamera]
+  );
 
   const handleFlipCamera = () => {
-    const next: "environment" | "user" = facingMode === "environment" ? "user" : "environment";
+    const next: "environment" | "user" =
+      facingMode === "environment" ? "user" : "environment";
     setFacingMode(next);
     setIsFlipping(true);
     startCamera(next).finally(() => setIsFlipping(false));
   };
-
-  // ── Photo capture ──────────────────────────────────────────────────────────
 
   const capturePhoto = () => {
     const video = videoRef.current;
@@ -251,7 +298,10 @@ export function PostcardCreator({
     canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    if (facingMode === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }
+    if (facingMode === "user") {
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, w, h);
     const raw = canvas.toDataURL("image/jpeg", 0.92);
     addImageToQueue(raw, setCameraQueue, cameraQueue.length);
@@ -264,8 +314,6 @@ export function PostcardCreator({
     }
   };
 
-  // ── Video recording ────────────────────────────────────────────────────────
-
   const startRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
@@ -276,7 +324,9 @@ export function PostcardCreator({
       ? "video/webm"
       : "video/mp4";
     const recorder = new MediaRecorder(stream, { mimeType });
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+    };
     recorder.onstop = () => {
       const blob = new Blob(recordedChunksRef.current, { type: mimeType });
       addVideoToQueue(blob, setCameraQueue, cameraQueue.length);
@@ -288,25 +338,32 @@ export function PostcardCreator({
     mediaRecorderRef.current = recorder;
     setIsRecording(true);
     setRecordingSeconds(0);
-    recordingTimerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    recordingTimerRef.current = setInterval(
+      () => setRecordingSeconds((s) => s + 1),
+      1000
+    );
   };
 
   const stopRecording = () => {
-    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
     mediaRecorderRef.current?.stop();
     mediaRecorderRef.current = null;
     setIsRecording(false);
     setRecordingSeconds(0);
   };
 
-  // ── File upload ────────────────────────────────────────────────────────────
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
     const remaining = MAX_ITEMS - uploadQueue.length;
     const toProcess = files.slice(0, remaining);
-    if (files.length > remaining) toast.warning(`Only ${remaining} more item(s) can be added (max ${MAX_ITEMS}).`);
+    if (files.length > remaining)
+      toast.warning(
+        `Only ${remaining} more item(s) can be added (max ${MAX_ITEMS}).`
+      );
 
     for (const file of toProcess) {
       if (file.type.startsWith("video/")) {
@@ -325,11 +382,10 @@ export function PostcardCreator({
     e.target.value = "";
   };
 
-  // ── Queue helpers ──────────────────────────────────────────────────────────
-
   const isCamera = mode === "camera" || mode === "camera-review";
   const activeQueue = mode === "upload-review" ? uploadQueue : cameraQueue;
-  const activeSetQueue = mode === "upload-review" ? setUploadQueue : setCameraQueue;
+  const activeSetQueue =
+    mode === "upload-review" ? setUploadQueue : setCameraQueue;
 
   const removeFromQueue = (id: string) => {
     activeSetQueue((q) => {
@@ -341,15 +397,18 @@ export function PostcardCreator({
   };
 
   const updateCaption = (id: string, caption: string) => {
-    activeSetQueue((q) => q.map((item) => (item.id === id ? { ...item, caption } : item)));
+    activeSetQueue((q) =>
+      q.map((item) => (item.id === id ? { ...item, caption } : item))
+    );
   };
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
 
   const handleSubmitAll = async (queue: QueuedItem[]) => {
     const ready = queue.filter((item) => !item.baking);
     if (!ready.length) return;
-    if (!eventId) { toast.error("Event ID missing."); return; }
+    if (!eventId) {
+      toast.error("Event ID missing.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -364,15 +423,27 @@ export function PostcardCreator({
         }
       }
       const uploadResult = await uploadMultipleFiles(formData).unwrap();
-      const uploadedItems: { fileKey: string; mediaType: string }[] =
-        (uploadResult?.data ?? []).map((item: { fileKey: string; mediaType: string }) => ({
-          fileKey: item.fileKey,
-          mediaType: item.mediaType,
-        }));
-      if (!uploadedItems.length) { toast.error("Upload failed — no file keys returned."); return; }
-      await createPostcards({ eventId, vibeTagId, media: uploadedItems }).unwrap();
-      toast.success(`${ready.length} item${ready.length > 1 ? "s" : ""} posted!`);
-      ready.forEach((item) => onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption }));
+      const uploadedItems: { fileKey: string; mediaType: string }[] = (
+        uploadResult?.data ?? []
+      ).map((item: { fileKey: string; mediaType: string }) => ({
+        fileKey: item.fileKey,
+        mediaType: item.mediaType,
+      }));
+      if (!uploadedItems.length) {
+        toast.error("Upload failed — no file keys returned.");
+        return;
+      }
+      await createPostcards({
+        eventId,
+        vibeTagId,
+        media: uploadedItems,
+      }).unwrap();
+      toast.success(
+        `${ready.length} item${ready.length > 1 ? "s" : ""} posted!`
+      );
+      ready.forEach((item) =>
+        onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption })
+      );
       onClose?.();
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to post. Please try again.");
@@ -384,7 +455,9 @@ export function PostcardCreator({
   const handleDownload = (item: QueuedItem) => {
     const a = document.createElement("a");
     a.href = item.baked ?? item.raw;
-    a.download = `${eventName.replace(/\s+/g, "-")}-postcard.${item.kind === "video" ? "webm" : "png"}`;
+    a.download = `${eventName.replace(/\s+/g, "-")}-postcard.${
+      item.kind === "video" ? "webm" : "png"
+    }`;
     a.click();
     toast.success("Downloaded!");
   };
@@ -395,15 +468,23 @@ export function PostcardCreator({
       let file: File;
       if (item.kind === "video" && item.blob) {
         const ext = item.blob.type.includes("mp4") ? "mp4" : "webm";
-        file = new File([item.blob], `postcard.${ext}`, { type: item.blob.type });
+        file = new File([item.blob], `postcard.${ext}`, {
+          type: item.blob.type,
+        });
       } else {
         const blob = dataUrlToBlob(src);
         file = new File([blob], "postcard.png", { type: blob.type });
       }
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `${eventName} Postcard`, text: item.caption });
+        await navigator.share({
+          files: [file],
+          title: `${eventName} Postcard`,
+          text: item.caption,
+        });
       } else {
-        await navigator.clipboard.writeText(item.caption || `Check out my postcard from ${eventName}!`);
+        await navigator.clipboard.writeText(
+          item.caption || `Check out my postcard from ${eventName}!`
+        );
         toast.success("Caption copied!");
       }
     } catch (err: any) {
@@ -411,61 +492,99 @@ export function PostcardCreator({
     }
   };
 
-  useEffect(() => () => {
-    stopCamera();
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-  }, [stopCamera]);
+  useEffect(
+    () => () => {
+      stopCamera();
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    },
+    [stopCamera]
+  );
 
   const activeItem = activeQueue[activeIdx] ?? null;
-  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const formatTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(
+      2,
+      "0"
+    )}`;
 
   return (
-    <div className="fixed inset-0 z-[100000] flex flex-col bg-background" style={{ height: "100dvh" }}>
+    <div
+      className="fixed inset-0 z-100000 flex flex-col bg-background"
+      style={{ height: "100dvh" }}
+    >
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* ── Header ── */}
-      <div className={cn(
-        "flex items-center justify-between px-4 py-3 shrink-0 border-b",
-        mode === "camera"
-          ? "absolute top-0 left-0 right-0 z-20 bg-black/70 border-white/10 backdrop-blur-sm"
-          : "bg-background border-border"
-      )}>
+      <div
+        className={cn(
+          "flex items-center justify-between px-4 py-3 shrink-0 border-b",
+          mode === "camera"
+            ? "absolute top-0 left-0 right-0 z-20 bg-black/70 border-white/10 backdrop-blur-sm"
+            : "bg-background border-border"
+        )}
+      >
         <button
-          onClick={() => { stopCamera(); onClose?.(); }}
-          className={cn("p-2 rounded-full transition-colors", mode === "camera" ? "text-white hover:bg-white/10" : "hover:bg-muted")}
+          onClick={() => {
+            stopCamera();
+            onClose?.();
+          }}
+          className={cn(
+            "p-2 rounded-full transition-colors",
+            mode === "camera"
+              ? "text-white hover:bg-white/10"
+              : "hover:bg-muted"
+          )}
           aria-label="Close"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex flex-col items-center">
-          <h2 className={cn("font-semibold text-sm", mode === "camera" ? "text-white" : "text-foreground")}>
+          <h2
+            className={cn(
+              "font-semibold text-sm",
+              mode === "camera" ? "text-white" : "text-foreground"
+            )}
+          >
             {mode === "camera"
-              ? cameraMode === "video" ? "Record Video" : "Take Photo"
-              : mode === "camera-review" ? "Camera Captures"
-              : mode === "upload-review" ? "Uploaded Media"
+              ? cameraMode === "video"
+                ? "Record Video"
+                : "Take Photo"
+              : mode === "camera-review"
+              ? "Camera Captures"
+              : mode === "upload-review"
+              ? "Uploaded Media"
               : "Create Postcard"}
           </h2>
           {mode === "camera" && (
             <span className="text-white/60 text-[10px]">
-              {isRecording ? `● REC ${formatTime(recordingSeconds)}` : `${cameraQueue.length}/${MAX_ITEMS} captured`}
+              {isRecording
+                ? `● REC ${formatTime(recordingSeconds)}`
+                : `${cameraQueue.length}/${MAX_ITEMS} captured`}
             </span>
           )}
-          {(mode === "camera-review" || mode === "upload-review") && activeQueue.length > 0 && (
-            <span className="text-muted-foreground text-[10px]">
-              {activeQueue.length}/{MAX_ITEMS} item{activeQueue.length > 1 ? "s" : ""}
-            </span>
-          )}
+          {(mode === "camera-review" || mode === "upload-review") &&
+            activeQueue.length > 0 && (
+              <span className="text-muted-foreground text-[10px]">
+                {activeQueue.length}/{MAX_ITEMS} item
+                {activeQueue.length > 1 ? "s" : ""}
+              </span>
+            )}
         </div>
 
         {mode === "camera-review" && cameraQueue.length < MAX_ITEMS ? (
-          <button onClick={() => startCamera(facingMode)} className="p-2 rounded-full hover:bg-muted transition-colors" aria-label="Take more">
+          <button
+            onClick={() => startCamera(facingMode)}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="Take more"
+          >
             <Camera className="h-5 w-5" />
           </button>
         ) : mode === "upload-review" && uploadQueue.length < MAX_ITEMS ? (
-          <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-muted transition-colors" aria-label="Upload more">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="Upload more"
+          >
             <Plus className="h-5 w-5" />
           </button>
         ) : (
@@ -477,16 +596,20 @@ export function PostcardCreator({
       {hasOverlay && mode !== "camera" && (
         <div className="px-4 py-2 bg-primary/5 border-b border-primary/10 shrink-0">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-primary/30 text-primary gap-1 text-xs">
+            <Badge
+              variant="outline"
+              className="border-primary/30 text-primary gap-1 text-xs"
+            >
               <Sparkles className="h-3 w-3" />
               {vibeTagOverlay!.name}
             </Badge>
-            <span className="text-xs text-muted-foreground">VibeTag will be stamped on your photos</span>
+            <span className="text-xs text-muted-foreground">
+              VibeTag will be stamped on your photos
+            </span>
           </div>
         </div>
       )}
 
-      {/* ══ CAMERA MODE ══════════════════════════════════════════════════════ */}
       {mode === "camera" && (
         <div className="absolute inset-0 bg-black">
           <video
@@ -494,7 +617,10 @@ export function PostcardCreator({
             autoPlay
             playsInline
             muted
-            className={cn("absolute inset-0 w-full h-full object-cover", facingMode === "user" && "[transform:scaleX(-1)]")}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover",
+              facingMode === "user" && "transform-[scaleX(-1)]"
+            )}
           />
 
           {!isCameraReady && !isFlipping && (
@@ -506,54 +632,85 @@ export function PostcardCreator({
 
           {hasOverlay && (
             <div className="absolute inset-0 pointer-events-none z-10">
-              <img src={vibeTagOverlay!.imageUrl} alt={vibeTagOverlay!.name} className="w-full h-full object-contain" />
+              <img
+                src={vibeTagOverlay!.imageUrl}
+                alt={vibeTagOverlay!.name}
+                className="w-full h-full object-contain"
+              />
             </div>
           )}
 
-          {/* Recording indicator */}
           {isRecording && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-black/80 border border-red-500/60 rounded-2xl px-5 py-2.5 shadow-lg shadow-red-500/20">
               <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse shadow-md shadow-red-500" />
-              <span className="text-white text-xl font-mono font-bold tracking-widest">{formatTime(recordingSeconds)}</span>
-              <span className="text-red-400 text-xs font-semibold uppercase tracking-wider">REC</span>
+              <span className="text-white text-xl font-mono font-bold tracking-widest">
+                {formatTime(recordingSeconds)}
+              </span>
+              <span className="text-red-400 text-xs font-semibold uppercase tracking-wider">
+                REC
+              </span>
             </div>
           )}
 
-          {/* Photo / Video mode toggle */}
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex gap-1 bg-black/50 rounded-full p-1">
             <button
-              onClick={() => { if (isRecording) stopRecording(); setCameraMode("photo"); }}
-              className={cn("px-4 py-1.5 rounded-full text-xs font-semibold transition-colors", cameraMode === "photo" ? "bg-white text-black" : "text-white/70")}
+              onClick={() => {
+                if (isRecording) stopRecording();
+                setCameraMode("photo");
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                cameraMode === "photo" ? "bg-white text-black" : "text-white/70"
+              )}
             >
               Photo
             </button>
             <button
-              onClick={() => { setCameraMode("video"); }}
-              className={cn("px-4 py-1.5 rounded-full text-xs font-semibold transition-colors", cameraMode === "video" ? "bg-white text-black" : "text-white/70")}
+              onClick={() => {
+                setCameraMode("video");
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                cameraMode === "video" ? "bg-white text-black" : "text-white/70"
+              )}
             >
               Video
             </button>
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-8 pb-10 pt-6 bg-gradient-to-t from-black/70 to-transparent">
-            {/* Review thumbnail */}
+          <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-8 pb-10 pt-6 bg-linear-to-trom-black/70 to-transparent">
             <button
-              onClick={() => { stopCamera(); setMode("camera-review"); setActiveIdx(0); }}
+              onClick={() => {
+                stopCamera();
+                setMode("camera-review");
+                setActiveIdx(0);
+              }}
               disabled={cameraQueue.length === 0}
-              className={cn("flex flex-col items-center gap-1 text-white", cameraQueue.length === 0 && "opacity-30 pointer-events-none")}
+              className={cn(
+                "flex flex-col items-center gap-1 text-white",
+                cameraQueue.length === 0 && "opacity-30 pointer-events-none"
+              )}
             >
               <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-white/60 bg-black/40">
-                {cameraQueue[cameraQueue.length - 1] && (
-                  cameraQueue[cameraQueue.length - 1].kind === "video" ? (
+                {cameraQueue[cameraQueue.length - 1] &&
+                  (cameraQueue[cameraQueue.length - 1].kind === "video" ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                       <Play className="h-4 w-4 text-white" />
                     </div>
                   ) : (
-                    <img src={cameraQueue[cameraQueue.length - 1].baked ?? cameraQueue[cameraQueue.length - 1].raw} alt="" className="h-full w-full object-cover" />
-                  )
-                )}
+                    <img
+                      src={
+                        cameraQueue[cameraQueue.length - 1].baked ??
+                        cameraQueue[cameraQueue.length - 1].raw
+                      }
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ))}
                 {cameraQueue.length > 0 && (
-                  <span className="absolute bottom-0 right-0 bg-primary text-white text-[9px] font-bold px-1 rounded-tl">{cameraQueue.length}</span>
+                  <span className="absolute bottom-0 right-0 bg-primary text-white text-[9px] font-bold px-1 rounded-tl">
+                    {cameraQueue.length}
+                  </span>
                 )}
               </div>
               <span className="text-[10px]">Review</span>
@@ -565,35 +722,40 @@ export function PostcardCreator({
                 onClick={capturePhoto}
                 disabled={!isCameraReady || cameraQueue.length >= MAX_ITEMS}
                 className={cn(
-                  "relative flex h-[76px] w-[76px] items-center justify-center rounded-full transition-transform active:scale-90",
-                  (!isCameraReady || cameraQueue.length >= MAX_ITEMS) && "opacity-30 pointer-events-none"
+                  "relative flex h-19 w-19 items-center justify-center rounded-full transition-transform active:scale-90",
+                  (!isCameraReady || cameraQueue.length >= MAX_ITEMS) &&
+                    "opacity-30 pointer-events-none"
                 )}
                 aria-label="Capture photo"
               >
                 <span className="absolute inset-0 rounded-full border-[3px] border-white" />
-                <span className="h-[60px] w-[60px] rounded-full bg-white" />
+                <span className="h-15 w-15 rounded-full bg-white" />
               </button>
             ) : (
               <button
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={!isCameraReady}
                 className={cn(
-                  "relative flex h-[76px] w-[76px] items-center justify-center rounded-full transition-transform active:scale-90",
+                  "relative flex h-19 w-19 items-center justify-center rounded-full transition-transform active:scale-90",
                   !isCameraReady && "opacity-30 pointer-events-none"
                 )}
                 aria-label={isRecording ? "Stop recording" : "Start recording"}
               >
                 <span className="absolute inset-0 rounded-full border-[3px] border-white" />
                 {isRecording ? (
-                  <span className="h-[28px] w-[28px] rounded-md bg-red-500" />
+                  <span className="h-7 w-7 rounded-md bg-red-500" />
                 ) : (
-                  <span className="h-[60px] w-[60px] rounded-full bg-red-500" />
+                  <span className="h-15 w-15 rounded-full bg-red-500" />
                 )}
               </button>
             )}
 
             {/* Flip camera */}
-            <button onClick={handleFlipCamera} className="flex flex-col items-center gap-1 text-white" aria-label="Flip camera">
+            <button
+              onClick={handleFlipCamera}
+              className="flex flex-col items-center gap-1 text-white"
+              aria-label="Flip camera"
+            >
               <div className="h-12 w-12 rounded-xl border-2 border-white/60 bg-black/40 flex items-center justify-center">
                 <SwitchCamera className="h-5 w-5" />
               </div>
@@ -607,40 +769,67 @@ export function PostcardCreator({
       {mode === "choose" && (
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
-            <div className="relative aspect-video w-full max-w-[360px] mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-[3px]">
+            <div className="relative aspect-video w-full max-w-90 mx-auto rounded-2xl overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-0.75">
               <div className="relative h-full w-full rounded-[14px] bg-muted flex items-center justify-center overflow-hidden">
                 {hasOverlay ? (
-                  <img src={vibeTagOverlay!.imageUrl} alt={vibeTagOverlay!.name} className="absolute inset-0 w-full h-full object-contain z-10" />
+                  <img
+                    src={vibeTagOverlay!.imageUrl}
+                    alt={vibeTagOverlay!.name}
+                    className="absolute inset-0 w-full h-full object-contain z-10"
+                  />
                 ) : (
                   <>
                     <div className="text-center p-6">
                       <ImageIcon className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">Your photo will appear here</p>
+                      <p className="text-xs text-muted-foreground">
+                        Your photo will appear here
+                      </p>
                     </div>
                     <div className="absolute left-3 right-3 bottom-3 rounded-xl bg-black/60 backdrop-blur-sm p-2.5 pointer-events-none z-10">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="text-white font-semibold text-xs truncate">{vibeTagName}</span>
+                        <span className="text-white font-semibold text-xs truncate">
+                          {vibeTagName}
+                        </span>
                       </div>
-                      <p className="text-white/60 text-[10px] mt-0.5 truncate">{eventName}</p>
+                      <p className="text-white/60 text-[10px] mt-0.5 truncate">
+                        {eventName}
+                      </p>
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-            {cameraError && <p className="text-center text-xs text-destructive">{cameraError}</p>}
+            {cameraError && (
+              <p className="text-center text-xs text-destructive">
+                {cameraError}
+              </p>
+            )}
 
             <div className="grid gap-3">
-              <Button onClick={() => startCamera(facingMode)} className="h-14 rounded-2xl gap-3" size="lg">
+              <Button
+                onClick={() => startCamera(facingMode)}
+                className="h-14 rounded-2xl gap-3"
+                size="lg"
+              >
                 <Camera className="h-5 w-5" />
                 Take Photo / Record Video
-                <span className="ml-auto text-xs opacity-60">max {MAX_ITEMS}</span>
+                <span className="ml-auto text-xs opacity-60">
+                  max {MAX_ITEMS}
+                </span>
               </Button>
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="h-14 rounded-2xl gap-3" size="lg">
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-14 rounded-2xl gap-3"
+                size="lg"
+              >
                 <Upload className="h-5 w-5" />
                 Upload Photo or Video
-                <span className="ml-auto text-xs opacity-60">max {MAX_ITEMS}</span>
+                <span className="ml-auto text-xs opacity-60">
+                  max {MAX_ITEMS}
+                </span>
               </Button>
             </div>
           </div>
@@ -648,128 +837,186 @@ export function PostcardCreator({
       )}
 
       {/* ══ REVIEW MODE ══════════════════════════════════════════════════════ */}
-      {(mode === "camera-review" || mode === "upload-review") && activeQueue.length > 0 && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-4 pt-3 pb-1 shrink-0">
-            <Badge variant="secondary" className="gap-1.5 text-xs">
-              {isCamera ? <Camera className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
-              {isCamera ? "Camera captures" : "Uploaded media"}
-            </Badge>
-          </div>
-
-          {/* Thumbnail strip */}
-          <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar shrink-0 border-b border-border">
-            {activeQueue.map((item, idx) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveIdx(idx)}
-                className={cn(
-                  "relative h-14 w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
-                  idx === activeIdx ? "border-primary" : "border-transparent opacity-60"
-                )}
-              >
-                {item.baking ? (
-                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                  </div>
-                ) : item.kind === "video" ? (
-                  <div className="absolute inset-0 bg-black flex items-center justify-center">
-                    <Video className="h-4 w-4 text-white" />
-                  </div>
+      {(mode === "camera-review" || mode === "upload-review") &&
+        activeQueue.length > 0 && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-4 pt-3 pb-1 shrink-0">
+              <Badge variant="secondary" className="gap-1.5 text-xs">
+                {isCamera ? (
+                  <Camera className="h-3 w-3" />
                 ) : (
-                  <img src={item.baked ?? item.raw} alt="" className="h-full w-full object-cover" />
+                  <Upload className="h-3 w-3" />
                 )}
-                {idx === activeIdx && <span className="absolute inset-0 ring-2 ring-primary ring-inset rounded-lg" />}
-              </button>
-            ))}
-            {activeQueue.length < MAX_ITEMS && (
-              <button
-                onClick={() => isCamera ? startCamera(facingMode) : fileInputRef.current?.click()}
-                className="h-14 w-11 shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                aria-label={isCamera ? "Take more" : "Upload more"}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+                {isCamera ? "Camera captures" : "Uploaded media"}
+              </Badge>
+            </div>
+
+            {/* Thumbnail strip */}
+            <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar shrink-0 border-b border-border">
+              {activeQueue.map((item, idx) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveIdx(idx)}
+                  className={cn(
+                    "relative h-14 w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
+                    idx === activeIdx
+                      ? "border-primary"
+                      : "border-transparent opacity-60"
+                  )}
+                >
+                  {item.baking ? (
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                      <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    </div>
+                  ) : item.kind === "video" ? (
+                    <div className="absolute inset-0 bg-black flex items-center justify-center">
+                      <Video className="h-4 w-4 text-white" />
+                    </div>
+                  ) : (
+                    <img
+                      src={item.baked ?? item.raw}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  {idx === activeIdx && (
+                    <span className="absolute inset-0 ring-2 ring-primary ring-inset rounded-lg" />
+                  )}
+                </button>
+              ))}
+              {activeQueue.length < MAX_ITEMS && (
+                <button
+                  onClick={() =>
+                    isCamera
+                      ? startCamera(facingMode)
+                      : fileInputRef.current?.click()
+                  }
+                  className="h-14 w-11 shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  aria-label={isCamera ? "Take more" : "Upload more"}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Active item detail */}
+            {activeItem && (
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-4 space-y-4">
+                  <div className="relative aspect-video w-full max-w-90 mx-auto rounded-2xl overflow-hidden bg-muted shadow-md">
+                    {activeItem.baking ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
+                        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                        <p className="text-xs text-muted-foreground">
+                          Applying VibeTag…
+                        </p>
+                      </div>
+                    ) : activeItem.kind === "video" ? (
+                      <video
+                        src={activeItem.raw}
+                        controls
+                        className="h-full w-full object-cover"
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={activeItem.baked ?? activeItem.raw}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                    {activeItem.kind === "image" &&
+                      !hasOverlay &&
+                      !activeItem.baking && (
+                        <div className="absolute left-3 right-3 bottom-3 rounded-xl bg-black/60 backdrop-blur-sm p-2.5 pointer-events-none">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="text-white font-semibold text-xs truncate">
+                              {vibeTagName}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Caption{" "}
+                      <span className="text-muted-foreground font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <Textarea
+                      value={activeItem.caption}
+                      onChange={(e) =>
+                        updateCaption(activeItem.id, e.target.value)
+                      }
+                      placeholder="Write something about this moment..."
+                      className="rounded-xl resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => removeFromQueue(activeItem.id)}
+                      className="h-10 rounded-xl gap-1.5 text-destructive hover:text-destructive flex-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDownload(activeItem)}
+                      disabled={activeItem.baking}
+                      className="h-10 rounded-xl gap-1.5 flex-1"
+                    >
+                      <Download className="h-4 w-4" />
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleShare(activeItem)}
+                      disabled={activeItem.baking}
+                      className="h-10 rounded-xl gap-1.5 flex-1"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={() => handleSubmitAll(activeQueue)}
+                    disabled={isSubmitting || activeQueue.some((i) => i.baking)}
+                    className="w-full h-12 rounded-xl gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Posting…
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Post {activeQueue.length} Item
+                        {activeQueue.length > 1 ? "s" : ""} to Event Feed
+                      </>
+                    )}
+                  </Button>
+
+                  <button
+                    onClick={() => setMode("choose")}
+                    className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Start over
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Active item detail */}
-          {activeItem && (
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4 space-y-4">
-                <div className="relative aspect-video w-full max-w-[360px] mx-auto rounded-2xl overflow-hidden bg-muted shadow-md">
-                  {activeItem.baking ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
-                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                      <p className="text-xs text-muted-foreground">Applying VibeTag…</p>
-                    </div>
-                  ) : activeItem.kind === "video" ? (
-                    <video src={activeItem.raw} controls className="h-full w-full object-cover" playsInline />
-                  ) : (
-                    <img src={activeItem.baked ?? activeItem.raw} alt="" className="h-full w-full object-cover" />
-                  )}
-                  {activeItem.kind === "image" && !hasOverlay && !activeItem.baking && (
-                    <div className="absolute left-3 right-3 bottom-3 rounded-xl bg-black/60 backdrop-blur-sm p-2.5 pointer-events-none">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="text-white font-semibold text-xs truncate">{vibeTagName}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Caption <span className="text-muted-foreground font-normal">(optional)</span>
-                  </label>
-                  <Textarea
-                    value={activeItem.caption}
-                    onChange={(e) => updateCaption(activeItem.id, e.target.value)}
-                    placeholder="Write something about this moment..."
-                    className="rounded-xl resize-none"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => removeFromQueue(activeItem.id)} className="h-10 rounded-xl gap-1.5 text-destructive hover:text-destructive flex-1">
-                    <Trash2 className="h-4 w-4" />
-                    Remove
-                  </Button>
-                  <Button variant="outline" onClick={() => handleDownload(activeItem)} disabled={activeItem.baking} className="h-10 rounded-xl gap-1.5 flex-1">
-                    <Download className="h-4 w-4" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={() => handleShare(activeItem)} disabled={activeItem.baking} className="h-10 rounded-xl gap-1.5 flex-1">
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                </div>
-
-                <Button
-                  onClick={() => handleSubmitAll(activeQueue)}
-                  disabled={isSubmitting || activeQueue.some((i) => i.baking)}
-                  className="w-full h-12 rounded-xl gap-2"
-                >
-                  {isSubmitting ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Posting…</>
-                  ) : (
-                    <><CheckCircle2 className="h-4 w-4" />Post {activeQueue.length} Item{activeQueue.length > 1 ? "s" : ""} to Event Feed</>
-                  )}
-                </Button>
-
-                <button
-                  onClick={() => setMode("choose")}
-                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Start over
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
 
       {/* Hidden file input — images + videos */}
       <input

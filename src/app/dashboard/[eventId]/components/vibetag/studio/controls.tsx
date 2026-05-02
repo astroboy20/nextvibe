@@ -161,7 +161,7 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
           {controls.map((control) => (
             <div
               key={control.id}
-              className="flex flex-col items-center justify-center p-4 cursor-pointer hover:scale-105 transition-transform w-full border shadow-sm p-2 rounded"
+              className="flex flex-col items-center justify-center p-4 cursor-pointer hover:scale-105 transition-transform w-full border shadow-sm rounded"
               onClick={() => handleControl(control.id)}
             >
               <control.icon className="w-6 h-6" />
