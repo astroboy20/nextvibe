@@ -32,6 +32,7 @@ import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
 
 interface ControlItem {
   label: string;
@@ -80,6 +81,12 @@ export default function Controls({ onSaveVibeTag }: ControlsProps) {
       canvas.off("selection:cleared", handleDeselection);
     };
   }, [canvas]);
+
+   useEffect(() => {
+      dispatch(setHideHeader(canvas));
+      return () => { dispatch(setHideHeader(false)); };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canvas]);
 
   const handleControl = (id: string) => {
     switch (id) {
