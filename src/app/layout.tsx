@@ -77,7 +77,7 @@ export default function RootLayout({
       <body className={`${nunitoSans.variable}  antialiased`}>
         <ProviderWrapper>
           {children}
-          <Toaster position="top" />
+          <Toaster position="top-center" />
         </ProviderWrapper>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
