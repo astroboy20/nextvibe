@@ -16,7 +16,7 @@ const navItems = [
     path: "/dashboard/event/create/?step=1",
     isMain: true,
   },
-  { icon: Bell, label: "Alerts", path: "/dashboard/notifications" },
+  { icon: MessageCircle, label: "Messages", path: "/dashboard/messages" },
   { icon: User, label: "Profile", path: "/dashboard/profile" },
 ];
 
@@ -35,7 +35,7 @@ const BottomNav = () => {
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             const Icon = item.icon;
-            const showBadge = item.path === "/dashboard/notifications" && unreadCount > 0;
+            const showBadge = item.path === "/dashboard/profile" && unreadCount > 0;
 
             if (item.isMain) {
               return (

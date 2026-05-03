@@ -196,12 +196,13 @@ export const eventsApi = createApi({
       }),
     }),
 
-    rsvp: builder.mutation<any, any>({
-      query: ({ eventId, ticketTierId }: { eventId: string; ticketTierId: any }) => ({
+    rsvp: builder.mutation<any, { eventId: string; status: "CONFIRMED" | "WAITLIST" | "CANCELLED"; ticketTierId?: string }>({
+      query: ({ eventId, status, ticketTierId }) => ({
         url: `/v1/events/${eventId}/rsvp`,
         method: "POST",
-        body: { ticketTierId: ticketTierId },
+        body: { status, ...(ticketTierId ? { ticketTierId } : {}) },
       }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
 
@@ -411,12 +412,12 @@ export const eventsApi = createApi({
           body: formData,
         };
       },
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: `vibetags-${eventId}` }],
     }),
 
     getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
       query: ({ eventId }) => `/v1/vibe-tags?eventId=${eventId}`,
-      providesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+      providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: `vibetags-${eventId}` }],
     }),
 
     getEventPostcards: builder.query<any, { eventId: string; phase?: string; page?: number; limit?: number }>({

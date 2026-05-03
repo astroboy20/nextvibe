@@ -12,7 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Vibetags from "./vibetag/vibetags";
-import { useGetVibeTagsQuery } from "@/app/provider/api/eventApi";
+import { useGetVibeTagsQuery, useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import { useDispatch } from "react-redux";
+import { setView, setTemplate } from "@/app/provider/slices/canvas-slice";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 
@@ -30,8 +32,16 @@ interface VibeTagStudioContentProps {
 }
 
 const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
+  const dispatch = useDispatch();
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
   const [open, setOpen] = useState(false);
+
+  const handleOpenCreate = () => {
+    // Reset canvas state before opening so there's no stale template
+    dispatch(setView("start"));
+    dispatch(setTemplate(null));
+    setOpen(true);
+  };
 
   // Fetch ALL vibetags for this event, then filter client-side per tab
   const { data, isLoading, refetch } = useGetVibeTagsQuery(
@@ -39,12 +49,23 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );
 
-  const allVibeTags: any[] = data?.data ?? [];
+  // Also refetch event details so the badge in the dashboard card updates
+  const { refetch: refetchEvent } = useGetEventDetailsQuery(eventId, { skip: !eventId });
+
+  const allVibeTags: any[] = (data?.data ?? []).filter(
+    (t: any) => t.eventId === eventId
+  );
 
   // Find the tag that matches the currently active timing exactly
   const existingTag = allVibeTags.find(
     (t: any) => t.activityTiming === activeTiming
   ) ?? null;
+
+  const handleCreated = () => {
+    setOpen(false);
+    refetch();        // refresh vibetags list
+    refetchEvent();   // refresh event details so badge updates
+  };
 
   return (
     <>
@@ -113,7 +134,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
             <Button
               size="sm"
               className="w-full gap-1.5 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-              onClick={() => setOpen(true)}
+              onClick={handleOpenCreate}
             >
               <Tag className="h-3.5 w-3.5" />
               Create VibeTag for{" "}
@@ -132,10 +153,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
             </DialogTitle>
           </DialogHeader>
           <Vibetags
-            onClose={() => {
-              setOpen(false);
-              refetch();
-            }}
+            onClose={handleCreated}
             activityTiming={activeTiming}
             eventId={eventId}
             eventName={name}

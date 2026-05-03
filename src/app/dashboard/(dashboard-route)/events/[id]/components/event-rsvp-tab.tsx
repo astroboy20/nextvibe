@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, HelpCircle, X, Ticket, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -13,143 +12,79 @@ interface EventRSVPTabProps {
   event: any;
 }
 
-const attendeesList = [
-  {
-    id: "1",
-    name: "Ade Johnson",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    status: "going",
-  },
-  {
-    id: "2",
-    name: "Chioma Obi",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-    status: "going",
-  },
-  {
-    id: "3",
-    name: "Tunde Bello",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    status: "maybe",
-  },
-  {
-    id: "4",
-    name: "Ngozi Eze",
-    avatar:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    status: "going",
-  },
-  {
-    id: "5",
-    name: "Kola Adeyemi",
-    avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
-    status: "going",
-  },
-  {
-    id: "6",
-    name: "Funke Lagos",
-    avatar:
-      "https://images.unsplash.com/photo-1489424731084-a5d8b219a8bb?w=100&h=100&fit=crop&crop=face",
-    status: "maybe",
-  },
-];
+type RSVPChoice = "going" | "maybe" | "not-going" | null;
 
 export function EventRSVPTab({ event }: EventRSVPTabProps) {
-  const [rsvpMutation] = useRsvpMutation();
+  const [rsvpMutation, { isLoading: isRsvping }] = useRsvpMutation();
 
-  const [rsvpStatus, setRsvpStatus] = useState<
-    "going" | "maybe" | "not-going" | null
-  >(null);
-
-  const [ticketTierId, setTicketTierId] = useState<string | null>(null);
-
+  const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(
+    event?.isRsvped ? "going" : null
+  );
   const [showTicketModal, setShowTicketModal] = useState(false);
-  const [hasTicket, setHasTicket] = useState(false);
 
-  const [isRsvping, setIsRsvping] = useState(false);
+  // ── Going: open ticket modal first, RSVP after tier selected ──────────────
+  const handleGoing = () => {
+    if (rsvpStatus === "going") return; // already going
+    setShowTicketModal(true);
+  };
 
-  /**
-   * ✅ MAIN RSVP FLOW
-   */
-  const handleRsvpGoing = async () => {
-    if (isRsvping) return;
-
-    // 🚨 Require ticket first
-    if (!ticketTierId) {
-      setShowTicketModal(true);
-      return;
-    }
-
+  const handleTicketSelected = async (tierId: string) => {
     try {
-      setIsRsvping(true);
-
-      const request = await rsvpMutation({
+      await rsvpMutation({
         eventId: event.id,
-        ticketTierId,
+        status: "CONFIRMED",
+        ticketTierId: tierId,
       }).unwrap();
-
-      if (request.success) {
-        setRsvpStatus("going");
-      }
-    } catch (error) {
-      toast.error("Failed to RSVP. Please try again.");
-    } finally {
-      setIsRsvping(false);
+      setRsvpStatus("going");
+      toast.success("🎉 You're going! See you at the event.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to RSVP. Please try again.");
     }
   };
 
-  /**
-   * ✅ AFTER TICKET SELECTION / PURCHASE
-   */
-  const handleTicketPurchased = async (tierId: string) => {
-    if (!tierId) return;
-
-    setTicketTierId(tierId);
-    setHasTicket(true);
-
-    // 🚀 Auto RSVP after payment confirmed
+  // ── Maybe / Can't Go: no ticket needed ────────────────────────────────────
+  const handleSimpleRsvp = async (choice: "maybe" | "not-going") => {
+    if (isRsvping) return;
+    const status = choice === "maybe" ? "WAITLIST" : "CANCELLED";
     try {
-      setIsRsvping(true);
-
-      const request = await rsvpMutation({
-        eventId: event.id,
-        ticketTierId: tierId,
-      }).unwrap();
-
-      if (request.success) {
-        setRsvpStatus("going");
-        toast.success("🎉 You're going! See you at the event.");
-      }
-    } catch {
-      toast.error("Failed to RSVP. Please try again.");
-    } finally {
-      setIsRsvping(false);
+      await rsvpMutation({ eventId: event.id, status }).unwrap();
+      setRsvpStatus(choice);
+      toast.success(choice === "maybe" ? "🤔 You're on the waitlist!" : "😢 RSVP cancelled.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to RSVP. Please try again.");
     }
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Ticket Status Banner */}
-      {hasTicket && (
-        <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-4 animate-fade-in">
+
+      {/* Status banner */}
+      {rsvpStatus === "going" && (
+        <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
             <Ticket className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-green-600">Ticket Secured! 🎉</p>
-            <p className="text-sm text-muted-foreground">
-              Your ticket is confirmed for this event
-            </p>
+            <p className="font-semibold text-green-600">You&apos;re going! 🎉</p>
+            <p className="text-sm text-muted-foreground">Your RSVP is confirmed</p>
           </div>
-          <Badge
-            variant="outline"
-            className="bg-green-500/10 text-green-600 border-green-500/20"
-          >
+          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
             Confirmed
+          </Badge>
+        </div>
+      )}
+
+      {rsvpStatus === "maybe" && (
+        <div className="flex items-center gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500">
+            <HelpCircle className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-600">On the waitlist</p>
+            <p className="text-sm text-muted-foreground">We&apos;ll notify you if a spot opens</p>
+          </div>
+          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+            Waitlist
           </Badge>
         </div>
       )}
@@ -159,174 +94,96 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
         <h3 className="font-semibold text-foreground">Are you going?</h3>
 
         <div className="grid grid-cols-3 gap-3">
+          {/* Going — opens ticket modal */}
           <Button
             variant={rsvpStatus === "going" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
-              rsvpStatus === "going" &&
-                "bg-green-600 hover:bg-green-700 border-green-600"
+              rsvpStatus === "going" && "bg-green-600 hover:bg-green-700 border-green-600"
             )}
-            onClick={handleRsvpGoing}
-            disabled={isRsvping}
+            onClick={handleGoing}
+            disabled={isRsvping || rsvpStatus === "going"}
           >
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                rsvpStatus === "going" ? "bg-white/20" : "bg-green-500/10"
-              )}
-            >
-              {isRsvping ? (
-                <Loader2 className="h-5 w-5 animate-spin text-white" />
-              ) : (
-                <Check
-                  className={cn(
-                    "h-5 w-5",
-                    rsvpStatus === "going" ? "text-white" : "text-green-600"
-                  )}
-                />
-              )}
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full",
+              rsvpStatus === "going" ? "bg-white/20" : "bg-green-500/10"
+            )}>
+              <Check className={cn("h-5 w-5", rsvpStatus === "going" ? "text-white" : "text-green-600")} />
             </div>
-
-            <span
-              className={cn(
-                "text-sm font-medium",
-                rsvpStatus === "going" ? "text-white" : "text-foreground"
-              )}
-            >
-              {isRsvping ? "Processing..." : "Going"}
+            <span className={cn("text-sm font-medium", rsvpStatus === "going" ? "text-white" : "text-foreground")}>
+              Going
             </span>
           </Button>
 
+          {/* Maybe — direct RSVP */}
           <Button
             variant={rsvpStatus === "maybe" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
-              rsvpStatus === "maybe" &&
-                "bg-amber-500 hover:bg-amber-600 border-amber-500"
+              rsvpStatus === "maybe" && "bg-amber-500 hover:bg-amber-600 border-amber-500"
             )}
-            onClick={() => setRsvpStatus("maybe")}
+            onClick={() => handleSimpleRsvp("maybe")}
             disabled={isRsvping}
           >
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                rsvpStatus === "maybe" ? "bg-white/20" : "bg-amber-500/10"
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full",
+              rsvpStatus === "maybe" ? "bg-white/20" : "bg-amber-500/10"
+            )}>
+              {isRsvping && rsvpStatus === null ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <HelpCircle className={cn("h-5 w-5", rsvpStatus === "maybe" ? "text-white" : "text-amber-600")} />
               )}
-            >
-              <HelpCircle
-                className={cn(
-                  "h-5 w-5",
-                  rsvpStatus === "maybe" ? "text-white" : "text-amber-600"
-                )}
-              />
             </div>
-            <span className="text-sm font-medium">Maybe</span>
+            <span className={cn("text-sm font-medium", rsvpStatus === "maybe" ? "text-white" : "text-foreground")}>
+              Maybe
+            </span>
           </Button>
 
+          {/* Can't Go — direct RSVP */}
           <Button
             variant={rsvpStatus === "not-going" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
-              rsvpStatus === "not-going" &&
-                "bg-muted-foreground hover:bg-muted-foreground/90 border-muted-foreground"
+              rsvpStatus === "not-going" && "bg-muted-foreground hover:bg-muted-foreground/90"
             )}
-            onClick={() => setRsvpStatus("not-going")}
+            onClick={() => handleSimpleRsvp("not-going")}
             disabled={isRsvping}
           >
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                rsvpStatus === "not-going" ? "bg-white/20" : "bg-muted"
-              )}
-            >
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full",
+              rsvpStatus === "not-going" ? "bg-white/20" : "bg-muted"
+            )}>
               <X className="h-5 w-5" />
             </div>
             <span className="text-sm font-medium">Can&apos;t Go</span>
           </Button>
         </div>
 
-        {rsvpStatus && (
-          <div className="text-center animate-fade-in">
-            <p className="text-sm text-muted-foreground">
-              {rsvpStatus === "going" &&
-                !hasTicket &&
-                "🎉 Awesome! You're on the guest list. Get your ticket now!"}
-              {rsvpStatus === "going" &&
-                hasTicket &&
-                "🎉 You're all set! See you at the event."}
-              {rsvpStatus === "maybe" &&
-                "🤔 No worries! We hope to see you there."}
-              {rsvpStatus === "not-going" && "😢 Maybe next time!"}
-            </p>
-
-            {rsvpStatus === "going" && !hasTicket && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 gap-1.5"
-                onClick={() => setShowTicketModal(true)}
-              >
-                <Ticket className="h-4 w-4" />
-                Get Ticket
-              </Button>
-            )}
+        {isRsvping && (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Submitting...
           </div>
         )}
       </div>
 
-      {/* Attendees List */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-foreground">Who&apos;s Going</h3>
-          <span className="text-sm text-muted-foreground">
-            {event?.attendees} attending
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          {attendeesList.map((attendee) => (
-            <div
-              key={attendee.id}
-              className="flex items-center gap-3 rounded-xl border border-border p-3"
-            >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={attendee.avatar} />
-                <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">
-                  {attendee.name}
-                </p>
-              </div>
-              <div
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full",
-                  attendee.status === "going" ? "bg-green-500" : "bg-amber-500"
-                )}
-              >
-                {attendee.status === "going" ? (
-                  <Check className="h-3.5 w-3.5 text-white" />
-                ) : (
-                  <HelpCircle className="h-3.5 w-3.5 text-white" />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button className="mt-3 w-full text-center text-sm font-medium text-primary hover:underline">
-          View all {event?.attendees} attendees
-        </button>
+      {/* Attendees count */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-foreground">Attendees</h3>
+        <span className="text-sm text-muted-foreground">
+          {event?.attendingCount ?? 0} going
+        </span>
       </div>
 
-      {/* Modal */}
+      {/* Ticket modal — only for Going */}
       <TicketPurchaseModal
         open={showTicketModal}
         onOpenChange={setShowTicketModal}
         eventName={event?.name}
         eventId={event?.id}
-        onPurchaseComplete={handleTicketPurchased}
-        setTicketTierId={setTicketTierId}
+        onPurchaseComplete={handleTicketSelected}
+        setTicketTierId={() => {}}
       />
     </div>
   );

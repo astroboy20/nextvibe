@@ -28,7 +28,7 @@ import Image from "next/image";
 import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 import PostcardLeaderboardContent from "./components/leaderboard-content";
-import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation } from "@/app/provider/api/eventApi";
+import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation, useGetVibeTagsQuery } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -110,6 +110,14 @@ export default function OrganizerDashboard({
 
   const liveGameCount = (gamesData?.data ?? []).filter(
     (g: any) => g.status === "ACTIVE"
+  ).length;
+
+  const { data: vibeTagsData } = useGetVibeTagsQuery(
+    { eventId },
+    { skip: !eventId }
+  );
+  const vibeTagCount = (vibeTagsData?.data ?? []).filter(
+    (t: any) => t.eventId === eventId
   ).length;
 
   const eventUrl = typeof window !== "undefined"
@@ -438,7 +446,7 @@ export default function OrganizerDashboard({
                   variant="secondary"
                   className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
                 >
-                  {event?.vibeTag ? "1 Tag" : "0 Tags"}
+                  {vibeTagCount} {vibeTagCount === 1 ? "Tag" : "Tags"}
                 </Badge>
               }
             >

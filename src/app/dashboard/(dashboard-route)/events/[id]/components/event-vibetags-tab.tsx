@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
+  useGetVibeTagsQuery,
 } from "@/app/provider/api/eventApi";
 
 // Minio base — resolves storageKey → full URL when mediaUrl is null
@@ -43,11 +44,36 @@ interface EventVibeTagsTabProps {
 
 export function EventVibeTagsTab({
   eventId,
-  vibeTag,
+  vibeTag: vibeTagProp,
   eventName = "Event",
 }: EventVibeTagsTabProps) {
   const [activePhase, setActivePhase] = useState<"all" | "pre-event" | "main-event">("all");
   const [showCreator, setShowCreator] = useState(false);
+
+  // ── Fetch VibeTags for this event directly ─────────────────────────────────
+  const { data: vibeTagsData } = useGetVibeTagsQuery(
+    { eventId: eventId ?? "" },
+    { skip: !eventId, refetchOnMountOrArgChange: true }
+  );
+
+  // Pick the right VibeTag based on active phase
+  const phaseToTiming: Record<string, string> = {
+    "pre-event":  "PRE_EVENT",
+    "main-event": "DURING_EVENT",
+    "all":        "BOTH",
+  };
+
+  const allEventTags = (vibeTagsData?.data ?? []).filter(
+    (t: any) => t.eventId === eventId
+  );
+
+  // For the selected phase, find matching tag; fall back to BOTH or any tag
+  const activeVibeTag =
+    allEventTags.find((t: any) => t.activityTiming === phaseToTiming[activePhase]) ??
+    allEventTags.find((t: any) => t.activityTiming === "BOTH") ??
+    allEventTags[0] ??
+    vibeTagProp ??
+    null;
 
   // ── API calls ──────────────────────────────────────────────────────────────
   const { data: postcardsData, isLoading: isLoadingPostcards } =
@@ -63,8 +89,8 @@ export function EventVibeTagsTab({
   const postcards: any[] = postcardsData?.data?.data ?? [];
 
   const vibeTagOverlay: VibeTagOverlay | null =
-    vibeTag?.imageUrl
-      ? { imageUrl: vibeTag.imageUrl, name: vibeTag.name }
+    activeVibeTag?.imageUrl
+      ? { imageUrl: activeVibeTag.imageUrl, name: activeVibeTag.name }
       : null;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -86,9 +112,9 @@ export function EventVibeTagsTab({
     <>
       {showCreator && (
         <PostcardCreator
-          vibeTagName={vibeTag?.name ?? "Event VibeTag"}
+          vibeTagName={activeVibeTag?.name ?? "Event VibeTag"}
           vibeTagOverlay={vibeTagOverlay}
-          vibeTagId={vibeTag?.id}
+          vibeTagId={activeVibeTag?.id}
           eventName={eventName}
           eventId={eventId}
           onClose={() => setShowCreator(false)}
@@ -107,7 +133,7 @@ export function EventVibeTagsTab({
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">Event VibeTag</h3>
                 <p className="text-sm text-muted-foreground">
-                  {vibeTag?.name ?? "No VibeTag set for this event"}
+                  {activeVibeTag?.name ?? "No VibeTag set for this event"}
                 </p>
               </div>
             </div>
@@ -116,10 +142,10 @@ export function EventVibeTagsTab({
             <div className="flex justify-center mb-4">
               <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
                 <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
-                  {vibeTag?.imageUrl ? (
+                  {activeVibeTag?.imageUrl ? (
                     <img
-                      src={vibeTag.imageUrl}
-                      alt={vibeTag?.name}
+                      src={activeVibeTag.imageUrl}
+                      alt={activeVibeTag?.name}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
@@ -133,14 +159,14 @@ export function EventVibeTagsTab({
               </div>
             </div>
 
-            {vibeTag && (
+            {activeVibeTag && (
               <Badge variant="outline" className="mb-3 w-full justify-center gap-1 text-xs">
                 <Sparkles className="h-3 w-3" />
                 This VibeTag will be applied to your postcards
               </Badge>
             )}
 
-            {vibeTag ? (
+            {activeVibeTag ? (
               <Button className="w-full rounded-xl gap-2" onClick={() => setShowCreator(true)}>
                 <Camera className="h-4 w-4" />
                 Create Your Postcard
