@@ -146,17 +146,19 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
     const dataUrl = canvas.toDataURL({ multiplier: 2, format: "png" });
     const file = base64ToImage(dataUrl, "backdrop.png");
 
-    const request = await createVibeTag({
-      eventId: eventId as string,
-      name: name,
-      imageKey: file,
-      activityTiming,
-    });
+    try {
+      const request = await createVibeTag({
+        eventId: eventId as string,
+        name: name,
+        imageKey: file,
+        activityTiming,
+      }).unwrap();
 
-    if (request?.data) {
       dispatch(setBackdropFile(file));
-      toast.success("VibeTag created successfully!");
+      toast.success("VibeTag created successfully! 🎉");
       if (onSaveVibeTag) onSaveVibeTag(file);
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to create VibeTag. Please try again.");
     }
   };
 

@@ -17,6 +17,7 @@ export interface PostcardGalleryItem {
 export interface PostcardItem {
   _id: string;
   post_id?: string;
+  id?: string;
   createdAt: string;
   updatedAt: string;
   event_id?: string;
@@ -25,6 +26,7 @@ export interface PostcardItem {
   gallery_items?: PostcardGalleryItem[];
   media?: PostcardGalleryItem[];
   user: PostcardUser;
+  author?: PostcardUser;
   caption?: string;
   vibeTag?: { name: string };
   likesCount?: number;
@@ -62,11 +64,11 @@ export interface CommentsResponse {
   data: Comment[];
 }
 
-export interface SuggestedUser {
+export interface SocialUser {
   id: string;
-  name: string;
+  displayName?: string;
   username?: string;
-  avatar: string;
+  avatarUrl?: string;
   bio?: string;
   eventsAttended?: number;
   postcardsCount?: number;
@@ -74,9 +76,18 @@ export interface SuggestedUser {
   mutualEventsCount?: number;
 }
 
-export interface SuggestedUsersResponse {
+export interface SocialUsersMeta {
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface SocialUsersResponse {
   success: boolean;
-  data: SuggestedUser[];
+  data: {
+    data: SocialUser[];
+    meta: SocialUsersMeta;
+  };
 }
 
 export const socialApi = createApi({
@@ -90,18 +101,46 @@ export const socialApi = createApi({
       }
     },
   }),
-  tagTypes: ["Postcards", "Comments", "People"],
+  tagTypes: ["Postcards", "Comments", "People", "Feed"],
   endpoints: (build) => ({
-    // ── Feed ──────────────────────────────────────────────────────────────────
-    getPostcardsFeed: build.query<PostcardsResponse, { page?: number; limit?: number } | void>({
+
+    // ── Feed: postcards from accounts you follow ──────────────────────────────
+    getFollowingFeed: build.query<PostcardsResponse, { page?: number; limit?: number } | void>({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
         if (params?.limit) p.set("limit", String(params.limit ?? 20));
         const qs = p.toString();
-        return `/v1/postcards${qs ? `?${qs}` : ""}`;
+        return `/v1/feed/following${qs ? `?${qs}` : ""}`;
       },
-      providesTags: ["Postcards"],
+      providesTags: ["Feed"],
+    }),
+
+    // ── Follow / Unfollow (toggle) ────────────────────────────────────────────
+    toggleFollow: build.mutation<any, string>({
+      query: (userId) => ({
+        url: `/v1/users/${userId}/follow`,
+        method: "POST",
+      }),
+      invalidatesTags: ["People", "Feed"],
+    }),
+
+    // ── My following ──────────────────────────────────────────────────────────
+    getMyFollowing: build.query<SocialUsersResponse, void>({
+      query: () => "/v1/my-following",
+      providesTags: ["People"],
+    }),
+
+    // ── My followers ──────────────────────────────────────────────────────────
+    getMyFollowers: build.query<SocialUsersResponse, void>({
+      query: () => "/v1/my-followers",
+      providesTags: ["People"],
+    }),
+
+    // ── Mutuals ───────────────────────────────────────────────────────────────
+    getMutuals: build.query<SocialUsersResponse, void>({
+      query: () => "/v1/mutuals",
+      providesTags: ["People"],
     }),
 
     // ── Likes ─────────────────────────────────────────────────────────────────
@@ -111,7 +150,7 @@ export const socialApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Postcards"],
+      invalidatesTags: ["Postcards", "Feed"],
     }),
 
     unlikeTarget: build.mutation<any, { targetType: "postcard" | "event"; targetId: string }>({
@@ -120,15 +159,13 @@ export const socialApi = createApi({
         method: "DELETE",
         body,
       }),
-      invalidatesTags: ["Postcards"],
+      invalidatesTags: ["Postcards", "Feed"],
     }),
 
     // ── Comments ──────────────────────────────────────────────────────────────
     getComments: build.query<CommentsResponse, { targetType: "postcard" | "event"; targetId: string; page?: number; limit?: number }>({
-      query: ({ targetType, targetId, page = 1, limit = 20 }) => ({
-        url: `/v1/comments?targetType=${targetType}&targetId=${targetId}&page=${page}&limit=${limit}`,
-        method: "GET",
-      }),
+      query: ({ targetType, targetId, page = 1, limit = 20 }) =>
+        `/v1/comments?targetType=${targetType}&targetId=${targetId}&page=${page}&limit=${limit}`,
       providesTags: (_r, _e, { targetId }) => [{ type: "Comments", id: targetId }],
     }),
 
@@ -162,33 +199,15 @@ export const socialApi = createApi({
         body,
       }),
     }),
-
-    // ── People ────────────────────────────────────────────────────────────────
-    getSuggestedUsers: build.query<SuggestedUsersResponse, void>({
-      query: () => "/v1/users/suggested",
-      providesTags: ["People"],
-    }),
-
-    followUser: build.mutation<any, string>({
-      query: (userId) => ({
-        url: `/v1/users/${userId}/follow`,
-        method: "POST",
-      }),
-      invalidatesTags: ["People"],
-    }),
-
-    unfollowUser: build.mutation<any, string>({
-      query: (userId) => ({
-        url: `/v1/users/${userId}/unfollow`,
-        method: "POST",
-      }),
-      invalidatesTags: ["People"],
-    }),
   }),
 });
 
 export const {
-  useGetPostcardsFeedQuery,
+  useGetFollowingFeedQuery,
+  useToggleFollowMutation,
+  useGetMyFollowersQuery,
+  useGetMyFollowingQuery,
+  useGetMutualsQuery,
   useLikeTargetMutation,
   useUnlikeTargetMutation,
   useGetCommentsQuery,
@@ -196,7 +215,4 @@ export const {
   useDeleteCommentMutation,
   useGetCommentRepliesQuery,
   useRecordShareMutation,
-  useGetSuggestedUsersQuery,
-  useFollowUserMutation,
-  useUnfollowUserMutation,
 } = socialApi;

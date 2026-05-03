@@ -1,11 +1,14 @@
 "use client";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate, formatTime } from "@/hooks/format-date";
-import { Calendar, MapPin, Users, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, Users, ExternalLink, Check, Loader2 } from "lucide-react";
 import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
+import { useToggleFollowMutation } from "@/app/provider/api/socialApi";
+import { toast } from "sonner";
 
 interface EventAboutTabProps {
   event: any;
@@ -16,6 +19,22 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
   const isOrganizer = me?.data?.id && event?.organizer?.id
     ? me.data.id === event.organizer.id
     : false;
+
+  const [toggleFollow, { isLoading: isFollowing }] = useToggleFollowMutation();
+  const [followed, setFollowed] = useState(event?.organizer?.isFollowing ?? false);
+
+  const handleFollow = async () => {
+    if (!event?.organizer?.id) return;
+    const prev = followed;
+    setFollowed(!prev);
+    try {
+      await toggleFollow(event.organizer.id).unwrap();
+      toast.success(prev ? "Unfollowed" : "Following!");
+    } catch (err: any) {
+      setFollowed(prev);
+      toast.error(err?.data?.message ?? "Could not update follow status.");
+    }
+  };
 
   const openMap = () => {
     const query = encodeURIComponent(event?.locationName);
@@ -97,11 +116,19 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
             </div>
             {!isOrganizer && (
               <Button
-                variant="outline"
+                variant={followed ? "outline" : "outline"}
                 size="sm"
-                className="rounded-full text-primary font-bold border-2 border-primary hover:bg-primary/10"
+                className={`rounded-full font-bold border-2 ${followed ? "border-green-500 text-green-600 hover:bg-green-500/10" : "border-primary text-primary hover:bg-primary/10"}`}
+                onClick={handleFollow}
+                disabled={isFollowing}
               >
-                Follow
+                {isFollowing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : followed ? (
+                  <><Check className="h-3.5 w-3.5 mr-1" />Following</>
+                ) : (
+                  "Follow"
+                )}
               </Button>
             )}
           </div>
