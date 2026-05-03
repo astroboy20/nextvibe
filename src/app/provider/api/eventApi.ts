@@ -399,6 +399,13 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
+    /** GET /v1/events/:eventId/attendees */
+    getEventAttendees: builder.query<any, { eventId: string; page?: number; limit?: number }>({
+      query: ({ eventId, page = 1, limit = 20 }) =>
+        `/v1/events/${eventId}/attendees?page=${page}&limit=${limit}`,
+      providesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+    }),
+
     createVibeTag: builder.mutation({
       query: ({ eventId, name, imageKey, activityTiming }) => {
         const formData = new FormData();
@@ -535,6 +542,7 @@ export const {
   useCheckinEventMutation,
   useCreateVibeTagMutation,
   useGetVibeTagsQuery,
+  useGetEventAttendeesQuery,
   useGetEventPostcardsQuery,
   useCreatePostcardMutation,
   useToggleLikePostcardMutation,
