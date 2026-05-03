@@ -140,7 +140,10 @@ const Settings = () => {
             <CardTitle className="text-lg">App Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <button className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors">
+            <button
+              onClick={() => router.push("/dashboard/notifications")}
+              className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="font-medium">Notifications</span>
@@ -164,7 +167,10 @@ const Settings = () => {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
 
-            <button className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors">
+            <button
+              onClick={() => router.push("/dashboard/help")}
+              className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <HelpCircle className="h-5 w-5 text-muted-foreground" />
                 <span className="font-medium">Help & Support</span>

@@ -1,12 +1,11 @@
 "use client";
-import { Home, Plus, User, MessageCircle, Users } from "lucide-react";
+import { Home, Plus, User, MessageCircle, Users, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
-// import { useUnreadMessages } from "@/hooks/use-unread-messages";
 import Link from "next/link";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/provider/store";
+import { useGetNotificationsQuery } from "@/app/provider/api/notificationApi";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard/events" },
@@ -17,16 +16,15 @@ const navItems = [
     path: "/dashboard/event/create/?step=1",
     isMain: true,
   },
-  { icon: MessageCircle, label: "Messages", path: "/dashboard/messages" },
+  { icon: Bell, label: "Alerts", path: "/dashboard/notifications" },
   { icon: User, label: "Profile", path: "/dashboard/profile" },
 ];
 
 const BottomNav = () => {
   const pathname = usePathname();
-  const [unreadCount] = useState(10);
-  //   const { unreadCount } = useUnreadMessages();
-
   const hideNavbar = useSelector((state: RootState) => state.ui.hideHeader);
+  const { data: notifData } = useGetNotificationsQuery(undefined, { pollingInterval: 30000 });
+  const unreadCount = notifData?.data?.meta?.unreadCount ?? 0;
 
   if (hideNavbar) return null;
 
@@ -37,7 +35,7 @@ const BottomNav = () => {
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             const Icon = item.icon;
-            const showBadge = item.path === "/messages" && unreadCount > 0;
+            const showBadge = item.path === "/dashboard/notifications" && unreadCount > 0;
 
             if (item.isMain) {
               return (

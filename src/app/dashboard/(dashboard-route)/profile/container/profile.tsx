@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
   Image as ImageIcon,
@@ -99,9 +100,47 @@ const Profile = () => {
       <main className="container px-4 py-6 mx-auto">
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p className="mt-4 text-muted-foreground">Loading profile...</p>
+          <div className="animate-fade-in">
+            {/* Avatar skeleton */}
+            <div className="mb-6 flex flex-col items-center text-center gap-3">
+              <Skeleton className="h-24 w-24 rounded-full" />
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-28" />
+              {/* Stats skeleton */}
+              <div className="mt-2 flex gap-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <Skeleton className="h-7 w-10" />
+                    <Skeleton className="h-3 w-14" />
+                  </div>
+                ))}
+              </div>
+              {/* Buttons skeleton */}
+              <div className="mt-2 flex gap-3">
+                <Skeleton className="h-9 w-28 rounded-full" />
+                <Skeleton className="h-9 w-24 rounded-full" />
+                <Skeleton className="h-9 w-9 rounded-full" />
+              </div>
+            </div>
+            {/* Quick link skeleton */}
+            <Skeleton className="h-16 w-full rounded-2xl mb-6" />
+            {/* Tabs skeleton */}
+            <div className="flex gap-2 border-b pb-2 mb-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-24 rounded" />)}
+            </div>
+            {/* Content skeleton */}
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 rounded-2xl border border-border p-4">
+                  <Skeleton className="h-16 w-16 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>

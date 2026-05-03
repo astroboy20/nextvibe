@@ -1,0 +1,77 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import Cookies from "js-cookie";
+
+export interface NotificationActor {
+  username: string;
+  avatarUrl?: string;
+  displayName?: string;
+}
+
+export interface Notification {
+  id: string;
+  type: "like" | "comment" | "follow" | "rsvp" | "game" | "reward" | string;
+  actor: NotificationActor;
+  targetType?: string;
+  targetId?: string;
+  isRead: boolean;
+  createdAt: string;
+  message?: string;
+}
+
+export interface NotificationsResponse {
+  success: boolean;
+  data: {
+    data: Notification[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      hasNext: boolean;
+      unreadCount: number;
+    };
+  };
+}
+
+export const notificationApi = createApi({
+  reducerPath: "notificationApi",
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL,
+    prepareHeaders: (headers) => {
+      const accessToken = Cookies.get("accessToken");
+      if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
+      return headers;
+    },
+  }),
+  tagTypes: ["Notifications"],
+  endpoints: (builder) => ({
+    /** GET /v1/notifications */
+    getNotifications: builder.query<NotificationsResponse, void>({
+      query: () => "/v1/notifications",
+      providesTags: ["Notifications"],
+    }),
+
+    /** PATCH /v1/notifications/read-all */
+    markAllRead: builder.mutation<{ success: boolean; data: { updatedCount: number } }, void>({
+      query: () => ({
+        url: "/v1/notifications/read-all",
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+
+    /** PATCH /v1/notifications/:id/read */
+    markOneRead: builder.mutation<{ success: boolean; data: { isRead: boolean } }, string>({
+      query: (id) => ({
+        url: `/v1/notifications/${id}/read`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+  }),
+});
+
+export const {
+  useGetNotificationsQuery,
+  useMarkAllReadMutation,
+  useMarkOneReadMutation,
+} = notificationApi;
