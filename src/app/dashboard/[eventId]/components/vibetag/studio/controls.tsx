@@ -33,6 +33,7 @@ import { useCanvas } from "@/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 interface ControlItem {
   label: string;
@@ -64,6 +65,10 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
   const dispatch = useDispatch();
   const canvas = useCanvas();
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
+  const [hasEdits, setHasEdits] = useState(false);
+
+  // Warn on refresh/close while the canvas has unsaved work
+  useBeforeUnload(hasEdits);
 
   useEffect(() => {
     if (!canvas) return;
@@ -74,14 +79,23 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
     };
     const handleDeselection = () => setSelectedObject(null);
 
+    // Mark dirty on any canvas modification
+    const markDirty = () => setHasEdits(true);
+
     canvas.on("selection:created", handleSelection);
     canvas.on("selection:updated", handleSelection);
     canvas.on("selection:cleared", handleDeselection);
+    canvas.on("object:added", markDirty);
+    canvas.on("object:modified", markDirty);
+    canvas.on("object:removed", markDirty);
 
     return () => {
       canvas.off("selection:created", handleSelection);
       canvas.off("selection:updated", handleSelection);
       canvas.off("selection:cleared", handleDeselection);
+      canvas.off("object:added", markDirty);
+      canvas.off("object:modified", markDirty);
+      canvas.off("object:removed", markDirty);
     };
   }, [canvas]);
 
@@ -156,6 +170,7 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
 
       dispatch(setBackdropFile(file));
       toast.success("VibeTag created successfully! 🎉");
+      setHasEdits(false);
       if (onSaveVibeTag) onSaveVibeTag(file);
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to create VibeTag. Please try again.");

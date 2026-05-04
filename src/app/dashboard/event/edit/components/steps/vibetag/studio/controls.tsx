@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
+import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 interface ControlItem {
   label: string;
@@ -64,6 +65,9 @@ export default function Controls({
   const dispatch = useDispatch();
   const canvas = useCanvas();
   const [selectedObject, setSelectedObject] = useState<any | null>(null);
+  const [hasEdits, setHasEdits] = useState(false);
+
+  useBeforeUnload(hasEdits);
 
   useEffect(() => {
     if (!canvas) return;
@@ -73,17 +77,24 @@ export default function Controls({
       setSelectedObject(obj ?? null);
     };
     const handleDeselection = () => setSelectedObject(null);
+    const markDirty = () => setHasEdits(true);
 
     canvas.on("selection:created", handleSelection);
     canvas.on("selection:updated", handleSelection);
     canvas.on("selection:cleared", handleDeselection);
     canvas.on("mouse:down", handleSelection);
+    canvas.on("object:added", markDirty);
+    canvas.on("object:modified", markDirty);
+    canvas.on("object:removed", markDirty);
 
     return () => {
       canvas.off("selection:created", handleSelection);
       canvas.off("selection:updated", handleSelection);
       canvas.off("selection:cleared", handleDeselection);
       canvas.off("mouse:down", handleSelection);
+      canvas.off("object:added", markDirty);
+      canvas.off("object:modified", markDirty);
+      canvas.off("object:removed", markDirty);
     };
   }, [canvas]);
 
@@ -145,6 +156,7 @@ export default function Controls({
       imagekey:file,
     });
     console.log("VibeTag creation response:", request);
+    setHasEdits(false);
     if (onSaveVibeTag) onSaveVibeTag(file); // parent closes modal
   };
 

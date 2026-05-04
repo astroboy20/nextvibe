@@ -20,6 +20,7 @@ import StepSix from "./game-steps/step-six";
 import { useCreateGameMutation } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 // "" is excluded from the non-empty type used in maps/configs
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
@@ -184,6 +185,10 @@ export function GameCreationWizard({
   const [createGameMutation, { isLoading }] = useCreateGameMutation();
   const progress = (step / totalSteps) * 100;
   const accessToken = Cookies.get("accessToken");
+
+  // Warn on refresh/close while the wizard is in progress
+  const hasUnsavedWork = step > 1 || gameName.trim().length > 0;
+  useBeforeUnload(hasUnsavedWork);
 
   // ─── Validation per step ────────────────────────────────────────────────────
   const [validationError, setValidationError] = useState("");

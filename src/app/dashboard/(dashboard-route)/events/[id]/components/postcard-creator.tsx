@@ -29,6 +29,7 @@ import {
 } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useDispatch } from "react-redux";
+import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 const MAX_ITEMS = 20;
 
@@ -177,6 +178,11 @@ export function PostcardCreator({
   const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
   const [createPostcards] = useCreatePostcardsMutation();
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
+
+  // Warn the user if they try to refresh/close while they have unsaved media
+  const hasUnsavedWork =
+    mode !== "choose" || cameraQueue.length > 0 || uploadQueue.length > 0;
+  useBeforeUnload(hasUnsavedWork);
 
   const bakeImage = useCallback(
     async (raw: string): Promise<string> => {

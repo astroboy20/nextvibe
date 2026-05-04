@@ -367,7 +367,7 @@ export default function OrganizerDashboard({
               }
               defaultOpen={true}
             >
-              <RSVPTrackerContent />
+              <RSVPTrackerContent eventId={eventId} />
             </EventDashboardCard>
           )}
 
