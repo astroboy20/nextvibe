@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tag, Sparkles, Loader2 } from "lucide-react";
+import { Tag, Loader2, Info } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -28,7 +28,7 @@ const TIMING_TABS: { value: ActivityTiming; label: string }[] = [
 interface VibeTagStudioContentProps {
   eventId: string;
   name?: string;
-  vibeTag?: any; // kept for badge count in parent
+  vibeTag?: any;
 }
 
 const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
@@ -37,24 +37,28 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
   const [open, setOpen] = useState(false);
 
   const handleOpenCreate = () => {
-    // Reset canvas state before opening so there's no stale template
     dispatch(setView("start"));
     dispatch(setTemplate(null));
     setOpen(true);
   };
 
-  // Fetch ALL vibetags for this event, then filter client-side per tab
   const { data, isLoading, refetch } = useGetVibeTagsQuery(
     { eventId },
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );
 
-  // Also refetch event details so the badge in the dashboard card updates
   const { refetch: refetchEvent } = useGetEventDetailsQuery(eventId, { skip: !eventId });
 
   const allVibeTags: any[] = (data?.data ?? []).filter(
     (t: any) => t.eventId === eventId
   );
+
+  const hasPreEvent    = allVibeTags.some((t) => t.activityTiming === "PRE_EVENT");
+  const hasDuringEvent = allVibeTags.some((t) => t.activityTiming === "DURING_EVENT");
+
+  // "Both" covers PRE_EVENT + DURING_EVENT — if the user already has both
+  // individual tags, creating a BOTH tag is redundant, so disable it.
+  const isBothDisabled = hasPreEvent && hasDuringEvent;
 
   // Find the tag that matches the currently active timing exactly
   const existingTag = allVibeTags.find(
@@ -63,8 +67,8 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
 
   const handleCreated = () => {
     setOpen(false);
-    refetch();        // refresh vibetags list
-    refetchEvent();   // refresh event details so badge updates
+    refetch();
+    refetchEvent();
   };
 
   return (
@@ -77,12 +81,26 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
       >
         <TabsList className="w-full grid grid-cols-4 h-9">
           {TIMING_TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="text-[11px]">
+            <TabsTrigger
+              key={t.value}
+              value={t.value}
+              className="text-[11px]"
+            >
               {t.label}
             </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
+
+      {/* Both tab — explain it's covered by the two individual tags */}
+      {activeTiming === "BOTH" && isBothDisabled && (
+        <div className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 mb-3">
+          <Info className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
+            You already have Pre-Event &amp; Main Event VibeTags — those cover both phases, so a separate <span className="font-medium">Both</span> tag isn&apos;t needed.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {isLoading ? (
@@ -119,7 +137,6 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
           /* ── No tag yet for this timing ── */
           <>
             <div className="flex flex-col items-center justify-center py-6 gap-2 text-center rounded-xl border border-dashed border-border">
-          
               <p className="text-sm text-muted-foreground">
                 No VibeTag for{" "}
                 <span className="font-medium">
@@ -135,6 +152,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
               size="sm"
               className="w-full gap-1.5 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
               onClick={handleOpenCreate}
+              disabled={activeTiming === "BOTH" && isBothDisabled}
             >
               <Tag className="h-3.5 w-3.5" />
               Create VibeTag for{" "}
@@ -165,3 +183,4 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
 };
 
 export default VibeTagStudioContent;
+
