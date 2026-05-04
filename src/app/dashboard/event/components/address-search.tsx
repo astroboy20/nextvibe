@@ -37,7 +37,7 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
   const [inputValue, setInputValue] = useState(value);
   const isSelectingRef = useRef(false);
 
-  const [debouncedValue] = useDebounce(inputValue, 300);
+  const [debouncedValue] = useDebounce(inputValue, 200);
 
   // Sync external value into input only on mount or external reset
   useEffect(() => {
@@ -72,8 +72,10 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
     service.getPlacePredictions(
       {
         input: debouncedValue,
-        types: ["geocode"],
-        componentRestrictions: { country: "ng" },
+        // "establishment" covers landmarks, venues, businesses
+        // "geocode" covers addresses, cities, regions
+        // Using both gives full coverage
+        types: ["establishment", "geocode"],
       },
       (predictions: any[] | null) => {
         setSuggestions(predictions ?? []);

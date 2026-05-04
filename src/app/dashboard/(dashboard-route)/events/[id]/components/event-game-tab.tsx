@@ -246,7 +246,6 @@ const PHASE_TABS: { value: PhaseTab; label: string }[] = [
 
 const mapPhase = (t: string): PhaseTab =>
   ({ PRE_EVENT: "pre-event", DURING_EVENT: "main-event", POST_EVENT: "post-event", BOTH: "both" }[t] ?? "main-event") as PhaseTab;
-
 export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   // Fetch fresh event data so isCheckedIn reflects latest state
   const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
@@ -268,6 +267,9 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [localCheckedIn, setLocalCheckedIn] = useState(false);
 
   const isCheckedIn = localCheckedIn || (event?.isCheckedIn ?? false);
+
+  // Whether the event has officially started (used to gate main-event activities)
+  const eventHasStarted = event?.startsAt ? new Date() >= new Date(event.startsAt) : false;
 
   const allSessions = (gamesData?.data ?? []).map((g: any) => ({
     ...g,
@@ -520,8 +522,16 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
                 </div>
               )}
 
+              {/* Main-event gate: block joining until event has started */}
+              {isActive && session.mappedPhase === "main-event" && !eventHasStarted && (
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center space-y-1">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Event hasn&apos;t started yet</p>
+                  <p className="text-xs text-muted-foreground">Main event games unlock once the event begins.</p>
+                </div>
+              )}
+
               {/* ACTIVE state — join or play */}
-              {isActive && (
+              {isActive && (session.mappedPhase !== "main-event" || eventHasStarted) && (
                 <div className="space-y-2">
                   {!isJoined ? (
                     <Button

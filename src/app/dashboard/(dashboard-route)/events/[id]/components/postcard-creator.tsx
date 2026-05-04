@@ -158,6 +158,8 @@ export function PostcardCreator({
   );
   const [isFlipping, setIsFlipping] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -417,7 +419,11 @@ export function PostcardCreator({
         `Only ${remaining} more item(s) can be added (max ${MAX_ITEMS}).`
       );
 
-    for (const file of toProcess) {
+    setIsProcessingUpload(true);
+    setUploadProgress(0);
+
+    for (let i = 0; i < toProcess.length; i++) {
+      const file = toProcess[i];
       if (file.type.startsWith("video/")) {
         addVideoToQueue(file, setUploadQueue, uploadQueue.length);
       } else {
@@ -426,11 +432,15 @@ export function PostcardCreator({
           reader.onload = (ev) => res(ev.target?.result as string);
           reader.readAsDataURL(file);
         });
-        // Resize to 1920×1080 before baking overlay
+        // Resize to 1080×1920 before baking overlay
         const resized = await resizeTo1080p(raw);
         await addImageToQueue(resized, setUploadQueue, uploadQueue.length);
       }
+      setUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
     }
+
+    setIsProcessingUpload(false);
+    setUploadProgress(0);
     setMode("upload-review");
     setActiveIdx(0);
     e.target.value = "";
@@ -672,7 +682,7 @@ export function PostcardCreator({
             playsInline
             muted
             className={cn(
-              "absolute inset-0 w-full h-full object-cover",
+              "absolute inset-0 w-full h-full object-contain bg-black",
               facingMode === "user" && "transform-[scaleX(-1)]"
             )}
           />
@@ -879,6 +889,7 @@ export function PostcardCreator({
                 onClick={() => fileInputRef.current?.click()}
                 className="h-14 rounded-2xl gap-3"
                 size="lg"
+                disabled={isProcessingUpload}
               >
                 <Upload className="h-5 w-5" />
                 Upload Photo or Video
@@ -886,6 +897,25 @@ export function PostcardCreator({
                   max {MAX_ITEMS}
                 </span>
               </Button>
+
+              {/* Upload processing progress */}
+              {isProcessingUpload && (
+                <div className="space-y-2 px-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Processing…
+                    </span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
