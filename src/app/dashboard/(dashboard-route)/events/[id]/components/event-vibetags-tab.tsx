@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Tag, Heart, MessageCircle, Sparkles, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
@@ -30,6 +29,15 @@ function resolveMediaUrl(media?: {
   return "";
 }
 
+type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
+
+const TIMING_META: Record<ActivityTiming, { label: string; phase: string }> = {
+  PRE_EVENT:    { label: "Pre-Event",  phase: "pre-event"  },
+  DURING_EVENT: { label: "Main Event", phase: "main-event" },
+  POST_EVENT:   { label: "Post-Event", phase: "post-event" },
+  BOTH:         { label: "All Phases", phase: "all"        },
+};
+
 interface VibeTag {
   id: string;
   name: string;
@@ -47,33 +55,48 @@ export function EventVibeTagsTab({
   vibeTag: vibeTagProp,
   eventName = "Event",
 }: EventVibeTagsTabProps) {
-  const [activePhase, setActivePhase] = useState<"all" | "pre-event" | "main-event">("all");
   const [showCreator, setShowCreator] = useState(false);
 
-  // ── Fetch VibeTags for this event directly ─────────────────────────────────
-  const { data: vibeTagsData } = useGetVibeTagsQuery(
+  // ── Fetch VibeTags for this event ──────────────────────────────────────────
+  const { data: vibeTagsData, isLoading: isLoadingTags } = useGetVibeTagsQuery(
     { eventId: eventId ?? "" },
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );
 
-  // Pick the right VibeTag based on active phase
-  const phaseToTiming: Record<string, string> = {
-    "pre-event":  "PRE_EVENT",
-    "main-event": "DURING_EVENT",
-    "all":        "BOTH",
-  };
+  // All tags for this event, ordered by timing priority
+  const TIMING_ORDER: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT", "BOTH"];
 
-  const allEventTags = (vibeTagsData?.data ?? []).filter(
+  const allEventTags: any[] = (vibeTagsData?.data ?? []).filter(
     (t: any) => t.eventId === eventId
   );
 
-  // For the selected phase, find matching tag; fall back to BOTH or any tag
-  const activeVibeTag =
-    allEventTags.find((t: any) => t.activityTiming === phaseToTiming[activePhase]) ??
-    allEventTags.find((t: any) => t.activityTiming === "BOTH") ??
-    allEventTags[0] ??
-    vibeTagProp ??
-    null;
+  // Build the list of available timings that actually have a tag
+  const availableTimings: ActivityTiming[] = TIMING_ORDER.filter((timing) =>
+    allEventTags.some((t: any) => t.activityTiming === timing)
+  );
+
+  // If no tags from API, fall back to vibeTagProp
+  const hasTags = availableTimings.length > 0 || !!vibeTagProp;
+
+  // Active timing — default to first available
+  const [activeTiming, setActiveTiming] = useState<ActivityTiming | null>(null);
+
+  // Resolve which timing is actually selected
+  const resolvedTiming: ActivityTiming | null =
+    activeTiming && availableTimings.includes(activeTiming)
+      ? activeTiming
+      : availableTimings[0] ?? null;
+
+  // The active vibetag
+  const activeVibeTag: any =
+    resolvedTiming
+      ? allEventTags.find((t: any) => t.activityTiming === resolvedTiming) ?? null
+      : vibeTagProp ?? null;
+
+  // Phase string for postcards API
+  const activePhase = resolvedTiming
+    ? TIMING_META[resolvedTiming]?.phase ?? "all"
+    : "all";
 
   // ── API calls ──────────────────────────────────────────────────────────────
   const { data: postcardsData, isLoading: isLoadingPostcards } =
@@ -85,7 +108,6 @@ export function EventVibeTagsTab({
   const [toggleLike] = useToggleLikePostcardMutation();
 
   // ── Derived data ───────────────────────────────────────────────────────────
-  // Response shape: { data: { data: [], meta: {} } }
   const postcards: any[] = postcardsData?.data?.data ?? [];
 
   const vibeTagOverlay: VibeTagOverlay | null =
@@ -123,6 +145,22 @@ export function EventVibeTagsTab({
       )}
 
       <div className="space-y-6 animate-fade-in">
+        {/* ── VibeTag Selector — only shown when multiple timings exist ── */}
+        {!isLoadingTags && availableTimings.length > 1 && (
+          <Tabs
+            value={resolvedTiming ?? availableTimings[0]}
+            onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
+          >
+            <TabsList className={`w-full grid h-10`} style={{ gridTemplateColumns: `repeat(${availableTimings.length}, 1fr)` }}>
+              {availableTimings.map((timing) => (
+                <TabsTrigger key={timing} value={timing} className="text-xs">
+                  {TIMING_META[timing].label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
+
         {/* ── VibeTag Display ── */}
         <Card className="overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="p-4">
@@ -131,18 +169,31 @@ export function EventVibeTagsTab({
                 <Tag className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Event VibeTag</h3>
+                <h3 className="font-semibold text-foreground">
+                  {resolvedTiming
+                    ? `${TIMING_META[resolvedTiming].label} VibeTag`
+                    : "Event VibeTag"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  {activeVibeTag?.name ?? "No VibeTag set for this event"}
+                  {isLoadingTags
+                    ? "Loading…"
+                    : activeVibeTag?.name ?? "No VibeTag set for this event"}
                 </p>
               </div>
+              {resolvedTiming && (
+                <Badge variant="outline" className="shrink-0 text-[10px] border-primary/40 text-primary">
+                  {TIMING_META[resolvedTiming].label}
+                </Badge>
+              )}
             </div>
 
             {/* VibeTag Preview */}
             <div className="flex justify-center mb-4">
               <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
                 <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
-                  {activeVibeTag?.imageUrl ? (
+                  {isLoadingTags ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : activeVibeTag?.imageUrl ? (
                     <img
                       src={activeVibeTag.imageUrl}
                       alt={activeVibeTag?.name}
@@ -166,13 +217,13 @@ export function EventVibeTagsTab({
               </Badge>
             )}
 
-            {activeVibeTag ? (
+            {hasTags && activeVibeTag ? (
               <Button className="w-full rounded-xl gap-2" onClick={() => setShowCreator(true)}>
                 <Camera className="h-4 w-4" />
                 Create Your Postcard
               </Button>
             ) : (
-              <Button className="w-full rounded-xl gap-2" disabled title="Create a VibeTag first">
+              <Button className="w-full rounded-xl gap-2" disabled>
                 <Camera className="h-4 w-4" />
                 Create Your Postcard
               </Button>
@@ -180,18 +231,9 @@ export function EventVibeTagsTab({
           </CardContent>
         </Card>
 
-        {/* ── Phase Filter ── */}
-        <Tabs value={activePhase} onValueChange={(v) => setActivePhase(v as typeof activePhase)}>
-          <TabsList className="w-full grid grid-cols-3 h-10">
-            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="pre-event" className="text-xs">Pre-Event</TabsTrigger>
-            <TabsTrigger value="main-event" className="text-xs">Main Event</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
         {/* ── Postcards Grid ── */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          {/* <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-foreground">Event Postcards</h3>
             {!isLoadingPostcards && (
               <span className="text-sm text-muted-foreground">
@@ -213,7 +255,7 @@ export function EventVibeTagsTab({
                 No postcards yet. Be the first to create one!
               </p>
             </div>
-          )}
+          )} */}
 
           {!isLoadingPostcards && postcards.length > 0 && (
             <>

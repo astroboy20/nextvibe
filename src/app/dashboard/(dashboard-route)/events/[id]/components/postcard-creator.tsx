@@ -62,35 +62,60 @@ interface QueuedItem {
   blob?: Blob;
 }
 
+const OUTPUT_WIDTH = 1920;
+const OUTPUT_HEIGHT = 1080;
+
+/** Resize a source image to 1920×1080 (cover-fit) and optionally stamp the overlay. */
 async function bakeOverlay(
   baseDataUrl: string,
-  overlayUrl: string
+  overlayUrl: string | null
 ): Promise<string> {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
+    canvas.width = OUTPUT_WIDTH;
+    canvas.height = OUTPUT_HEIGHT;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       resolve(baseDataUrl);
       return;
     }
+
     const base = new Image();
     base.crossOrigin = "anonymous";
     base.onload = () => {
-      canvas.width = base.naturalWidth;
-      canvas.height = base.naturalHeight;
-      ctx.drawImage(base, 0, 0);
+      // Cover-fit: scale so the image fills 1920×1080, centred
+      const scale = Math.max(
+        OUTPUT_WIDTH / base.naturalWidth,
+        OUTPUT_HEIGHT / base.naturalHeight
+      );
+      const sw = base.naturalWidth * scale;
+      const sh = base.naturalHeight * scale;
+      const sx = (OUTPUT_WIDTH - sw) / 2;
+      const sy = (OUTPUT_HEIGHT - sh) / 2;
+      ctx.drawImage(base, sx, sy, sw, sh);
+
+      if (!overlayUrl) {
+        resolve(canvas.toDataURL("image/jpeg", 1.0));
+        return;
+      }
+
       const overlay = new Image();
       overlay.crossOrigin = "anonymous";
       overlay.onload = () => {
-        ctx.drawImage(overlay, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/png", 0.92));
+        ctx.drawImage(overlay, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+        resolve(canvas.toDataURL("image/jpeg", 1.0));
       };
-      overlay.onerror = () => resolve(baseDataUrl);
+      overlay.onerror = () => resolve(canvas.toDataURL("image/jpeg", 1.0));
       overlay.src = overlayUrl;
     };
     base.onerror = () => resolve(baseDataUrl);
     base.src = baseDataUrl;
   });
+}
+
+/** Resize an image data-url to 1920×1080 without any overlay. */
+async function resizeTo1080p(dataUrl: string): Promise<string> {
+  return bakeOverlay(dataUrl, null);
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -155,8 +180,7 @@ export function PostcardCreator({
 
   const bakeImage = useCallback(
     async (raw: string): Promise<string> => {
-      if (!hasOverlay) return raw;
-      return bakeOverlay(raw, vibeTagOverlay!.imageUrl);
+      return bakeOverlay(raw, hasOverlay ? vibeTagOverlay!.imageUrl : null);
     },
     [hasOverlay, vibeTagOverlay]
   );
@@ -291,19 +315,30 @@ export function PostcardCreator({
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    const w = video.videoWidth || video.clientWidth;
-    const h = video.videoHeight || video.clientHeight;
-    if (!w || !h) return;
-    canvas.width = w;
-    canvas.height = h;
+
+    // Always output at 1920×1080
+    canvas.width = OUTPUT_WIDTH;
+    canvas.height = OUTPUT_HEIGHT;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const vw = video.videoWidth || video.clientWidth;
+    const vh = video.videoHeight || video.clientHeight;
+    if (!vw || !vh) return;
+
+    // Cover-fit the video frame into 1920×1080
+    const scale = Math.max(OUTPUT_WIDTH / vw, OUTPUT_HEIGHT / vh);
+    const sw = vw * scale;
+    const sh = vh * scale;
+    const sx = (OUTPUT_WIDTH - sw) / 2;
+    const sy = (OUTPUT_HEIGHT - sh) / 2;
+
     if (facingMode === "user") {
-      ctx.translate(w, 0);
+      ctx.translate(OUTPUT_WIDTH, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, 0, 0, w, h);
-    const raw = canvas.toDataURL("image/jpeg", 0.92);
+    ctx.drawImage(video, sx, sy, sw, sh);
+    const raw = canvas.toDataURL("image/jpeg", 1.0);
     addImageToQueue(raw, setCameraQueue, cameraQueue.length);
     if (cameraQueue.length + 1 >= MAX_ITEMS) {
       stopCamera();
@@ -318,12 +353,23 @@ export function PostcardCreator({
     const stream = streamRef.current;
     if (!stream) return;
     recordedChunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+
+    // Pick best supported codec + request highest bitrate
+    const mimeType = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
+      ? "video/mp4;codecs=avc1"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
       ? "video/webm;codecs=vp9"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+      ? "video/webm;codecs=vp8"
       : MediaRecorder.isTypeSupported("video/webm")
       ? "video/webm"
       : "video/mp4";
-    const recorder = new MediaRecorder(stream, { mimeType });
+
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: 8_000_000, // 8 Mbps — 1080p high quality
+      audioBitsPerSecond: 192_000,   // 192 kbps audio
+    });
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
@@ -374,7 +420,9 @@ export function PostcardCreator({
           reader.onload = (ev) => res(ev.target?.result as string);
           reader.readAsDataURL(file);
         });
-        await addImageToQueue(raw, setUploadQueue, uploadQueue.length);
+        // Resize to 1920×1080 before baking overlay
+        const resized = await resizeTo1080p(raw);
+        await addImageToQueue(resized, setUploadQueue, uploadQueue.length);
       }
     }
     setMode("upload-review");
@@ -419,7 +467,7 @@ export function PostcardCreator({
         } else {
           const src = item.baked ?? item.raw;
           const blob = dataUrlToBlob(src);
-          formData.append("files", blob, `postcard-${item.id}.png`);
+          formData.append("files", blob, `postcard-${item.id}.jpg`);
         }
       }
       const uploadResult = await uploadMultipleFiles(formData).unwrap();
@@ -768,9 +816,10 @@ export function PostcardCreator({
       {/* ══ CHOOSE MODE ══════════════════════════════════════════════════════ */}
       {mode === "choose" && (
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
-            <div className="relative aspect-video w-full max-w-90 mx-auto rounded-2xl overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-0.75">
-              <div className="relative h-full w-full rounded-[14px] bg-muted flex items-center justify-center overflow-hidden">
+          <div className="space-y-6">
+            {/* Full-width 16:9 preview */}
+            <div className="relative w-full overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-0.75">
+              <div className="relative w-full bg-muted flex items-center justify-center overflow-hidden" style={{ aspectRatio: "16/9" }}>
                 {hasOverlay ? (
                   <img
                     src={vibeTagOverlay!.imageUrl}
@@ -802,12 +851,12 @@ export function PostcardCreator({
             </div>
 
             {cameraError && (
-              <p className="text-center text-xs text-destructive">
+              <p className="text-center text-xs text-destructive px-6">
                 {cameraError}
               </p>
             )}
 
-            <div className="grid gap-3">
+            <div className="grid gap-3 px-6 pb-6">
               <Button
                 onClick={() => startCamera(facingMode)}
                 className="h-14 rounded-2xl gap-3"
@@ -858,11 +907,12 @@ export function PostcardCreator({
                   key={item.id}
                   onClick={() => setActiveIdx(idx)}
                   className={cn(
-                    "relative h-14 w-11 shrink-0 rounded-lg overflow-hidden border-2 transition-all",
+                    "relative shrink-0 rounded-lg overflow-hidden border-2 transition-all",
                     idx === activeIdx
                       ? "border-primary"
                       : "border-transparent opacity-60"
                   )}
+                  style={{ width: "142px", height: "80px" }}
                 >
                   {item.baking ? (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
@@ -891,7 +941,8 @@ export function PostcardCreator({
                       ? startCamera(facingMode)
                       : fileInputRef.current?.click()
                   }
-                  className="h-14 w-11 shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  className="shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  style={{ width: "142px", height: "80px" }}
                   aria-label={isCamera ? "Take more" : "Upload more"}
                 >
                   <Plus className="h-4 w-4" />
@@ -902,8 +953,9 @@ export function PostcardCreator({
             {/* Active item detail */}
             {activeItem && (
               <div className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-4">
-                  <div className="relative aspect-video w-full max-w-90 mx-auto rounded-2xl overflow-hidden bg-muted shadow-md">
+                <div className="space-y-4">
+                  {/* Full-width 16:9 preview */}
+                  <div className="relative w-full overflow-hidden bg-muted shadow-md" style={{ aspectRatio: "16/9" }}>
                     {activeItem.baking ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
                         <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -939,6 +991,7 @@ export function PostcardCreator({
                       )}
                   </div>
 
+                  <div className="px-4 pb-6 space-y-4">
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">
                       Caption{" "}
@@ -1006,12 +1059,18 @@ export function PostcardCreator({
                   </Button>
 
                   <button
-                    onClick={() => setMode("choose")}
+                    onClick={() => {
+                      setCameraQueue([]);
+                      setUploadQueue([]);
+                      setActiveIdx(0);
+                      setMode("choose");
+                    }}
                     className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Start over
                   </button>
+                  </div>{/* end px-4 pb-6 padded section */}
                 </div>
               </div>
             )}

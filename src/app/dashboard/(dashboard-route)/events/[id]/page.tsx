@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { use, useCallback,useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +29,7 @@ import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 
 const FLIER_MS = 5000;
-const FADE_MS  = 700;
+const FADE_MS = 700;
 
 const tabsConfig = [
   {
@@ -165,9 +165,10 @@ export default function EventPage({
   const [activeTab, setActiveTab] = useState("about");
   const [isLiked, setIsLiked] = useState(false);
 
-  const eventUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/dashboard/events/${id}`
-    : "";
+  const eventUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard/events/${id}`
+      : "";
 
   const handleShare = async () => {
     try {
@@ -261,7 +262,9 @@ export default function EventPage({
   );
 
   if (isLoading) {
-    return <EventPageSkeleton onBack={() => router.push("/dashboard/events")} />;
+    return (
+      <EventPageSkeleton onBack={() => router.push("/dashboard/events")} />
+    );
   }
 
   return (
@@ -276,7 +279,10 @@ export default function EventPage({
             muted
             playsInline
             preload="none"
-            style={{ opacity: videoOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+            style={{
+              opacity: videoOpacity,
+              transition: `opacity ${FADE_MS}ms ease`,
+            }}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
@@ -288,7 +294,10 @@ export default function EventPage({
             "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop"
           }
           alt={eventDetails?.data?.name}
-          style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+          style={{
+            opacity: flierOpacity,
+            transition: `opacity ${FADE_MS}ms ease`,
+          }}
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
 
@@ -312,7 +321,10 @@ export default function EventPage({
               className={cn("h-5 w-5", isLiked && "fill-red-500 text-red-500")}
             />
           </button>
-          <button onClick={handleShare} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+          <button
+            onClick={handleShare}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
+          >
             <Share2 className="h-5 w-5" />
           </button>
         </div>

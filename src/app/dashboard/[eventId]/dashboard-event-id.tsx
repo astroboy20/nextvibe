@@ -36,14 +36,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 
-const mockEvent = {
-  id: "1",
-  title: "Detty December 2025",
-  date: "Dec 20, 2025",
-  time: "8:00 PM",
-  location: "Eko Hotel, Lagos",
-  isLive: true,
-};
+
 
 function EventHeaderSkeleton() {
   return (
