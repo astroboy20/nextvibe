@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,13 +35,23 @@ const mapType = (t: string): GameType =>
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
   ({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as "pending" | "live" | "ended";
 
-// ── Leaderboard ──────────────────────────────────────────────────────────────
 function SessionLeaderboard({ sessionId }: { sessionId: string }) {
   const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
-  const entries: any[] = data?.data ?? [];
+  // API shape: { data: { entries: [], myEntry } }
+  const entries: any[] = data?.data?.entries ?? data?.data ?? [];
+  const myEntry: any = data?.data?.myEntry ?? null;
 
   if (isLoading) return <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" /></div>;
-  if (!entries.length) return <p className="text-sm text-muted-foreground text-center py-4">No scores yet.</p>;
+
+  if (!entries.length) return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+        <Trophy className="h-5 w-5 text-muted-foreground/50" />
+      </div>
+      <p className="text-sm font-medium text-muted-foreground">No scores yet</p>
+      <p className="text-xs text-muted-foreground/60">Scores will appear once players submit answers</p>
+    </div>
+  );
 
   const icons = [
     <Crown className="h-4 w-4 text-amber-500" key={1} />,
@@ -51,19 +61,26 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="space-y-2">
-      {entries.map((e: any, i: number) => (
-        <div key={e.id ?? i} className="flex items-center gap-3 rounded-xl border border-border p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
-            {icons[i] ?? <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>}
+      {entries.map((e: any, i: number) => {
+        const isMe = myEntry && e.user?.id === myEntry.user?.id;
+        return (
+          <div key={e.user?.id ?? i} className={cn(
+            "flex items-center gap-3 rounded-xl border p-3",
+            isMe ? "border-primary/30 bg-primary/5" : "border-border"
+          )}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
+              {icons[i] ?? <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {e.user?.displayName ?? e.user?.username ?? "Player"}
+                {isMe && <span className="ml-1 text-[10px] text-primary">(you)</span>}
+              </p>
+            </div>
+            <span className="font-bold text-primary text-sm">{e.totalScore ?? 0} pts</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {e.user?.displayName ?? e.user?.username ?? "Player"}
-            </p>
-          </div>
-          <span className="font-bold text-primary text-sm">{e.totalScore ?? 0} pts</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -75,7 +92,7 @@ function RoundPlayer({
   isSubmitting,
 }: {
   round: any;
-  onSubmit: (roundId: string, answers: (number | string)[], timeTakenMs: number) => void;
+  onSubmit: (roundId: string, answers: (number | string)[], timeTakenMs: number) => Promise<boolean>;
   isSubmitting: boolean;
 }) {
   const questions: any[] = round.config?.questions ?? [];
@@ -95,7 +112,7 @@ function RoundPlayer({
     setAnswers(newAnswers);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // For word-puzzle without options, save the typed input
     if (gameType === "word-puzzle" && !q?.options?.length) {
       const newAnswers = [...answers];
@@ -115,17 +132,27 @@ function RoundPlayer({
         // trivia / this-or-that / two-truths — index-based
         return typeof answers[i] === "number" ? answers[i] : 0;
       });
-      setSubmitted(true);
-      onSubmit(round.id, finalAnswers, Date.now() - startTime);
+      // Only mark submitted after the API confirms success
+      const ok = await onSubmit(round.id, finalAnswers, Date.now() - startTime);
+      if (ok) setSubmitted(true);
     }
   };
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <CheckCircle2 className="h-12 w-12 text-green-500" />
-        <p className="font-semibold text-foreground">Answers submitted!</p>
-        <p className="text-sm text-muted-foreground">Wait for the round to end to see results.</p>
+      <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10">
+          <CheckCircle2 className="h-10 w-10 text-green-500" />
+        </div>
+        <div className="space-y-1">
+          <p className="font-bold text-lg text-foreground">Answers Submitted!</p>
+          <p className="text-sm text-muted-foreground">
+            Your answers for <span className="font-medium text-foreground">{round.title}</span> have been recorded.
+          </p>
+        </div>
+        <div className="rounded-xl bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground">
+          Hang tight — results will appear once the round ends.
+        </div>
       </div>
     );
   }
@@ -208,6 +235,18 @@ interface EventGamesTabProps {
   event: any;
 }
 
+type PhaseTab = "pre-event" | "main-event" | "post-event" | "both";
+
+const PHASE_TABS: { value: PhaseTab; label: string }[] = [
+  { value: "pre-event",  label: "Pre-Event"  },
+  { value: "main-event", label: "Main Event" },
+  { value: "post-event", label: "Post-Event" },
+  { value: "both",       label: "Both"       },
+];
+
+const mapPhase = (t: string): PhaseTab =>
+  ({ PRE_EVENT: "pre-event", DURING_EVENT: "main-event", POST_EVENT: "post-event", BOTH: "both" }[t] ?? "main-event") as PhaseTab;
+
 export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   // Fetch fresh event data so isCheckedIn reflects latest state
   const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
@@ -221,20 +260,37 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
   const [checkinEvent, { isLoading: isCheckingIn }] = useCheckinEventMutation();
 
+  const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
   const [joinedSessions, setJoinedSessions] = useState<Set<string>>(new Set());
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
-  // Local override so UI updates immediately after check-in without waiting for refetch
   const [localCheckedIn, setLocalCheckedIn] = useState(false);
 
   const isCheckedIn = localCheckedIn || (event?.isCheckedIn ?? false);
 
-  const sessions = (gamesData?.data ?? []).map((g: any) => ({
+  const allSessions = (gamesData?.data ?? []).map((g: any) => ({
     ...g,
     mappedType: mapType(g.rounds?.[0]?.gameType ?? "TRIVIA"),
     mappedStatus: mapStatus(g.status),
+    mappedPhase: mapPhase(g.activityTiming ?? "DURING_EVENT"),
   }));
+
+  // Tabs that actually have sessions
+  const tabsWithSessions = PHASE_TABS.filter((tab) =>
+    allSessions.some((s: any) => s.mappedPhase === tab.value)
+  );
+
+  // Auto-select the first tab that has sessions once data loads
+  useEffect(() => {
+    if (tabsWithSessions.length > 0 && !tabsWithSessions.find((t) => t.value === activePhase)) {
+      setActivePhase(tabsWithSessions[0].value);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamesData]);
+
+  // Sessions for the active tab
+  const sessions = allSessions.filter((s: any) => s.mappedPhase === activePhase);
 
   // ── Check-in ──────────────────────────────────────────────────────────────
   const handleCheckin = async () => {
@@ -256,7 +312,8 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       setActiveSessionId(sessionId);
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Could not join session.");
+      // Any failure — show the server message and do NOT proceed
+      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "Could not join session.");
     }
   };
 
@@ -265,13 +322,14 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     roundId: string,
     answers: (number | string)[],
     timeTakenMs: number
-  ) => {
+  ): Promise<boolean> => {
     try {
       await submitAnswers({ roundId, answers, timeTakenMs }).unwrap();
       toast.success("Answers submitted!");
-      setPlayingRoundId(null);
+      return true;
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Submission failed.");
+      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "Submission failed.");
+      return false;
     }
   };
 
@@ -308,21 +366,21 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     );
   }
 
-  if (!sessions.length) {
+  if (!allSessions.length) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
           <Zap className="h-7 w-7 text-muted-foreground" />
         </div>
         <p className="font-medium text-muted-foreground">No games yet</p>
-        <p className="text-xs text-muted-foreground">The organizer hasn't added any games.</p>
+        <p className="text-xs text-muted-foreground">The organizer hasn&apos;t added any games.</p>
       </div>
     );
   }
 
   // ── Active round play view ────────────────────────────────────────────────
   if (playingRoundId) {
-    const session = sessions.find((s: any) => s.id === activeSessionId);
+    const session = allSessions.find((s: any) => s.id === activeSessionId);
     const round = session?.rounds?.find((r: any) => r.id === playingRoundId);
 
     return (
@@ -349,9 +407,55 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     );
   }
 
-  // ── Session list ──────────────────────────────────────────────────────────
+  // ── Session list with phase tabs ──────────────────────────────────────────
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Phase tabs — only show tabs that have sessions */}
+      {tabsWithSessions.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {tabsWithSessions.map((tab) => {
+            const count = allSessions.filter((s: any) => s.mappedPhase === tab.value).length;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActivePhase(tab.value)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
+                  activePhase === tab.value
+                    ? "bg-[#531342] text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {tab.label}
+                <span className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold",
+                  activePhase === tab.value ? "bg-white/20 text-white" : "bg-background text-muted-foreground"
+                )}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* If only one tab, auto-select it */}
+      {tabsWithSessions.length === 1 && activePhase !== tabsWithSessions[0].value && (
+        // silently sync — render nothing, effect handled below
+        <></>
+      )}
+
+      {/* Empty state for this phase */}
+      {sessions.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Zap className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <p className="font-medium text-muted-foreground">No games for this phase</p>
+          <p className="text-xs text-muted-foreground">Switch to another phase to see games.</p>
+        </div>
+      )}
+
       {sessions.map((session: any) => {
         const isJoined = joinedSessions.has(session.id);
         const isActive = session.mappedStatus === "live";
