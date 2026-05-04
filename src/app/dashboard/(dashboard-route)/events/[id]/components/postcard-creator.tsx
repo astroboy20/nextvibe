@@ -63,8 +63,8 @@ interface QueuedItem {
   blob?: Blob;
 }
 
-const OUTPUT_WIDTH = 1920;
-const OUTPUT_HEIGHT = 1080;
+const OUTPUT_WIDTH = 1080;
+const OUTPUT_HEIGHT = 1920;
 
 /** Resize a source image to 1920×1080 (cover-fit) and optionally stamp the overlay. */
 async function bakeOverlay(
@@ -167,13 +167,13 @@ export function PostcardCreator({
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Hide header and bottom nav for the entire postcard creator lifecycle
   useEffect(() => {
-    dispatch(setHideHeader(mode === "camera"));
+    dispatch(setHideHeader(true));
     return () => {
       dispatch(setHideHeader(false));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [dispatch]);
 
   const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
   const [createPostcards] = useCreatePostcardsMutation();
@@ -266,8 +266,8 @@ export function PostcardCreator({
           audio: true,
           video: {
             facingMode: { ideal: facing },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
           },
         });
         streamRef.current = stream;
@@ -563,8 +563,8 @@ export function PostcardCreator({
 
   return (
     <div
-      className="fixed inset-0 z-100000 flex flex-col bg-background"
-      style={{ height: "100dvh" }}
+      className="fixed inset-0 z-100000 flex flex-col bg-background "
+      style={{ height: "100dvh", overflowY:"scroll" }}
     >
       <canvas ref={canvasRef} className="hidden" />
 
@@ -592,7 +592,7 @@ export function PostcardCreator({
           <X className="h-5 w-5" />
         </button>
 
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center ">
           <h2
             className={cn(
               "font-semibold text-sm",
@@ -823,9 +823,9 @@ export function PostcardCreator({
       {mode === "choose" && (
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6">
-            {/* Full-width 16:9 preview */}
+            {/* Full-width portrait preview */}
             <div className="relative w-full overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-0.75">
-              <div className="relative w-full bg-muted flex items-center justify-center overflow-hidden" style={{ aspectRatio: "16/9" }}>
+              <div className="relative w-full bg-muted flex items-center justify-center overflow-hidden" style={{ aspectRatio: "9/16" }}>
                 {hasOverlay ? (
                   <img
                     src={vibeTagOverlay!.imageUrl}
@@ -918,7 +918,7 @@ export function PostcardCreator({
                       ? "border-primary"
                       : "border-transparent opacity-60"
                   )}
-                  style={{ width: "142px", height: "80px" }}
+                  style={{ width: "45px", height: "80px" }}
                 >
                   {item.baking ? (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
@@ -948,7 +948,7 @@ export function PostcardCreator({
                       : fileInputRef.current?.click()
                   }
                   className="shrink-0 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                  style={{ width: "142px", height: "80px" }}
+                  style={{ width: "45px", height: "80px" }}
                   aria-label={isCamera ? "Take more" : "Upload more"}
                 >
                   <Plus className="h-4 w-4" />
@@ -960,8 +960,8 @@ export function PostcardCreator({
             {activeItem && (
               <div className="flex-1 overflow-y-auto">
                 <div className="space-y-4">
-                  {/* Full-width 16:9 preview */}
-                  <div className="relative w-full overflow-hidden bg-muted shadow-md" style={{ aspectRatio: "16/9" }}>
+                  {/* Full-width portrait preview */}
+                  <div className="relative w-full overflow-hidden bg-muted shadow-md" style={{ aspectRatio: "9/16" }}>
                     {activeItem.baking ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
                         <Loader2 className="h-7 w-7 animate-spin text-primary" />

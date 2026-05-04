@@ -188,7 +188,7 @@ export function EventVibeTagsTab({
             </div>
 
             {/* VibeTag Preview */}
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-4 ">
               <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
                 <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
                   {isLoadingTags ? (
