@@ -28,7 +28,7 @@ import Image from "next/image";
 import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 import PostcardLeaderboardContent from "./components/leaderboard-content";
-import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation, useGetVibeTagsQuery } from "@/app/provider/api/eventApi";
+import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -105,13 +105,7 @@ export default function OrganizerDashboard({
     (g: any) => g.status === "ACTIVE"
   ).length;
 
-  const { data: vibeTagsData } = useGetVibeTagsQuery(
-    { eventId },
-    { skip: !eventId }
-  );
-  const vibeTagCount = (vibeTagsData?.data ?? []).filter(
-    (t: any) => t.eventId === eventId
-  ).length;
+  const vibeTagCount = (event?.vibeTag ?? []).length;
 
   const eventUrl = typeof window !== "undefined"
     ? `${window.location.origin}/dashboard/events/${eventId}`

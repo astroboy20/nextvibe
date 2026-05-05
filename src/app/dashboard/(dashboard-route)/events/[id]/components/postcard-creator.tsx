@@ -884,23 +884,8 @@ export function PostcardCreator({
                   max {MAX_ITEMS}
                 </span>
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-14 rounded-2xl gap-3"
-                size="lg"
-                disabled={isProcessingUpload}
-              >
-                <Upload className="h-5 w-5" />
-                Upload Photo or Video
-                <span className="ml-auto text-xs opacity-60">
-                  max {MAX_ITEMS}
-                </span>
-              </Button>
-
-              {/* Upload processing progress */}
-              {isProcessingUpload && (
-                <div className="space-y-2 px-1">
+              {isProcessingUpload ? (
+                <div className="h-14 rounded-2xl border border-border flex flex-col justify-center gap-2 px-4">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -915,6 +900,19 @@ export function PostcardCreator({
                     />
                   </div>
                 </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-14 rounded-2xl gap-3"
+                  size="lg"
+                >
+                  <Upload className="h-5 w-5" />
+                  Upload Photo or Video
+                  <span className="ml-auto text-xs opacity-60">
+                    max {MAX_ITEMS}
+                  </span>
+                </Button>
               )}
             </div>
           </div>
