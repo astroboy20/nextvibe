@@ -271,10 +271,7 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
                         {game._count.sessionEntries} joined
                       </span>
                     )}
-                    <span className="flex items-center gap-1">
-                      <Coins className="h-3 w-3" />
-                      {formatPrice(game.basePrice, game.priceCurrency)}
-                    </span>
+                   
                     {topReward && (
                       <span className="flex items-center gap-1 text-amber-600 font-medium">
                         <Trophy className="h-3 w-3" />

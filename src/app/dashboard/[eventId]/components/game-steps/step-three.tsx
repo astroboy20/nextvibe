@@ -2,19 +2,20 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Pencil, Sparkles } from "lucide-react";
-
-import { GameTypeOrEmpty } from "../game-creation-wizard";
+import { Pencil, Sparkles, HelpCircle, Puzzle, MessageSquare, Zap } from "lucide-react";
+import { GameType, GameTypeOrEmpty } from "../game-creation-wizard";
 
 interface StepThreeProps {
+  roundIndex: number;
+  totalRounds: number;
+  roundTitle: string;
+  roundDescription: string;
+  onRoundTitleChange: (v: string) => void;
+  onRoundDescriptionChange: (v: string) => void;
+  selectedGameType: GameType;
+  onGameTypeChange: (v: GameType) => void;
   contentMode: string;
   setContentMode: (v: string) => void;
   aiPrompt: {
@@ -28,162 +29,164 @@ interface StepThreeProps {
   setAiPrompt: React.Dispatch<React.SetStateAction<any>>;
 }
 
-const gameTypeConfig: Record<string, { label: string; description: string }> = {
-  trivia: { label: "Trivia", description: "Multiple choice questions" },
-  "word-puzzle": { label: "Word Puzzle", description: "Find words from letters" },
-  "two-truths": { label: "2 Truths & 1 Lie", description: "Guess the lie" },
-  "this-or-that": { label: "This or That", description: "Choose between options" },
-};
+const GAME_TYPES: { value: GameType; label: string; description: string; icon: React.ReactNode }[] = [
+  { value: "trivia",         label: "Trivia",           description: "Multiple choice Q&A", icon: <HelpCircle className="h-5 w-5" /> },
+  { value: "word-puzzle",    label: "Word Puzzle",      description: "Find hidden words",   icon: <Puzzle className="h-5 w-5" /> },
+  { value: "two-truths",     label: "2 Truths & 1 Lie", description: "Spot the lie",        icon: <MessageSquare className="h-5 w-5" /> },
+  { value: "this-or-that",   label: "This or That",     description: "Pick between two",    icon: <Zap className="h-5 w-5" /> },
+];
 
 const StepThree = ({
+  roundIndex,
+  totalRounds,
+  roundTitle,
+  roundDescription,
+  onRoundTitleChange,
+  onRoundDescriptionChange,
+  selectedGameType,
+  onGameTypeChange,
   contentMode,
   setContentMode,
   aiPrompt,
   setAiPrompt,
 }: StepThreeProps) => {
-  const updateField = (field: string, value: any) => {
-    setAiPrompt((prev: any) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const updateField = (field: string, value: any) =>
+    setAiPrompt((prev: any) => ({ ...prev, [field]: value }));
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Mode Selection */}
-      <div className="space-y-3">
-        <Label>Content Creation Method</Label>
+      {/* Round indicator */}
+      <div className="flex items-center gap-2 rounded-xl bg-[#531342]/5 border border-[#531342]/20 px-4 py-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#531342] text-white text-xs font-bold shrink-0">
+          {roundIndex + 1}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#531342]">
+            Round {roundIndex + 1} of {totalRounds}
+          </p>
+          <p className="text-xs text-muted-foreground">Set up the game type and questions for this round.</p>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
+      {/* Round title & description */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Round Title</Label>
+          <Input
+            value={roundTitle}
+            onChange={(e) => onRoundTitleChange(e.target.value)}
+            placeholder={`Round ${roundIndex + 1} — General Knowledge`}
+            className="h-10"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Description <span className="text-muted-foreground">(optional)</span></Label>
+          <Input
+            value={roundDescription}
+            onChange={(e) => onRoundDescriptionChange(e.target.value)}
+            placeholder="Answer as fast as you can!"
+            className="h-10"
+          />
+        </div>
+      </div>
+
+      {/* Game type */}
+      <div className="space-y-3">
+        <Label>Game Type for this Round</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {GAME_TYPES.map(({ value, label, description, icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onGameTypeChange(value)}
+              className={cn(
+                "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all",
+                selectedGameType === value
+                  ? "border-[#531342] bg-[#531342]/5"
+                  : "border-border hover:border-[#531342]/40"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg shrink-0",
+                selectedGameType === value ? "bg-[#531342] text-white" : "bg-muted text-muted-foreground"
+              )}>
+                {icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{label}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content method */}
+      <div className="space-y-3">
+        <Label>How do you want to add questions?</Label>
+        <div className="grid grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={() => setContentMode("ai")}
             className={cn(
-              "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
-              contentMode === "ai"
-                ? "border-[#531342] bg-linear-to-br from-[#531342]/10 to-accent/10"
-                : "border-border hover:border-[#531342]/50"
+              "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
+              contentMode === "ai" ? "border-[#531342] bg-[#531342]/5" : "border-border hover:border-[#531342]/40"
             )}
           >
-            <div
-              className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-2xl",
-                contentMode === "ai"
-                  ? "bg-linear-to-br from-[#531342] to-accent text-[#531342]"
-                  : "bg-muted"
-              )}
-            >
-              <Sparkles className="h-7 w-7" />
+            <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", contentMode === "ai" ? "bg-[#531342] text-white" : "bg-muted")}>
+              <Sparkles className="h-5 w-5" />
             </div>
-            <span className="font-semibold">AI Generated</span>
-            <span className="text-xs text-muted-foreground text-center">
-              Let AI create questions based on your prompt
-            </span>
+            <span className="text-sm font-semibold">AI Generate</span>
+            <span className="text-xs text-muted-foreground text-center">Let AI write questions from a topic</span>
           </button>
-
           <button
+            type="button"
             onClick={() => setContentMode("manual")}
             className={cn(
-              "flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all",
-              contentMode === "manual"
-                ? "border-[#531342] bg-[#531342]/10"
-                : "border-border hover:border-[#531342]/50"
+              "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
+              contentMode === "manual" ? "border-[#531342] bg-[#531342]/5" : "border-border hover:border-[#531342]/40"
             )}
           >
-            <div
-              className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-2xl",
-                contentMode === "manual"
-                  ? "bg-[#531342] text-white"
-                  : "bg-muted"
-              )}
-            >
-              <Pencil className="h-7 w-7" />
+            <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", contentMode === "manual" ? "bg-[#531342] text-white" : "bg-muted")}>
+              <Pencil className="h-5 w-5" />
             </div>
-            <span className="font-semibold">Manual Input</span>
-            <span className="text-xs text-muted-foreground text-center">
-              Create your own questions manually
-            </span>
+            <span className="text-sm font-semibold">Write Manually</span>
+            <span className="text-xs text-muted-foreground text-center">Type your own questions</span>
           </button>
         </div>
       </div>
 
-      {/* AI MODE */}
+      {/* AI prompt fields */}
       {contentMode === "ai" && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-           
-            <div className="space-y-3">
-              <Label>Topic</Label>
+        <div className="space-y-3 rounded-xl border border-border p-4 bg-muted/20">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Prompt</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs">Topic <span className="text-destructive">*</span></Label>
               <Input
                 value={aiPrompt.topic}
                 onChange={(e) => updateField("topic", e.target.value)}
-                placeholder="e.g. 90s pop culture"
+                placeholder="e.g. Nigerian history, 90s pop culture"
+                className="h-10"
               />
             </div>
-
-            {/* Count */}
-            <div className="space-y-3">
-              <Label>Count</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Number of Questions <span className="text-destructive">*</span></Label>
               <Input
                 type="number"
                 min={1}
+                max={20}
                 value={aiPrompt.count === null ? "" : aiPrompt.count}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  updateField("count", raw === "" ? null : Number(raw));
-                }}
-                placeholder="e.g. 10"
+                onChange={(e) => updateField("count", e.target.value === "" ? null : Number(e.target.value))}
+                placeholder="e.g. 5"
+                className="h-10"
               />
             </div>
-
-            {/* Activity Timing */}
-            <div className="space-y-3">
-              <Label>Activity Timing</Label>
-              <Select
-                value={aiPrompt.activityTiming}
-                onValueChange={(val) => updateField("activityTiming", val)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select timing" className="w-full" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PRE_EVENT">Pre Event</SelectItem>
-                  <SelectItem value="DURING_EVENT">During Event</SelectItem>
-                  <SelectItem value="POST_EVENT">Post Event</SelectItem>
-                  <SelectItem value="BOTH">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Game Type */}
-            <div className="space-y-3">
-              <Label>Game Type</Label>
-              <Select
-                value={aiPrompt.gameType}
-                onValueChange={(val) => updateField("gameType", val)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select game type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(gameTypeConfig).map(([key, val]) => (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">{val.label}</div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Difficulty */}
-            <div className="space-y-3">
-              <Label>Difficulty</Label>
-              <Select
-                value={aiPrompt.difficulty}
-                onValueChange={(val) => updateField("difficulty", val)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select difficulty" />
+            <div className="space-y-1.5">
+              <Label className="text-xs">Difficulty <span className="text-destructive">*</span></Label>
+              <Select value={aiPrompt.difficulty} onValueChange={(v) => updateField("difficulty", v)}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>
@@ -192,32 +195,17 @@ const StepThree = ({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Event Name */}
-            <div className="space-y-3">
-              <Label>Event Name</Label>
-              <Input
-                value={aiPrompt.eventName}
-                disabled
-                onChange={(e) => updateField("eventName", e.target.value)}
-              />
-            </div>
           </div>
-
           <p className="text-xs text-muted-foreground">
-            Tip: Be specific about the theme, difficulty level, and audience for
-            better results
+            Tip: Be specific — "Lagos street food" beats "food".
           </p>
-        </>
+        </div>
       )}
 
-      {/* MANUAL MODE */}
       {contentMode === "manual" && (
-        <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-          <Pencil className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            You&apos;ll be able to add questions manually in the next step
-          </p>
+        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center">
+          <Pencil className="h-6 w-6 mx-auto mb-1.5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Click <strong>Next</strong> to start adding questions for this round.</p>
         </div>
       )}
     </div>

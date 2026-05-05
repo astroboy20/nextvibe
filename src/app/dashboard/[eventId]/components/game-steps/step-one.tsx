@@ -1,64 +1,53 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GameType } from "../game-creation-wizard";
 import { cn } from "@/lib/utils";
 
 interface StepOneProps {
   gameName: string;
   setGameName: (v: string) => void;
-  gameType: GameType;
-  gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: string; description: string }>;
-  setGameType: (v: GameType) => void;
+  numberOfRounds: number;
+  setNumberOfRounds: (v: number) => void;
 }
-const StepOne = ({
-  gameName,
-  setGameName,
-  gameTypeConfig,
-  setGameType,
-  gameType
-}: StepOneProps) => (
+
+const ROUND_OPTIONS = [1, 2, 3, 4];
+
+const StepOne = ({ gameName, setGameName, numberOfRounds, setNumberOfRounds }: StepOneProps) => (
   <div className="space-y-6 animate-fade-in">
     <div className="space-y-2">
-      <Label>Game Name</Label>
+      <Label>Game Name <span className="text-destructive">*</span></Label>
       <Input
-        placeholder="e.g., Birthday Trivia Challenge"
+        placeholder="e.g. Nextvibe Trivia Night"
         value={gameName}
         onChange={(e) => setGameName(e.target.value)}
-        className="text-lg"
+        className="h-11 text-base"
+        autoFocus
       />
     </div>
 
     <div className="space-y-3">
-      <Label>Game Type</Label>
-      <div className="grid grid-cols-2 gap-3">
-        {(
-          Object.entries(gameTypeConfig) as [
-            GameType,
-            typeof gameTypeConfig.trivia
-          ][]
-        ).map(([type, config]) => (
+      <div>
+        <Label>Number of Rounds</Label>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Each round can have a different game type and its own set of questions.
+        </p>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {ROUND_OPTIONS.map((n) => (
           <button
-            key={type}
-            onClick={() => setGameType(type)}
+            key={n}
+            type="button"
+            onClick={() => setNumberOfRounds(n)}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all",
-              gameType === type
+              "flex flex-col items-center gap-1 rounded-xl border-2 py-5 transition-all",
+              numberOfRounds === n
                 ? "border-[#531342] bg-[#531342]/10"
-                : "border-border hover:border-[#531342]/50"
+                : "border-border hover:border-[#531342]/40"
             )}
           >
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                gameType === type ? "bg-[#531342] text-white" : "bg-muted"
-              )}
-            >
-              {config.icon}
-            </div>
-            <span className="font-medium text-sm">{config.label}</span>
-            <span className="text-xs text-muted-foreground text-center">
-              {config.description}
+            <span className={cn("text-2xl font-bold", numberOfRounds === n ? "text-[#531342]" : "text-foreground")}>
+              {n}
             </span>
+            <span className="text-[11px] text-muted-foreground">{n === 1 ? "round" : "rounds"}</span>
           </button>
         ))}
       </div>

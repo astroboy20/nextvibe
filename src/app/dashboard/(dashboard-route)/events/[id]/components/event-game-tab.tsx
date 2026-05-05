@@ -5,9 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Trophy, Play, Clock, Users, Crown, Medal, HelpCircle,
-  Puzzle, MessageSquare, Zap, ChevronRight, Loader2,
-  QrCode, CheckCircle2, Timer,
+  Trophy, Play, Clock, Users,
+  HelpCircle, Puzzle, MessageSquare, Zap,
+  ChevronRight, Loader2, QrCode, CheckCircle2, Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -37,8 +37,8 @@ const mapStatus = (s: string): "pending" | "live" | "ended" =>
 
 function SessionLeaderboard({ sessionId }: { sessionId: string }) {
   const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
-  // API shape: { data: { entries: [], myEntry } }
-  const entries: any[] = data?.data?.entries ?? data?.data ?? [];
+  // API shape: { success, data: { sessionId, status, entries: [], myEntry } }
+  const entries: any[] = data?.data?.entries ?? [];
   const myEntry: any = data?.data?.myEntry ?? null;
 
   if (isLoading) return <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" /></div>;
@@ -53,31 +53,46 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
     </div>
   );
 
-  const icons = [
-    <Crown className="h-4 w-4 text-amber-500" key={1} />,
-    <Medal className="h-4 w-4 text-gray-400" key={2} />,
-    <Medal className="h-4 w-4 text-amber-700" key={3} />,
-  ];
+  const medals = ["🥇", "🥈", "🥉"];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pt-1">
       {entries.map((e: any, i: number) => {
         const isMe = myEntry && e.user?.id === myEntry.user?.id;
+        const rank = e.rank ?? i + 1;
         return (
           <div key={e.user?.id ?? i} className={cn(
             "flex items-center gap-3 rounded-xl border p-3",
             isMe ? "border-primary/30 bg-primary/5" : "border-border"
           )}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
-              {icons[i] ?? <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>}
+            {/* Rank */}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0 text-sm">
+              {rank <= 3 ? medals[rank - 1] : <span className="text-xs font-bold text-muted-foreground">#{rank}</span>}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {e.user?.displayName ?? e.user?.username ?? "Player"}
-                {isMe && <span className="ml-1 text-[10px] text-primary">(you)</span>}
-              </p>
+            {/* Avatar + name */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {e.user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={e.user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-7 w-7 rounded-full bg-muted-foreground/20 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {(e.user?.displayName ?? e.user?.username ?? "?")[0].toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {e.user?.displayName ?? e.user?.username ?? "Player"}
+                  {isMe && <span className="ml-1 text-[10px] text-primary">(you)</span>}
+                </p>
+                {e.user?.username && e.user?.displayName && (
+                  <p className="text-[11px] text-muted-foreground truncate">@{e.user.username}</p>
+                )}
+              </div>
             </div>
-            <span className="font-bold text-primary text-sm">{e.totalScore ?? 0} pts</span>
+            {/* Score */}
+            <span className="font-bold text-primary text-sm shrink-0">{e.totalScore ?? 0} pts</span>
           </div>
         );
       })}
@@ -563,8 +578,8 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
                 </div>
               )}
 
-              {/* ENDED state — show leaderboard */}
-              {isEnded && (
+              {/* Leaderboard — visible for active and ended sessions */}
+              {(isActive || isEnded) && (
                 <div className="space-y-2">
                   <button
                     className="w-full flex items-center justify-between rounded-xl border border-border p-3 hover:bg-muted/50 transition-colors"
@@ -572,7 +587,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
                   >
                     <span className="flex items-center gap-2 text-sm font-medium">
                       <Trophy className="h-4 w-4 text-amber-500" />
-                      View Leaderboard
+                      {isActive ? "Live Leaderboard" : "Final Leaderboard"}
                     </span>
                     <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showLeaderboard === session.id && "rotate-90")} />
                   </button>

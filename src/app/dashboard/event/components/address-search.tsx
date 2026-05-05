@@ -77,6 +77,7 @@ export default function AddressSearch({ value, onChange }: AddressSearchProps) {
         // Using both gives full coverage
         types: ["establishment", "geocode"],
       },
+      
       (predictions: any[] | null) => {
         setSuggestions(predictions ?? []);
         setLoading(false);
