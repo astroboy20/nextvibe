@@ -513,6 +513,12 @@ export const eventsApi = createApi({
       providesTags: ["Gallery"],
     }),
 
+    /** GET /v1/postcards/:eventId — total memories (postcards) for an event */
+    getEventMemoriesCount: builder.query<any, string>({
+      query: (eventId) => `/v1/postcards/${eventId}`,
+      providesTags: (_, __, eventId) => [{ type: "Gallery", id: `memories-${eventId}` }],
+    }),
+
   }),
 });
 
@@ -565,4 +571,5 @@ export const {
   useGetPostcardsQuery,
   useUploadMultipleFilesMutation,
   useCreatePostcardsMutation,
+  useGetEventMemoriesCountQuery,
 } = eventsApi;

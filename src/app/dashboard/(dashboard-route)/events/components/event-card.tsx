@@ -1,9 +1,15 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Calendar, Gamepad2, Tag, Users } from "lucide-react";
+import { Calendar, Gamepad2, MapPin, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/hooks/format-date";
+import Image from "next/image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  useGetEventAttendeesQuery,
+  useGetEventMemoriesCountQuery,
+} from "@/app/provider/api/eventApi";
 
 interface EventCardProps {
   id?: string;
@@ -21,12 +27,13 @@ interface EventCardProps {
 }
 
 const FLIER_MS = 5000;
-const FADE_MS  = 700;
+const FADE_MS = 700;
 
 export function EventCard({
   id = "1",
   title,
   date,
+  location,
   image,
   promoVideoUrl,
   attendees = 0,
@@ -39,13 +46,27 @@ export function EventCard({
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Fetch live attendee count and total memories for this event
+  const { data: attendeesData } = useGetEventAttendeesQuery(
+    { eventId: id },
+    { skip: !id || id === "1" }
+  );
+  const { data: memoriesData } = useGetEventMemoriesCountQuery(id, {
+    skip: !id || id === "1",
+  });
+
+  const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
+  const attendeeList: { id: string; avatarUrl?: string; displayName?: string }[] =
+    attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
+  const totalMemories: number =
+    memoriesData?.data?.total ?? memoriesData?.total ?? 0;
+
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Intersection Observer — detect when card enters viewport
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -61,81 +82,80 @@ export function EventCard({
     return () => observer.disconnect();
   }, []);
 
-  // Ref callback — fires when <video> enters DOM
-  const videoRefCallback = useCallback((vid: HTMLVideoElement | null) => {
-    // Cleanup previous cycle
-    if (!vid) {
-      cleanupRef.current?.();
-      cleanupRef.current = null;
-      return;
-    }
+  const videoRefCallback = useCallback(
+    (vid: HTMLVideoElement | null) => {
+      if (!vid) {
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+        return;
+      }
 
-    if (!promoVideoUrl || !isVisible) return;
+      if (!promoVideoUrl || !isVisible) return;
 
-    let destroyed = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+      let destroyed = false;
+      const timers: ReturnType<typeof setTimeout>[] = [];
 
-    const after = (ms: number, fn: () => void) => {
-      const t = setTimeout(fn, ms);
-      timers.push(t);
-    };
+      const after = (ms: number, fn: () => void) => {
+        const t = setTimeout(fn, ms);
+        timers.push(t);
+      };
 
-    const playVideo = () => {
-      if (destroyed) return;
-      vid.currentTime = 0;
-      vid.play().catch(() => {});
-      setVideoOpacity(1);
-      after(FADE_MS, () => { 
-        if (!destroyed) setFlierOpacity(0);
-      });
-    };
-
-    const backToFlier = () => {
-      if (destroyed) return;
-      setFlierOpacity(1);
-      after(FADE_MS, () => {
-        if (!destroyed) setVideoOpacity(0);
-        after(FLIER_MS, () => { 
-          if (!destroyed) playVideo();
+      const playVideo = () => {
+        if (destroyed) return;
+        vid.currentTime = 0;
+        vid.play().catch(() => { });
+        setVideoOpacity(1);
+        after(FADE_MS, () => {
+          if (!destroyed) setFlierOpacity(0);
         });
-      });
-    };
+      };
 
-    vid.onended = backToFlier;
+      const backToFlier = () => {
+        if (destroyed) return;
+        setFlierOpacity(1);
+        after(FADE_MS, () => {
+          if (!destroyed) setVideoOpacity(0);
+          after(FLIER_MS, () => {
+            if (!destroyed) playVideo();
+          });
+        });
+      };
 
-    const begin = () => {
-      if (destroyed) return;
-      after(FLIER_MS, playVideo);
-    };
+      vid.onended = backToFlier;
 
-    // Force load the video
-    vid.load();
+      const begin = () => {
+        if (destroyed) return;
+        after(FLIER_MS, playVideo);
+      };
 
-    // Wait for it to be ready
-    const onReady = () => {
-      if (destroyed) return;
-      begin();
-    };
+      vid.load();
 
-    if (vid.readyState >= 3) {
-      begin();
-    } else {
-      vid.addEventListener("loadeddata", onReady, { once: true });
-    }
+      const onReady = () => {
+        if (destroyed) return;
+        begin();
+      };
 
-    cleanupRef.current = () => {
-      destroyed = true;
-      timers.forEach(clearTimeout);
-      vid.onended = null;
-      vid.removeEventListener("loadeddata", onReady);
-    };
-  }, [promoVideoUrl, isVisible]);
+      if (vid.readyState >= 3) {
+        begin();
+      } else {
+        vid.addEventListener("loadeddata", onReady, { once: true });
+      }
+
+      cleanupRef.current = () => {
+        destroyed = true;
+        timers.forEach(clearTimeout);
+        vid.onended = null;
+        vid.removeEventListener("loadeddata", onReady);
+      };
+    },
+    [promoVideoUrl, isVisible]
+  );
 
   const accentBorder = {
-    pink:   "border-vibe-pink/30",
+    pink: "border-vibe-pink/30",
     purple: "border-vibe-purple/30",
-    cyan:   "border-vibe-cyan/30",
-    plum:   "border-primary/30",
+    cyan: "border-vibe-cyan/30",
+    plum: "border-primary/30",
   }[colorAccent ?? "plum"];
 
   return (
@@ -147,13 +167,15 @@ export function EventCard({
         className
       )}
     >
-      <div className={cn("relative h-64 overflow-hidden rounded-t-2xl border-2", accentBorder)}>
-
-        {!image && (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/10" />
+      <div
+        className={cn(
+          "relative h-64 overflow-hidden rounded-t-2xl border-2",
+          accentBorder
         )}
-
-        {/* Video — underneath the flier */}
+      >
+        {!image && (
+          <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-accent/10" />
+        )}
         {promoVideoUrl && (
           <video
             ref={videoRefCallback}
@@ -161,24 +183,27 @@ export function EventCard({
             muted
             playsInline
             preload="none"
-            style={{ opacity: videoOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+            style={{
+              opacity: videoOpacity,
+              transition: `opacity ${FADE_MS}ms ease`,
+            }}
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
-
-        {/* Flier — on top, fades out to reveal video */}
         {image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={image}
             alt={title}
-            style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
+            width={100}
+            height={100}
+            style={{
+              opacity: flierOpacity,
+              transition: `opacity ${FADE_MS}ms ease`,
+            }}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
-
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-
         {(hasGames || hasVibeTag) && (
           <div className="absolute top-2 right-2 flex gap-1.5 z-10">
             {hasGames && (
@@ -198,12 +223,23 @@ export function EventCard({
       </div>
 
       <div className="p-4">
-        <h3 className="font-display text-lg font-semibold line-clamp-1">{title}</h3>
+        <h3 className="font-display text-lg font-semibold line-clamp-1">
+          {title}
+        </h3>
 
         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 shrink-0" />
+          <Calendar className="h-3.5 w-3.5" />
           <span>{formatDate(date)}</span>
+          <span className="text-border">•</span>
+          <span>{totalMemories} Memories</span>
         </div>
+
+        {location && (
+          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="line-clamp-1">{location}</span>
+          </div>
+        )}
 
         {rsvpStartDateTime && (
           <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -212,8 +248,32 @@ export function EventCard({
           </div>
         )}
 
-        <div className="mt-2 text-xs text-muted-foreground">
-          {attendees} Memories
+        {/* Attendee Avatars */}
+        <div className="mt-3 flex items-center">
+          <div className="flex -space-x-2">
+            {(attendeeList.length > 0 ? attendeeList.slice(0, 3) : [1, 2, 3]).map(
+              (item, i) => {
+                const isReal = typeof item === "object" && "id" in item;
+                return (
+                  <Avatar key={isReal ? item.id : i} className="h-7 w-7 border-2 border-card">
+                    {isReal && item.avatarUrl ? (
+                      <AvatarImage src={item.avatarUrl} alt={item.displayName ?? "Attendee"} />
+                    ) : (
+                      <AvatarImage src={`https://i.pravatar.cc/50?img=${(i as number) + 10}`} />
+                    )}
+                    <AvatarFallback>
+                      {isReal ? (item.displayName?.[0] ?? "U") : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                );
+              }
+            )}
+          </div>
+          {liveAttendees > 3 && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              +{liveAttendees - 3}
+            </span>
+          )}
         </div>
       </div>
     </div>
