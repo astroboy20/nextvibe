@@ -3,12 +3,14 @@ import {
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
+  retry,
 } from "@reduxjs/toolkit/query/react";
 import Cookies from "js-cookie";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_URL,
   credentials: "include",
+  timeout: 15000, // 15 second timeout
   prepareHeaders: (headers) => {
     const accessToken = Cookies.get("accessToken");
     if (accessToken) {
@@ -18,12 +20,15 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+// Wrap with retry logic for network failures
+const baseQueryWithRetry = retry(rawBaseQuery, { maxRetries: 3 });
+
 export const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  let result = await rawBaseQuery(args, api, extraOptions);
+  let result = await baseQueryWithRetry(args, api, extraOptions);
 
   if (result.error?.status === 401) {
     // Try to refresh the token using the httpOnly refresh token cookie
@@ -46,7 +51,7 @@ export const baseQueryWithReauth: BaseQueryFn<
         });
 
         // Retry the original request with the new token
-        result = await rawBaseQuery(args, api, extraOptions);
+        result = await baseQueryWithRetry(args, api, extraOptions);
       } else {
         // No access token in response — redirect to login
         Cookies.remove("accessToken");

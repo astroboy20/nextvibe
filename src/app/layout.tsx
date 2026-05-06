@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { NetworkStatusBanner } from "@/components/network-status-banner";
 
 import "./globals.css";
 import ProviderWrapper from "./provider/provider";
@@ -75,6 +76,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${nunitoSans.variable}  antialiased`}>
+        <NetworkStatusBanner />
         <ProviderWrapper>
           {children}
           <Toaster position="top-center" />
