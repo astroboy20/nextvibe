@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getTokens } from "@/hooks/getToken";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export interface PostcardUser {
   id: string;
@@ -92,15 +92,7 @@ export interface SocialUsersResponse {
 
 export const socialApi = createApi({
   reducerPath: "socialApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    prepareHeaders: (headers) => {
-      const { accessToken } = getTokens();
-      if (accessToken) {
-        headers.set("Authorization", `Bearer ${accessToken}`);
-      }
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Postcards", "Comments", "People", "Feed"],
   endpoints: (build) => ({
 

@@ -1,17 +1,11 @@
 import { ICoupon, IApplyCouponResponse, IApplyCouponInput, ICreateCouponInput } from "@/types/coupon.type";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 
 export const couponApi = createApi({
     reducerPath: "couponApi",
-    baseQuery: fetchBaseQuery({
-        baseUrl: process.env.NEXT_PUBLIC_API_URL,
-        // Optionally, you can add headers here
-        // prepareHeaders: (headers) => {
-        //   const token = getToken();
-        //   if (token) headers.set("Authorization", `Bearer ${token}`);
-        // }
-    }),
+    baseQuery: baseQueryWithReauth,
     endpoints: (build) => ({
         verifyCoupon: build.query<{ status: string; data: ICoupon }, { code: string; cartTotal: number }>({
             query: ({ code, cartTotal }) => ({

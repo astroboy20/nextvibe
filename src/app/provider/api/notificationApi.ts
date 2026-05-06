@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import Cookies from "js-cookie";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export interface NotificationActor {
   username: string;
@@ -34,14 +34,7 @@ export interface NotificationsResponse {
 
 export const notificationApi = createApi({
   reducerPath: "notificationApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    prepareHeaders: (headers) => {
-      const accessToken = Cookies.get("accessToken");
-      if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Notifications"],
   endpoints: (builder) => ({
     /** GET /v1/notifications */

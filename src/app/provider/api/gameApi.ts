@@ -1,20 +1,13 @@
 "use client";
 
 import { GenerateTriviaResponse, GenerateTriviaRequest, GenerateWordPuzzleResponse, GenerateWordPuzzleRequest, GenerateThisOrThatResponse, GenerateThisOrThatRequest, GenerateTwoTruthsOneLieResponse, GenerateTwoTruthsOneLieRequest, IGameData, PlayGameRequest } from "@/types/game.type";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 
 export const gamesApi = createApi({
     reducerPath: "gamesApi",
-    baseQuery: fetchBaseQuery({
-        baseUrl: process.env.NEXT_PUBLIC_API_URL,
-        // Uncomment and add auth header if needed
-        // prepareHeaders: (headers) => {
-        //   const token = localStorage.getItem("token");
-        //   if (token) headers.set("Authorization", `Bearer ${token}`);
-        //   return headers;
-        // }
-    }),
+    baseQuery: baseQueryWithReauth,
     tagTypes: ["Game", "LeaderBoard"],
     endpoints: (build) => ({
 

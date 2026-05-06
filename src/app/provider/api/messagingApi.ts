@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getTokens } from "@/hooks/getToken";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export interface Participant {
   username: string;
@@ -42,15 +42,7 @@ export interface StartConversationResponse {
 
 export const messagingApi = createApi({
   reducerPath: "messagingApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    prepareHeaders: (headers) => {
-      const { accessToken } = getTokens();
-      if (accessToken) {
-        headers.set("Authorization", `Bearer ${accessToken}`);
-      }
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Conversations", "Messages"],
   endpoints: (build) => ({
     getConversations: build.query<ConversationsResponse, void>({

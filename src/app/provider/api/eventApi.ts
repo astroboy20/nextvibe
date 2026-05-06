@@ -1,21 +1,12 @@
 
 import { IGalleryItem } from "@/types/event.type";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import Cookies from "js-cookie";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export const eventsApi = createApi({
   reducerPath: "eventsApi",
 
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    credentials: "include",
-    prepareHeaders: (headers) => {
-      const accessToken = Cookies.get("accessToken")
-
-      if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
 
   tagTypes: ["Events", "Event", "Gallery", "Messages", "Games"],
 
