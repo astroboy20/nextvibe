@@ -54,15 +54,19 @@ interface EventVibeTagsTabProps {
   eventId?: string;
   vibeTag?: VibeTag[] | null;
   eventName?: string;
+  eventStartsAt?: string | null;
 }
 
 export function EventVibeTagsTab({
   eventId,
   vibeTag,
   eventName = "Event",
+  eventStartsAt,
 }: EventVibeTagsTabProps) {
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming | null>(null);
+
+  const eventHasStarted = eventStartsAt ? new Date() >= new Date(eventStartsAt) : true;
 
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
@@ -203,9 +207,24 @@ export function EventVibeTagsTab({
               </Badge>
             )}
 
+            {/* Lock DURING_EVENT until event starts */}
+            {resolvedTiming === "DURING_EVENT" && !eventHasStarted && (
+              <div className="mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Event hasn&apos;t started yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  This VibeTag unlocks once the main event begins.
+                </p>
+              </div>
+            )}
+
             <Button
               className="w-full rounded-xl gap-2"
-              disabled={!activeTag}
+              disabled={
+                !activeTag ||
+                (resolvedTiming === "DURING_EVENT" && !eventHasStarted)
+              }
               onClick={() => activeTag && setShowCreator(true)}
             >
               <Camera className="h-4 w-4" />

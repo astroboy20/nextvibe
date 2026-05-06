@@ -201,7 +201,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
         </Tabs>
 
         {/* WS status dot */}
-        <div className="shrink-0" title={wsStatus}>
+        {/* <div className="shrink-0" title={wsStatus}>
           {wsStatus === "open" ? (
             <Wifi className="h-4 w-4 text-green-500" />
           ) : wsStatus === "connecting" ? (
@@ -209,7 +209,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
           ) : (
             <WifiOff className="h-4 w-4 text-muted-foreground" />
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Messages Area */}

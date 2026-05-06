@@ -998,12 +998,35 @@ export function PostcardCreator({
                         </p>
                       </div>
                     ) : activeItem.kind === "video" ? (
-                      <video
-                        src={activeItem.raw}
-                        controls
-                        className="h-full w-full object-cover"
-                        playsInline
-                      />
+                      <>
+                        <video
+                          src={activeItem.raw}
+                          controls
+                          className="h-full w-full object-cover"
+                          playsInline
+                        />
+                        {/* Overlay the vibetag on top of the video preview */}
+                        {hasOverlay && (
+                          <div className="absolute inset-0 pointer-events-none z-10">
+                            <img
+                              src={vibeTagOverlay!.imageUrl}
+                              alt={vibeTagOverlay!.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        {/* Badge so user knows the tag is linked even if not baked */}
+                        {vibeTagId && (
+                          <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-none">
+                            <div className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-sm px-2.5 py-1.5">
+                              <Sparkles className="h-3 w-3 text-primary shrink-0" />
+                              <span className="text-white text-[10px] font-medium truncate">
+                                VibeTag will be applied
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <img
                         src={activeItem.baked ?? activeItem.raw}

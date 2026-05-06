@@ -389,6 +389,7 @@ export default function EventPage({
                 eventId={id}
                 vibeTag={eventDetails?.data?.vibeTag ?? null}
                 eventName={eventDetails?.data?.name ?? "Event"}
+                eventStartsAt={eventDetails?.data?.startsAt ?? null}
               />
             </TabsContent>
 
