@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/verify-email",
   "/check-verification",
+  "/game",
 ];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
