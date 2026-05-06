@@ -66,7 +66,9 @@ export function EventVibeTagsTab({
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming | null>(null);
 
-  const eventHasStarted = eventStartsAt ? new Date() >= new Date(eventStartsAt) : true;
+  const eventHasStarted = eventStartsAt
+    ? new Date() >= new Date(eventStartsAt)
+    : true;
 
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
@@ -207,7 +209,6 @@ export function EventVibeTagsTab({
               </Badge>
             )}
 
-            {/* Lock DURING_EVENT until event starts */}
             {resolvedTiming === "DURING_EVENT" && !eventHasStarted && (
               <div className="mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
                 <p className="text-xs font-medium text-amber-700 dark:text-amber-400">

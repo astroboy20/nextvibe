@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, Trophy, Crown, Medal, TrendingUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetPostcardLeaderboardQuery } from "@/app/provider/api/eventApi";
+import Image from "next/image";
 
 interface PostcardLeader {
   id: string;
@@ -53,7 +54,6 @@ export function AttendeePostcardLeaderboard({
         </div>
       </CardHeader>
       <CardContent>
-        {/* Phase Toggle */}
         <Tabs
           value={activePhase}
           onValueChange={(v) => setActivePhase(v as any)}
@@ -69,21 +69,18 @@ export function AttendeePostcardLeaderboard({
           </TabsList>
         </Tabs>
 
-        {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
 
-        {/* Empty state */}
         {!isLoading && leaders.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-6">
             No postcards yet for this phase.
           </p>
         )}
 
-        {/* Leaders List */}
         {!isLoading && leaders.length > 0 && (
           <div className="space-y-3">
             {leaders.map((leader, index) => (
@@ -94,7 +91,6 @@ export function AttendeePostcardLeaderboard({
                   index === 0 ? "bg-amber-500/10" : "hover:bg-muted/50"
                 )}
               >
-                {/* Rank */}
                 <div className="flex h-6 w-6 items-center justify-center">
                   {index < 3 ? (
                     rankIcons[index]
@@ -105,17 +101,16 @@ export function AttendeePostcardLeaderboard({
                   )}
                 </div>
 
-                {/* Postcard Thumbnail */}
-                <div className="relative h-10 w-8 flex-shrink-0 overflow-hidden rounded-lg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded-lg">
+                  <Image
                     src={leader.postcardImage}
-                    alt=""
+                    alt="postcard image"
+                    height={100}
+                    width={100}
                     className="h-full w-full object-cover"
                   />
                 </div>
 
-                {/* User Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-5 w-5">
@@ -130,7 +125,6 @@ export function AttendeePostcardLeaderboard({
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="text-right">
                   <div className="flex items-center gap-1 text-sm font-bold text-foreground">
                     <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />

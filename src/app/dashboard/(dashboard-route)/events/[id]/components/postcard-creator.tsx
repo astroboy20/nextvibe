@@ -53,20 +53,16 @@ type MediaKind = "image" | "video";
 interface QueuedItem {
   id: string;
   kind: MediaKind;
-  /** data-url for images; object-url for videos */
   raw: string;
-  /** baked image data-url (images only); same as raw for videos */
   baked: string | null;
   caption: string;
   baking: boolean;
-  /** original Blob kept for video upload */
   blob?: Blob;
 }
 
 const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1920;
 
-/** Resize a source image to 1920×1080 (cover-fit) and optionally stamp the overlay. */
 async function bakeOverlay(
   baseDataUrl: string,
   overlayUrl: string | null
@@ -84,7 +80,6 @@ async function bakeOverlay(
     const base = new Image();
     base.crossOrigin = "anonymous";
     base.onload = () => {
-      // Cover-fit: scale so the image fills 1920×1080, centred
       const scale = Math.max(
         OUTPUT_WIDTH / base.naturalWidth,
         OUTPUT_HEIGHT / base.naturalHeight
@@ -114,7 +109,6 @@ async function bakeOverlay(
   });
 }
 
-/** Resize an image data-url to 1920×1080 without any overlay. */
 async function resizeTo1080p(dataUrl: string): Promise<string> {
   return bakeOverlay(dataUrl, null);
 }
@@ -169,7 +163,6 @@ export function PostcardCreator({
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Hide header and bottom nav for the entire postcard creator lifecycle
   useEffect(() => {
     dispatch(setHideHeader(true));
     return () => {
@@ -181,7 +174,6 @@ export function PostcardCreator({
   const [createPostcards] = useCreatePostcardsMutation();
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
 
-  // Warn the user if they try to refresh/close while they have unsaved media
   const hasUnsavedWork =
     mode !== "choose" || cameraQueue.length > 0 || uploadQueue.length > 0;
   useBeforeUnload(hasUnsavedWork);
@@ -289,7 +281,6 @@ export function PostcardCreator({
 
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
-          // multiple cameras detected — flip button is always shown anyway
           void devices;
         } catch {
           // ignore
@@ -324,7 +315,6 @@ export function PostcardCreator({
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    // Always output at 1920×1080
     canvas.width = OUTPUT_WIDTH;
     canvas.height = OUTPUT_HEIGHT;
     const ctx = canvas.getContext("2d");
@@ -334,7 +324,6 @@ export function PostcardCreator({
     const vh = video.videoHeight || video.clientHeight;
     if (!vw || !vh) return;
 
-    // Cover-fit the video frame into 1920×1080
     const scale = Math.max(OUTPUT_WIDTH / vw, OUTPUT_HEIGHT / vh);
     const sw = vw * scale;
     const sh = vh * scale;
@@ -362,7 +351,6 @@ export function PostcardCreator({
     if (!stream) return;
     recordedChunksRef.current = [];
 
-    // Pick best supported codec + request highest bitrate
     const mimeType = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
       ? "video/mp4;codecs=avc1"
       : MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
@@ -375,8 +363,8 @@ export function PostcardCreator({
 
     const recorder = new MediaRecorder(stream, {
       mimeType,
-      videoBitsPerSecond: 8_000_000, // 8 Mbps — 1080p high quality
-      audioBitsPerSecond: 192_000,   // 192 kbps audio
+      videoBitsPerSecond: 8_000_000,
+      audioBitsPerSecond: 192_000, 
     });
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
@@ -432,7 +420,6 @@ export function PostcardCreator({
           reader.onload = (ev) => res(ev.target?.result as string);
           reader.readAsDataURL(file);
         });
-        // Resize to 1080×1920 before baking overlay
         const resized = await resizeTo1080p(raw);
         await addImageToQueue(resized, setUploadQueue, uploadQueue.length);
       }
@@ -574,7 +561,7 @@ export function PostcardCreator({
   return (
     <div
       className="fixed inset-0 z-100000 flex flex-col bg-background "
-      style={{ height: "100dvh", overflowY:"scroll" }}
+      style={{ height: "100dvh", overflowY: "scroll" }}
     >
       <canvas ref={canvasRef} className="hidden" />
 
@@ -656,7 +643,6 @@ export function PostcardCreator({
         )}
       </div>
 
-      {/* VibeTag indicator */}
       {hasOverlay && mode !== "camera" && (
         <div className="px-4 py-2 bg-primary/5 border-b border-primary/10 shrink-0">
           <div className="flex items-center gap-2">
@@ -780,7 +766,6 @@ export function PostcardCreator({
               <span className="text-[10px]">Review</span>
             </button>
 
-            {/* Shutter / Record button */}
             {cameraMode === "photo" ? (
               <button
                 onClick={capturePhoto}
@@ -814,7 +799,6 @@ export function PostcardCreator({
               </button>
             )}
 
-            {/* Flip camera */}
             <button
               onClick={handleFlipCamera}
               className="flex flex-col items-center gap-1 text-white"
@@ -829,13 +813,14 @@ export function PostcardCreator({
         </div>
       )}
 
-      {/* ══ CHOOSE MODE ══════════════════════════════════════════════════════ */}
       {mode === "choose" && (
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6">
-            {/* Full-width portrait preview */}
             <div className="relative w-full overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-0.75">
-              <div className="relative w-full bg-muted flex items-center justify-center overflow-hidden" style={{ aspectRatio: "9/16" }}>
+              <div
+                className="relative w-full bg-muted flex items-center justify-center overflow-hidden"
+                style={{ aspectRatio: "9/16" }}
+              >
                 {hasOverlay ? (
                   <img
                     src={vibeTagOverlay!.imageUrl}
@@ -889,7 +874,7 @@ export function PostcardCreator({
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                    uploading
+                      uploading
                     </span>
                     <span>{uploadProgress}%</span>
                   </div>
@@ -919,7 +904,6 @@ export function PostcardCreator({
         </div>
       )}
 
-      {/* ══ REVIEW MODE ══════════════════════════════════════════════════════ */}
       {(mode === "camera-review" || mode === "upload-review") &&
         activeQueue.length > 0 && (
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -934,7 +918,6 @@ export function PostcardCreator({
               </Badge>
             </div>
 
-            {/* Thumbnail strip */}
             <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar shrink-0 border-b border-border">
               {activeQueue.map((item, idx) => (
                 <button
@@ -984,12 +967,13 @@ export function PostcardCreator({
               )}
             </div>
 
-            {/* Active item detail */}
             {activeItem && (
               <div className="flex-1 overflow-y-auto">
                 <div className="space-y-4">
-                  {/* Full-width portrait preview */}
-                  <div className="relative w-full overflow-hidden bg-muted shadow-md" style={{ aspectRatio: "9/16" }}>
+                  <div
+                    className="relative w-full overflow-hidden bg-muted shadow-md"
+                    style={{ aspectRatio: "9/16" }}
+                  >
                     {activeItem.baking ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
                         <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -1005,7 +989,6 @@ export function PostcardCreator({
                           className="h-full w-full object-cover"
                           playsInline
                         />
-                        {/* Overlay the vibetag on top of the video preview */}
                         {hasOverlay && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
@@ -1015,7 +998,6 @@ export function PostcardCreator({
                             />
                           </div>
                         )}
-                        {/* Badge so user knows the tag is linked even if not baked */}
                         {vibeTagId && (
                           <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-none">
                             <div className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-sm px-2.5 py-1.5">
@@ -1049,92 +1031,93 @@ export function PostcardCreator({
                   </div>
 
                   <div className="px-4 pb-6 space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">
-                      Caption{" "}
-                      <span className="text-muted-foreground font-normal">
-                        (optional)
-                      </span>
-                    </label>
-                    <Textarea
-                      value={activeItem.caption}
-                      onChange={(e) =>
-                        updateCaption(activeItem.id, e.target.value)
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Caption{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <Textarea
+                        value={activeItem.caption}
+                        onChange={(e) =>
+                          updateCaption(activeItem.id, e.target.value)
+                        }
+                        placeholder="Write something about this moment..."
+                        className="rounded-xl resize-none"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => removeFromQueue(activeItem.id)}
+                        className="h-10 rounded-xl gap-1.5 text-destructive hover:text-destructive flex-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleDownload(activeItem)}
+                        disabled={activeItem.baking}
+                        className="h-10 rounded-xl gap-1.5 flex-1"
+                      >
+                        <Download className="h-4 w-4" />
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleShare(activeItem)}
+                        disabled={activeItem.baking}
+                        className="h-10 rounded-xl gap-1.5 flex-1"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </Button>
+                    </div>
+
+                    <Button
+                      onClick={() => handleSubmitAll(activeQueue)}
+                      disabled={
+                        isSubmitting || activeQueue.some((i) => i.baking)
                       }
-                      placeholder="Write something about this moment..."
-                      className="rounded-xl resize-none"
-                      rows={2}
-                    />
+                      className="w-full h-12 rounded-xl gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Posting…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Post {activeQueue.length} Item
+                          {activeQueue.length > 1 ? "s" : ""} to Event Feed
+                        </>
+                      )}
+                    </Button>
+
+                    <button
+                      onClick={() => {
+                        setCameraQueue([]);
+                        setUploadQueue([]);
+                        setActiveIdx(0);
+                        setMode("choose");
+                      }}
+                      className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Start over
+                    </button>
                   </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => removeFromQueue(activeItem.id)}
-                      className="h-10 rounded-xl gap-1.5 text-destructive hover:text-destructive flex-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Remove
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownload(activeItem)}
-                      disabled={activeItem.baking}
-                      className="h-10 rounded-xl gap-1.5 flex-1"
-                    >
-                      <Download className="h-4 w-4" />
-                      Save
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleShare(activeItem)}
-                      disabled={activeItem.baking}
-                      className="h-10 rounded-xl gap-1.5 flex-1"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </div>
-
-                  <Button
-                    onClick={() => handleSubmitAll(activeQueue)}
-                    disabled={isSubmitting || activeQueue.some((i) => i.baking)}
-                    className="w-full h-12 rounded-xl gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Posting…
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Post {activeQueue.length} Item
-                        {activeQueue.length > 1 ? "s" : ""} to Event Feed
-                      </>
-                    )}
-                  </Button>
-
-                  <button
-                    onClick={() => {
-                      setCameraQueue([]);
-                      setUploadQueue([]);
-                      setActiveIdx(0);
-                      setMode("choose");
-                    }}
-                    className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    Start over
-                  </button>
-                  </div>{/* end px-4 pb-6 padded section */}
                 </div>
               </div>
             )}
           </div>
         )}
 
-      {/* Hidden file input — images + videos */}
       <input
         ref={fileInputRef}
         type="file"

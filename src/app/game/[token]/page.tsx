@@ -152,7 +152,7 @@ function PublicRoundPlayer({
 
     return (
       <div className="flex flex-col items-center gap-5 py-8 text-center animate-fade-in">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20">
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
           <Trophy className="h-12 w-12 text-primary" />
         </div>
         <div className="space-y-1">

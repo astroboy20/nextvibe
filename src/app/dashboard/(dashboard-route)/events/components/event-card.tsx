@@ -46,7 +46,6 @@ export function EventCard({
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch live attendee count and total memories for this event
   const { data: attendeesData } = useGetEventAttendeesQuery(
     { eventId: id },
     { skip: !id || id === "1" }
@@ -56,8 +55,11 @@ export function EventCard({
   });
 
   const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
-  const attendeeList: { id: string; avatarUrl?: string; displayName?: string }[] =
-    attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
+  const attendeeList: {
+    id: string;
+    avatarUrl?: string;
+    displayName?: string;
+  }[] = attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
   const totalMemories: number =
     memoriesData?.data?.total ?? memoriesData?.total ?? 0;
 
@@ -103,7 +105,7 @@ export function EventCard({
       const playVideo = () => {
         if (destroyed) return;
         vid.currentTime = 0;
-        vid.play().catch(() => { });
+        vid.play().catch(() => {});
         setVideoOpacity(1);
         after(FADE_MS, () => {
           if (!destroyed) setFlierOpacity(0);
@@ -203,7 +205,7 @@ export function EventCard({
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         {(hasGames || hasVibeTag) && (
           <div className="absolute top-2 right-2 flex gap-1.5 z-10">
             {hasGames && (
@@ -248,26 +250,34 @@ export function EventCard({
           </div>
         )}
 
-        {/* Attendee Avatars */}
         <div className="mt-3 flex items-center">
           <div className="flex -space-x-2">
-            {(attendeeList.length > 0 ? attendeeList.slice(0, 3) : [1, 2, 3]).map(
-              (item, i) => {
-                const isReal = typeof item === "object" && "id" in item;
-                return (
-                  <Avatar key={isReal ? item.id : i} className="h-7 w-7 border-2 border-card">
-                    {isReal && item.avatarUrl ? (
-                      <AvatarImage src={item.avatarUrl} alt={item.displayName ?? "Attendee"} />
-                    ) : (
-                      <AvatarImage src={`https://i.pravatar.cc/50?img=${(i as number) + 10}`} />
-                    )}
-                    <AvatarFallback>
-                      {isReal ? (item.displayName?.[0] ?? "U") : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                );
-              }
-            )}
+            {(attendeeList.length > 0
+              ? attendeeList.slice(0, 3)
+              : [1, 2, 3]
+            ).map((item, i) => {
+              const isReal = typeof item === "object" && "id" in item;
+              return (
+                <Avatar
+                  key={isReal ? item.id : i}
+                  className="h-7 w-7 border-2 border-card"
+                >
+                  {isReal && item.avatarUrl ? (
+                    <AvatarImage
+                      src={item.avatarUrl}
+                      alt={item.displayName ?? "Attendee"}
+                    />
+                  ) : (
+                    <AvatarImage
+                      src={`https://i.pravatar.cc/50?img=${(i as number) + 10}`}
+                    />
+                  )}
+                  <AvatarFallback>
+                    {isReal ? item.displayName?.[0] ?? "U" : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              );
+            })}
           </div>
           {liveAttendees > 3 && (
             <span className="ml-2 text-xs text-muted-foreground">

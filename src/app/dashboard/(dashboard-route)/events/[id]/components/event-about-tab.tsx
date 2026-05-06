@@ -4,7 +4,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate, formatTime } from "@/hooks/format-date";
-import { Calendar, MapPin, Users, ExternalLink, Check, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  ExternalLink,
+  Check,
+  Loader2,
+} from "lucide-react";
 import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { useToggleFollowMutation } from "@/app/provider/api/socialApi";
@@ -16,12 +23,15 @@ interface EventAboutTabProps {
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
   const { data: me } = useGetUserQuery();
-  const isOrganizer = me?.data?.id && event?.organizer?.id
-    ? me.data.id === event.organizer.id
-    : false;
+  const isOrganizer =
+    me?.data?.id && event?.organizer?.id
+      ? me.data.id === event.organizer.id
+      : false;
 
   const [toggleFollow, { isLoading: isFollowing }] = useToggleFollowMutation();
-  const [followed, setFollowed] = useState(event?.organizer?.isFollowing ?? false);
+  const [followed, setFollowed] = useState(
+    event?.organizer?.isFollowing ?? false
+  );
 
   const handleFollow = async () => {
     if (!event?.organizer?.id) return;
@@ -87,7 +97,6 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
         </div>
       </div>
 
-      {/* Description */}
       <div>
         <h3 className="font-semibold text-foreground mb-2">About</h3>
         <p className="text-sm text-muted-foreground leading-relaxed capitalize">
@@ -95,7 +104,6 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
         </p>
       </div>
 
-      {/* Organizer Card */}
       <Card className="py-0!">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground mb-3">Organized by</p>
@@ -118,14 +126,21 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
               <Button
                 variant={followed ? "outline" : "outline"}
                 size="sm"
-                className={`rounded-full font-bold border-2 ${followed ? "border-green-500 text-green-600 hover:bg-green-500/10" : "border-primary text-primary hover:bg-primary/10"}`}
+                className={`rounded-full font-bold border-2 ${
+                  followed
+                    ? "border-green-500 text-green-600 hover:bg-green-500/10"
+                    : "border-primary text-primary hover:bg-primary/10"
+                }`}
                 onClick={handleFollow}
                 disabled={isFollowing}
               >
                 {isFollowing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : followed ? (
-                  <><Check className="h-3.5 w-3.5 mr-1" />Following</>
+                  <>
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Following
+                  </>
                 ) : (
                   "Follow"
                 )}
@@ -134,8 +149,6 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Map Preview Placeholder */}
       <div className="relative h-50 w-full overflow-hidden rounded-2xl bg-muted">
         <DisplayMap address={event?.locationName} />
       </div>

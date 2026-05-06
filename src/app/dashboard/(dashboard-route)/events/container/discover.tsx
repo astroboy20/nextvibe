@@ -1,8 +1,21 @@
-/* eslint-disable react-hooks/purity */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Gamepad2, Heart, ImageOff, Locate, MapPin, MessageCircle, Sparkles, Tag, Ticket, TrendingUp, X } from "lucide-react";
+import {
+  Clock,
+  Gamepad2,
+  Heart,
+  ImageOff,
+  Locate,
+  MapPin,
+  MessageCircle,
+  Sparkles,
+  Tag,
+  Ticket,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -22,9 +35,19 @@ import { useEventDiscovery } from "@/hooks/use-event-dicovery";
 import ViewToggle from "../components/view-toggle";
 import { EventCard } from "../components/event-card";
 import { PostcardItem } from "../components/postcard-grid";
+import Image from "next/image";
 
 const INTEREST_OPTIONS = [
-  "music", "tech", "party", "art", "food", "fitness", "travel", "nightlife", "festival", "wedding",
+  "music",
+  "tech",
+  "party",
+  "art",
+  "food",
+  "fitness",
+  "travel",
+  "nightlife",
+  "festival",
+  "wedding",
 ];
 
 const Discover = () => {
@@ -32,14 +55,20 @@ const Discover = () => {
   const { data: eventsData, isLoading: isLoadingEvents } = useGetEventsQuery();
   const { userInterests } = useEventDiscovery();
 
-  const [activeView, setActiveView] = useState<"events" | "postcards">("events");
-  const [activeTab, setActiveTab] = useState<"foryou" | "trending" | "nearby">("foryou");
+  const [activeView, setActiveView] = useState<"events" | "postcards">(
+    "events"
+  );
+  const [activeTab, setActiveTab] = useState<"foryou" | "trending" | "nearby">(
+    "foryou"
+  );
   const [locationFilter, setLocationFilter] = useState("");
   const [interestFilter, setInterestFilter] = useState("");
   const [vibeFilter, setVibeFilter] = useState("");
   const [autoLocating, setAutoLocating] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [postcardPhase, setPostcardPhase] = useState<"all" | "pre-event" | "main-event">("all");
+  const [postcardPhase, setPostcardPhase] = useState<
+    "all" | "pre-event" | "main-event"
+  >("all");
 
   const toggleFilter = (id: string) => {
     setActiveFilters((prev) =>
@@ -66,7 +95,7 @@ const Discover = () => {
       try {
         const loc = JSON.parse(stored);
         setLocationFilter(loc.city || loc.country || "");
-      } catch { }
+      } catch {}
     }
   }, []);
 
@@ -92,7 +121,7 @@ const Discover = () => {
             "nextvibe_location",
             JSON.stringify({ city, country })
           );
-        } catch { }
+        } catch {}
         setAutoLocating(false);
       },
       () => setAutoLocating(false),
@@ -108,9 +137,8 @@ const Discover = () => {
     localStorage.removeItem("nextvibe_location");
   };
 
-
-
-  const hasFilters = locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
+  const hasFilters =
+    locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
 
   const allEvents: any[] = eventsData?.data ?? [];
 
@@ -119,10 +147,14 @@ const Discover = () => {
       activeTab === "trending"
         ? [...allEvents].sort((a, b) => (b.attendees ?? 0) - (a.attendees ?? 0))
         : activeTab === "nearby" && locationFilter
-          ? [...allEvents].sort((a) =>
-            (a.locationName ?? "").toLowerCase().includes(locationFilter.toLowerCase()) ? -1 : 1
+        ? [...allEvents].sort((a) =>
+            (a.locationName ?? "")
+              .toLowerCase()
+              .includes(locationFilter.toLowerCase())
+              ? -1
+              : 1
           )
-          : allEvents;
+        : allEvents;
 
     if (locationFilter) {
       const l = locationFilter.toLowerCase();
@@ -167,7 +199,14 @@ const Discover = () => {
     }
 
     return list;
-  }, [allEvents, activeTab, locationFilter, interestFilter, vibeFilter, activeFilters]);
+  }, [
+    allEvents,
+    activeTab,
+    locationFilter,
+    interestFilter,
+    vibeFilter,
+    activeFilters,
+  ]);
   const filters = [
     { id: "games", label: "Has Games", icon: Gamepad2 },
     { id: "vibetag", label: "Has VibeTag", icon: Tag },
@@ -197,30 +236,33 @@ const Discover = () => {
 
   return (
     <main className="container pt-6 mx-auto">
-
-
-      {/* View Toggle */}
       <div className="mb-6 flex justify-center">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
       </div>
 
-      {/* Phase filter — postcards only */}
       {activeView === "postcards" && (
-        <Tabs value={postcardPhase} onValueChange={(v) => setPostcardPhase(v as typeof postcardPhase)} className="mb-6">
+        <Tabs
+          value={postcardPhase}
+          onValueChange={(v) => setPostcardPhase(v as typeof postcardPhase)}
+          className="mb-6"
+        >
           <TabsList className="w-full grid grid-cols-3 h-10">
-            <TabsTrigger value="all" className="text-xs">All Phases</TabsTrigger>
-            <TabsTrigger value="pre-event" className="text-xs">Pre-Event</TabsTrigger>
-            <TabsTrigger value="main-event" className="text-xs">Main Event</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">
+              All Phases
+            </TabsTrigger>
+            <TabsTrigger value="pre-event" className="text-xs">
+              Pre-Event
+            </TabsTrigger>
+            <TabsTrigger value="main-event" className="text-xs">
+              Main Event
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       )}
 
-      {/* Events-only: filters, tabs, chips, personalization hint, grid */}
       {activeView === "events" && (
         <>
-          {/* Filters */}
           <div className="mb-6 grid gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-3">
-            {/* Location */}
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
@@ -237,11 +279,12 @@ const Discover = () => {
                 disabled={autoLocating}
                 title="Use my location"
               >
-                <Locate className={autoLocating ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+                <Locate
+                  className={autoLocating ? "h-4 w-4 animate-pulse" : "h-4 w-4"}
+                />
               </Button>
             </div>
 
-            {/* Interest */}
             <select
               value={interestFilter}
               onChange={(e) => setInterestFilter(e.target.value)}
@@ -288,9 +331,12 @@ const Discover = () => {
             )}
           </div>
 
-          {/* Category Tabs + Filter Chips */}
           <div className="mb-5">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-4">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+              className="mb-4"
+            >
               <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
                 <TabsTrigger
                   value="foryou"
@@ -338,7 +384,6 @@ const Discover = () => {
             </div>
           </div>
 
-          {/* Personalization hint */}
           {activeTab === "foryou" && userInterests.length > 0 && (
             <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -346,7 +391,6 @@ const Discover = () => {
             </div>
           )}
 
-          {/* Events Grid */}
           {filteredEvents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center">
               <p className="text-sm text-muted-foreground">
@@ -368,7 +412,9 @@ const Discover = () => {
                     title={event?.name}
                     date={event?.startsAt}
                     location={event?.locationName}
-                    image={event?.flierUrl || event?.image || event?.data?.flierUrl}
+                    image={
+                      event?.flierUrl || event?.image || event?.data?.flierUrl
+                    }
                     promoVideoUrl={
                       event?.promoVideoUrl ||
                       event?.promotionalVideoUrl ||
@@ -387,7 +433,6 @@ const Discover = () => {
         </>
       )}
 
-      {/* Postcards Carousel */}
       {activeView === "postcards" && (
         <>
           {isLoadingPostcards ? (
@@ -413,12 +458,19 @@ const Discover = () => {
               {postcards.map((postcard: PostcardItem, index: number) => {
                 const mediaItems = postcard?.media ?? [];
                 const eventName = postcard?.event?.name ?? "";
-                const authorName = postcard?.author?.displayName ?? postcard?.author?.username ?? "";
-                const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL ?? "http://minio-production-5cff.up.railway.app:443/nextvibe";
+                const authorName =
+                  postcard?.author?.displayName ??
+                  postcard?.author?.username ??
+                  "";
+                const storageBase =
+                  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+                  "http://minio-production-5cff.up.railway.app:443/nextvibe";
 
                 const resolvedMedia = mediaItems
                   .map((m) => ({
-                    src: m.mediaUrl || (m.storageKey ? `${storageBase}/${m.storageKey}` : ""),
+                    src:
+                      m.mediaUrl ||
+                      (m.storageKey ? `${storageBase}/${m.storageKey}` : ""),
                     isVideo: m.mediaType === "VIDEO",
                   }))
                   .filter((m) => m.src);
@@ -434,7 +486,6 @@ const Discover = () => {
                     )}
                     style={{ animationDelay: `${index * 40}ms` }}
                   >
-                    {/* Per-card carousel if multiple media, single image if one */}
                     {resolvedMedia.length === 1 ? (
                       <div className="relative aspect-auto">
                         {resolvedMedia[0].isVideo ? (
@@ -446,24 +497,29 @@ const Discover = () => {
                             className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                         ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={resolvedMedia[0].src}
                             alt={postcard?.caption ?? eventName}
+                            height={300}
+                            width={300}
                             className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                       </div>
                     ) : (
                       <Carousel
                         plugins={[
-                          Autoplay({ delay: 2500, stopOnInteraction: false, stopOnMouseEnter: true }),
+                          Autoplay({
+                            delay: 2500,
+                            stopOnInteraction: false,
+                            stopOnMouseEnter: true,
+                          }),
                         ]}
                         opts={{ loop: true }}
                         className="w-full"
                       >
-                        <CarouselContent className="-ml-0">
+                        <CarouselContent className="ml-0">
                           {resolvedMedia.map((media, mi) => (
                             <CarouselItem key={mi} className="pl-0">
                               <div className="relative aspect-auto">
@@ -476,14 +532,15 @@ const Discover = () => {
                                     className="w-full object-cover"
                                   />
                                 ) : (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
+                                  <Image
                                     src={media.src}
                                     alt={`${eventName} ${mi + 1}`}
                                     className="w-full object-cover"
+                                    height={300}
+                                    width={300}
                                   />
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                               </div>
                             </CarouselItem>
                           ))}
@@ -491,16 +548,21 @@ const Discover = () => {
                       </Carousel>
                     )}
 
-                    {/* Footer — slides up on hover */}
                     <div className="absolute bottom-0 left-0 right-0 p-3 text-white translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                       {eventName && (
-                        <p className="text-xs font-semibold line-clamp-1 mb-0.5">{eventName}</p>
+                        <p className="text-xs font-semibold line-clamp-1 mb-0.5">
+                          {eventName}
+                        </p>
                       )}
                       {authorName && (
-                        <p className="text-[10px] text-white/70 line-clamp-1 mb-1">@{authorName}</p>
+                        <p className="text-[10px] text-white/70 line-clamp-1 mb-1">
+                          @{authorName}
+                        </p>
                       )}
                       {postcard?.caption && (
-                        <p className="text-xs text-white/80 line-clamp-2 mb-1.5">{postcard.caption}</p>
+                        <p className="text-xs text-white/80 line-clamp-2 mb-1.5">
+                          {postcard.caption}
+                        </p>
                       )}
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1 text-xs">

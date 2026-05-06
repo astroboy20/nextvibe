@@ -1,16 +1,17 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetPostcardsQuery, useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import {
+  useGetPostcardsQuery,
+  useGetEventDetailsQuery,
+} from "@/app/provider/api/eventApi";
 import { PostcardItem } from "../../components/postcard-grid";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";
-
-// ── Media URL resolver ────────────────────────────────────────────────────────
+import Image from "next/image";
 
 const STORAGE_BASE =
   process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
@@ -24,8 +25,6 @@ function resolveMediaUrl(media?: {
   if (media?.storageKey) return `${STORAGE_BASE}/${media.storageKey}`;
   return "";
 }
-
-// ── Lightbox ──────────────────────────────────────────────────────────────────
 
 interface LightboxProps {
   postcard: PostcardItem;
@@ -44,7 +43,6 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
       className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
       onClick={onClose}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 text-white"
         onClick={(e) => e.stopPropagation()}
@@ -70,7 +68,6 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
         </button>
       </div>
 
-      {/* Main media */}
       <div
         className="flex flex-1 items-center justify-center px-4"
         onClick={(e) => e.stopPropagation()}
@@ -83,15 +80,16 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
             className="max-h-full max-w-full rounded-xl object-contain"
           />
         ) : (
-          <img
+          <Image
             src={src}
+            height={100}
+            width={100}
             alt={postcard.caption ?? "Postcard"}
             className="max-h-full max-w-full rounded-xl object-contain"
           />
         )}
       </div>
 
-      {/* Thumbnail strip — only shown when there are multiple media items */}
       {media.length > 1 && (
         <div
           className="flex gap-2 overflow-x-auto px-4 py-3 no-scrollbar"
@@ -110,9 +108,11 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
-                <img
+                <Image
                   src={thumbSrc}
-                  alt=""
+                  alt="thumbnail"
+                  width={100}
+                  height={100}
                   className="h-full w-full object-cover"
                 />
               </button>
@@ -124,8 +124,6 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function EventPostcardsPage({
   params,
 }: {
@@ -133,7 +131,9 @@ export default function EventPostcardsPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const [selectedPostcard, setSelectedPostcard] = useState<PostcardItem | null>(null);
+  const [selectedPostcard, setSelectedPostcard] = useState<PostcardItem | null>(
+    null
+  );
   const [page, setPage] = useState(1);
   const LIMIT = 40;
 
@@ -150,7 +150,6 @@ export default function EventPostcardsPage({
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
@@ -164,12 +163,13 @@ export default function EventPostcardsPage({
             <h1 className="font-semibold text-base leading-tight truncate">
               Postcards
             </h1>
-            <p className="text-xs text-muted-foreground truncate">{eventName}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {eventName}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Grid */}
       <div className="container px-4 pt-4">
         {isLoading ? (
           <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
@@ -210,28 +210,30 @@ export default function EventPostcardsPage({
                     style={{ animationDelay: `${index * 40}ms` }}
                   >
                     <div className="relative aspect-auto">
-                      <img
+                      <Image
                         src={src}
                         alt={postcard?.caption ?? eventName}
+                        height={100}
+                        width={100}
                         className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
 
-                      {/* Multiple media badge */}
                       {mediaCount > 1 && (
                         <span className="absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
                           +{mediaCount - 1}
                         </span>
                       )}
 
-                      {/* Hover gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                     </div>
 
-                    {/* Footer */}
                     <div className="absolute bottom-0 left-0 right-0 p-3 text-white translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                      {(postcard.author?.displayName || postcard.author?.username) && (
+                      {(postcard.author?.displayName ||
+                        postcard.author?.username) && (
                         <p className="text-[10px] text-white/80 line-clamp-1">
-                          @{postcard.author?.displayName ?? postcard.author?.username}
+                          @
+                          {postcard.author?.displayName ??
+                            postcard.author?.username}
                         </p>
                       )}
                       {postcard.caption && (
@@ -245,7 +247,6 @@ export default function EventPostcardsPage({
               })}
             </div>
 
-            {/* Pagination */}
             {meta?.hasNext && (
               <div className="flex justify-center pt-6 pb-2">
                 <button
@@ -260,7 +261,6 @@ export default function EventPostcardsPage({
         )}
       </div>
 
-      {/* Lightbox */}
       {selectedPostcard && (
         <Lightbox
           postcard={selectedPostcard}

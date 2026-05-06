@@ -91,8 +91,7 @@ const StepFour = ({
         </div>
       )}
 
-      {/* Questions list */}
-      <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-95 overflow-y-auto pr-1">
         {questions.map((q, index) => (
           <Card
             key={q.id}
@@ -103,7 +102,6 @@ const StepFour = ({
           >
             <CardContent className="p-3">
               {editingQuestion === q.id ? (
-                /* ── Edit mode ── */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary" className="text-xs">Q{index + 1}</Badge>

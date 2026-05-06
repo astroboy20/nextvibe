@@ -68,12 +68,10 @@ export function EventQRTab({ event }: EventQRTabProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* QR Code Display */}
       <Card className="overflow-hidden">
         <CardContent className="p-6 flex flex-col items-center">
           <div className="mb-4 rounded-2xl bg-white p-4 shadow-lg">
             <QRCodeSVG value={event?.qrCode} size={200} ref={qrRef} />
-            {/* <img src={qrCodeUrl} alt="Event QR Code" className="h-48 w-48" /> */}
           </div>
           <h3 className="font-display text-lg font-bold text-foreground text-center">
             {event.name}
@@ -84,7 +82,6 @@ export function EventQRTab({ event }: EventQRTabProps) {
         </CardContent>
       </Card>
 
-      {/* Event Link */}
       <div className="w-full max-w-md">
         <p className="text-xs text-muted-foreground mb-2">Event Link</p>
         <div className="flex items-center gap-2">
@@ -107,7 +104,6 @@ export function EventQRTab({ event }: EventQRTabProps) {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
@@ -127,7 +123,6 @@ export function EventQRTab({ event }: EventQRTabProps) {
         </Button>
       </div>
 
-      {/* Usage Tips */}
       <Card className="bg-primary/5 border-primary/20">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">

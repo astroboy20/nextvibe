@@ -64,7 +64,7 @@ export function GameScoreShare({
       setCopied(true);
       toast.success("Copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
-    } catch (err:any) {
+    } catch (err: any) {
       toast.error("Failed to copy", err);
     }
   };
@@ -91,7 +91,7 @@ export function GameScoreShare({
           text: getShareText(),
           url: shareUrl,
         });
-      } catch (err:any) {
+      } catch (err: any) {
         console.log("Share failed:", err);
         // User cancelled or error
       }
@@ -100,11 +100,10 @@ export function GameScoreShare({
 
   return (
     <div className="space-y-6">
-      {/* Score Card */}
-      <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10">
+      <Card className="overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/10 via-accent/5 to-primary/10">
         <CardContent className="p-6 text-center">
           <div className="flex justify-center mb-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-primary to-accent">
               {getRankIcon()}
             </div>
           </div>
@@ -135,7 +134,6 @@ export function GameScoreShare({
         </CardContent>
       </Card>
 
-      {/* Share Options */}
       <div className="space-y-3">
         <h3 className="font-semibold text-foreground text-center">
           Share Your Score
@@ -183,19 +181,19 @@ export function GameScoreShare({
           )}
         </Button>
 
-        {typeof navigator !== "undefined" && navigator.share && (
-          <Button
-            className="w-full gap-2 rounded-xl"
-            onClick={handleNativeShare}
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </Button>
-        )}
+        {typeof navigator !== "undefined" &&
+          typeof navigator.share === "function" && (
+            <Button
+              className="w-full gap-2 rounded-xl"
+              onClick={handleNativeShare}
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
+          )}
       </div>
 
-      {/* Challenge Friends */}
-      <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20">
+      <Card className="bg-linear-to-r from-accent/10 to-primary/10 border-accent/20">
         <CardContent className="p-4 text-center">
           <Sparkles className="h-6 w-6 mx-auto mb-2 text-accent" />
           <p className="font-medium text-foreground text-sm">

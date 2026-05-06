@@ -5,10 +5,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Trophy, Play, Clock, Users,
-  HelpCircle, Puzzle, MessageSquare, Zap,
-  ChevronRight, Loader2, QrCode, CheckCircle2, Timer,
-  XCircle, Share2,
+  Trophy,
+  Play,
+  Clock,
+  Users,
+  HelpCircle,
+  Puzzle,
+  MessageSquare,
+  Zap,
+  ChevronRight,
+  Loader2,
+  QrCode,
+  CheckCircle2,
+  Timer,
+  XCircle,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +33,7 @@ import {
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
+import Image from "next/image";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -33,27 +45,45 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
 };
 
 const mapType = (t: string): GameType =>
-  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS: "two-truths", THIS_OR_THAT: "this-or-that" }[t] ?? "trivia") as GameType;
+  (({
+    TRIVIA: "trivia",
+    WORD_PUZZLE: "word-puzzle",
+    TWO_TRUTHS: "two-truths",
+    THIS_OR_THAT: "this-or-that",
+  }[t] ?? "trivia") as GameType);
 
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
-  ({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as "pending" | "live" | "ended";
+  (({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as
+    | "pending"
+    | "live"
+    | "ended");
 
 function SessionLeaderboard({ sessionId }: { sessionId: string }) {
   const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
   const entries: any[] = data?.data?.entries ?? [];
   const myEntry: any = data?.data?.myEntry ?? null;
 
-  if (isLoading) return <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" /></div>;
-
-  if (!entries.length) return (
-    <div className="flex flex-col items-center gap-2 py-6 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-        <Trophy className="h-5 w-5 text-muted-foreground/50" />
+  if (isLoading)
+    return (
+      <div className="py-4 text-center">
+        <Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" />
       </div>
-      <p className="text-sm font-medium text-muted-foreground">No scores yet</p>
-      <p className="text-xs text-muted-foreground/60">Scores will appear once players submit answers</p>
-    </div>
-  );
+    );
+
+  if (!entries.length)
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+          <Trophy className="h-5 w-5 text-muted-foreground/50" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
+          No scores yet
+        </p>
+        <p className="text-xs text-muted-foreground/60">
+          Scores will appear once players submit answers
+        </p>
+      </div>
+    );
 
   const medals = ["🥇", "🥈", "🥉"];
 
@@ -63,38 +93,57 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
         const isMe = myEntry && e.user?.id === myEntry.user?.id;
         const rank = e.rank ?? i + 1;
         return (
-          <div key={e.user?.id ?? i} className={cn(
-            "flex items-center gap-3 rounded-xl border p-3",
-            isMe ? "border-primary/30 bg-primary/5" : "border-border"
-          )}>
-            {/* Rank */}
+          <div
+            key={e.user?.id ?? i}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border p-3",
+              isMe ? "border-primary/30 bg-primary/5" : "border-border"
+            )}
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0 text-sm">
-              {rank <= 3 ? medals[rank - 1] : <span className="text-xs font-bold text-muted-foreground">#{rank}</span>}
+              {rank <= 3 ? (
+                medals[rank - 1]
+              ) : (
+                <span className="text-xs font-bold text-muted-foreground">
+                  #{rank}
+                </span>
+              )}
             </div>
-            {/* Avatar + name */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {e.user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={e.user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover shrink-0" />
+                <Image
+                  width={100}
+                  height={100}
+                  src={e.user.avatarUrl}
+                  alt="avatar"
+                  className="h-7 w-7 rounded-full object-cover shrink-0"
+                />
               ) : (
                 <div className="h-7 w-7 rounded-full bg-muted-foreground/20 flex items-center justify-center shrink-0">
                   <span className="text-[10px] font-bold text-muted-foreground">
-                    {(e.user?.displayName ?? e.user?.username ?? "?")[0].toUpperCase()}
+                    {(e.user?.displayName ??
+                      e.user?.username ??
+                      "?")[0].toUpperCase()}
                   </span>
                 </div>
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">
                   {e.user?.displayName ?? e.user?.username ?? "Player"}
-                  {isMe && <span className="ml-1 text-[10px] text-primary">(you)</span>}
+                  {isMe && (
+                    <span className="ml-1 text-[10px] text-primary">(you)</span>
+                  )}
                 </p>
                 {e.user?.username && e.user?.displayName && (
-                  <p className="text-[11px] text-muted-foreground truncate">@{e.user.username}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    @{e.user.username}
+                  </p>
                 )}
               </div>
             </div>
-            {/* Score */}
-            <span className="font-bold text-primary text-sm shrink-0">{e.totalScore ?? 0} pts</span>
+            <span className="font-bold text-primary text-sm shrink-0">
+              {e.totalScore ?? 0} pts
+            </span>
           </div>
         );
       })}
@@ -112,7 +161,11 @@ function RoundPlayer({
   round: any;
   session: any;
   eventName?: string;
-  onSubmit: (roundId: string, answers: (number | string)[], timeTakenMs: number) => Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }>;
+  onSubmit: (
+    roundId: string,
+    answers: (number | string)[],
+    timeTakenMs: number
+  ) => Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }>;
   isSubmitting: boolean;
 }) {
   const questions: any[] = round.config?.questions ?? [];
@@ -122,31 +175,24 @@ function RoundPlayer({
   const [answers, setAnswers] = useState<(number | string)[]>([]);
   const [wordInput, setWordInput] = useState("");
 
-  // Timing — total elapsed + per-question start
   const [totalStartTime] = useState(Date.now());
   const [qStartTime, setQStartTime] = useState(Date.now());
-  const [elapsed, setElapsed] = useState(0); // seconds on current question
+  const [elapsed, setElapsed] = useState(0);
 
-  // Flash state: null = unanswered, otherwise show result briefly then advance
   const [flash, setFlash] = useState<{
     selected: number | string;
     correct: number | string;
     isCorrect: boolean;
   } | null>(null);
 
-  // Final score state
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [showShare, setShowShare] = useState(false);
 
-  // Leaderboard for rank info after submission
-  const { data: leaderboardData, refetch: refetchLeaderboard } = useGetSessionLeaderboardQuery(
-    session?.id,
-    { skip: !session?.id }
-  );
+  const { data: leaderboardData, refetch: refetchLeaderboard } =
+    useGetSessionLeaderboardQuery(session?.id, { skip: !session?.id });
 
-  // Live elapsed-seconds counter per question
   useEffect(() => {
-    if (flash || finalScore !== null) return; // pause while flashing or done
+    if (flash || finalScore !== null) return;
     setElapsed(0);
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - qStartTime) / 1000));
@@ -156,10 +202,10 @@ function RoundPlayer({
   }, [currentQ, flash, finalScore]);
 
   const q = questions[currentQ];
-  const progress = questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
+  const progress =
+    questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
   const isLast = currentQ === questions.length - 1;
 
-  // ── Advance to next question or submit ────────────────────────────────────
   const advance = async (
     selectedAnswer: number | string,
     allAnswers: (number | string)[]
@@ -171,7 +217,11 @@ function RoundPlayer({
       setWordInput("");
     } else {
       setFlash(null);
-      const result = await onSubmit(round.id, allAnswers, Date.now() - totalStartTime);
+      const result = await onSubmit(
+        round.id,
+        allAnswers,
+        Date.now() - totalStartTime
+      );
       if (result.ok) {
         await refetchLeaderboard();
         setFinalScore(result.score ?? 0);
@@ -179,10 +229,10 @@ function RoundPlayer({
     }
   };
 
-  // ── Option click — immediate flash then advance ───────────────────────────
   const handleSelectOption = (idx: number) => {
-    if (flash) return; // already answered
-    const correctIdx: number | string = q?.correctAnswer ?? q?.correct ?? q?.answer ?? 0;
+    if (flash) return;
+    const correctIdx: number | string =
+      q?.correctAnswer ?? q?.correct ?? q?.answer ?? 0;
     const isCorrect = idx === correctIdx;
 
     const newAnswers = [...answers];
@@ -194,11 +244,13 @@ function RoundPlayer({
     setTimeout(() => advance(idx, newAnswers), 800);
   };
 
-  // ── Word puzzle submit ────────────────────────────────────────────────────
   const handleWordSubmit = () => {
     if (flash || !wordInput.trim()) return;
-    const correctIdx: number | string = q?.correctAnswer ?? q?.correct ?? q?.answer ?? "";
-    const isCorrect = wordInput.trim().toLowerCase() === String(correctIdx).trim().toLowerCase();
+    const correctIdx: number | string =
+      q?.correctAnswer ?? q?.correct ?? q?.answer ?? "";
+    const isCorrect =
+      wordInput.trim().toLowerCase() ===
+      String(correctIdx).trim().toLowerCase();
 
     const newAnswers = [...answers];
     newAnswers[currentQ] = wordInput;
@@ -208,16 +260,20 @@ function RoundPlayer({
     setTimeout(() => advance(wordInput, newAnswers), 800);
   };
 
-  // ── Final score screen ────────────────────────────────────────────────────
   if (finalScore !== null) {
     const entries: any[] = leaderboardData?.data?.entries ?? [];
     const myEntry: any = leaderboardData?.data?.myEntry ?? null;
-    const _rankFromIndex = entries.findIndex((e: any) => e.user?.id === myEntry?.user?.id) + 1;
+    const _rankFromIndex =
+      entries.findIndex((e: any) => e.user?.id === myEntry?.user?.id) + 1;
     const myRank = myEntry?.rank || _rankFromIndex || 1;
     const shareToken: string | undefined = session?.shareToken;
     const shareUrl = shareToken
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/game/${shareToken}`
-      : typeof window !== "undefined" ? window.location.href : "";
+      ? `${
+          typeof window !== "undefined" ? window.location.origin : ""
+        }/game/${shareToken}`
+      : typeof window !== "undefined"
+      ? window.location.href
+      : "";
 
     if (showShare) {
       return (
@@ -241,24 +297,40 @@ function RoundPlayer({
 
     return (
       <div className="flex flex-col items-center gap-5 py-8 text-center animate-fade-in">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20">
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
           <Trophy className="h-12 w-12 text-primary" />
         </div>
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground font-medium">Your Score</p>
-          <p className="font-display text-5xl font-bold text-foreground">{finalScore.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground font-medium">
+            Your Score
+          </p>
+          <p className="font-display text-5xl font-bold text-foreground">
+            {finalScore.toLocaleString()}
+          </p>
           <p className="text-sm text-muted-foreground">points</p>
         </div>
         {myRank > 0 && (
           <Badge variant="secondary" className="text-sm px-4 py-1.5">
-            {myRank === 1 ? "🥇" : myRank === 2 ? "🥈" : myRank === 3 ? "🥉" : "🏆"} Rank #{myRank} of {entries.length || 1}
+            {myRank === 1
+              ? "🥇"
+              : myRank === 2
+              ? "🥈"
+              : myRank === 3
+              ? "🥉"
+              : "🏆"}{" "}
+            Rank #{myRank} of {entries.length || 1}
           </Badge>
         )}
         <Card className="w-full bg-primary/5 border-primary/20">
           <CardContent className="p-4 text-left">
             <p className="text-sm text-foreground font-medium leading-relaxed">
-              I played in <span className="font-bold">{eventName ?? session?.title}</span>&apos;s game, I scored{" "}
-              <span className="font-bold text-primary">{finalScore.toLocaleString()}</span>. Play and see if you can beat mine.
+              I played in{" "}
+              <span className="font-bold">{eventName ?? session?.title}</span>
+              &apos;s game, I scored{" "}
+              <span className="font-bold text-primary">
+                {finalScore.toLocaleString()}
+              </span>
+              . Play and see if you can beat mine.
             </p>
           </CardContent>
         </Card>
@@ -266,11 +338,17 @@ function RoundPlayer({
           className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
           onClick={() => {
             if (shareToken && navigator.share) {
-              navigator.share({
-                title: `I scored ${finalScore} in ${session?.title ?? round.title}!`,
-                text: `I played in ${eventName ?? session?.title}'s game, I scored ${finalScore}. Play and see if you can beat mine.`,
-                url: shareUrl,
-              }).catch(() => setShowShare(true));
+              navigator
+                .share({
+                  title: `I scored ${finalScore} in ${
+                    session?.title ?? round.title
+                  }!`,
+                  text: `I played in ${
+                    eventName ?? session?.title
+                  }'s game, I scored ${finalScore}. Play and see if you can beat mine.`,
+                  url: shareUrl,
+                })
+                .catch(() => setShowShare(true));
             } else {
               setShowShare(true);
             }
@@ -283,25 +361,31 @@ function RoundPlayer({
     );
   }
 
-  if (!q) return <p className="text-sm text-muted-foreground text-center py-4">No questions in this round.</p>;
+  if (!q)
+    return (
+      <p className="text-sm text-muted-foreground text-center py-4">
+        No questions in this round.
+      </p>
+    );
 
-  // ── Submitting overlay ────────────────────────────────────────────────────
   if (isSubmitting) {
     return (
       <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Submitting your answers…</p>
+        <p className="text-sm text-muted-foreground">
+          Submitting your answers…
+        </p>
       </div>
     );
   }
 
-  // ── Active question ───────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* Progress + timer row */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Question {currentQ + 1} of {questions.length}</span>
+          <span>
+            Question {currentQ + 1} of {questions.length}
+          </span>
           <span className="flex items-center gap-1 font-mono font-semibold text-foreground">
             <Timer className="h-3 w-3" />
             {elapsed}s
@@ -310,15 +394,12 @@ function RoundPlayer({
         <Progress value={progress} className="h-1.5" />
       </div>
 
-      {/* Speed note */}
-      <p className="text-[11px] text-muted-foreground text-center">
+      {/* <p className="text-[11px] text-muted-foreground text-center">
         ⚡ Answer fast — speed breaks ties on the leaderboard
-      </p>
+      </p> */}
 
-      {/* Question */}
       <p className="font-semibold text-foreground text-base">{q.text}</p>
 
-      {/* Options */}
       {q.options && (
         <div className="space-y-2">
           {q.options.map((opt: string, idx: number) => {
@@ -333,14 +414,17 @@ function RoundPlayer({
                 disabled={!!flash}
                 className={cn(
                   "w-full rounded-xl border-2 p-3 text-left text-sm transition-all duration-150",
-                  // Default / pre-answer
                   !flash && "border-border hover:border-primary/50",
-                  // Correct option (always green when flash is active)
-                  flash && isCorrectOpt && "border-green-500 bg-green-500/15 text-green-700",
-                  // Wrong selected option
-                  flash && isWrongSelected && "border-red-500 bg-red-500/15 text-red-700",
-                  // Other options dim out
-                  flash && !isSelected && !isCorrectOpt && "border-border opacity-40"
+                  flash &&
+                    isCorrectOpt &&
+                    "border-green-500 bg-green-500/15 text-green-700",
+                  flash &&
+                    isWrongSelected &&
+                    "border-red-500 bg-red-500/15 text-red-700",
+                  flash &&
+                    !isSelected &&
+                    !isCorrectOpt &&
+                    "border-border opacity-40"
                 )}
               >
                 <span className="mr-2 font-bold text-muted-foreground">
@@ -359,7 +443,6 @@ function RoundPlayer({
         </div>
       )}
 
-      {/* Word puzzle input */}
       {gameType === "word-puzzle" && !q.options?.length && (
         <div className="space-y-2">
           <input
@@ -383,7 +466,6 @@ function RoundPlayer({
   );
 }
 
-// ── Session Card (fetches its own leaderboard to detect if user has played) ──
 function SessionCard({
   session,
   isJoined,
@@ -428,9 +510,9 @@ function SessionCard({
   // 1. myEntry is explicitly returned by the backend, OR
   // 2. their userId appears anywhere in the entries list, OR
   // 3. locally tracked (covers the instant after submit before refetch)
-  const isInEntries = !!myUserId && entries.some(
-    (e: any) => e.user?.id === myUserId || e.userId === myUserId
-  );
+  const isInEntries =
+    !!myUserId &&
+    entries.some((e: any) => e.user?.id === myUserId || e.userId === myUserId);
   const hasPlayed =
     !!myEntry ||
     isInEntries ||
@@ -446,10 +528,14 @@ function SessionCard({
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
-            isActive ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"
-          )}>
+          <div
+            className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+              isActive
+                ? "bg-green-500/10 text-green-600"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
             {gameTypeIcons[session.mappedType as GameType]}
           </div>
 
@@ -463,13 +549,20 @@ function SessionCard({
                 </Badge>
               )}
               {!isActive && !isEnded && (
-                <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  Coming Soon
+                </Badge>
               )}
               {isEnded && (
-                <Badge variant="outline" className="text-[10px]">Ended</Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  Ended
+                </Badge>
               )}
               {hasPlayed && (
-                <Badge variant="outline" className="text-[10px] border-primary/40 text-primary bg-primary/5">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] border-primary/40 text-primary bg-primary/5"
+                >
                   <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
                   Played
                 </Badge>
@@ -478,7 +571,8 @@ function SessionCard({
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {session.rounds?.length ?? 0} round{session.rounds?.length !== 1 ? "s" : ""}
+                {session.rounds?.length ?? 0} round
+                {session.rounds?.length !== 1 ? "s" : ""}
               </span>
               {session._count?.sessionEntries > 0 && (
                 <span className="flex items-center gap-1">
@@ -500,48 +594,67 @@ function SessionCard({
         )}
 
         {/* Main-event gate */}
-        {isActive && session.mappedPhase === "main-event" && !eventHasStarted && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center space-y-1">
-            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Event hasn&apos;t started yet</p>
-            <p className="text-xs text-muted-foreground">Main event games unlock once the event begins.</p>
-          </div>
-        )}
+        {isActive &&
+          session.mappedPhase === "main-event" &&
+          !eventHasStarted && (
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center space-y-1">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                Event hasn&apos;t started yet
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Main event games unlock once the event begins.
+              </p>
+            </div>
+          )}
 
         {/* ACTIVE state — join or play */}
-        {isActive && (session.mappedPhase !== "main-event" || eventHasStarted) && (
-          <div className="space-y-2">
-            {hasPlayed ? (
-              <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
-                <p className="text-xs text-muted-foreground">Check the leaderboard to see your rank.</p>
-              </div>
-            ) : !isJoined ? (
-              <Button
-                className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
-                onClick={onJoin}
-                disabled={isJoining}
-              >
-                {isJoining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                Join Game
-              </Button>
-            ) : activeRound ? (
-              <Button
-                className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-                onClick={onPlay}
-              >
-                <Play className="h-4 w-4" />
-                Play Round: {activeRound.title}
-              </Button>
-            ) : (
-              <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                <p className="text-xs text-green-700 font-medium">You&apos;re in the lobby!</p>
-                <p className="text-xs text-muted-foreground">Waiting for the organizer to start a round.</p>
-              </div>
-            )}
-          </div>
-        )}
+        {isActive &&
+          (session.mappedPhase !== "main-event" || eventHasStarted) && (
+            <div className="space-y-2">
+              {hasPlayed ? (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
+                  <p className="text-xs text-primary font-medium">
+                    You&apos;ve already played this round
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Check the leaderboard to see your rank.
+                  </p>
+                </div>
+              ) : !isJoined ? (
+                <Button
+                  className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+                  onClick={onJoin}
+                  disabled={isJoining}
+                >
+                  {isJoining ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Join Game
+                </Button>
+              ) : activeRound ? (
+                <Button
+                  className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+                  onClick={onPlay}
+                >
+                  <Play className="h-4 w-4" />
+                  Play Round: {activeRound.title}
+                </Button>
+              ) : (
+                <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <p className="text-xs text-green-700 font-medium">
+                    You&apos;re in the lobby!
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Waiting for the organizer to start a round.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Leaderboard */}
         {(isActive || isEnded) && (
@@ -554,10 +667,12 @@ function SessionCard({
                 <Trophy className="h-4 w-4 text-amber-500" />
                 {isActive ? "Live Leaderboard" : "Final Leaderboard"}
               </span>
-              <ChevronRight className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform",
-                showLeaderboard === session.id && "rotate-90"
-              )} />
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform",
+                  showLeaderboard === session.id && "rotate-90"
+                )}
+              />
             </button>
             {showLeaderboard === session.id && (
               <SessionLeaderboard sessionId={session.id} />
@@ -569,7 +684,6 @@ function SessionCard({
   );
 }
 
-// ── Main Tab ─────────────────────────────────────────────────────────────────
 interface EventGamesTabProps {
   event: any;
 }
@@ -584,18 +698,26 @@ const PHASE_TABS: { value: PhaseTab; label: string }[] = [
 ];
 
 const mapPhase = (t: string): PhaseTab =>
-  ({ PRE_EVENT: "pre-event", DURING_EVENT: "main-event", POST_EVENT: "post-event", BOTH: "both" }[t] ?? "main-event") as PhaseTab;
+  (({
+    PRE_EVENT: "pre-event",
+    DURING_EVENT: "main-event",
+    POST_EVENT: "post-event",
+    BOTH: "both",
+  }[t] ?? "main-event") as PhaseTab);
 export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
-  // Fetch fresh event data so isCheckedIn reflects latest state
   const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
     eventProp?.id,
     { skip: !eventProp?.id, refetchOnMountOrArgChange: true }
   );
   const event = eventDetails?.data ?? eventProp;
 
-  const { data: gamesData, isLoading } = useGetGamesQuery(event?.id, { skip: !event?.id, refetchOnMountOrArgChange: true });
+  const { data: gamesData, isLoading } = useGetGamesQuery(event?.id, {
+    skip: !event?.id,
+    refetchOnMountOrArgChange: true,
+  });
   const [joinSession, { isLoading: isJoining }] = useJoinGameSessionMutation();
-  const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
+  const [submitAnswers, { isLoading: isSubmitting }] =
+    useSubmitRoundAnswersMutation();
   const [checkinEvent, { isLoading: isCheckingIn }] = useCheckinEventMutation();
 
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
@@ -606,10 +728,14 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
   const [localCheckedIn, setLocalCheckedIn] = useState(false);
 
-  const isCheckedIn = localCheckedIn || (event?.isCheckedIn ?? false) || (event?.checkedInCount ?? 0) > 1;
+  const isCheckedIn =
+    localCheckedIn ||
+    (event?.isCheckedIn ?? false) ||
+    (event?.checkedInCount ?? 0) > 1;
 
-  // Whether the event has officially started (used to gate main-event activities)
-  const eventHasStarted = event?.startsAt ? new Date() >= new Date(event.startsAt) : false;
+  const eventHasStarted = event?.startsAt
+    ? new Date() >= new Date(event.startsAt)
+    : false;
 
   const allSessions = (gamesData?.data ?? []).map((g: any) => ({
     ...g,
@@ -618,26 +744,30 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     mappedPhase: mapPhase(g.activityTiming ?? "DURING_EVENT"),
   }));
 
-  // Tabs that actually have sessions
   const tabsWithSessions = PHASE_TABS.filter((tab) =>
     allSessions.some((s: any) => s.mappedPhase === tab.value)
   );
 
-  // Auto-select the first tab that has sessions once data loads
   useEffect(() => {
-    if (tabsWithSessions.length > 0 && !tabsWithSessions.find((t) => t.value === activePhase)) {
+    if (
+      tabsWithSessions.length > 0 &&
+      !tabsWithSessions.find((t) => t.value === activePhase)
+    ) {
       setActivePhase(tabsWithSessions[0].value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamesData]);
 
-  // Sessions for the active tab
-  const sessions = allSessions.filter((s: any) => s.mappedPhase === activePhase);
+  const sessions = allSessions.filter(
+    (s: any) => s.mappedPhase === activePhase
+  );
 
-  // ── Check-in ──────────────────────────────────────────────────────────────
   const handleCheckin = async () => {
     try {
-      await checkinEvent({ qrCode: event?.qrCode ?? event?.id, eventId: event?.id }).unwrap();
+      await checkinEvent({
+        qrCode: event?.qrCode ?? event?.id,
+        eventId: event?.id,
+      }).unwrap();
       setLocalCheckedIn(true);
       refetchEvent();
       toast.success("Checked in! You can now join games.");
@@ -646,7 +776,6 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     }
   };
 
-  // ── Join session ──────────────────────────────────────────────────────────
   const handleJoin = async (sessionId: string) => {
     try {
       await joinSession(sessionId).unwrap();
@@ -654,31 +783,38 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       setActiveSessionId(sessionId);
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
-      // Any failure — show the server message and do NOT proceed
-      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "Could not join session.");
+      toast.error(
+        err?.data?.error?.message ??
+          err?.data?.message ??
+          "Could not join session."
+      );
     }
   };
 
-  // ── Submit answers ────────────────────────────────────────────────────────
   const handleSubmit = async (
     roundId: string,
     answers: (number | string)[],
     timeTakenMs: number
   ): Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }> => {
     try {
-      const res = await submitAnswers({ roundId, answers, timeTakenMs }).unwrap();
+      const res = await submitAnswers({
+        roundId,
+        answers,
+        timeTakenMs,
+      }).unwrap();
       toast.success("Answers submitted!");
       setPlayedRounds((prev) => new Set(prev).add(roundId));
-      // Backend may return score in res.data.score or res.data.totalScore
-      const score = res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
+      const score =
+        res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
       return { ok: true, score };
     } catch (err: any) {
-      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "Submission failed.");
+      toast.error(
+        err?.data?.error?.message ?? err?.data?.message ?? "Submission failed."
+      );
       return { ok: false };
     }
   };
 
-  // ── Check-in guard ────────────────────────────────────────────────────────
   if (!isCheckedIn) {
     return (
       <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
@@ -696,7 +832,11 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
           onClick={handleCheckin}
           disabled={isCheckingIn}
         >
-          {isCheckingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+          {isCheckingIn ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <QrCode className="h-4 w-4" />
+          )}
           Check In to Event
         </Button>
       </div>
@@ -718,12 +858,13 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
           <Zap className="h-7 w-7 text-muted-foreground" />
         </div>
         <p className="font-medium text-muted-foreground">No games yet</p>
-        <p className="text-xs text-muted-foreground">The organizer hasn&apos;t added any games.</p>
+        <p className="text-xs text-muted-foreground">
+          The organizer hasn&apos;t added any games.
+        </p>
       </div>
     );
   }
 
-  // ── Active round play view ────────────────────────────────────────────────
   if (playingRoundId) {
     const session = allSessions.find((s: any) => s.id === activeSessionId);
     const round = session?.rounds?.find((r: any) => r.id === playingRoundId);
@@ -748,20 +889,22 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
             isSubmitting={isSubmitting}
           />
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Round not found.
+          </p>
         )}
       </div>
     );
   }
 
-  // ── Session list with phase tabs ──────────────────────────────────────────
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Phase tabs — only show tabs that have sessions */}
       {tabsWithSessions.length > 1 && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {tabsWithSessions.map((tab) => {
-            const count = allSessions.filter((s: any) => s.mappedPhase === tab.value).length;
+            const count = allSessions.filter(
+              (s: any) => s.mappedPhase === tab.value
+            ).length;
             return (
               <button
                 key={tab.value}
@@ -774,10 +917,14 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
                 )}
               >
                 {tab.label}
-                <span className={cn(
-                  "flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold",
-                  activePhase === tab.value ? "bg-white/20 text-white" : "bg-background text-muted-foreground"
-                )}>
+                <span
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold",
+                    activePhase === tab.value
+                      ? "bg-white/20 text-white"
+                      : "bg-background text-muted-foreground"
+                  )}
+                >
                   {count}
                 </span>
               </button>
@@ -786,20 +933,20 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
         </div>
       )}
 
-      {/* If only one tab, auto-select it */}
-      {tabsWithSessions.length === 1 && activePhase !== tabsWithSessions[0].value && (
-        // silently sync — render nothing, effect handled below
-        <></>
-      )}
+      {tabsWithSessions.length === 1 &&
+        activePhase !== tabsWithSessions[0].value && <></>}
 
-      {/* Empty state for this phase */}
       {sessions.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
             <Zap className="h-7 w-7 text-muted-foreground" />
           </div>
-          <p className="font-medium text-muted-foreground">No games for this phase</p>
-          <p className="text-xs text-muted-foreground">Switch to another phase to see games.</p>
+          <p className="font-medium text-muted-foreground">
+            No games for this phase
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Switch to another phase to see games.
+          </p>
         </div>
       )}
 
@@ -807,7 +954,9 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
         const isJoined = joinedSessions.has(session.id);
         const isActive = session.mappedStatus === "live";
         const isEnded = session.mappedStatus === "ended";
-        const activeRound = session.rounds?.find((r: any) => r.status === "ACTIVE");
+        const activeRound = session.rounds?.find(
+          (r: any) => r.status === "ACTIVE"
+        );
 
         return (
           <SessionCard
@@ -827,7 +976,9 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
               setPlayingRoundId(activeRound?.id ?? null);
             }}
             onToggleLeaderboard={() =>
-              setShowLeaderboard(showLeaderboard === session.id ? null : session.id)
+              setShowLeaderboard(
+                showLeaderboard === session.id ? null : session.id
+              )
             }
           />
         );

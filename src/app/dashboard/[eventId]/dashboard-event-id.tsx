@@ -21,13 +21,13 @@ import {
 import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
 import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
-import { RecentPurchasesContent } from "./components/recent-purchases-content";
+// import { RecentPurchasesContent } from "./components/recent-purchases-content";
 import { GamificationHubContent } from "./components/gamification-hub-content";
-import { PaymentModule } from "./components/payment-module";
+// import { PaymentModule } from "./components/payment-module";
 import Image from "next/image";
-import AnalyticsPanelContent from "./components/analytics-panel";
+// import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
-import PostcardLeaderboardContent from "./components/leaderboard-content";
+// import PostcardLeaderboardContent from "./components/leaderboard-content";
 import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation } from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
@@ -61,7 +61,6 @@ function EventHeaderSkeleton() {
 function DashboardCardSkeleton() {
   return (
     <div className="rounded-xl border border-border overflow-hidden">
-      {/* Card header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-4 rounded" />
@@ -69,7 +68,6 @@ function DashboardCardSkeleton() {
         </div>
         <Skeleton className="h-5 w-14 rounded-full" />
       </div>
-      {/* Card body */}
       <div className="space-y-3 p-4">
         <Skeleton className="h-14 w-full rounded-lg" />
         <Skeleton className="h-14 w-full rounded-lg" />
@@ -124,7 +122,6 @@ export default function OrganizerDashboard({
         toast.success("Link copied to clipboard");
       }
     } catch {
-      // user cancelled — ignore
     }
   };
 
@@ -245,7 +242,6 @@ export default function OrganizerDashboard({
           </Card>
         )}
 
-        {/* QR Modal */}
         {showQR && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -265,7 +261,7 @@ export default function OrganizerDashboard({
               <div className="rounded-xl bg-white p-4 shadow">
                 <QRCodeSVG value={event?.qrCode || eventUrl} size={200} />
               </div>
-              <p className="text-xs text-muted-foreground text-center max-w-[220px] break-all">
+              <p className="text-xs text-muted-foreground text-center max-w-55 break-all">
                 {eventUrl}
               </p>
               <Button

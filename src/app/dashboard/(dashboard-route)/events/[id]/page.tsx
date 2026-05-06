@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import { use, useCallback, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -27,6 +26,7 @@ import { EventGamesTab } from "./components/event-game-tab";
 import { EventVibeTagsTab } from "./components/event-vibetags-tab";
 import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
+import Image from "next/image";
 
 const FLIER_MS = 5000;
 const FADE_MS = 700;
@@ -64,16 +64,12 @@ const tabsConfig = [
   },
 ];
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
 function EventPageSkeleton({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Hero skeleton */}
       <div className="relative h-72 w-full bg-muted">
         <Skeleton className="h-full w-full rounded-none" />
 
-        {/* Back button */}
         <button
           onClick={onBack}
           className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
@@ -81,13 +77,11 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        {/* Action buttons placeholder */}
         <div className="absolute right-4 top-4 flex gap-2">
           <Skeleton className="h-10 w-10 rounded-full" />
           <Skeleton className="h-10 w-10 rounded-full" />
         </div>
 
-        {/* Title area */}
         <div className="absolute bottom-4 left-4 right-4 space-y-2">
           <div className="flex gap-2">
             <Skeleton className="h-5 w-16 rounded-full" />
@@ -97,7 +91,6 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Tabs bar skeleton */}
       <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
         <div className="flex gap-1 px-2 py-2 overflow-x-auto no-scrollbar">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -105,7 +98,6 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        {/* Tab content skeleton — mirrors the About tab layout */}
         <div className="container px-4 py-6 space-y-4">
           {/* Info rows */}
           <div className="flex items-center gap-3">
@@ -130,21 +122,18 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
-          {/* Description block */}
           <div className="space-y-2 pt-2">
             <Skeleton className="h-4 w-full rounded" />
             <Skeleton className="h-4 w-5/6 rounded" />
             <Skeleton className="h-4 w-4/6 rounded" />
           </div>
 
-          {/* Tags */}
           <div className="flex gap-2 pt-1">
             <Skeleton className="h-6 w-16 rounded-full" />
             <Skeleton className="h-6 w-20 rounded-full" />
             <Skeleton className="h-6 w-14 rounded-full" />
           </div>
 
-          {/* CTA button */}
           <Skeleton className="h-12 w-full rounded-xl mt-2" />
         </div>
       </div>
@@ -183,11 +172,10 @@ export default function EventPage({
         toast.success("Link copied to clipboard");
       }
     } catch (err) {
-      // user cancelled or share failed — silently ignore
+      console.log(err);
     }
   };
 
-  // Image / video fade state
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -269,9 +257,7 @@ export default function EventPage({
 
   return (
     <div className="min-h-screen bg-background pb-24 ">
-      {/* Hero Image */}
       <div className="relative h-72 w-full overflow-hidden">
-        {/* Video — underneath the flier */}
         {promoVideoUrl && (
           <video
             ref={videoRefCallback}
@@ -287,8 +273,7 @@ export default function EventPage({
           />
         )}
 
-        {/* Flier — on top, fades out to reveal video */}
-        <img
+        <Image
           src={
             eventDetails?.data?.flierUrl ||
             "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop"
@@ -298,12 +283,13 @@ export default function EventPage({
             opacity: flierOpacity,
             transition: `opacity ${FADE_MS}ms ease`,
           }}
+          height={100}
+          width={100}
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
 
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Back Button */}
         <button
           onClick={() => router.push("/dashboard/events")}
           className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
@@ -311,7 +297,6 @@ export default function EventPage({
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        {/* Action Buttons */}
         <div className="absolute right-4 top-4 flex gap-2">
           <button
             onClick={() => setIsLiked(!isLiked)}
@@ -329,7 +314,6 @@ export default function EventPage({
           </button>
         </div>
 
-        {/* Event Title Overlay */}
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex gap-2 mb-2">
             {eventDetails?.data?.hasGames && (
@@ -351,7 +335,6 @@ export default function EventPage({
         </div>
       </div>
 
-      {/* Tabs Navigation */}
       <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">

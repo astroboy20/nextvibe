@@ -1,11 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, MessageCircle, Wifi, WifiOff } from "lucide-react";
+import { Send, Loader2, MessageCircle } from "lucide-react";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,12 +34,16 @@ interface EventChatTabProps {
   eventId: string;
 }
 
-const WS_BASE = (process.env.NEXT_PUBLIC_WS_URL ?? "wss://nextvibe-nest-backend.onrender.com")
+const WS_BASE = (
+  process.env.NEXT_PUBLIC_WS_URL ?? "wss://nextvibe-nest-backend.onrender.com"
+)
   .replace(/^http:/, "ws:")
   .replace(/^https:/, "wss:")
   .replace(/\/$/, "");
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "")
+  .trim()
+  .replace(/\/$/, "");
 
 function formatTime(dateStr?: string) {
   if (!dateStr) return "";
@@ -60,7 +63,9 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">("closed");
+  const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">(
+    "closed"
+  );
 
   const wsRef = useRef<WebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -70,79 +75,75 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const myId = meData?.data?.id;
   const token = Cookies.get("accessToken");
 
-  // ── Fetch message history via REST ────────────────────────────────────────
-  const fetchHistory = useCallback(async (section: Section) => {
-    if (!eventId) return;
-    setIsLoadingHistory(true);
-    try {
-      const res = await fetch(
-        `${API_BASE}/v1/events/${eventId}/chat/${section}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const json = await res.json();
-      setMessages(json?.data ?? []);
-    } catch {
-      setMessages([]);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }, [eventId, token]);
-
-  // ── Connect WebSocket ─────────────────────────────────────────────────────
-  const connectWS = useCallback((section: Section) => {
-    // Close existing connection
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    if (reconnectTimer.current) {
-      clearTimeout(reconnectTimer.current);
-    }
-
-    if (!eventId || !token) return;
-
-    // wss://{host}/events/{eventId}/chat/{section}?token={jwt}
-    const url = `${WS_BASE}/events/${eventId}/chat/${section}?token=${token}`;
-    setWsStatus("connecting");
-
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setWsStatus("open");
-    };
-
-    ws.onmessage = (event) => {
+  const fetchHistory = useCallback(
+    async (section: Section) => {
+      if (!eventId) return;
+      setIsLoadingHistory(true);
       try {
-        const data = JSON.parse(event.data);
-        // Ignore ping/pong or non-message events
-        if (!data?.id && !data?.body && !data?.content) return;
-        setMessages((prev) => {
-          // Deduplicate by id
-          if (data.id && prev.some((m) => m.id === data.id)) return prev;
-          return [...prev, data];
-        });
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        const res = await fetch(
+          `${API_BASE}/v1/events/${eventId}/chat/${section}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const json = await res.json();
+        setMessages(json?.data ?? []);
       } catch {
-        // non-JSON frame — ignore
+        setMessages([]);
+      } finally {
+        setIsLoadingHistory(false);
       }
-    };
+    },
+    [eventId, token]
+  );
 
-    ws.onerror = () => {
-      setWsStatus("closed");
-    };
+  const connectWS = useCallback(
+    (section: Section) => {
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+      }
 
-    ws.onclose = () => {
-      setWsStatus("closed");
-      // Auto-reconnect after 3s
-      reconnectTimer.current = setTimeout(() => {
-        connectWS(section);
-      }, 3000);
-    };
-  }, [eventId, token]);
+      if (!eventId || !token) return;
 
-  // ── On section change: load history + reconnect WS ───────────────────────
+      const url = `${WS_BASE}/events/${eventId}/chat/${section}?token=${token}`;
+      setWsStatus("connecting");
+
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsStatus("open");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (!data?.id && !data?.body && !data?.content) return;
+          setMessages((prev) => {
+            if (data.id && prev.some((m) => m.id === data.id)) return prev;
+            return [...prev, data];
+          });
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        } catch {}
+      };
+
+      ws.onerror = () => {
+        setWsStatus("closed");
+      };
+
+      ws.onclose = () => {
+        setWsStatus("closed");
+        reconnectTimer.current = setTimeout(() => {
+          connectWS(section);
+        }, 3000);
+      };
+    },
+    [eventId, token]
+  );
+
   useEffect(() => {
     setMessages([]);
     fetchHistory(activeSection);
@@ -158,12 +159,10 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     };
   }, [activeSection, fetchHistory, connectWS]);
 
-  // ── Scroll to bottom when messages change ────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // ── Send message via WebSocket ────────────────────────────────────────────
   const handleSend = () => {
     const text = message.trim();
     if (!text) return;
@@ -186,7 +185,6 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-300px)] animate-fade-in">
-      {/* Section Tabs + connection indicator */}
       <div className="flex items-center gap-2 mb-4">
         <Tabs
           value={activeSection}
@@ -194,25 +192,19 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
           className="flex-1"
         >
           <TabsList className="w-full grid grid-cols-3 h-9">
-            <TabsTrigger value="pre-event" className="text-xs">Pre-Event</TabsTrigger>
-            <TabsTrigger value="during" className="text-xs">During</TabsTrigger>
-            <TabsTrigger value="post-event" className="text-xs">Post-Event</TabsTrigger>
+            <TabsTrigger value="pre-event" className="text-xs">
+              Pre-Event
+            </TabsTrigger>
+            <TabsTrigger value="during" className="text-xs">
+              During
+            </TabsTrigger>
+            <TabsTrigger value="post-event" className="text-xs">
+              Post-Event
+            </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        {/* WS status dot */}
-        {/* <div className="shrink-0" title={wsStatus}>
-          {wsStatus === "open" ? (
-            <Wifi className="h-4 w-4 text-green-500" />
-          ) : wsStatus === "connecting" ? (
-            <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-          ) : (
-            <WifiOff className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div> */}
       </div>
 
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
         {isLoadingHistory ? (
           <div className="flex items-center justify-center h-full">
@@ -224,14 +216,18 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
               <MessageCircle className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="font-medium text-foreground">No messages yet</p>
-            <p className="text-sm text-muted-foreground">Be the first to start the conversation!</p>
+            <p className="text-sm text-muted-foreground">
+              Be the first to start the conversation!
+            </p>
           </div>
         ) : (
           messages.map((msg, i) => {
             const isMe = msg.sender?.id === myId || msg.senderId === myId;
-            const senderName = msg.sender?.displayName ?? msg.sender?.username ?? "User";
+            const senderName =
+              msg.sender?.displayName ?? msg.sender?.username ?? "User";
             const avatarUrl = msg.sender?.avatarUrl ?? "";
-            const isOrganizer = msg.sender?.role === "ORGANIZER" || msg.isOrganizer;
+            const isOrganizer =
+              msg.sender?.role === "ORGANIZER" || msg.isOrganizer;
             const timestamp = formatTime(msg.createdAt);
 
             return (
@@ -246,24 +242,33 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
                   </Avatar>
                 )}
 
-                <div className={cn("flex flex-col max-w-[75%]", isMe && "items-end")}>
+                <div
+                  className={cn(
+                    "flex flex-col max-w-[75%]",
+                    isMe && "items-end"
+                  )}
+                >
                   {!isMe && (
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-xs text-foreground">{senderName}</span>
+                      <span className="font-semibold text-xs text-foreground">
+                        {senderName}
+                      </span>
                       {isOrganizer && (
                         <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                           Organizer
                         </span>
                       )}
                       {timestamp && (
-                        <span className="text-[10px] text-muted-foreground">{timestamp}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {timestamp}
+                        </span>
                       )}
                     </div>
                   )}
 
                   <div
                     className={cn(
-                      "rounded-2xl px-3 py-2 text-sm break-words",
+                      "rounded-2xl px-3 py-2 text-sm wrap-break-word",
                       isMe
                         ? "bg-[#531342] text-white rounded-tr-sm"
                         : "bg-muted text-foreground rounded-tl-sm"
@@ -273,7 +278,9 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
                   </div>
 
                   {isMe && timestamp && (
-                    <span className="text-[10px] text-muted-foreground mt-1">{timestamp}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">
+                      {timestamp}
+                    </span>
                   )}
                 </div>
               </div>
@@ -283,10 +290,11 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Message Input */}
       <div className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-background">
         <Input
-          placeholder={wsStatus === "open" ? "Type a message..." : "Connecting..."}
+          placeholder={
+            wsStatus === "open" ? "Type a message..." : "Connecting..."
+          }
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
