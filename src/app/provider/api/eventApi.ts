@@ -389,6 +389,19 @@ export const eventsApi = createApi({
       providesTags: ["Games"],
     }),
 
+    /** GET /v1/games/t/:token — public: get game session by viral share token */
+    getGameSessionByToken: builder.query<any, string>({
+      query: (token) => `/v1/games/t/${token}`,
+    }),
+
+    /** POST /v1/games/join/:token — public: join a game session via viral share token */
+    joinGameSessionByToken: builder.mutation<any, string>({
+      query: (token) => ({
+        url: `/v1/games/join/${token}`,
+        method: "POST",
+      }),
+    }),
+
     /** POST /v1/events/checkin  { qrCode: event.qrCode } */
     checkinEvent: builder.mutation<any, { qrCode: string; eventId: string }>({
       query: ({ qrCode }) => ({
@@ -540,6 +553,8 @@ export const {
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
   useCheckinEventMutation,
+  useGetGameSessionByTokenQuery,
+  useJoinGameSessionByTokenMutation,
   useCreateVibeTagMutation,
   useGetVibeTagsQuery,
   useGetEventAttendeesQuery,

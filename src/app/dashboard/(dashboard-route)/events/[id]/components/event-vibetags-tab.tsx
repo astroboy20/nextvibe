@@ -29,13 +29,18 @@ function resolveMediaUrl(media?: {
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 
-const TIMING_ORDER: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT", "BOTH"];
+const TIMING_ORDER: ActivityTiming[] = [
+  "PRE_EVENT",
+  "DURING_EVENT",
+  "POST_EVENT",
+  "BOTH",
+];
 
 const TIMING_META: Record<ActivityTiming, { label: string; phase: string }> = {
-  PRE_EVENT:    { label: "Pre-Event",  phase: "pre-event"  },
+  PRE_EVENT: { label: "Pre-Event", phase: "pre-event" },
   DURING_EVENT: { label: "Main Event", phase: "main-event" },
-  POST_EVENT:   { label: "Post-Event", phase: "post-event" },
-  BOTH:         { label: "All Phases", phase: "all"        },
+  POST_EVENT: { label: "Post-Event", phase: "post-event" },
+  BOTH: { label: "All Phases", phase: "all" },
 };
 
 interface VibeTag {
@@ -47,7 +52,6 @@ interface VibeTag {
 
 interface EventVibeTagsTabProps {
   eventId?: string;
-  /** vibeTag array from the event details response (data.vibeTag) */
   vibeTag?: VibeTag[] | null;
   eventName?: string;
 }
@@ -60,21 +64,17 @@ export function EventVibeTagsTab({
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming | null>(null);
 
-  // All tags come straight from the event endpoint — no extra fetch
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
-  // Which timings actually have a tag
   const availableTimings: ActivityTiming[] = TIMING_ORDER.filter((t) =>
     allTags.some((tag) => tag.activityTiming === t)
   );
 
-  // Resolved active timing
   const resolvedTiming: ActivityTiming | null =
     activeTiming && availableTimings.includes(activeTiming)
       ? activeTiming
       : availableTimings[0] ?? null;
 
-  // Active tag — by timing if available, otherwise just first tag
   const activeTag: VibeTag | null = resolvedTiming
     ? allTags.find((t) => t.activityTiming === resolvedTiming) ?? null
     : allTags[0] ?? null;
@@ -83,7 +83,6 @@ export function EventVibeTagsTab({
     ? TIMING_META[resolvedTiming].phase
     : "all";
 
-  // Postcards for this event
   const { data: postcardsData, isLoading: isLoadingPostcards } =
     useGetEventPostcardsQuery(
       { eventId: eventId ?? "", phase: activePhase },
@@ -124,7 +123,6 @@ export function EventVibeTagsTab({
       )}
 
       <div className="space-y-6 animate-fade-in">
-        {/* Timing tabs — only when there are multiple */}
         {availableTimings.length > 1 && (
           <Tabs
             value={resolvedTiming ?? availableTimings[0]}
@@ -132,7 +130,9 @@ export function EventVibeTagsTab({
           >
             <TabsList
               className="w-full grid h-10"
-              style={{ gridTemplateColumns: `repeat(${availableTimings.length}, 1fr)` }}
+              style={{
+                gridTemplateColumns: `repeat(${availableTimings.length}, 1fr)`,
+              }}
             >
               {availableTimings.map((timing) => (
                 <TabsTrigger key={timing} value={timing} className="text-xs">
@@ -143,11 +143,10 @@ export function EventVibeTagsTab({
           </Tabs>
         )}
 
-        {/* VibeTag card */}
-        <Card className="overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+        <Card className="overflow-hidden bg-linear-to-br from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-accent">
                 <Tag className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
@@ -161,15 +160,17 @@ export function EventVibeTagsTab({
                 </p>
               </div>
               {resolvedTiming && (
-                <Badge variant="outline" className="shrink-0 text-[10px] border-primary/40 text-primary">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[10px] border-primary/40 text-primary"
+                >
                   {TIMING_META[resolvedTiming].label}
                 </Badge>
               )}
             </div>
 
-            {/* Preview */}
             <div className="flex justify-center mb-4">
-              <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-primary via-accent to-primary p-1">
+              <div className="relative w-40 aspect-3/4 rounded-2xl overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-1">
                 <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
                   {activeTag?.imageUrl ? (
                     <img
@@ -180,8 +181,12 @@ export function EventVibeTagsTab({
                   ) : (
                     <div className="text-center p-4">
                       <Sparkles className="h-8 w-8 mx-auto mb-2 text-primary" />
-                      <p className="font-semibold text-sm text-foreground">VibeTag</p>
-                      <p className="text-xs text-muted-foreground mt-1">No VibeTag set</p>
+                      <p className="font-semibold text-sm text-foreground">
+                        VibeTag
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        No VibeTag set
+                      </p>
                     </div>
                   )}
                 </div>
@@ -189,7 +194,10 @@ export function EventVibeTagsTab({
             </div>
 
             {activeTag && (
-              <Badge variant="outline" className="mb-3 w-full justify-center gap-1 text-xs">
+              <Badge
+                variant="outline"
+                className="mb-3 w-full justify-center gap-1 text-xs"
+              >
                 <Sparkles className="h-3 w-3" />
                 This VibeTag will be applied to your postcards
               </Badge>
@@ -206,7 +214,6 @@ export function EventVibeTagsTab({
           </CardContent>
         </Card>
 
-        {/* Postcards grid */}
         <div>
           {!isLoadingPostcards && postcards.length > 0 && (
             <>
@@ -214,12 +221,14 @@ export function EventVibeTagsTab({
                 {postcards.map((postcard: any, index: number) => {
                   const src = resolveMediaUrl(postcard?.media?.[0]);
                   const authorName =
-                    postcard?.author?.displayName ?? postcard?.author?.username ?? "";
+                    postcard?.author?.displayName ??
+                    postcard?.author?.username ??
+                    "";
                   if (!src) return null;
                   return (
                     <div
                       key={postcard?.id ?? index}
-                      className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in"
+                      className="group relative aspect-3/4 overflow-hidden rounded-2xl animate-fade-in"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <img
@@ -227,7 +236,7 @@ export function EventVibeTagsTab({
                         alt={postcard?.caption ?? ""}
                         className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         {authorName && (
                           <p className="text-xs font-medium text-white mb-1 truncate">
