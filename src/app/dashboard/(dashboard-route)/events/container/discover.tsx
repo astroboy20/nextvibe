@@ -140,7 +140,7 @@ const Discover = () => {
   const hasFilters =
     locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
 
-  const allEvents: any[] = eventsData?.data ?? [];
+  const allEvents: any[] = eventsData?.data?.data ?? [];
 
   const filteredEvents = useMemo(() => {
     let list =

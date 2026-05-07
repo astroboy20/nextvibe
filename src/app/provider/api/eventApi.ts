@@ -374,6 +374,18 @@ export const eventsApi = createApi({
       }),
     }),
 
+    /** GET /v1/game-sessions/:sessionId — get session details including isJoined */
+    getGameSession: builder.query<any, string>({
+      query: (sessionId) => `/v1/game-sessions/${sessionId}`,
+      providesTags: ["Games"],
+    }),
+
+    /** GET /v1/game-rounds/:gameId/participation — check participation status for a game session */
+    getGameRoundParticipation: builder.query<any, string>({
+      query: (gameId) => `/v1/game-rounds/${gameId}/participation`,
+      providesTags: ["Games"],
+    }),
+
     /** GET /v1/game-sessions/:sessionId/leaderboard */
     getSessionLeaderboard: builder.query<any, string>({
       query: (sessionId) => `/v1/game-sessions/${sessionId}/leaderboard`,
@@ -549,6 +561,8 @@ export const {
   useJoinGameSessionMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
+  useGetGameSessionQuery,
+  useGetGameRoundParticipationQuery,
   useCheckinEventMutation,
   useGetGameSessionByTokenQuery,
   useJoinGameSessionByTokenMutation,

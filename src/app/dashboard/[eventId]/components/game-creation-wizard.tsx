@@ -99,10 +99,10 @@ const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th",
 const STORAGE_KEY = "gameWizardState";
 const loadSaved = () => {
   if (typeof window === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null"); } catch { return null; }
+  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null"); } catch { return null; }
 };
 const clearSaved = () => {
-  if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+  if (typeof window !== "undefined") sessionStorage.removeItem(STORAGE_KEY);
 };
 
 interface GameCreationWizardProps {
@@ -153,11 +153,11 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
 
   useBeforeUnload(step > 1 || gameName.trim().length > 0);
 
-  // Auto-save every time any wizard state changes
+  // Auto-save to sessionStorage on every state change (survives back navigation, cleared on tab close/refresh)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
         step, gameName, numberOfRounds, phase, scheduleMode, startsAt,
         gameDuration, repetitions, maxWinners, activeRoundIdx, contentMode,
         aiPrompt, roundsData, rewardTiers, editingQuestion,
@@ -239,7 +239,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           if (!aiPrompt.count || aiPrompt.count <= 0) return "Please enter a valid question count.";
           if (!aiPrompt.gameType) return "Please select a game type.";
           if (!aiPrompt.difficulty) return "Please select a difficulty level.";
-          if (!aiPrompt.activityTiming) return "Please select an activity timing.";
+          // activityTiming is always derived from phase — no need to validate it here
         }
         return "";
       case 4:
@@ -269,8 +269,26 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
 
   // ── AI generation ──────────────────────────────────────────────────────────
   const generateQuestionsWithAI = async (roundIdx: number = activeRoundIdx) => {
-    const err = validateStep(3);
-    if (err) { toast.error(err); setValidationError(err); return; }
+    // Always derive activityTiming from the selected phase — don't rely on aiPrompt state
+    const timingMap: Record<EventPhase, string> = {
+      "pre-event": "PRE_EVENT", "main-event": "DURING_EVENT",
+      "post-event": "POST_EVENT", "both": "BOTH",
+    };
+    const resolvedTiming = timingMap[phase] as "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
+    const promptToSend = { ...aiPrompt, activityTiming: resolvedTiming };
+
+    // Validate with the resolved prompt
+    const validationErrors: string[] = [];
+    if (!promptToSend.topic.trim()) validationErrors.push("Please enter a topic for AI generation.");
+    if (!promptToSend.count || promptToSend.count <= 0) validationErrors.push("Please enter a valid question count.");
+    if (!promptToSend.gameType) validationErrors.push("Please select a game type.");
+    if (!promptToSend.difficulty) validationErrors.push("Please select a difficulty level.");
+    if (validationErrors.length) {
+      const err = validationErrors[0];
+      toast.error(err);
+      setValidationError(err);
+      return;
+    }
     setValidationError("");
     setIsGenerating(true);
     try {
@@ -279,7 +297,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify(aiPrompt),
+          body: JSON.stringify(promptToSend),
         }
       );
       const data = await response.json();
@@ -484,9 +502,9 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const nextRound = activeRoundIdx + 1;
       if (nextRound < numberOfRounds) {
         setActiveRoundIdx(nextRound);
-        // Sync aiPrompt gameType to next round's type
+        // Sync aiPrompt gameType to next round's type — keep activityTiming from phase
         const nextType = roundsData[nextRound]?.gameType ?? "trivia";
-        setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_AI_KEY[nextType], topic: "", count: null, difficulty: "", activityTiming: "" }));
+        setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_AI_KEY[nextType], topic: "", count: null, difficulty: "" }));
         setStep(3);
         return;
       }

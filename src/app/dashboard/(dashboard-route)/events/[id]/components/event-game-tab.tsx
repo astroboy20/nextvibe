@@ -29,6 +29,8 @@ import {
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
   useCheckinEventMutation,
+  useGetGameSessionQuery,
+  useGetGameRoundParticipationQuery,
 } from "@/app/provider/api/eventApi";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "./game-share";
@@ -471,7 +473,7 @@ function SessionCard({
   isActive,
   isEnded,
   eventHasStarted,
-  isJoined,
+  isJoined: isJoinedProp,
   isJoining,
   playedRounds,
   showLeaderboard,
@@ -491,6 +493,30 @@ function SessionCard({
   onPlay: (roundId: string) => void;
   onToggleLeaderboard: () => void;
 }) {
+  // Fetch session details to check hasJoinedSession and per-round hasSubmitted
+  const { data: sessionData } = useGetGameSessionQuery(session.id, {
+    refetchOnMountOrArgChange: true,
+    pollingInterval: isActive ? 10000 : 0,
+  });
+
+  // Fetch participation status using the game (session) id
+  const { data: participationData } = useGetGameRoundParticipationQuery(session.id, {
+    skip: !session.id,
+    refetchOnMountOrArgChange: true,
+    pollingInterval: isActive ? 10000 : 0,
+  });
+
+  const participation = participationData?.data;
+  // hasJoinedSession from /game-sessions/:id, hasJoined from participation endpoint
+  const isJoined = participation?.hasJoined ?? sessionData?.data?.hasJoinedSession ?? isJoinedProp;
+
+  // Build submitted rounds set from participation response
+  const submittedRounds = new Set<string>(
+    (participation?.rounds ?? sessionData?.data?.rounds ?? [])
+      .filter((r: any) => r.hasSubmitted)
+      .map((r: any) => r.id)
+  );
+
   // Leaderboard data for display only
   const { data: lbData } = useGetSessionLeaderboardQuery(session.id, {
     refetchOnMountOrArgChange: true,
@@ -606,7 +632,7 @@ function SessionCard({
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              {isJoined ? "Joined" : "Join Game"}
+              {isJoining ? "Joining..." : isJoined ? "Joined" : "Join Game"}
             </Button>
 
             {/* Step 2 — Rounds list (only visible after joining) */}
@@ -619,14 +645,17 @@ function SessionCard({
                   session.rounds.map((round: any) => {
                     const isRoundLive = round.status === "ACTIVE";
                     const isRoundEnded = round.status === "ENDED";
-                    const alreadyPlayed = playedRounds.has(round.id);
+                    // Check API hasSubmitted first, fall back to local playedRounds
+                    const alreadyPlayed = submittedRounds.has(round.id) || playedRounds.has(round.id);
 
                     return (
                       <div
                         key={round.id}
                         className={cn(
                           "rounded-xl border p-3 flex items-center justify-between gap-3",
-                          isRoundLive && !alreadyPlayed
+                          alreadyPlayed
+                            ? "border-primary/20 bg-primary/5"
+                            : isRoundLive
                             ? "border-[#531342]/30 bg-[#531342]/5"
                             : "border-border bg-muted/30"
                         )}
@@ -645,7 +674,7 @@ function SessionCard({
                               className="text-[10px] border-primary/40 text-primary bg-primary/5 gap-1"
                             >
                               <CheckCircle2 className="h-2.5 w-2.5" />
-                              Played
+                              Submitted
                             </Badge>
                           ) : isRoundLive ? (
                             <Button

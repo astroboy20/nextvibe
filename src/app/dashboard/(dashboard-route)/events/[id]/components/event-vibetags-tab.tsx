@@ -22,19 +22,6 @@ import {
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 
-const STORAGE_BASE =
-  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
-  "http://minio-production-5cff.up.railway.app:443/nextvibe";
-
-function resolveMediaUrl(media?: {
-  mediaUrl?: string | null;
-  storageKey?: string | null;
-}): string {
-  if (media?.mediaUrl) return media.mediaUrl;
-  if (media?.storageKey) return `${STORAGE_BASE}/${media.storageKey}`;
-  return "";
-}
-
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 
 const TIMING_ORDER: ActivityTiming[] = [
@@ -273,7 +260,27 @@ export function EventVibeTagsTab({
       )}
 
       <div className="space-y-6 animate-fade-in">
-        {/* VibeTag info card */}
+
+        {/* Phase tabs — controls both the vibeTag card and postcards below */}
+        {timingTabs.length > 1 && (
+          <Tabs
+            value={resolvedTiming}
+            onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
+          >
+            <TabsList
+              className="w-full grid h-10"
+              style={{ gridTemplateColumns: `repeat(${timingTabs.length}, 1fr)` }}
+            >
+              {timingTabs.map((timing) => (
+                <TabsTrigger key={timing} value={timing} className="text-xs">
+                  {TIMING_META[timing].label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
+
+        {/* VibeTag info card — updates when tab changes */}
         <Card className="overflow-hidden bg-linear-to-br from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-4">
@@ -355,26 +362,8 @@ export function EventVibeTagsTab({
           </CardContent>
         </Card>
 
-        {/* Postcards — tabbed by activity timing */}
+        {/* Postcards for the selected phase */}
         <div className="space-y-4">
-          <Tabs
-            value={resolvedTiming}
-            onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
-          >
-            <TabsList
-              className="w-full grid h-10"
-              style={{
-                gridTemplateColumns: `repeat(${timingTabs.length}, 1fr)`,
-              }}
-            >
-              {timingTabs.map((timing) => (
-                <TabsTrigger key={timing} value={timing} className="text-xs">
-                  {TIMING_META[timing].label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
           {eventId && (
             <PhasePostcards
               eventId={eventId}
