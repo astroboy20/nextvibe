@@ -560,8 +560,8 @@ export function PostcardCreator({
 
   return (
     <div
-      className="fixed inset-0 z-100000 flex flex-col bg-background "
-      style={{ height: "100dvh", overflowY: "scroll" }}
+      className="fixed inset-0 z-100000 flex flex-col bg-background"
+      style={{ height: "100dvh", overflowY: mode === "camera" ? "hidden" : "auto" }}
     >
       <canvas ref={canvasRef} className="hidden" />
 
@@ -668,7 +668,7 @@ export function PostcardCreator({
             playsInline
             muted
             className={cn(
-              "absolute inset-0 w-full h-full object-contain bg-black",
+              "absolute inset-0 w-full h-full object-cover bg-black",
               facingMode === "user" && "transform-[scaleX(-1)]"
             )}
           />
