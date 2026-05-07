@@ -61,6 +61,9 @@ const Scene = () => {
         // Focus the hidden textarea that Fabric v6 uses for input
         if (textbox.hiddenTextarea) {
           textbox.hiddenTextarea.focus();
+          textbox.hiddenTextarea.click();
+          // Clear any existing text selection
+          textbox.hiddenTextarea.select();
         }
         fabricCanvas.requestRenderAll();
       };
@@ -70,6 +73,17 @@ const Scene = () => {
         const target = e.target;
         if (target && target.type === "textbox") {
           enterTextEditing(target);
+        }
+      });
+
+      // ✅ Handle single click on textbox to enter edit mode
+      fabricCanvas.on("selection:created", (e: any) => {
+        const target = e.selected?.[0];
+        if (target && target.type === "textbox" && !target.isEditing) {
+          // Auto-enter edit mode when textbox is selected
+          setTimeout(() => {
+            enterTextEditing(target);
+          }, 50);
         }
       });
 

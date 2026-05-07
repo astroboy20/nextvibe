@@ -182,7 +182,7 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
         </Button>
 
         <Dialog open={isAddingGame} onOpenChange={setIsAddingGame}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[90%] max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Game Session</DialogTitle>
             </DialogHeader>

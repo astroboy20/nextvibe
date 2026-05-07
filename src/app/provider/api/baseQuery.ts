@@ -28,9 +28,12 @@ export const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  // Don't refresh on logout requests
+  const isLogoutRequest = typeof args === "object" && args.url === "/v1/auth/logout";
+  
   let result = await baseQueryWithRetry(args, api, extraOptions);
 
-  if (result.error?.status === 401) {
+  if (result.error?.status === 401 && !isLogoutRequest) {
     // Try to refresh the token using the httpOnly refresh token cookie
     const refreshResult = await rawBaseQuery(
       { url: "/v1/auth/refresh", method: "POST" },

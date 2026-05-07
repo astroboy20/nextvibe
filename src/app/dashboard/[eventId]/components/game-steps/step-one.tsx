@@ -9,7 +9,7 @@ interface StepOneProps {
   setNumberOfRounds: (v: number) => void;
 }
 
-const ROUND_OPTIONS = [1, 2, 3, 4];
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const StepOne = ({ gameName, setGameName, numberOfRounds, setNumberOfRounds }: StepOneProps) => (
   <div className="space-y-6 animate-fade-in">
@@ -28,17 +28,17 @@ const StepOne = ({ gameName, setGameName, numberOfRounds, setNumberOfRounds }: S
       <div>
         <Label>Number of Rounds</Label>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Each round can have a different game type and its own set of questions.
+          Each round can have a different game type and its own set of questions. Max 10 rounds.
         </p>
       </div>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {ROUND_OPTIONS.map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => setNumberOfRounds(n)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-xl border-2 py-5 transition-all",
+              "flex flex-col items-center gap-1 rounded-xl border-2 py-4 transition-all",
               numberOfRounds === n
                 ? "border-[#531342] bg-[#531342]/10"
                 : "border-border hover:border-[#531342]/40"

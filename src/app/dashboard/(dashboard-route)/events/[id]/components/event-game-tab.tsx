@@ -468,11 +468,10 @@ function RoundPlayer({
 
 function SessionCard({
   session,
-  isJoined,
   isActive,
   isEnded,
-  activeRound,
   eventHasStarted,
+  isJoined,
   isJoining,
   playedRounds,
   showLeaderboard,
@@ -481,42 +480,25 @@ function SessionCard({
   onToggleLeaderboard,
 }: {
   session: any;
-  isJoined: boolean;
   isActive: boolean;
   isEnded: boolean;
-  activeRound: any;
   eventHasStarted: boolean;
+  isJoined: boolean;
   isJoining: boolean;
   playedRounds: Set<string>;
   showLeaderboard: string | null;
   onJoin: () => void;
-  onPlay: () => void;
+  onPlay: (roundId: string) => void;
   onToggleLeaderboard: () => void;
 }) {
-  // Always fetch leaderboard — no skip — so we know if user has played on mount
+  // Leaderboard data for display only
   const { data: lbData } = useGetSessionLeaderboardQuery(session.id, {
     refetchOnMountOrArgChange: true,
   });
 
-  const { data: meData } = useGetUserQuery();
-  const myUserId: string | undefined = meData?.data?.id;
-
-  // Normalise response shape — backend may return data.data.* or data.*
   const lbPayload = lbData?.data ?? lbData;
   const entries: any[] = lbPayload?.entries ?? lbPayload?.data?.entries ?? [];
   const myEntry: any = lbPayload?.myEntry ?? lbPayload?.data?.myEntry ?? null;
-
-  // User has played if:
-  // 1. myEntry is explicitly returned by the backend, OR
-  // 2. their userId appears anywhere in the entries list, OR
-  // 3. locally tracked (covers the instant after submit before refetch)
-  const isInEntries =
-    !!myUserId &&
-    entries.some((e: any) => e.user?.id === myUserId || e.userId === myUserId);
-  const hasPlayed =
-    !!myEntry ||
-    isInEntries ||
-    (activeRound && playedRounds.has(activeRound?.id));
 
   return (
     <Card
@@ -558,13 +540,10 @@ function SessionCard({
                   Ended
                 </Badge>
               )}
-              {hasPlayed && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] border-primary/40 text-primary bg-primary/5"
-                >
+              {isJoined && isActive && (
+                <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-600 bg-green-500/5">
                   <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                  Played
+                  Joined
                 </Badge>
               )}
             </div>
@@ -594,67 +573,113 @@ function SessionCard({
         )}
 
         {/* Main-event gate */}
-        {isActive &&
-          session.mappedPhase === "main-event" &&
-          !eventHasStarted && (
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center space-y-1">
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                Event hasn&apos;t started yet
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Main event games unlock once the event begins.
-              </p>
-            </div>
-          )}
+        {isActive && session.mappedPhase === "main-event" && !eventHasStarted && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-center space-y-1">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              Event hasn&apos;t started yet
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Main event games unlock once the event begins.
+            </p>
+          </div>
+        )}
 
-        {/* ACTIVE state — join or play */}
-        {isActive &&
-          (session.mappedPhase !== "main-event" || eventHasStarted) && (
-            <div className="space-y-2">
-              {hasPlayed ? (
-                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-center">
-                  <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                  <p className="text-xs text-primary font-medium">
-                    You&apos;ve already played this round
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Check the leaderboard to see your rank.
-                  </p>
-                </div>
-              ) : !isJoined ? (
-                <Button
-                  className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
-                  onClick={onJoin}
-                  disabled={isJoining}
-                >
-                  {isJoining ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                  Join Game
-                </Button>
-              ) : activeRound ? (
-                <Button
-                  className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-                  onClick={onPlay}
-                >
-                  <Play className="h-4 w-4" />
-                  Play Round: {activeRound.title}
-                </Button>
-              ) : (
-                <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-3 text-center">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                  <p className="text-xs text-green-700 font-medium">
-                    You&apos;re in the lobby!
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Waiting for the organizer to start a round.
-                  </p>
-                </div>
+        {/* ACTIVE state */}
+        {isActive && (session.mappedPhase !== "main-event" || eventHasStarted) && (
+          <div className="space-y-3">
+
+            {/* Step 1 — Join button (disabled once joined) */}
+            <Button
+              className={cn(
+                "w-full gap-2 rounded-xl text-white",
+                isJoined
+                  ? "bg-green-600/60 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
               )}
-            </div>
-          )}
+              onClick={onJoin}
+              disabled={isJoined || isJoining}
+            >
+              {isJoining ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isJoined ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {isJoined ? "Joined" : "Join Game"}
+            </Button>
+
+            {/* Step 2 — Rounds list (only visible after joining) */}
+            {isJoined && (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Rounds
+                </p>
+                {session.rounds?.length > 0 ? (
+                  session.rounds.map((round: any) => {
+                    const isRoundLive = round.status === "ACTIVE";
+                    const isRoundEnded = round.status === "ENDED";
+                    const alreadyPlayed = playedRounds.has(round.id);
+
+                    return (
+                      <div
+                        key={round.id}
+                        className={cn(
+                          "rounded-xl border p-3 flex items-center justify-between gap-3",
+                          isRoundLive && !alreadyPlayed
+                            ? "border-[#531342]/30 bg-[#531342]/5"
+                            : "border-border bg-muted/30"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{round.title}</p>
+                          <p className="text-xs text-muted-foreground capitalize mt-0.5">
+                            {round.gameType?.toLowerCase().replace(/_/g, " ")}
+                          </p>
+                        </div>
+
+                        <div className="shrink-0">
+                          {alreadyPlayed ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] border-primary/40 text-primary bg-primary/5 gap-1"
+                            >
+                              <CheckCircle2 className="h-2.5 w-2.5" />
+                              Played
+                            </Badge>
+                          ) : isRoundLive ? (
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5 rounded-full bg-[#531342] hover:bg-[#531342]/90 text-white text-xs"
+                              onClick={() => onPlay(round.id)}
+                            >
+                              <Play className="h-3 w-3" />
+                              Play
+                            </Button>
+                          ) : isRoundEnded ? (
+                            <Badge variant="outline" className="text-[10px]">
+                              Ended
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">
+                              Waiting
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl bg-muted/50 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Waiting for the organizer to start a round.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Leaderboard */}
         {(isActive || isEnded) && (
@@ -723,15 +748,50 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
-  const [joinedSessions, setJoinedSessions] = useState<Set<string>>(new Set());
-  const [playedRounds, setPlayedRounds] = useState<Set<string>>(new Set());
+  const [joinedSessions, setJoinedSessions] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(`joinedSessions:${eventProp?.id}`);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const markSessionJoined = (sessionId: string) => {
+    setJoinedSessions((prev) => {
+      const next = new Set(prev).add(sessionId);
+      try { localStorage.setItem(`joinedSessions:${eventProp?.id}`, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
+  // Persist played rounds in localStorage so "hasPlayed" survives page refresh.
+  // Key is scoped to the event so different events don't collide.
+  const playedRoundsKey = `playedRounds:${eventProp?.id}`;
+  const [playedRounds, setPlayedRounds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(playedRoundsKey);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const markRoundPlayed = (roundId: string) => {
+    setPlayedRounds((prev) => {
+      const next = new Set(prev).add(roundId);
+      try { localStorage.setItem(playedRoundsKey, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
   const [localCheckedIn, setLocalCheckedIn] = useState(false);
 
   const isCheckedIn =
     localCheckedIn ||
     (event?.isCheckedIn ?? false) ||
-    (event?.checkedInCount ?? 0) > 1;
+    (event?.checkedInCount ?? 0) >= 1;
 
   const eventHasStarted = event?.startsAt
     ? new Date() >= new Date(event.startsAt)
@@ -779,7 +839,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const handleJoin = async (sessionId: string) => {
     try {
       await joinSession(sessionId).unwrap();
-      setJoinedSessions((prev) => new Set(prev).add(sessionId));
+      markSessionJoined(sessionId);
       setActiveSessionId(sessionId);
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
@@ -803,7 +863,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
         timeTakenMs,
       }).unwrap();
       toast.success("Answers submitted!");
-      setPlayedRounds((prev) => new Set(prev).add(roundId));
+      markRoundPlayed(roundId);
       const score =
         res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
       return { ok: true, score };
@@ -951,29 +1011,25 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       )}
 
       {sessions.map((session: any) => {
-        const isJoined = joinedSessions.has(session.id);
         const isActive = session.mappedStatus === "live";
         const isEnded = session.mappedStatus === "ended";
-        const activeRound = session.rounds?.find(
-          (r: any) => r.status === "ACTIVE"
-        );
+        const isJoined = joinedSessions.has(session.id);
 
         return (
           <SessionCard
             key={session.id}
             session={session}
-            isJoined={isJoined}
             isActive={isActive}
             isEnded={isEnded}
-            activeRound={activeRound}
-            eventHasStarted={eventHasStarted}
+            isJoined={isJoined}
             isJoining={isJoining}
+            eventHasStarted={eventHasStarted}
             playedRounds={playedRounds}
             showLeaderboard={showLeaderboard}
             onJoin={() => handleJoin(session.id)}
-            onPlay={() => {
+            onPlay={(roundId) => {
               setActiveSessionId(session.id);
-              setPlayingRoundId(activeRound?.id ?? null);
+              setPlayingRoundId(roundId);
             }}
             onToggleLeaderboard={() =>
               setShowLeaderboard(

@@ -22,7 +22,7 @@ interface EventAboutTabProps {
 }
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
-  const { data: me } = useGetUserQuery();
+  const { data: me, isLoading: isLoadingUser } = useGetUserQuery();
   const isOrganizer =
     me?.data?.id && event?.organizer?.id
       ? me.data.id === event.organizer.id
@@ -122,7 +122,7 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
                 <p className="text-xs text-muted-foreground">Event Organizer</p>
               </div>
             </div>
-            {!isOrganizer && (
+            {!isLoadingUser && !isOrganizer && (
               <Button
                 variant={followed ? "outline" : "outline"}
                 size="sm"

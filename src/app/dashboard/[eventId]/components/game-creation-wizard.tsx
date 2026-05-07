@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -96,6 +96,15 @@ export const gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: st
 
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
+const STORAGE_KEY = "gameWizardState";
+const loadSaved = () => {
+  if (typeof window === "undefined") return null;
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null"); } catch { return null; }
+};
+const clearSaved = () => {
+  if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+};
+
 interface GameCreationWizardProps {
   onComplete: (game: any) => void;
   onCancel: () => void;
@@ -105,7 +114,6 @@ interface GameCreationWizardProps {
 }
 
 export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt }: GameCreationWizardProps) {
-  const [step, setStep] = useState(1);
   const totalSteps = 6;
 
   const gameEndsAt = eventStartsAt
@@ -113,36 +121,30 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     : "";
   const maxStartsAt = gameEndsAt;
 
-  // ── Step 1 ─────────────────────────────────────────────────────────────────
-  const [gameName, setGameName]               = useState("");
-  const [numberOfRounds, setNumberOfRounds]   = useState(1);
+  // Initialise all state from localStorage if available, otherwise use defaults
+  const saved = loadSaved();
 
-  // ── Step 2 ─────────────────────────────────────────────────────────────────
-  const [phase, setPhase]                     = useState<EventPhase>("main-event");
-  const [scheduleMode, setScheduleMode]       = useState<ScheduleMode>("concurrent");
-  const [startsAt, setStartsAt]               = useState("");
-  const [gameDuration, setGameDuration]       = useState(30);
-  const [repetitions, setRepetitions]         = useState(1);
-  const [maxWinners, setMaxWinners]           = useState(3);
+  const [step, setStep]                       = useState<number>(saved?.step ?? 1);
+  const [gameName, setGameName]               = useState<string>(saved?.gameName ?? "");
+  const [numberOfRounds, setNumberOfRounds]   = useState<number>(saved?.numberOfRounds ?? 1);
+  const [phase, setPhase]                     = useState<EventPhase>(saved?.phase ?? "main-event");
+  const [scheduleMode, setScheduleMode]       = useState<ScheduleMode>(saved?.scheduleMode ?? "concurrent");
+  const [startsAt, setStartsAt]               = useState<string>(saved?.startsAt ?? "");
+  const [gameDuration, setGameDuration]       = useState<number>(saved?.gameDuration ?? 30);
+  const [repetitions, setRepetitions]         = useState<number>(saved?.repetitions ?? 1);
+  const [maxWinners, setMaxWinners]           = useState<number>(saved?.maxWinners ?? 3);
   const [priceCurrency]                       = useState("NGN");
-
-  // ── Step 3 — per-round content mode + AI prompt ────────────────────────────
-  // activeRoundIdx: which round we're currently configuring in steps 3 & 4
-  const [activeRoundIdx, setActiveRoundIdx]   = useState(0);
-  const [contentMode, setContentMode]         = useState<ContentMode>("ai");
+  const [activeRoundIdx, setActiveRoundIdx]   = useState<number>(saved?.activeRoundIdx ?? 0);
+  const [contentMode, setContentMode]         = useState<ContentMode>(saved?.contentMode ?? "ai");
   const [aiPrompt, setAiPrompt]               = useState<{
     topic: string; count: number | null; gameType: GameTypeOrEmpty;
     difficulty: string; activityTiming: "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
     eventName: string;
-  }>({ topic: "", count: null, gameType: "trivia", difficulty: "", activityTiming: "", eventName });
-
-  // ── Step 4 — per-round questions ───────────────────────────────────────────
-  const [roundsData, setRoundsData]           = useState<RoundData[]>([]);
+  }>(saved?.aiPrompt ?? { topic: "", count: null, gameType: "trivia", difficulty: "", activityTiming: "", eventName });
+  const [roundsData, setRoundsData]           = useState<RoundData[]>(saved?.roundsData ?? []);
   const [isGenerating, setIsGenerating]       = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-
-  // ── Step 5 — reward tiers (one per winner, all CASH) ──────────────────────
-  const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>([]);
+  const [editingQuestion, setEditingQuestion] = useState<string | null>(saved?.editingQuestion ?? null);
+  const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>(saved?.rewardTiers ?? []);
 
   const [createGameMutation, { isLoading }]   = useCreateGameMutation();
   const accessToken                           = Cookies.get("accessToken");
@@ -150,6 +152,20 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   const [validationError, setValidationError] = useState("");
 
   useBeforeUnload(step > 1 || gameName.trim().length > 0);
+
+  // Auto-save every time any wizard state changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step, gameName, numberOfRounds, phase, scheduleMode, startsAt,
+        gameDuration, repetitions, maxWinners, activeRoundIdx, contentMode,
+        aiPrompt, roundsData, rewardTiers, editingQuestion,
+      }));
+    } catch { /* storage quota exceeded */ }
+  }, [step, gameName, numberOfRounds, phase, scheduleMode, startsAt,
+      gameDuration, repetitions, maxWinners, activeRoundIdx, contentMode,
+      aiPrompt, roundsData, rewardTiers, editingQuestion]);
 
   // Current round being configured
   const currentRound: RoundData | undefined = roundsData[activeRoundIdx];
@@ -208,7 +224,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     switch (s) {
       case 1:
         if (!gameName.trim()) return "Please enter a game name.";
-        if (numberOfRounds < 1 || numberOfRounds > 4) return "Rounds must be between 1 and 4.";
+        if (numberOfRounds < 1 || numberOfRounds > 10) return "Rounds must be between 1 and 10.";
         return "";
       case 2:
         if (!startsAt) return "Please set a start date and time.";
@@ -269,12 +285,16 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "AI generation failed");
 
-      const raw = data.content?.find((b: { type: string }) => b.type === "text")?.text ?? "[]";
-      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-      const generated: Question[] = parsed.map((q: any, i: number) => ({
+      // API returns: { success, data: { success, data: { suggestedTitle, suggestedDescription, questions: [...] } } }
+      const inner = data?.data?.data ?? data?.data ?? data;
+      const rawQuestions: any[] = inner?.questions ?? [];
+
+      if (!rawQuestions.length) throw new Error("AI returned no questions. Try a different topic.");
+
+      const generated: Question[] = rawQuestions.map((q: any, i: number) => ({
         id: `q-${roundIdx}-${i + 1}`,
-        question: q.text,
-        options: q.options,
+        question: q.question ?? q.text ?? "",
+        options: q.options ?? [],
         correctIndex: q.correctIndex ?? 0,
         timeLimitSecs: q.timeLimitSecs ?? 15,
       }));
@@ -301,12 +321,13 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message);
-      const raw = data.content?.find((b: { type: string }) => b.type === "text")?.text ?? "[]";
-      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-      const replacement = Array.isArray(parsed) ? parsed[0] : parsed;
+      const inner = data?.data?.data ?? data?.data ?? data;
+      const rawQuestions: any[] = inner?.questions ?? [];
+      const replacement = rawQuestions[0];
+      if (!replacement) throw new Error("No replacement question returned.");
       setRoundQuestions(activeRoundIdx, currentRound!.questions.map((q) =>
         q.id === id
-          ? { ...q, question: replacement?.text ?? q.question, options: replacement?.options ?? q.options, correctIndex: replacement?.correctIndex ?? q.correctIndex, timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs }
+          ? { ...q, question: replacement?.question ?? replacement?.text ?? q.question, options: replacement?.options ?? q.options, correctIndex: replacement?.correctIndex ?? q.correctIndex, timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs }
           : q
       ));
     } catch {
@@ -409,6 +430,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const request = await createGameMutation({ body: payload, eventId }).unwrap();
       if (request.success) {
         toast.success("Game created successfully!");
+        clearSaved();
         onCancel();
       }
     } catch (err: any) {
@@ -449,7 +471,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     }
 
     if (step === 3 && contentMode === "manual") {
-      setRoundQuestions(activeRoundIdx, []);
+      // Only initialize empty questions if none exist yet for this round
+      if (!roundsData[activeRoundIdx]?.questions?.length) {
+        setRoundQuestions(activeRoundIdx, []);
+      }
       setStep(4);
       return;
     }
@@ -618,7 +643,11 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
         ) : (
-          <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
+          <Button
+            variant="outline"
+            onClick={() => { clearSaved(); onCancel(); }}
+            className="flex-1"
+          >Cancel</Button>
         )}
 
         {step < totalSteps && (

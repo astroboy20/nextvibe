@@ -17,7 +17,7 @@ const PUBLIC_ROUTES = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Token expiry in seconds
-const ACCESS_TOKEN_MAX_AGE  = 60 * 60 * 24 * 7;  // 7 days
+const ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24 * 7;  // 7 days
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 // Returns true when the token is expired or within 1 minute of expiring
@@ -57,7 +57,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const accessToken  = req.cookies.get("accessToken")?.value;
+  const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
   // No tokens at all — send to login
@@ -90,7 +90,7 @@ export async function proxy(req: NextRequest) {
     }
 
     const { data } = await refreshRes.json();
-    const newAccessToken  = data?.accessToken;
+    const newAccessToken = data?.accessToken;
     const newRefreshToken = data?.refreshToken;
 
     if (!newAccessToken) {

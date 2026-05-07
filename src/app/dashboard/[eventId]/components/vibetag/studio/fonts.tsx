@@ -33,6 +33,7 @@ export default function Fonts({ canvas }: FontsProps) {
       width: 200,
       padding: 5,
       centeredScaling: true,
+      editable: true,
     });
 
     canvas.add(text);
@@ -53,12 +54,14 @@ export default function Fonts({ canvas }: FontsProps) {
         // Fallback in case the helper isn't ready yet
         canvas.setActiveObject(text);
         text.enterEditing();
+        // Force focus on the hidden textarea
         if (text.hiddenTextarea) {
           text.hiddenTextarea.focus();
+          text.hiddenTextarea.click();
         }
         canvas.requestRenderAll();
       }
-    }, 50);
+    }, 100);
   };
 
   return (

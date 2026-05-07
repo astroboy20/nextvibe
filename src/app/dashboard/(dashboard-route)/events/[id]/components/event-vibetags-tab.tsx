@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Tag, Heart, MessageCircle, Sparkles } from "lucide-react";
+import {
+  Camera,
+  Tag,
+  Heart,
+  MessageCircle,
+  Sparkles,
+  ImageOff,
+  Loader2,
+} from "lucide-react";
 import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
@@ -57,6 +65,139 @@ interface EventVibeTagsTabProps {
   eventStartsAt?: string | null;
 }
 
+const TIMING_PILL: Record<string, { label: string; color: string }> = {
+  PRE_EVENT:    { label: "Pre",  color: "bg-amber-400 text-white" },
+  DURING_EVENT: { label: "Main", color: "bg-primary text-white" },
+  POST_EVENT:   { label: "Post", color: "bg-emerald-500 text-white" },
+  BOTH:         { label: "All",  color: "bg-violet-500 text-white" },
+};
+
+/** Single postcard tile — image from vibeTag, timing pill from vibeTag.activityTiming */
+function PostcardTile({
+  postcard,
+  vibeTagMap,
+  onLike,
+}: {
+  postcard: any;
+  vibeTagMap: Record<string, VibeTag>;
+  onLike: (id: string) => void;
+}) {
+  const tag = vibeTagMap[postcard?.vibeTagId];
+  const src = tag?.imageUrl ?? "";
+  const timing: string = tag?.activityTiming ?? "";
+  const pill = TIMING_PILL[timing];
+  const authorName =
+    postcard?.author?.displayName ?? postcard?.author?.username ?? "";
+
+  if (!src) return null;
+
+  return (
+    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in">
+      <img
+        src={src}
+        alt={tag?.name ?? "Postcard"}
+        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+      />
+
+      {/* activity timing pill */}
+      {pill && (
+        <span
+          className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}
+        >
+          {pill.label}
+        </span>
+      )}
+
+      {/* gradient + author + likes */}
+      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        {authorName && (
+          <p className="mb-1 truncate text-xs font-medium text-white">
+            @{authorName}
+          </p>
+        )}
+        <div className="flex items-center gap-3 text-white/80">
+          <button
+            onClick={() => onLike(postcard?.id)}
+            className="flex items-center gap-1 text-xs transition-colors hover:text-red-400"
+            aria-label="Like postcard"
+          >
+            <Heart className="h-3.5 w-3.5 fill-current" />
+            {postcard?.likeCount ?? 0}
+          </button>
+          <span className="flex items-center gap-1 text-xs">
+            <MessageCircle className="h-3.5 w-3.5" />
+            {postcard?.commentCount ?? 0}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Fetches postcards for one phase and renders the grid */
+function PhasePostcards({
+  eventId,
+  phase,
+  vibeTagMap,
+  onLike,
+}: {
+  eventId: string;
+  phase: string;
+  vibeTagMap: Record<string, VibeTag>;
+  onLike: (id: string) => void;
+}) {
+  const { data, isLoading } = useGetEventPostcardsQuery(
+    { eventId, phase },
+    { skip: !eventId }
+  );
+
+  const postcards: any[] = data?.data ?? [];
+  const total: number = postcards.length;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* header with count */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-foreground">Event Postcards</h3>
+        {total > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {total} postcard{total !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {postcards.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <ImageOff className="h-8 w-8 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">
+            No postcards yet for this phase.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {postcards.map((postcard: any, index: number) => (
+            <PostcardTile
+              key={postcard?.id ?? index}
+              postcard={postcard}
+              vibeTagMap={vibeTagMap}
+              onLike={onLike}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function EventVibeTagsTab({
   eventId,
   vibeTag,
@@ -76,27 +217,30 @@ export function EventVibeTagsTab({
     allTags.some((tag) => tag.activityTiming === t)
   );
 
-  const resolvedTiming: ActivityTiming | null =
-    activeTiming && availableTimings.includes(activeTiming)
+  // Always show all three phase tabs; fall back if no vibeTag timing data
+  const timingTabs: ActivityTiming[] =
+    availableTimings.length > 0
+      ? availableTimings
+      : (["PRE_EVENT", "DURING_EVENT", "POST_EVENT"] as ActivityTiming[]);
+
+  const resolvedTiming: ActivityTiming =
+    activeTiming && timingTabs.includes(activeTiming)
       ? activeTiming
-      : availableTimings[0] ?? null;
+      : timingTabs[0];
 
-  const activeTag: VibeTag | null = resolvedTiming
-    ? allTags.find((t) => t.activityTiming === resolvedTiming) ?? null
-    : allTags[0] ?? null;
+  const activeTag: VibeTag | null =
+    allTags.find((t) => t.activityTiming === resolvedTiming) ??
+    allTags[0] ??
+    null;
 
-  const activePhase = resolvedTiming
-    ? TIMING_META[resolvedTiming].phase
-    : "all";
+  const activePhase = TIMING_META[resolvedTiming]?.phase ?? "all";
 
-  const { data: postcardsData, isLoading: isLoadingPostcards } =
-    useGetEventPostcardsQuery(
-      { eventId: eventId ?? "", phase: activePhase },
-      { skip: !eventId }
-    );
   const [toggleLike] = useToggleLikePostcardMutation();
 
-  const postcards: any[] = postcardsData?.data?.data ?? [];
+  // Build a lookup map: vibeTagId → VibeTag so tiles can resolve image + timing
+  const vibeTagMap: Record<string, VibeTag> = Object.fromEntries(
+    allTags.map((t) => [t.id, t])
+  );
 
   const vibeTagOverlay: VibeTagOverlay | null = activeTag?.imageUrl
     ? { imageUrl: activeTag.imageUrl, name: activeTag.name }
@@ -129,26 +273,7 @@ export function EventVibeTagsTab({
       )}
 
       <div className="space-y-6 animate-fade-in">
-        {availableTimings.length > 1 && (
-          <Tabs
-            value={resolvedTiming ?? availableTimings[0]}
-            onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
-          >
-            <TabsList
-              className="w-full grid h-10"
-              style={{
-                gridTemplateColumns: `repeat(${availableTimings.length}, 1fr)`,
-              }}
-            >
-              {availableTimings.map((timing) => (
-                <TabsTrigger key={timing} value={timing} className="text-xs">
-                  {TIMING_META[timing].label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        )}
-
+        {/* VibeTag info card */}
         <Card className="overflow-hidden bg-linear-to-br from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-4">
@@ -157,26 +282,22 @@ export function EventVibeTagsTab({
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">
-                  {resolvedTiming
-                    ? `${TIMING_META[resolvedTiming].label} VibeTag`
-                    : "Event VibeTag"}
+                  {TIMING_META[resolvedTiming].label} VibeTag
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {activeTag?.name ?? "No VibeTag set for this event"}
                 </p>
               </div>
-              {resolvedTiming && (
-                <Badge
-                  variant="outline"
-                  className="shrink-0 text-[10px] border-primary/40 text-primary"
-                >
-                  {TIMING_META[resolvedTiming].label}
-                </Badge>
-              )}
+              <Badge
+                variant="outline"
+                className="shrink-0 text-[10px] border-primary/40 text-primary"
+              >
+                {TIMING_META[resolvedTiming].label}
+              </Badge>
             </div>
 
             <div className="flex justify-center mb-4">
-              <div className="relative w-40 aspect-3/4 rounded-2xl overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-1">
+              <div className="relative w-40 aspect-[3/4] rounded-2xl overflow-hidden bg-linear-to-br from-primary via-accent to-primary p-1">
                 <div className="relative h-full w-full rounded-xl bg-background overflow-hidden flex items-center justify-center">
                   {activeTag?.imageUrl ? (
                     <img
@@ -234,58 +355,33 @@ export function EventVibeTagsTab({
           </CardContent>
         </Card>
 
-        <div>
-          {!isLoadingPostcards && postcards.length > 0 && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                {postcards.map((postcard: any, index: number) => {
-                  const src = resolveMediaUrl(postcard?.media?.[0]);
-                  const authorName =
-                    postcard?.author?.displayName ??
-                    postcard?.author?.username ??
-                    "";
-                  if (!src) return null;
-                  return (
-                    <div
-                      key={postcard?.id ?? index}
-                      className="group relative aspect-3/4 overflow-hidden rounded-2xl animate-fade-in"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <img
-                        src={src}
-                        alt={postcard?.caption ?? ""}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        {authorName && (
-                          <p className="text-xs font-medium text-white mb-1 truncate">
-                            @{authorName}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 text-white/80">
-                          <button
-                            onClick={() => handleLike(postcard?.id)}
-                            className="flex items-center gap-1 text-xs hover:text-red-400 transition-colors"
-                            aria-label="Like postcard"
-                          >
-                            <Heart className="h-3.5 w-3.5 fill-current" />
-                            {postcard?.likeCount ?? 0}
-                          </button>
-                          <span className="flex items-center gap-1 text-xs">
-                            <MessageCircle className="h-3.5 w-3.5" />
-                            {postcard?.commentCount ?? 0}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <button className="mt-4 w-full text-center text-sm font-medium text-primary hover:underline">
-                View All Postcards
-              </button>
-            </>
+        {/* Postcards — tabbed by activity timing */}
+        <div className="space-y-4">
+          <Tabs
+            value={resolvedTiming}
+            onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
+          >
+            <TabsList
+              className="w-full grid h-10"
+              style={{
+                gridTemplateColumns: `repeat(${timingTabs.length}, 1fr)`,
+              }}
+            >
+              {timingTabs.map((timing) => (
+                <TabsTrigger key={timing} value={timing} className="text-xs">
+                  {TIMING_META[timing].label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {eventId && (
+            <PhasePostcards
+              eventId={eventId}
+              phase={activePhase}
+              vibeTagMap={vibeTagMap}
+              onLike={handleLike}
+            />
           )}
         </div>
 

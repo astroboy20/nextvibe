@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDate } from "@/hooks/format-date";
 import Image from "next/image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  useGetEventAttendeesQuery,
-  useGetEventMemoriesCountQuery,
-} from "@/app/provider/api/eventApi";
+import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
 
 interface EventCardProps {
   id?: string;
@@ -50,9 +47,6 @@ export function EventCard({
     { eventId: id },
     { skip: !id || id === "1" }
   );
-  const { data: memoriesData } = useGetEventMemoriesCountQuery(id, {
-    skip: !id || id === "1",
-  });
 
   const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
   const attendeeList: {
@@ -60,8 +54,7 @@ export function EventCard({
     avatarUrl?: string;
     displayName?: string;
   }[] = attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
-  const totalMemories: number =
-    memoriesData?.data?.total ?? memoriesData?.total ?? 0;
+  const totalMemories = 0;
 
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
@@ -251,38 +244,34 @@ export function EventCard({
         )}
 
         <div className="mt-3 flex items-center">
-          <div className="flex -space-x-2">
-            {(attendeeList.length > 0
-              ? attendeeList.slice(0, 3)
-              : [1, 2, 3]
-            ).map((item, i) => {
-              const isReal = typeof item === "object" && "id" in item;
-              return (
-                <Avatar
-                  key={isReal ? item.id : i}
-                  className="h-7 w-7 border-2 border-card"
-                >
-                  {isReal && item.avatarUrl ? (
-                    <AvatarImage
-                      src={item.avatarUrl}
-                      alt={item.displayName ?? "Attendee"}
-                    />
-                  ) : (
-                    <AvatarImage
-                      src={`https://i.pravatar.cc/50?img=${(i as number) + 10}`}
-                    />
-                  )}
-                  <AvatarFallback>
-                    {isReal ? item.displayName?.[0] ?? "U" : "U"}
-                  </AvatarFallback>
-                </Avatar>
-              );
-            })}
-          </div>
-          {liveAttendees > 3 && (
-            <span className="ml-2 text-xs text-muted-foreground">
-              +{liveAttendees - 3}
-            </span>
+          {attendeeList.length > 0 ? (
+            <>
+              <div className="flex -space-x-2">
+                {attendeeList.slice(0, 3).map((item, i) => (
+                  <Avatar
+                    key={item.id ?? i}
+                    className="h-7 w-7 border-2 border-card"
+                  >
+                    {item.avatarUrl ? (
+                      <AvatarImage
+                        src={item.avatarUrl}
+                        alt={item.displayName ?? "Attendee"}
+                      />
+                    ) : null}
+                    <AvatarFallback>
+                      {item.displayName?.[0] ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              {liveAttendees > 3 && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  +{liveAttendees - 3}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">No attendees yet</span>
           )}
         </div>
       </div>
