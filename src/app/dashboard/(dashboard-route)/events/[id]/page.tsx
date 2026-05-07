@@ -32,36 +32,12 @@ const FLIER_MS = 5000;
 const FADE_MS = 700;
 
 const tabsConfig = [
-  {
-    value: "about",
-    label: "About",
-    icon: <Info className="mr-1.5 h-4 w-4" />,
-  },
-  {
-    value: "rsvp",
-    label: "RSVP",
-    icon: <Table className="mr-1.5 h-4 w-4" />,
-  },
-  {
-    value: "qr",
-    label: "QR",
-    icon: <QrCode className="mr-1.5 h-4 w-4" />,
-  },
-  {
-    value: "games",
-    label: "Games",
-    icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
-  },
-  {
-    value: "postcard",
-    label: "Post Cards",
-    icon: <Tag className="mr-1.5 h-4 w-4" />,
-  },
-  {
-    value: "chat",
-    label: "Chat",
-    icon: <MessageCircle className="mr-1.5 h-4 w-4" />,
-  },
+  { value: "about",    label: "About",       icon: <Info className="mr-1.5 h-4 w-4" />,       always: true  },
+  { value: "rsvp",     label: "RSVP",        icon: <Table className="mr-1.5 h-4 w-4" />,      always: true  },
+  { value: "qr",       label: "QR",          icon: <QrCode className="mr-1.5 h-4 w-4" />,     always: true  },
+  { value: "games",    label: "Games",       icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,   always: false, flag: "hasGame"    as const },
+  { value: "postcard", label: "Post Cards",  icon: <Tag className="mr-1.5 h-4 w-4" />,        always: false, flag: "hasVibeTag" as const },
+  { value: "chat",     label: "Chat",        icon: <MessageCircle className="mr-1.5 h-4 w-4" />, always: true },
 ];
 
 function EventPageSkeleton({ onBack }: { onBack: () => void }) {
@@ -153,6 +129,14 @@ export default function EventPage({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("about");
   const [isLiked, setIsLiked] = useState(false);
+
+  const event = eventDetails?.data;
+  const hasGame = event?.hasGame ?? false;
+  const hasVibeTag = event?.hasVibeTag ?? (Array.isArray(event?.vibeTag) && event.vibeTag.length > 0);
+
+  const visibleTabs = tabsConfig.filter(
+    (t) => t.always || (t.flag === "hasGame" ? hasGame : hasVibeTag)
+  );
 
   const eventUrl =
     typeof window !== "undefined"
@@ -316,13 +300,13 @@ export default function EventPage({
 
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex gap-2 mb-2">
-            {eventDetails?.data?.hasGames && (
+            {hasGame && (
               <Badge className="bg-accent/90 text-accent-foreground">
                 <Gamepad2 className="mr-1 h-3 w-3" />
                 Games
               </Badge>
             )}
-            {eventDetails?.data?.vibeTag && (
+            {hasVibeTag && (
               <Badge className="bg-primary/90 text-primary-foreground">
                 <Tag className="mr-1 h-3 w-3" />
                 VibeTag
@@ -338,7 +322,7 @@ export default function EventPage({
       <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
-            {tabsConfig.map(({ value, label, icon }) => (
+            {visibleTabs.map(({ value, label, icon }) => (
               <TabsTrigger
                 key={value}
                 value={value}
