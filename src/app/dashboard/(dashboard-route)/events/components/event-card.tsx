@@ -21,6 +21,7 @@ interface EventCardProps {
   rsvpStartDateTime?: string | null;
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
+  postcardCount?: number;
 }
 
 const FLIER_MS = 5000;
@@ -39,6 +40,7 @@ export function EventCard({
   rsvpStartDateTime,
   colorAccent = "plum",
   className,
+  postcardCount = 0,
 }: EventCardProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,7 +56,6 @@ export function EventCard({
     avatarUrl?: string;
     displayName?: string;
   }[] = attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
-  const totalMemories = 0;
 
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
@@ -226,7 +227,7 @@ export function EventCard({
           <Calendar className="h-3.5 w-3.5" />
           <span>{formatDate(date)}</span>
           <span className="text-border">•</span>
-          <span>{totalMemories} Memories</span>
+          <span>{postcardCount} {postcardCount === 1 ? "Memory" : "Memories"}</span>
         </div>
 
         {location && (

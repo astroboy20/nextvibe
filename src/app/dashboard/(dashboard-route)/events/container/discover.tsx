@@ -174,17 +174,14 @@ const Discover = () => {
     }
 
     if (vibeFilter) {
-      const v = vibeFilter.toLowerCase();
-      list = list.filter((e) =>
-        (e.vibetag ?? e.vibeTagName ?? "").toLowerCase().includes(v)
-      );
+      list = list.filter((e) => e.hasVibetag);
     }
 
     if (activeFilters.includes("games")) {
-      list = list.filter((e) => e.hasGames);
+      list = list.filter((e) => e.hasGame);
     }
     if (activeFilters.includes("vibetag")) {
-      list = list.filter((e) => e.vibetag || e.hasVibeTag);
+      list = list.filter((e) => e.hasVibetag);
     }
     if (activeFilters.includes("free")) {
       list = list.filter((e) => !e.isPaid && !e.ticketPrice);
@@ -421,10 +418,11 @@ const Discover = () => {
                       event?.data?.promotionalVideoUrl
                     }
                     attendees={event?.attendees}
-                    hasGames={event?.hasGames}
-                    hasVibeTag={event?.vibetag}
+                    hasGames={event?.hasGame}
+                    hasVibeTag={event?.hasVibetag}
                     rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
                     colorAccent={event?.colorAccent}
+                    postcardCount={event?.postcardCount ?? 0}
                   />
                 </div>
               ))}
