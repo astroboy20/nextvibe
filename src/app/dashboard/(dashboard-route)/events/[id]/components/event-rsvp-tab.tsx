@@ -19,13 +19,26 @@ interface EventRSVPTabProps {
 
 type RSVPChoice = "going" | "maybe" | "not-going" | null;
 
+function extractErrorMessage(err: any): string {
+  return (
+    err?.data?.message ??
+    err?.data?.error?.message ??
+    err?.data?.error ??
+    err?.message ??
+    "Failed to RSVP. Please try again."
+  );
+}
+
 export function EventRSVPTab({ event }: EventRSVPTabProps) {
-  const [rsvpMutation, { isLoading: isRsvping }] = useRsvpMutation();
+  const [rsvpMutation] = useRsvpMutation();
 
   const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(
     event?.isRsvped ? "going" : null
   );
+  const [loadingChoice, setLoadingChoice] = useState<RSVPChoice>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+
+  const isAnyLoading = loadingChoice !== null;
 
   const { data: attendeesData, isLoading: isLoadingAttendees } =
     useGetEventAttendeesQuery({ eventId: event?.id }, { skip: !event?.id });
@@ -34,11 +47,12 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
     attendeesData?.data?.data ?? attendeesData?.data ?? [];
 
   const handleGoing = () => {
-    if (rsvpStatus === "going") return;
+    if (rsvpStatus === "going" || isAnyLoading) return;
     setShowTicketModal(true);
   };
 
   const handleTicketSelected = async (tierId: string) => {
+    setLoadingChoice("going");
     try {
       await rsvpMutation({
         eventId: event.id,
@@ -48,12 +62,15 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
       setRsvpStatus("going");
       toast.success("🎉 You're going! See you at the event.");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to RSVP. Please try again.");
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setLoadingChoice(null);
     }
   };
 
   const handleSimpleRsvp = async (choice: "maybe" | "not-going") => {
-    if (isRsvping) return;
+    if (isAnyLoading) return;
+    setLoadingChoice(choice);
     const status = choice === "maybe" ? "WAITLIST" : "CANCELLED";
     try {
       await rsvpMutation({ eventId: event.id, status }).unwrap();
@@ -62,7 +79,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
         choice === "maybe" ? "🤔 You're on the waitlist!" : "😢 RSVP cancelled."
       );
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to RSVP. Please try again.");
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setLoadingChoice(null);
     }
   };
 
@@ -114,20 +133,17 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
         <h3 className="font-semibold text-foreground">Are you going?</h3>
 
         <div className="grid grid-cols-3 gap-3">
+          {/* Going */}
           <Button
             variant={rsvpStatus === "going" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
               rsvpStatus === "going" &&
                 "bg-green-600 hover:bg-green-700 border-green-600",
-              rsvpStatus !== null &&
-                rsvpStatus !== "going" &&
-                "opacity-40 cursor-not-allowed"
+              isAnyLoading && loadingChoice !== "going" && "opacity-40"
             )}
             onClick={handleGoing}
-            disabled={
-              isRsvping || (rsvpStatus !== null && rsvpStatus !== "going")
-            }
+            disabled={isAnyLoading || rsvpStatus === "going"}
           >
             <div
               className={cn(
@@ -135,12 +151,16 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "going" ? "bg-white/20" : "bg-green-500/10"
               )}
             >
-              <Check
-                className={cn(
-                  "h-5 w-5",
-                  rsvpStatus === "going" ? "text-white" : "text-green-600"
-                )}
-              />{" "}
+              {loadingChoice === "going" ? (
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              ) : (
+                <Check
+                  className={cn(
+                    "h-5 w-5",
+                    rsvpStatus === "going" ? "text-white" : "text-green-600"
+                  )}
+                />
+              )}
             </div>
             <span
               className={cn(
@@ -148,24 +168,21 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "going" ? "text-white" : "text-foreground"
               )}
             >
-              Going
+              {loadingChoice === "going" ? "Submitting..." : "Going"}
             </span>
           </Button>
 
+          {/* Maybe */}
           <Button
             variant={rsvpStatus === "maybe" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
               rsvpStatus === "maybe" &&
                 "bg-amber-500 hover:bg-amber-600 border-amber-500",
-              rsvpStatus !== null &&
-                rsvpStatus !== "maybe" &&
-                "opacity-40 cursor-not-allowed"
+              isAnyLoading && loadingChoice !== "maybe" && "opacity-40"
             )}
             onClick={() => handleSimpleRsvp("maybe")}
-            disabled={
-              isRsvping || (rsvpStatus !== null && rsvpStatus !== "maybe")
-            }
+            disabled={isAnyLoading || rsvpStatus === "maybe"}
           >
             <div
               className={cn(
@@ -173,7 +190,7 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "maybe" ? "bg-white/20" : "bg-amber-500/10"
               )}
             >
-              {isRsvping && rsvpStatus === null ? (
+              {loadingChoice === "maybe" ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <HelpCircle
@@ -190,24 +207,21 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "maybe" ? "text-white" : "text-foreground"
               )}
             >
-              Maybe
+              {loadingChoice === "maybe" ? "Submitting..." : "Maybe"}
             </span>
           </Button>
 
+          {/* Can't Go */}
           <Button
             variant={rsvpStatus === "not-going" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
               rsvpStatus === "not-going" &&
                 "bg-muted-foreground hover:bg-muted-foreground/90",
-              rsvpStatus !== null &&
-                rsvpStatus !== "not-going" &&
-                "opacity-40 cursor-not-allowed"
+              isAnyLoading && loadingChoice !== "not-going" && "opacity-40"
             )}
             onClick={() => handleSimpleRsvp("not-going")}
-            disabled={
-              isRsvping || (rsvpStatus !== null && rsvpStatus !== "not-going")
-            }
+            disabled={isAnyLoading || rsvpStatus === "not-going"}
           >
             <div
               className={cn(
@@ -215,18 +229,17 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "not-going" ? "bg-white/20" : "bg-muted"
               )}
             >
-              <X className="h-5 w-5" />
+              {loadingChoice === "not-going" ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <X className="h-5 w-5" />
+              )}
             </div>
-            <span className="text-sm font-medium">Can&apos;t Go</span>
+            <span className="text-sm font-medium">
+              {loadingChoice === "not-going" ? "Submitting..." : "Can't Go"}
+            </span>
           </Button>
         </div>
-
-        {isRsvping && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Submitting...
-          </div>
-        )}
       </div>
 
       <div className="space-y-3">
