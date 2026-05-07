@@ -30,9 +30,7 @@ import {
   useGetSessionLeaderboardQuery,
   useCheckinEventMutation,
   useGetGameSessionQuery,
-  useGetGameRoundParticipationQuery,
 } from "@/app/provider/api/eventApi";
-import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -159,6 +157,7 @@ function RoundPlayer({
   eventName,
   onSubmit,
   isSubmitting,
+  onComplete,
 }: {
   round: any;
   session: any;
@@ -169,6 +168,8 @@ function RoundPlayer({
     timeTakenMs: number
   ) => Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }>;
   isSubmitting: boolean;
+  /** Called after score is set so parent can refetch session without unmounting this component */
+  onComplete?: () => void;
 }) {
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
@@ -189,6 +190,7 @@ function RoundPlayer({
 
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [waitingForResult, setWaitingForResult] = useState(false);
 
   const { data: leaderboardData, refetch: refetchLeaderboard } =
     useGetSessionLeaderboardQuery(session?.id, { skip: !session?.id });
@@ -219,6 +221,7 @@ function RoundPlayer({
       setWordInput("");
     } else {
       setFlash(null);
+      setWaitingForResult(true);
       const result = await onSubmit(
         round.id,
         allAnswers,
@@ -227,6 +230,9 @@ function RoundPlayer({
       if (result.ok) {
         await refetchLeaderboard();
         setFinalScore(result.score ?? 0);
+        onComplete?.();
+      } else {
+        setWaitingForResult(false);
       }
     }
   };
@@ -370,7 +376,7 @@ function RoundPlayer({
       </p>
     );
 
-  if (isSubmitting) {
+  if (isSubmitting || waitingForResult) {
     return (
       <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -475,6 +481,7 @@ function SessionCard({
   eventHasStarted,
   isJoined: isJoinedProp,
   isJoining,
+  sessionData,
   playedRounds,
   showLeaderboard,
   onJoin,
@@ -487,37 +494,26 @@ function SessionCard({
   eventHasStarted: boolean;
   isJoined: boolean;
   isJoining: boolean;
+  /** Data from GET /v1/game-sessions/:id, fetched after games load */
+  sessionData: any;
   playedRounds: Set<string>;
   showLeaderboard: string | null;
   onJoin: () => void;
   onPlay: (roundId: string) => void;
   onToggleLeaderboard: () => void;
 }) {
-  // Fetch session details to check hasJoinedSession and per-round hasSubmitted
-  const { data: sessionData } = useGetGameSessionQuery(session.id, {
-    refetchOnMountOrArgChange: true,
-    pollingInterval: isActive ? 10000 : 0,
-  });
+  // isJoined from /v1/game-sessions/:id response, fall back to local state
+  const isJoined = sessionData?.isJoined ?? isJoinedProp;
 
-  // Fetch participation status using the game (session) id
-  const { data: participationData } = useGetGameRoundParticipationQuery(session.id, {
-    skip: !session.id,
-    refetchOnMountOrArgChange: true,
-    pollingInterval: isActive ? 10000 : 0,
-  });
-
-  const participation = participationData?.data;
-  // hasJoinedSession from /game-sessions/:id, hasJoined from participation endpoint
-  const isJoined = participation?.hasJoined ?? sessionData?.data?.hasJoinedSession ?? isJoinedProp;
-
-  // Build submitted rounds set from participation response
-  const submittedRounds = new Set<string>(
-    (participation?.rounds ?? sessionData?.data?.rounds ?? [])
-      .filter((r: any) => r.hasSubmitted)
-      .map((r: any) => r.id)
+  // Build submitted rounds from session rounds[].hasPlayed + local fallback
+  const apiPlayedRounds = new Set<string>(
+    (sessionData?.rounds ?? [])
+      .filter((r: any) => r.hasPlayed)
+      .map((r: any) => r.id as string)
   );
+  const submittedRounds = new Set<string>([...apiPlayedRounds, ...playedRounds]);
 
-  // Leaderboard data for display only
+  // Leaderboard — only fetched when the leaderboard section is visible
   const { data: lbData } = useGetSessionLeaderboardQuery(session.id, {
     refetchOnMountOrArgChange: true,
   });
@@ -622,7 +618,7 @@ function SessionCard({
                   ? "bg-green-600/60 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700"
               )}
-              onClick={onJoin}
+              onClick={async () => { await onJoin(); }}
               disabled={isJoined || isJoining}
             >
               {isJoining ? (
@@ -758,6 +754,37 @@ const mapPhase = (t: string): PhaseTab =>
     POST_EVENT: "post-event",
     BOTH: "both",
   }[t] ?? "main-event") as PhaseTab);
+
+/**
+ * Fetches GET /v1/game-sessions/:id for a single session and reports the
+ * result + refetch fn back to the parent via callbacks.
+ * Rendered only after games have loaded (controlled by parent skip logic).
+ */
+function SessionFetcher({
+  sessionId,
+  onData,
+  onRefetch,
+}: {
+  sessionId: string;
+  onData: (sessionId: string, data: any) => void;
+  onRefetch: (sessionId: string, refetch: () => void) => void;
+}) {
+  const { data, refetch } = useGetGameSessionQuery(sessionId, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  useEffect(() => {
+    if (data?.data) onData(sessionId, data.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  useEffect(() => {
+    onRefetch(sessionId, refetch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refetch]);
+
+  return null;
+}
 export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
     eventProp?.id,
@@ -777,6 +804,11 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
+
+  // Holds GET /v1/game-sessions/:id data keyed by session id — populated after games load
+  const [sessionDataMap, setSessionDataMap] = useState<Record<string, any>>({});
+  // Holds refetch fns keyed by session id so we can invalidate on join/submit
+  const sessionRefetchMap = useState<Record<string, () => void>>({})[0];
   const [joinedSessions, setJoinedSessions] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -870,6 +902,8 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       await joinSession(sessionId).unwrap();
       markSessionJoined(sessionId);
       setActiveSessionId(sessionId);
+      // Refetch this session so isJoined + hasPlayed are up to date
+      sessionRefetchMap[sessionId]?.();
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
       toast.error(
@@ -976,6 +1010,9 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
             eventName={event?.name}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            onComplete={() => {
+              if (activeSessionId) sessionRefetchMap[activeSessionId]?.();
+            }}
           />
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
@@ -988,6 +1025,21 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Fetch session details for each session after games have loaded */}
+      {allSessions.map((s: any) => (
+        <SessionFetcher
+          key={s.id}
+          sessionId={s.id}
+          onData={(id, data) =>
+            setSessionDataMap((prev) =>
+              prev[id] === data ? prev : { ...prev, [id]: data }
+            )
+          }
+          onRefetch={(id, refetch) => {
+            sessionRefetchMap[id] = refetch;
+          }}
+        />
+      ))}
       {tabsWithSessions.length > 1 && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {tabsWithSessions.map((tab) => {
@@ -1053,6 +1105,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
             isJoined={isJoined}
             isJoining={isJoining}
             eventHasStarted={eventHasStarted}
+            sessionData={sessionDataMap[session.id] ?? null}
             playedRounds={playedRounds}
             showLeaderboard={showLeaderboard}
             onJoin={() => handleJoin(session.id)}
