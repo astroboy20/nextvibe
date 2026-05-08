@@ -543,8 +543,12 @@ export default function Pricing() {
               Start with a free event page. Add features when you&apos;re ready.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Button size="lg" asChild className="bg-[#5b1a57] text-primary-foreground">
-                <Link href="/create">Create Free Event</Link>
+              <Button
+                size="lg"
+                asChild
+                className="bg-[#5b1a57] text-primary-foreground"
+              >
+                <Link href="/auth/login">Create Free Event</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link href="/pricing">See Full Feature List</Link>
