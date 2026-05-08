@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   Clock,
   Gamepad2,
-  Heart,
   ImageOff,
   Locate,
   MapPin,
-  MessageCircle,
   Sparkles,
   Tag,
   Ticket,
@@ -21,21 +19,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
-import {
-  useGetEventsQuery,
-  useGetPostcardsQuery,
-} from "@/app/provider/api/eventApi";
+import { useGetEventsQuery } from "@/app/provider/api/eventApi";
 import { useEventDiscovery } from "@/hooks/use-event-dicovery";
 import ViewToggle from "../components/view-toggle";
 import { EventCard } from "../components/event-card";
-import { PostcardItem } from "../components/postcard-grid";
-import Image from "next/image";
+import { PostcardCard } from "../components/postcard-card";
 
 const INTEREST_OPTIONS = [
   "music",
@@ -66,27 +54,12 @@ const Discover = () => {
   const [vibeFilter, setVibeFilter] = useState("");
   const [autoLocating, setAutoLocating] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [postcardPhase, setPostcardPhase] = useState<
-    "all" | "pre-event" | "main-event"
-  >("all");
 
   const toggleFilter = (id: string) => {
     setActiveFilters((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
     );
   };
-
-  const { data: postcardsData, isLoading: isLoadingPostcards } =
-    useGetPostcardsQuery(
-      {
-        page: 1,
-        limit: 40,
-        ...(postcardPhase !== "all" ? { phase: postcardPhase } : {}),
-      },
-      { skip: activeView !== "postcards" }
-    );
-
-  const postcards = postcardsData?.data?.data ?? [];
 
   // Restore saved location on mount
   useEffect(() => {
@@ -210,12 +183,6 @@ const Discover = () => {
     { id: "free", label: "Free", icon: Ticket },
     { id: "soon", label: "Starting Soon", icon: Clock },
   ];
-  const handlePostcardClick = (postcard: PostcardItem) => {
-    const eventId = postcard?.event?.id;
-    if (eventId) {
-      router.push(`/dashboard/events/${eventId}/postcards`);
-    }
-  };
 
   if (isLoadingEvents) {
     return (
@@ -236,26 +203,6 @@ const Discover = () => {
       <div className="mb-6 flex justify-center">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
       </div>
-
-      {activeView === "postcards" && (
-        <Tabs
-          value={postcardPhase}
-          onValueChange={(v) => setPostcardPhase(v as typeof postcardPhase)}
-          className="mb-6"
-        >
-          <TabsList className="w-full grid grid-cols-3 h-10">
-            <TabsTrigger value="all" className="text-xs">
-              All Phases
-            </TabsTrigger>
-            <TabsTrigger value="pre-event" className="text-xs">
-              Pre-Event
-            </TabsTrigger>
-            <TabsTrigger value="main-event" className="text-xs">
-              Main Event
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
 
       {activeView === "events" && (
         <>
@@ -433,149 +380,43 @@ const Discover = () => {
 
       {activeView === "postcards" && (
         <>
-          {isLoadingPostcards ? (
-            <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="mb-3 break-inside-avoid">
-                  <Skeleton
-                    className="w-full rounded-2xl"
-                    style={{ height: `${180 + (i % 3) * 60}px` }}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : postcards.length === 0 ? (
+          {allEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
               <ImageOff className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">
-                No postcards yet. Be the first to share a memory!
+                No events yet. Check back later!
               </p>
             </div>
           ) : (
-            <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
-              {postcards.map((postcard: PostcardItem, index: number) => {
-                const mediaItems = postcard?.media ?? [];
-                const eventName = postcard?.event?.name ?? "";
-                const authorName =
-                  postcard?.author?.displayName ??
-                  postcard?.author?.username ??
-                  "";
-                const storageBase =
-                  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
-                  "http://minio-production-5cff.up.railway.app:443/nextvibe";
-
-                const resolvedMedia = mediaItems
-                  .map((m) => ({
-                    src:
-                      m.mediaUrl ||
-                      (m.storageKey ? `${storageBase}/${m.storageKey}` : ""),
-                    isVideo: m.mediaType === "VIDEO",
-                  }))
-                  .filter((m) => m.src);
-
-                if (resolvedMedia.length === 0) return null;
-
-                return (
-                  <div
-                    key={postcard?.id ?? index}
-                    onClick={() => handlePostcardClick(postcard)}
-                    className={cn(
-                      "group relative mb-3 break-inside-avoid overflow-hidden rounded-2xl bg-card shadow-sm cursor-pointer transition-all duration-300 hover:shadow-md animate-fade-in"
-                    )}
-                    style={{ animationDelay: `${index * 40}ms` }}
-                  >
-                    {resolvedMedia.length === 1 ? (
-                      <div className="relative aspect-auto">
-                        {resolvedMedia[0].isVideo ? (
-                          <video
-                            src={resolvedMedia[0].src}
-                            muted
-                            loop
-                            playsInline
-                            className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <Image
-                            src={resolvedMedia[0].src}
-                            alt={postcard?.caption ?? eventName}
-                            height={300}
-                            width={300}
-                            className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                      </div>
-                    ) : (
-                      <Carousel
-                        plugins={[
-                          Autoplay({
-                            delay: 2500,
-                            stopOnInteraction: false,
-                            stopOnMouseEnter: true,
-                          }),
-                        ]}
-                        opts={{ loop: true }}
-                        className="w-full"
-                      >
-                        <CarouselContent className="ml-0">
-                          {resolvedMedia.map((media, mi) => (
-                            <CarouselItem key={mi} className="pl-0">
-                              <div className="relative aspect-auto">
-                                {media.isVideo ? (
-                                  <video
-                                    src={media.src}
-                                    muted
-                                    loop
-                                    playsInline
-                                    className="w-full object-cover"
-                                  />
-                                ) : (
-                                  <Image
-                                    src={media.src}
-                                    alt={`${eventName} ${mi + 1}`}
-                                    className="w-full object-cover"
-                                    height={300}
-                                    width={300}
-                                  />
-                                )}
-                                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                              </div>
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-                      </Carousel>
-                    )}
-
-                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                      {eventName && (
-                        <p className="text-xs font-semibold line-clamp-1 mb-0.5">
-                          {eventName}
-                        </p>
-                      )}
-                      {authorName && (
-                        <p className="text-[10px] text-white/70 line-clamp-1 mb-1">
-                          @{authorName}
-                        </p>
-                      )}
-                      {postcard?.caption && (
-                        <p className="text-xs text-white/80 line-clamp-2 mb-1.5">
-                          {postcard.caption}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1 text-xs">
-                          <Heart className="h-3.5 w-3.5" />
-                          {postcard?.likeCount ?? 0}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs">
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          {postcard?.commentCount ?? 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+              {allEvents.map((event: any, index: number) => (
+                <div
+                  key={event.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <PostcardCard
+                    id={event?.id}
+                    title={event?.name}
+                    date={event?.startsAt}
+                    location={event?.locationName}
+                    image={
+                      event?.flierUrl || event?.image || event?.data?.flierUrl
+                    }
+                    promoVideoUrl={
+                      event?.promoVideoUrl ||
+                      event?.promotionalVideoUrl ||
+                      event?.data?.promotionalVideoUrl
+                    }
+                    attendees={event?.attendees}
+                    hasGames={event?.hasGame}
+                    hasVibeTag={event?.hasVibetag}
+                    rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
+                    colorAccent={event?.colorAccent}
+                    postcardCount={event?.postcardCount ?? 0}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </>

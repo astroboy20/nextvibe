@@ -209,30 +209,40 @@ const InteractiveFeatures = () => {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className='fixed bottom-0 left-0 right-0 z-40 p-4'>
-            <div className='max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl border-2 border-[#A1349A] overflow-hidden'>
-              <div className='flex flex-col sm:flex-row items-center gap-4 p-6'>
-                <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className='w-16 h-16 bg-linear-to-br from-[#A1349A] to-[#5B1A57] rounded-2xl flex items-center justify-center shrink-0'>
-                  <Download className='w-8 h-8 text-white' />
-                </motion.div>
+            className='fixed bottom-0 left-0 right-0 z-40 p-3 sm:p-4'>
+            <div className='relative max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl border-2 border-[#A1349A] overflow-hidden'>
+              {/* Close button */}
+              <button
+                onClick={() => setShowScrollCapture(false)}
+                className='absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors z-10'>
+                <X className='w-5 h-5' />
+              </button>
 
-                <div className='flex-1 text-center sm:text-left'>
-                  <h4 className='text-xl font-bold text-gray-900 mb-1'>
-                    Loving the Vibe?
-                  </h4>
-                  <p className='text-gray-600 text-sm'>
-                    Get a free guide:{' '}
-                    <span className='font-semibold'>
-                      "10 Ways to Make Your Next Event Unforgettable"
-                    </span>{' '}
-                    + product updates
-                  </p>
+              <div className='p-5 sm:p-6'>
+                {/* Icon + text row */}
+                <div className='flex items-start gap-3 mb-4 pr-6'>
+                  <motion.div
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className='w-12 h-12 bg-linear-to-br from-[#A1349A] to-[#5B1A57] rounded-xl flex items-center justify-center shrink-0'>
+                    <Download className='w-6 h-6 text-white' />
+                  </motion.div>
+                  <div>
+                    <h4 className='text-base font-bold text-gray-900 leading-tight'>
+                      Loving the Vibe?
+                    </h4>
+                    <p className='text-gray-600 text-xs sm:text-sm mt-0.5'>
+                      Get a free guide:{' '}
+                      <span className='font-semibold'>
+                        "10 Ways to Make Your Next Event Unforgettable"
+                      </span>{' '}
+                      + product updates
+                    </p>
+                  </div>
                 </div>
 
-                <div className='flex gap-2 w-full sm:w-auto'>
+                {/* Input stacked above button on mobile, side-by-side on sm+ */}
+                <div className='flex flex-col sm:flex-row gap-2'>
                   <input
                     type='email'
                     value={email}
@@ -240,23 +250,17 @@ const InteractiveFeatures = () => {
                     onKeyPress={(e) =>
                       e.key === 'Enter' && handleEmailSubmit('scroll-capture')
                     }
-                    placeholder='Your email'
-                    className='flex-1 sm:w-64 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[#A1349A] focus:outline-none transition-colors'
+                    placeholder='Your email address'
+                    className='w-full sm:flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#A1349A] focus:outline-none transition-colors text-sm'
                   />
                   <motion.button
                     onClick={() => handleEmailSubmit('scroll-capture')}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className='bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white px-6 py-2 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all whitespace-nowrap'>
-                    Get Guide
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className='w-full sm:w-auto bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all text-sm'>
+                    Get Free Guide
                   </motion.button>
                 </div>
-
-                <button
-                  onClick={() => setShowScrollCapture(false)}
-                  className='text-gray-400 hover:text-gray-600 transition-colors absolute top-10 right-10 sm:relative sm:top-auto sm:right-auto'>
-                  <X className='w-5 h-5' />
-                </button>
               </div>
             </div>
           </motion.div>

@@ -11,7 +11,7 @@ import Footer from "@/components/footer";
 
 const HomeContainer = () => {
   return (
-    <main className="min-h-screen pt-25">
+    <main className="min-h-screen pt-25 overflow-x-hidden">
       <Navbar />
       <InteractiveFeatures />
       <HeroSection />

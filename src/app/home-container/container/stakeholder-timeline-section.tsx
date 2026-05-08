@@ -37,7 +37,7 @@ const StakeholdersSection = () => {
 
   return (
     <>
-      <div className="relative py-10 bg-white  overflow-hidden">
+      <div className="relative py-10 bg-white overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
             className="absolute top-1/4 left-10 w-64 h-64 bg-purple-300 rounded-full blur-3xl opacity-20"
