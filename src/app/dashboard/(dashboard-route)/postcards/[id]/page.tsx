@@ -46,6 +46,66 @@ interface Postcard {
 type Phase = "all" | "pre-event" | "main-event" | "post-event";
 const VALID_PHASES: Phase[] = ["all", "pre-event", "main-event", "post-event"];
 
+// ─── Image with loading shimmer ───────────────────────────────────────────────
+// Shows a shimmer skeleton while the image is fetching, then fades it in.
+// Works on slow connections — the skeleton stays visible until onLoad fires.
+
+function ProgressiveImage({
+  src,
+  alt,
+  className,
+  style,
+  eager,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  style?: React.CSSProperties;
+  eager?: boolean;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // If the image is already in the browser cache it fires onLoad synchronously
+  // before React attaches the handler — check naturalWidth to catch that case.
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [src]);
+
+  return (
+    <div className="relative w-full" style={style}>
+      {/* Shimmer placeholder — visible until image loads */}
+      {!loaded && !error && (
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
+      )}
+
+      {error ? (
+        <div className="flex items-center justify-center bg-muted rounded-inherit" style={{ minHeight: 160 }}>
+          <ImageOff className="h-8 w-8 text-muted-foreground/40" />
+        </div>
+      ) : (
+        <img
+          ref={imgRef}
+          src={src}
+          alt={alt}
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+          className={cn(
+            "w-full h-auto block transition-opacity duration-300",
+            loaded ? "opacity-100" : "opacity-0",
+            className
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Comment Sheet ────────────────────────────────────────────────────────────
 
 function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: () => void }) {
@@ -115,12 +175,13 @@ function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: ()
 function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const [buffering, setBuffering] = useState(true);
 
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
     if (active) vid.play().catch(() => {});
-    else vid.pause();
+    else { vid.pause(); vid.currentTime = 0; }
   }, [active]);
 
   const handleTap = (e: React.MouseEvent) => {
@@ -133,6 +194,12 @@ function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) 
 
   return (
     <div className="relative w-full bg-black" onClick={handleTap}>
+      {/* Buffering shimmer */}
+      {buffering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+          <Loader2 className="h-8 w-8 text-white animate-spin" />
+        </div>
+      )}
       <video
         ref={videoRef}
         src={src}
@@ -140,11 +207,15 @@ function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) 
         muted={muted}
         loop
         playsInline
-        preload="auto"
+        // Only load metadata initially — actual data loads on play
+        preload="metadata"
+        onCanPlay={() => setBuffering(false)}
+        onWaiting={() => setBuffering(true)}
+        onPlaying={() => setBuffering(false)}
         className="w-full h-auto block"
         style={{ maxHeight: "70vh" }}
       />
-      <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+      <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-10">
         {muted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
       </div>
     </div>
@@ -187,6 +258,19 @@ function PostcardViewer({
     ? formatDistanceToNow(new Date(postcard.createdAt), { addSuffix: true })
     : "";
 
+  // Preload adjacent images using the browser Image API (works even on slow connections,
+  // doesn't block the main thread, and respects the browser cache).
+  useEffect(() => {
+    const toPreload = [activeIndex - 1, activeIndex, activeIndex + 1];
+    toPreload.forEach((i) => {
+      const m = media[i];
+      if (m?.mediaUrl && m.mediaType !== "VIDEO") {
+        const img = new window.Image();
+        img.src = m.mediaUrl;
+      }
+    });
+  }, [activeIndex, media]);
+
   const handleLike = useCallback(async () => {
     if (!postcard.id) return;
     const wasLiked = liked;
@@ -211,55 +295,59 @@ function PostcardViewer({
     lastTapRef.current = now;
   }, [liked, handleLike]);
 
+  const [sharing, setSharing] = useState(false);
+
   const handleShare = async () => {
-    const url = `${window.location.origin}/dashboard/postcards/${eventId}`;
     const currentMedia = media[activeIndex];
     const authorLabel = postcard.author?.displayName ?? postcard.author?.username ?? eventName;
-
-    // Build a meaningful share text
     const text = postcard.caption
-      ? `${postcard.caption}\n\nShared by ${authorLabel} from ${eventName} on NextVibe`
-      : `Check out this memory from ${eventName} shared by ${authorLabel} on NextVibe`;
+      ? `${postcard.caption}\n\n— ${authorLabel} at ${eventName} via NextVibe`
+      : `Check out this memory from ${eventName} by ${authorLabel} — NextVibe`;
 
-    try {
-      // Try to share the current media file directly
-      if (currentMedia?.mediaUrl && navigator.share) {
-        try {
-          const res = await fetch(currentMedia.mediaUrl, { mode: "cors" });
+    // If no Web Share API (desktop), fall back to clipboard
+    if (!navigator.share) {
+      await navigator.clipboard.writeText(text).catch(() => {});
+      toast.success("Caption copied to clipboard");
+      return;
+    }
+
+    // Try to share the actual media file via our server proxy (bypasses CORS)
+    if (currentMedia?.mediaUrl) {
+      setSharing(true);
+      try {
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
           const blob = await res.blob();
-          const ext = currentMedia.mediaType === "VIDEO" ? "mp4" : "jpg";
-          const file = new File([blob], `nextvibe-postcard.${ext}`, { type: blob.type });
+          const isVideo = currentMedia.mediaType === "VIDEO";
+          const ext = isVideo ? "mp4" : "jpg";
+          const mimeType = isVideo ? "video/mp4" : "image/jpeg";
+          const file = new File([blob], `nextvibe-postcard.${ext}`, { type: mimeType });
 
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({
               files: [file],
-              title: `${eventName} — NextVibe Postcard`,
+              title: `${eventName} — NextVibe`,
               text,
             });
+            setSharing(false);
             return;
           }
-        } catch {
-          // CORS blocked or fetch failed — fall through to URL share
         }
+      } catch (e: any) {
+        if (e?.name === "AbortError") { setSharing(false); return; }
+        // proxy failed — fall through to URL share
       }
+      setSharing(false);
+    }
 
-      // Fallback: share URL + text
-      if (navigator.share) {
-        await navigator.share({
-          title: `${eventName} — NextVibe Postcard`,
-          text,
-          url,
-        });
-        return;
-      }
-
-      // Last resort: copy to clipboard
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      toast.success("Link copied to clipboard");
+    // Fallback: share just the text + link (no media attachment)
+    try {
+      await navigator.share({ title: `${eventName} — NextVibe`, text });
     } catch (e: any) {
       if (e?.name !== "AbortError") {
-        await navigator.clipboard.writeText(`${text}\n${url}`).catch(() => {});
-        toast.success("Link copied to clipboard");
+        await navigator.clipboard.writeText(text).catch(() => {});
+        toast.success("Caption copied to clipboard");
       }
     }
   };
@@ -269,10 +357,15 @@ function PostcardViewer({
   return (
     <>
       <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
-        {/* Author row with close button — no separate top bar */}
+        {/* Author row */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           {postcard.author?.avatarUrl ? (
-            <Image src={postcard.author.avatarUrl} alt={authorName} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+            <Image
+              src={postcard.author.avatarUrl}
+              alt={authorName}
+              width={40} height={40}
+              className="h-10 w-10 rounded-full object-cover"
+            />
           ) : (
             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
               {authorName?.[0]?.toUpperCase() ?? "?"}
@@ -287,16 +380,7 @@ function PostcardViewer({
           </button>
         </div>
 
-        {/* Hidden preload */}
-        <div className="hidden" aria-hidden>
-          {media.map((m) =>
-            m.mediaType === "VIDEO"
-              ? <video key={m.id} src={m.mediaUrl!} preload="auto" />
-              : <img key={m.id} src={m.mediaUrl!} alt="" />
-          )}
-        </div>
-
-        {/* Carousel — swipe only, image renders at natural size */}
+        {/* Carousel */}
         <div className="relative w-full bg-black" onClick={handleMediaTap}>
           <Carousel setApi={setCarouselApi} opts={{ loop: false }} className="w-full">
             <CarouselContent className="ml-0">
@@ -305,12 +389,13 @@ function PostcardViewer({
                   {m.mediaType === "VIDEO" ? (
                     <VideoPlayer src={m.mediaUrl!} active={i === activeIndex} />
                   ) : (
-                    /* Natural aspect ratio — no cropping ever */
-                    <img
+                    <ProgressiveImage
                       src={m.mediaUrl!}
                       alt={postcard.caption ?? "Postcard"}
-                      className="w-full h-auto block"
-                      loading={i === 0 ? "eager" : "lazy"}
+                      eager={i === 0}
+                      // Reserve approximate height so the carousel doesn't collapse
+                      // while the image loads — avoids layout shift
+                      style={i !== 0 && !true ? { minHeight: 300 } : undefined}
                     />
                   )}
                 </CarouselItem>
@@ -351,8 +436,8 @@ function PostcardViewer({
             <MessageCircle className="h-6 w-6 text-foreground" />
             <span className="text-sm font-medium">{commentCount}</span>
           </button>
-          <button onClick={handleShare} className="flex items-center gap-1.5 ml-auto">
-            <Share2 className="h-6 w-6 text-foreground" />
+          <button onClick={handleShare} disabled={sharing} className="flex items-center gap-1.5 ml-auto disabled:opacity-50">
+            {sharing ? <Loader2 className="h-6 w-6 animate-spin text-foreground" /> : <Share2 className="h-6 w-6 text-foreground" />}
           </button>
         </div>
 
@@ -383,7 +468,14 @@ function GridTile({ postcard, onClick }: { postcard: Postcard; onClick: () => vo
     <div onClick={onClick} className="relative mb-1 break-inside-avoid overflow-hidden rounded-lg cursor-pointer bg-muted">
       {isVideo ? (
         <div className="relative">
-          <video src={src} muted autoPlay loop playsInline preload="auto" className="w-full object-cover rounded-lg" />
+          {/* Thumbnail only — no autoplay, no preload of video data */}
+          <video
+            src={src}
+            muted
+            playsInline
+            preload="none"
+            className="w-full object-cover rounded-lg"
+          />
           <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
             <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">
               <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
@@ -391,7 +483,11 @@ function GridTile({ postcard, onClick }: { postcard: Postcard; onClick: () => vo
           </div>
         </div>
       ) : (
-        <img src={src} alt={postcard.caption ?? "Postcard"} className="w-full h-auto block rounded-lg" loading="lazy" />
+        <ProgressiveImage
+          src={src}
+          alt={postcard.caption ?? "Postcard"}
+          className="rounded-lg"
+        />
       )}
       {hasMultiple && (
         <div className="absolute top-1.5 right-1.5">

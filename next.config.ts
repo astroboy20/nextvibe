@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "pbs.twimg.com",
+        hostname: "minio-production-5cff.up.railway.app",
         port: "",
         pathname: "**",
       },
