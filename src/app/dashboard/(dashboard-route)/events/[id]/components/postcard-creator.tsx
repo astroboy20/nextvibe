@@ -474,11 +474,12 @@ export function PostcardCreator({
         }
       }
       const uploadResult = await uploadMultipleFiles(formData).unwrap();
-      const uploadedItems: { fileKey: string; mediaType: string }[] = (
+      const uploadedItems: { fileKey: string; mediaType: string; mediaUrl?: string }[] = (
         uploadResult?.data ?? []
-      ).map((item: { fileKey: string; mediaType: string }) => ({
+      ).map((item: { fileKey: string; mediaType: string; url: string }) => ({
         fileKey: item.fileKey,
         mediaType: item.mediaType,
+        mediaUrl: item.url,
       }));
       if (!uploadedItems.length) {
         toast.error("Upload failed — no file keys returned.");
@@ -654,7 +655,7 @@ export function PostcardCreator({
               {vibeTagOverlay!.name}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              VibeTag will be stamped on your photos
+              VibeTag will be stamped on your photos and associated with videos
             </span>
           </div>
         </div>
@@ -938,6 +939,13 @@ export function PostcardCreator({
                   ) : item.kind === "video" ? (
                     <div className="absolute inset-0 bg-black flex items-center justify-center">
                       <Video className="h-4 w-4 text-white" />
+                      {hasOverlay && (
+                        <img
+                          src={vibeTagOverlay!.imageUrl}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-contain opacity-60 pointer-events-none"
+                        />
+                      )}
                     </div>
                   ) : (
                     <img
@@ -1003,7 +1011,7 @@ export function PostcardCreator({
                             <div className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-sm px-2.5 py-1.5">
                               <Sparkles className="h-3 w-3 text-primary shrink-0" />
                               <span className="text-white text-[10px] font-medium truncate">
-                                VibeTag will be applied
+                                VibeTag overlay applied on upload
                               </span>
                             </div>
                           </div>

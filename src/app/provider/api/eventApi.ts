@@ -476,7 +476,7 @@ export const eventsApi = createApi({
     // Step 2: create postcards with the returned fileKeys
     createPostcards: builder.mutation<
       any,
-      { eventId: string; vibeTagId?: string; media: { fileKey: string; mediaType: string }[] }
+      { eventId: string; vibeTagId?: string; media: { fileKey: string; mediaType: string; mediaUrl?: string }[] }
     >({
       query: ({ eventId, vibeTagId, media }) => ({
         url: "/v1/postcards",
@@ -487,11 +487,19 @@ export const eventsApi = createApi({
     }),
 
     toggleLikePostcard: builder.mutation<any, { eventId: string; postcardId: string }>({
-      query: ({ eventId, postcardId }) => ({
-        url: `/v1/events/${eventId}/postcards/${postcardId}/like`,
+      query: ({ postcardId }) => ({
+        url: `/v1/postcards/${postcardId}/like`,
         method: "POST",
       }),
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    commentOnPostcard: builder.mutation<any, { postcardId: string; content: string }>({
+      query: ({ postcardId, content }) => ({
+        url: `/v1/postcards/${postcardId}/comment`,
+        method: "POST",
+        body: { content },
+      }),
     }),
 
     getPostcardLeaderboard: builder.query<any, { eventId: string; phase?: "pre-event" | "main-event" }>({
@@ -572,6 +580,7 @@ export const {
   useGetEventPostcardsQuery,
   useCreatePostcardMutation,
   useToggleLikePostcardMutation,
+  useCommentOnPostcardMutation,
   useGetPostcardLeaderboardQuery,
   useGetPostcardsQuery,
   useUploadMultipleFilesMutation,
