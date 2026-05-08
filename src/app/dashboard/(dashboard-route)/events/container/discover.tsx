@@ -1,12 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Clock,
   Gamepad2,
   ImageOff,
-  Locate,
   MapPin,
   Sparkles,
   Tag,
@@ -39,7 +37,6 @@ const INTEREST_OPTIONS = [
 ];
 
 const Discover = () => {
-  const router = useRouter();
   const { data: eventsData, isLoading: isLoadingEvents } = useGetEventsQuery();
   const { userInterests } = useEventDiscovery();
 
@@ -208,7 +205,6 @@ const Discover = () => {
         <>
           <div className="mb-6 grid gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-3">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
@@ -223,7 +219,7 @@ const Discover = () => {
                 disabled={autoLocating}
                 title="Use my location"
               >
-                <Locate
+                <MapPin
                   className={autoLocating ? "h-4 w-4 animate-pulse" : "h-4 w-4"}
                 />
               </Button>
@@ -234,7 +230,7 @@ const Discover = () => {
               onChange={(e) => setInterestFilter(e.target.value)}
               className="h-9 rounded-md border border-border bg-background px-3 text-sm"
             >
-              <option value="">Any interest</option>
+              <option value=""> Vibe</option>
               {INTEREST_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt
@@ -253,7 +249,7 @@ const Discover = () => {
             </select>
 
             {/* VibeTag */}
-            <select
+            {/* <select
               value={vibeFilter}
               onChange={(e) => setVibeFilter(e.target.value)}
               className="h-9 rounded-md border border-border bg-background px-3 text-sm"
@@ -261,7 +257,7 @@ const Discover = () => {
               <option value="">Any VibeTag</option>
               <option value="games">Games</option>
               <option value="vibetag">VibeTag</option>
-            </select>
+            </select> */}
 
             {hasFilters && (
               <Button

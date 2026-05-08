@@ -69,7 +69,7 @@ function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: ()
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+    <div className="fixed inset-0 z-60 flex flex-col bg-background">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="font-semibold text-base">Comments</span>
         <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors">
@@ -213,31 +213,52 @@ function PostcardViewer({
 
   const handleShare = async () => {
     const url = `${window.location.origin}/dashboard/postcards/${eventId}`;
-    const caption = postcard.caption
-      ? `"${postcard.caption}" — check out this postcard from ${eventName} on NextVibe`
-      : `Check out this postcard from ${eventName} on NextVibe`;
+    const currentMedia = media[activeIndex];
+    const authorLabel = postcard.author?.displayName ?? postcard.author?.username ?? eventName;
+
+    // Build a meaningful share text
+    const text = postcard.caption
+      ? `${postcard.caption}\n\nShared by ${authorLabel} from ${eventName} on NextVibe`
+      : `Check out this memory from ${eventName} shared by ${authorLabel} on NextVibe`;
+
     try {
-      const files: File[] = [];
-      for (const m of media) {
+      // Try to share the current media file directly
+      if (currentMedia?.mediaUrl && navigator.share) {
         try {
-          const res = await fetch(m.mediaUrl!);
+          const res = await fetch(currentMedia.mediaUrl, { mode: "cors" });
           const blob = await res.blob();
-          files.push(new File([blob], `postcard.${m.mediaType === "VIDEO" ? "mp4" : "jpg"}`, { type: blob.type }));
-        } catch { /* skip */ }
+          const ext = currentMedia.mediaType === "VIDEO" ? "mp4" : "jpg";
+          const file = new File([blob], `nextvibe-postcard.${ext}`, { type: blob.type });
+
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${eventName} — NextVibe Postcard`,
+              text,
+            });
+            return;
+          }
+        } catch {
+          // CORS blocked or fetch failed — fall through to URL share
+        }
       }
-      if (files.length > 0 && navigator.canShare?.({ files })) {
-        await navigator.share({ files, title: `${eventName} Postcard`, text: caption });
-        return;
-      }
+
+      // Fallback: share URL + text
       if (navigator.share) {
-        await navigator.share({ title: `${eventName} Postcard`, text: caption, url });
+        await navigator.share({
+          title: `${eventName} — NextVibe Postcard`,
+          text,
+          url,
+        });
         return;
       }
-      await navigator.clipboard.writeText(`${caption}\n${url}`);
+
+      // Last resort: copy to clipboard
+      await navigator.clipboard.writeText(`${text}\n${url}`);
       toast.success("Link copied to clipboard");
     } catch (e: any) {
       if (e?.name !== "AbortError") {
-        await navigator.clipboard.writeText(url).catch(() => {});
+        await navigator.clipboard.writeText(`${text}\n${url}`).catch(() => {});
         toast.success("Link copied to clipboard");
       }
     }
@@ -248,20 +269,12 @@ function PostcardViewer({
   return (
     <>
       <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
-        {/* Top bar */}
-        <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background border-b border-border">
-          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors">
-            <X className="h-5 w-5" />
-          </button>
-          <span className="font-semibold text-sm">Post</span>
-        </div>
-
-        {/* Author */}
-        <div className="flex items-center gap-3 px-4 py-3">
+        {/* Author row with close button — no separate top bar */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           {postcard.author?.avatarUrl ? (
             <Image src={postcard.author.avatarUrl} alt={authorName} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
               {authorName?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
@@ -269,6 +282,9 @@ function PostcardViewer({
             <p className="text-sm font-semibold leading-tight">{authorName}</p>
             {timeAgo && <p className="text-xs text-muted-foreground">{timeAgo}</p>}
           </div>
+          <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors shrink-0">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Hidden preload */}

@@ -5,6 +5,8 @@ import { decodeJwt } from "jose";
 const PUBLIC_ROUTES = [
   "/",
   "/about",
+  "/pricing",
+  "/how-it-works",
   "/contact",
   "/auth/login",
   "/auth/register",
