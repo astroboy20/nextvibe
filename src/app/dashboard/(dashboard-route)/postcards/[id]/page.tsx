@@ -320,38 +320,29 @@ function PostcardViewer({
       return;
     }
 
-    // Try to share the actual media file via our server proxy (bypasses CORS)
+    // Fetch the image directly and share as a File so the native share sheet
+    // opens with the actual image/video attached for posting to social media
     if (currentMedia?.mediaUrl) {
       setSharing(true);
       try {
-        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
-        const res = await fetch(proxyUrl);
+        const res = await fetch(currentMedia.mediaUrl);
         if (res.ok) {
           const blob = await res.blob();
           const isVideo = currentMedia.mediaType === "VIDEO";
           const ext = isVideo ? "mp4" : "jpg";
           const mimeType = isVideo ? "video/mp4" : "image/jpeg";
           const file = new File([blob], `nextvibe-postcard.${ext}`, { type: mimeType });
-
-          // Try file share — works on iOS Safari and most Android Chrome
-          // Don't gate on canShare({ files }) — it returns false on some
-          // Android devices even though share({ files }) actually works
           try {
-            await navigator.share({
-              files: [file],
-              title: `${eventName} — NextVibe`,
-              text,
-            });
+            await navigator.share({ files: [file], title: `${eventName} — NextVibe`, text });
             setSharing(false);
             return;
-          } catch (shareErr: any) {
-            // AbortError = user cancelled, stop entirely
-            if (shareErr?.name === "AbortError") { setSharing(false); return; }
-            // NotAllowedError / TypeError = files not supported, fall through to text share
+          } catch (e: any) {
+            if (e?.name === "AbortError") { setSharing(false); return; }
+            // file share not supported on this device — fall through
           }
         }
-      } catch (e: any) {
-        if (e?.name === "AbortError") { setSharing(false); return; }
+      } catch {
+        // fetch failed — fall through to text share
       }
       setSharing(false);
     }
