@@ -56,34 +56,37 @@ function ProgressiveImage({
   className,
   style,
   eager,
+  fullscreen,
 }: {
   src: string;
   alt: string;
   className?: string;
   style?: React.CSSProperties;
   eager?: boolean;
+  fullscreen?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // If the image is already in the browser cache it fires onLoad synchronously
-  // before React attaches the handler — check naturalWidth to catch that case.
   useEffect(() => {
     if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoaded(true);
     }
   }, [src]);
 
   return (
-    <div className="relative w-full" style={style}>
-      {/* Shimmer placeholder — visible until image loads */}
+    <div
+      className={cn("relative w-full", fullscreen ? "h-full" : "")}
+      style={style}
+    >
       {!loaded && !error && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
+        <div className={cn("absolute inset-0 bg-muted animate-pulse", fullscreen ? "" : "rounded-inherit")} />
       )}
 
       {error ? (
-        <div className="flex items-center justify-center bg-muted rounded-inherit" style={{ minHeight: 160 }}>
+        <div className={cn("flex items-center justify-center bg-muted", fullscreen ? "h-full" : "rounded-inherit")} style={fullscreen ? undefined : { minHeight: 160 }}>
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
         </div>
       ) : (
@@ -96,7 +99,10 @@ function ProgressiveImage({
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
           className={cn(
-            "w-full h-auto block transition-opacity duration-300",
+            "transition-opacity duration-300",
+            fullscreen
+              ? "w-full h-full object-contain"
+              : "w-full h-auto block",
             loaded ? "opacity-100" : "opacity-0",
             className
           )}
@@ -193,8 +199,7 @@ function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) 
   };
 
   return (
-    <div className="relative w-full bg-black" onClick={handleTap}>
-      {/* Buffering shimmer */}
+    <div className="relative w-full h-full bg-black" onClick={handleTap}>
       {buffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
           <Loader2 className="h-8 w-8 text-white animate-spin" />
@@ -207,13 +212,11 @@ function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) 
         muted={muted}
         loop
         playsInline
-        // Only load metadata initially — actual data loads on play
         preload="metadata"
         onCanPlay={() => setBuffering(false)}
         onWaiting={() => setBuffering(true)}
         onPlaying={() => setBuffering(false)}
-        className="w-full h-auto block"
-        style={{ maxHeight: "70vh" }}
+        className="w-full h-full object-contain"
       />
       <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-10">
         {muted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
@@ -356,9 +359,9 @@ function PostcardViewer({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-hidden">
         {/* Author row */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
           {postcard.author?.avatarUrl ? (
             <Image
               src={postcard.author.avatarUrl}
@@ -380,12 +383,12 @@ function PostcardViewer({
           </button>
         </div>
 
-        {/* Carousel */}
-        <div className="relative w-full bg-black" onClick={handleMediaTap}>
-          <Carousel setApi={setCarouselApi} opts={{ loop: false }} className="w-full">
-            <CarouselContent className="ml-0">
+        {/* Carousel — fills remaining screen height between header and actions */}
+        <div className="relative flex-1 w-full bg-black overflow-hidden" onClick={handleMediaTap}>
+          <Carousel setApi={setCarouselApi} opts={{ loop: false }} className="w-full h-full">
+            <CarouselContent className="ml-0 h-full">
               {media.map((m, i) => (
-                <CarouselItem key={m.id ?? i} className="pl-0">
+                <CarouselItem key={m.id ?? i} className="pl-0 h-full">
                   {m.mediaType === "VIDEO" ? (
                     <VideoPlayer src={m.mediaUrl!} active={i === activeIndex} />
                   ) : (
@@ -393,9 +396,7 @@ function PostcardViewer({
                       src={m.mediaUrl!}
                       alt={postcard.caption ?? "Postcard"}
                       eager={i === 0}
-                      // Reserve approximate height so the carousel doesn't collapse
-                      // while the image loads — avoids layout shift
-                      style={i !== 0 && !true ? { minHeight: 300 } : undefined}
+                      fullscreen
                     />
                   )}
                 </CarouselItem>
@@ -412,7 +413,7 @@ function PostcardViewer({
 
         {/* Dot indicators */}
         {media.length > 1 && (
-          <div className="flex justify-center gap-1.5 py-2">
+          <div className="flex justify-center gap-1.5 py-2 bg-background shrink-0">
             {media.map((_, i) => (
               <button
                 key={i}
@@ -427,14 +428,14 @@ function PostcardViewer({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-4 px-4 py-2">
+        <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
           <button onClick={handleLike} className="flex items-center gap-1.5 transition-transform active:scale-90">
             <Heart className={cn("h-6 w-6 transition-all duration-150", liked ? "fill-red-500 text-red-500 scale-110" : "text-foreground")} />
-            <span className="text-sm font-medium">{likeCount}</span>
+            <span className="text-sm font-medium text-foreground">{likeCount}</span>
           </button>
           <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">
             <MessageCircle className="h-6 w-6 text-foreground" />
-            <span className="text-sm font-medium">{commentCount}</span>
+            <span className="text-sm font-medium text-foreground">{commentCount}</span>
           </button>
           <button onClick={handleShare} disabled={sharing} className="flex items-center gap-1.5 ml-auto disabled:opacity-50">
             {sharing ? <Loader2 className="h-6 w-6 animate-spin text-foreground" /> : <Share2 className="h-6 w-6 text-foreground" />}
@@ -442,7 +443,7 @@ function PostcardViewer({
         </div>
 
         {postcard.caption && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 pt-1 bg-background shrink-0">
             <span className="text-sm font-semibold mr-1">{authorName}</span>
             <span className="text-sm text-foreground">{postcard.caption}</span>
           </div>
