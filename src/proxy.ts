@@ -14,6 +14,8 @@ const PUBLIC_ROUTES = [
   "/verify-email",
   "/check-verification",
   "/game",
+  "/dashboard/events",
+  "/dashboard/postcards",
 ];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
