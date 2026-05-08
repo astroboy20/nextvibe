@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Calendar, Gamepad2, MapPin, Tag } from "lucide-react";
+import { Calendar, Gamepad2, MapPin, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/hooks/format-date";
@@ -8,7 +8,7 @@ import Image from "next/image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
 
-interface PostcardCardProps {
+export interface MediaCardProps {
   id?: string;
   title: string;
   date: string;
@@ -22,12 +22,14 @@ interface PostcardCardProps {
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
   postcardCount?: number;
+  /** "event" navigates to /dashboard/events/:id, "postcard" to /dashboard/postcards/:id */
+  variant?: "event" | "postcard";
 }
 
 const FLIER_MS = 5000;
 const FADE_MS = 700;
 
-export function PostcardCard({
+export function MediaCard({
   id = "1",
   title,
   date,
@@ -41,7 +43,8 @@ export function PostcardCard({
   colorAccent = "plum",
   className,
   postcardCount = 0,
-}: PostcardCardProps) {
+  variant = "event",
+}: MediaCardProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -51,16 +54,12 @@ export function PostcardCard({
   );
 
   const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
-  const attendeeList: {
-    id: string;
-    avatarUrl?: string;
-    displayName?: string;
-  }[] = attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
+  const attendeeList: { id: string; avatarUrl?: string; displayName?: string }[] =
+    attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
 
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -134,21 +133,28 @@ export function PostcardCard({
     plum: "border-primary/30",
   }[colorAccent ?? "plum"];
 
+  const handleClick = () => {
+    if (variant === "postcard") {
+      router.push(`/dashboard/postcards/${id}`);
+    } else {
+      router.replace(`/dashboard/events/${id}`);
+    }
+  };
+
+  // Postcard variant uses a shorter image height to fit the 2-col grid
+  const imageHeight = variant === "postcard" ? "h-36" : "h-56 sm:h-64";
+
   return (
     <div
       ref={containerRef}
-      onClick={() => router.push(`/dashboard/postcards/${id}`)}
+      onClick={handleClick}
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-card shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer",
         className
       )}
     >
-      <div
-        className={cn(
-          "relative h-36 overflow-hidden rounded-t-2xl border-2",
-          accentBorder
-        )}
-      >
+      {/* Media area */}
+      <div className={cn("relative overflow-hidden rounded-t-2xl border-2", imageHeight, accentBorder)}>
         {!image && (
           <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-accent/10" />
         )}
@@ -168,14 +174,15 @@ export function PostcardCard({
             src={image}
             alt={title}
             width={400}
-            height={144}
+            height={256}
             style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
         {(hasGames || hasVibeTag) && (
-          <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
+          <div className="absolute top-2 right-2 flex gap-1 z-10">
             {hasGames && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-vibe-cyan/80 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
                 <Gamepad2 className="h-2.5 w-2.5" />
@@ -192,8 +199,12 @@ export function PostcardCard({
         )}
       </div>
 
-      <div className="p-2.5">
-        <h3 className="font-display text-sm font-semibold line-clamp-1">
+      {/* Info area */}
+      <div className={cn("p-3", variant === "postcard" && "p-2.5")}>
+        <h3 className={cn(
+          "font-display font-semibold line-clamp-1",
+          variant === "postcard" ? "text-sm" : "text-base sm:text-lg"
+        )}>
           {title}
         </h3>
 
@@ -211,12 +222,19 @@ export function PostcardCard({
           </div>
         )}
 
+        {variant === "event" && rsvpStartDateTime && (
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3 w-3 shrink-0 text-primary" />
+            <span>RSVP opens {formatDate(rsvpStartDateTime)}</span>
+          </div>
+        )}
+
         <div className="mt-2 flex items-center">
           {attendeeList.length > 0 ? (
             <>
               <div className="flex -space-x-1.5">
                 {attendeeList.slice(0, 3).map((item, i) => (
-                  <Avatar key={item.id ?? i} className="h-5 w-5 border-2 border-card">
+                  <Avatar key={item.id ?? i} className="h-6 w-6 border-2 border-card">
                     {item.avatarUrl ? (
                       <AvatarImage src={item.avatarUrl} alt={item.displayName ?? "Attendee"} />
                     ) : null}
@@ -225,13 +243,11 @@ export function PostcardCard({
                 ))}
               </div>
               {liveAttendees > 3 && (
-                <span className="ml-1.5 text-[11px] text-muted-foreground">
-                  +{liveAttendees - 3}
-                </span>
+                <span className="ml-1.5 text-xs text-muted-foreground">+{liveAttendees - 3}</span>
               )}
             </>
           ) : (
-            <span className="text-[11px] text-muted-foreground">No attendees yet</span>
+            <span className="text-xs text-muted-foreground">No attendees yet</span>
           )}
         </div>
       </div>

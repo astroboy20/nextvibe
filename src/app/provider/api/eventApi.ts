@@ -13,8 +13,14 @@ export const eventsApi = createApi({
   endpoints: (builder) => ({
 
 
-    getEvents: builder.query<any, void>({
-      query: () => "/v1/events",
+    getEvents: builder.query<any, { page?: number; limit?: number } | void>({
+      query: (params) => {
+        const p = new URLSearchParams();
+        if (params?.page) p.set("page", String(params.page));
+        if (params?.limit) p.set("limit", String(params.limit));
+        const qs = p.toString();
+        return `/v1/events${qs ? `?${qs}` : ""}`;
+      },
       providesTags: ["Events"],
     }),
 

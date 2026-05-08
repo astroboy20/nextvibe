@@ -97,9 +97,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
 }
 
 export default function NotificationsPage() {
-  const { data, isLoading, isError, refetch } = useGetNotificationsQuery(undefined, {
-    pollingInterval: 30000, // refresh every 30s
-  });
+  const { data, isLoading, isError, refetch } = useGetNotificationsQuery(undefined);
   const [markAll, { isLoading: isMarkingAll }] = useMarkAllReadMutation();
 
   const notifications: Notification[] = data?.data?.data ?? [];

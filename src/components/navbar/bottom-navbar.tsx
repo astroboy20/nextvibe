@@ -1,11 +1,10 @@
 "use client";
-import { Home, Plus, User, MessageCircle, Users, Bell } from "lucide-react";
+import { Home, Plus, User, MessageCircle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/provider/store";
-import { useGetNotificationsQuery } from "@/app/provider/api/notificationApi";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard/events" },
@@ -23,8 +22,6 @@ const navItems = [
 const BottomNav = () => {
   const pathname = usePathname();
   const hideNavbar = useSelector((state: RootState) => state.ui.hideHeader);
-  const { data: notifData } = useGetNotificationsQuery(undefined, { pollingInterval: 30000 });
-  const unreadCount = notifData?.data?.meta?.unreadCount ?? 0;
 
   if (hideNavbar) return null;
 
@@ -35,7 +32,6 @@ const BottomNav = () => {
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             const Icon = item.icon;
-            const showBadge = item.path === "/dashboard/profile" && unreadCount > 0;
 
             if (item.isMain) {
               return (
@@ -60,14 +56,7 @@ const BottomNav = () => {
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <div className="relative">
-                  <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
-                  {showBadge && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </div>
+                <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             );

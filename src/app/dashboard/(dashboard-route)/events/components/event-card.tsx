@@ -8,7 +8,7 @@ import Image from "next/image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
 
-interface EventCardProps {
+export interface EventCardProps {
   id?: string;
   title: string;
   date: string;
@@ -22,6 +22,8 @@ interface EventCardProps {
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
   postcardCount?: number;
+  /** "event" navigates to /dashboard/events/:id, "postcard" to /dashboard/postcards/:id */
+  variant?: "event" | "postcard";
 }
 
 const FLIER_MS = 5000;
@@ -41,6 +43,7 @@ export function EventCard({
   colorAccent = "plum",
   className,
   postcardCount = 0,
+  variant = "event",
 }: EventCardProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,29 +54,21 @@ export function EventCard({
   );
 
   const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
-  const attendeeList: {
-    id: string;
-    avatarUrl?: string;
-    displayName?: string;
-  }[] = attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
+  const attendeeList: { id: string; avatarUrl?: string; displayName?: string }[] =
+    attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
 
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
+      ([entry]) => setIsVisible(entry.isIntersecting),
       { threshold: 0.1 }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -85,12 +80,10 @@ export function EventCard({
         cleanupRef.current = null;
         return;
       }
-
       if (!promoVideoUrl || !isVisible) return;
 
       let destroyed = false;
       const timers: ReturnType<typeof setTimeout>[] = [];
-
       const after = (ms: number, fn: () => void) => {
         const t = setTimeout(fn, ms);
         timers.push(t);
@@ -101,9 +94,7 @@ export function EventCard({
         vid.currentTime = 0;
         vid.play().catch(() => {});
         setVideoOpacity(1);
-        after(FADE_MS, () => {
-          if (!destroyed) setFlierOpacity(0);
-        });
+        after(FADE_MS, () => { if (!destroyed) setFlierOpacity(0); });
       };
 
       const backToFlier = () => {
@@ -111,37 +102,25 @@ export function EventCard({
         setFlierOpacity(1);
         after(FADE_MS, () => {
           if (!destroyed) setVideoOpacity(0);
-          after(FLIER_MS, () => {
-            if (!destroyed) playVideo();
-          });
+          after(FLIER_MS, () => { if (!destroyed) playVideo(); });
         });
       };
 
       vid.onended = backToFlier;
-
-      const begin = () => {
-        if (destroyed) return;
-        after(FLIER_MS, playVideo);
-      };
-
+      const begin = () => { if (!destroyed) after(FLIER_MS, playVideo); };
       vid.load();
-
-      const onReady = () => {
-        if (destroyed) return;
-        begin();
-      };
 
       if (vid.readyState >= 3) {
         begin();
       } else {
-        vid.addEventListener("loadeddata", onReady, { once: true });
+        vid.addEventListener("loadeddata", begin, { once: true });
       }
 
       cleanupRef.current = () => {
         destroyed = true;
         timers.forEach(clearTimeout);
         vid.onended = null;
-        vid.removeEventListener("loadeddata", onReady);
+        vid.removeEventListener("loadeddata", begin);
       };
     },
     [promoVideoUrl, isVisible]
@@ -154,21 +133,22 @@ export function EventCard({
     plum: "border-primary/30",
   }[colorAccent ?? "plum"];
 
+  const href =
+    variant === "postcard"
+      ? `/dashboard/postcards/${id}`
+      : `/dashboard/events/${id}`;
+
   return (
     <div
       ref={containerRef}
-      onClick={() => router.replace(`/dashboard/events/${id}`)}
+      onClick={() => router.push(href)}
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-card shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer",
         className
       )}
     >
-      <div
-        className={cn(
-          "relative h-64 overflow-hidden rounded-t-2xl border-2",
-          accentBorder
-        )}
-      >
+      {/* Thumbnail */}
+      <div className={cn("relative h-36 sm:h-48 overflow-hidden rounded-t-2xl border-2", accentBorder)}>
         {!image && (
           <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-accent/10" />
         )}
@@ -179,10 +159,7 @@ export function EventCard({
             muted
             playsInline
             preload="none"
-            style={{
-              opacity: videoOpacity,
-              transition: `opacity ${FADE_MS}ms ease`,
-            }}
+            style={{ opacity: videoOpacity, transition: `opacity ${FADE_MS}ms ease` }}
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
@@ -190,27 +167,24 @@ export function EventCard({
           <Image
             src={image}
             alt={title}
-            width={100}
-            height={100}
-            style={{
-              opacity: flierOpacity,
-              transition: `opacity ${FADE_MS}ms ease`,
-            }}
+            width={400}
+            height={192}
+            style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         {(hasGames || hasVibeTag) && (
-          <div className="absolute top-2 right-2 flex gap-1.5 z-10">
+          <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
             {hasGames && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-vibe-cyan/80 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
-                <Gamepad2 className="h-3 w-3" />
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-vibe-cyan/80 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                <Gamepad2 className="h-2.5 w-2.5" />
                 Games
               </span>
             )}
             {hasVibeTag && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/80 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
-                <Tag className="h-3 w-3" />
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/80 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                <Tag className="h-2.5 w-2.5" />
                 VibeTag
               </span>
             )}
@@ -218,61 +192,54 @@ export function EventCard({
         )}
       </div>
 
-      <div className="p-4">
-        <h3 className="font-display text-lg font-semibold line-clamp-1">
+      {/* Body */}
+      <div className="p-2.5 sm:p-4">
+        <h3 className="font-display text-sm sm:text-base font-semibold line-clamp-1">
           {title}
         </h3>
 
-        <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>{formatDate(date)}</span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3 shrink-0" />
+          <span className="line-clamp-1">{formatDate(date)}</span>
           <span className="text-border">•</span>
-          <span>{postcardCount} {postcardCount === 1 ? "Memory" : "Memories"}</span>
+          <span className="shrink-0">{postcardCount} {postcardCount === 1 ? "Memory" : "Memories"}</span>
         </div>
 
         {location && (
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
             <span className="line-clamp-1">{location}</span>
           </div>
         )}
 
-        {rsvpStartDateTime && (
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-            <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
+        {rsvpStartDateTime && variant === "event" && (
+          <div className="mt-1 hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Users className="h-2.5 w-2.5 shrink-0 text-primary" />
             <span>RSVP opens {formatDate(rsvpStartDateTime)}</span>
           </div>
         )}
 
-        <div className="mt-3 flex items-center">
+        <div className="mt-2 flex items-center">
           {attendeeList.length > 0 ? (
             <>
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-1.5">
                 {attendeeList.slice(0, 3).map((item, i) => (
-                  <Avatar
-                    key={item.id ?? i}
-                    className="h-7 w-7 border-2 border-card"
-                  >
+                  <Avatar key={item.id ?? i} className="h-5 w-5 border-2 border-card">
                     {item.avatarUrl ? (
-                      <AvatarImage
-                        src={item.avatarUrl}
-                        alt={item.displayName ?? "Attendee"}
-                      />
+                      <AvatarImage src={item.avatarUrl} alt={item.displayName ?? "Attendee"} />
                     ) : null}
-                    <AvatarFallback>
-                      {item.displayName?.[0] ?? "U"}
-                    </AvatarFallback>
+                    <AvatarFallback className="text-[9px]">{item.displayName?.[0] ?? "U"}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
               {liveAttendees > 3 && (
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span className="ml-1.5 text-[11px] text-muted-foreground">
                   +{liveAttendees - 3}
                 </span>
               )}
             </>
           ) : (
-            <span className="text-xs text-muted-foreground">No attendees yet</span>
+            <span className="text-[11px] text-muted-foreground">No attendees yet</span>
           )}
         </div>
       </div>
