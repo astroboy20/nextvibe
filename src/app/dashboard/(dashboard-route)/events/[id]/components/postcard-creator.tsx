@@ -113,6 +113,114 @@ async function resizeTo1080p(dataUrl: string): Promise<string> {
   return bakeOverlay(dataUrl, null);
 }
 
+/**
+ * Re-encodes a video blob with the vibeTag overlay composited on every frame.
+ * Uses an offscreen canvas + captureStream + MediaRecorder.
+ * Falls back to the original blob if the browser doesn't support it.
+ */
+async function bakeOverlayOntoVideo(
+  videoBlob: Blob,
+  overlayUrl: string
+): Promise<Blob> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+
+    const objectUrl = URL.createObjectURL(videoBlob);
+    video.src = objectUrl;
+
+    video.onloadedmetadata = () => {
+      const vw = video.videoWidth || OUTPUT_WIDTH;
+      const vh = video.videoHeight || OUTPUT_HEIGHT;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = vw;
+      canvas.height = vh;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx || typeof (canvas as any).captureStream !== "function") {
+        URL.revokeObjectURL(objectUrl);
+        resolve(videoBlob); // fallback
+        return;
+      }
+
+      const overlayImg = new Image();
+      overlayImg.crossOrigin = "anonymous";
+
+      overlayImg.onload = () => {
+        const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : MediaRecorder.isTypeSupported("video/webm")
+          ? "video/webm"
+          : "video/mp4";
+
+        const stream = (canvas as any).captureStream(30) as MediaStream;
+
+        // Include audio if available
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaElementSource(video);
+        const dest = audioCtx.createMediaStreamDestination();
+        source.connect(dest);
+        source.connect(audioCtx.destination);
+        dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+
+        const recorder = new MediaRecorder(stream, { mimeType });
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          URL.revokeObjectURL(objectUrl);
+          audioCtx.close();
+          const result = new Blob(chunks, { type: mimeType });
+          resolve(result.size > 0 ? result : videoBlob);
+        };
+
+        let animFrame: number;
+        const drawFrame = () => {
+          if (video.paused || video.ended) return;
+          // Draw video frame
+          const scale = Math.max(vw / video.videoWidth, vh / video.videoHeight);
+          const sw = video.videoWidth * scale;
+          const sh = video.videoHeight * scale;
+          const sx = (vw - sw) / 2;
+          const sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh);
+          // Draw overlay on top
+          ctx.drawImage(overlayImg, 0, 0, vw, vh);
+          animFrame = requestAnimationFrame(drawFrame);
+        };
+
+        video.onended = () => {
+          cancelAnimationFrame(animFrame);
+          recorder.stop();
+        };
+
+        recorder.start(100);
+        video.play().then(() => {
+          drawFrame();
+        }).catch(() => {
+          recorder.stop();
+          URL.revokeObjectURL(objectUrl);
+          resolve(videoBlob);
+        });
+      };
+
+      overlayImg.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(videoBlob); // fallback — no overlay
+      };
+
+      overlayImg.src = overlayUrl;
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(videoBlob);
+    };
+  });
+}
+
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, data] = dataUrl.split(",");
   const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
@@ -211,7 +319,7 @@ export function PostcardCreator({
   );
 
   const addVideoToQueue = useCallback(
-    (
+    async (
       blob: Blob,
       setter: React.Dispatch<React.SetStateAction<QueuedItem[]>>,
       currentLength: number
@@ -222,20 +330,33 @@ export function PostcardCreator({
       }
       const id = `${Date.now()}-${Math.random()}`;
       const raw = URL.createObjectURL(blob);
+
+      // Add immediately as baking so UI shows spinner
       setter((q) => [
         ...q,
-        {
-          id,
-          kind: "video",
-          raw,
-          baked: raw,
-          caption: "",
-          baking: false,
-          blob,
-        },
+        { id, kind: "video", raw, baked: null, caption: "", baking: true, blob },
       ]);
+
+      let finalBlob = blob;
+      if (hasOverlay && vibeTagOverlay?.imageUrl) {
+        try {
+          finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
+        } catch {
+          // fallback to original
+          finalBlob = blob;
+        }
+      }
+
+      const bakedUrl = URL.createObjectURL(finalBlob);
+      setter((q) =>
+        q.map((item) =>
+          item.id === id
+            ? { ...item, baked: bakedUrl, baking: false, blob: finalBlob }
+            : item
+        )
+      );
     },
-    []
+    [hasOverlay, vibeTagOverlay]
   );
 
   const stopCamera = useCallback(() => {
@@ -992,28 +1113,19 @@ export function PostcardCreator({
                     ) : activeItem.kind === "video" ? (
                       <>
                         <video
-                          src={activeItem.raw}
+                          src={activeItem.baked ?? activeItem.raw}
                           controls
                           className="h-full w-full object-cover"
                           playsInline
                         />
-                        {hasOverlay && (
+                        {/* Show overlay visually while still baking */}
+                        {activeItem.baking && hasOverlay && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
                               src={vibeTagOverlay!.imageUrl}
                               alt={vibeTagOverlay!.name}
                               className="w-full h-full object-contain"
                             />
-                          </div>
-                        )}
-                        {vibeTagId && (
-                          <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-none">
-                            <div className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-sm px-2.5 py-1.5">
-                              <Sparkles className="h-3 w-3 text-primary shrink-0" />
-                              <span className="text-white text-[10px] font-medium truncate">
-                                VibeTag overlay applied on upload
-                              </span>
-                            </div>
                           </div>
                         )}
                       </>
