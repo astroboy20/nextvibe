@@ -245,7 +245,13 @@ function PostcardViewer({
 
   useEffect(() => {
     dispatch(setHideHeader(true));
-    return () => { dispatch(setHideHeader(false)); };
+    // Lock body scroll so the page behind doesn't show when dragging
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      dispatch(setHideHeader(false));
+      document.body.style.overflow = prev;
+    };
   }, [dispatch]);
 
   useEffect(() => {
@@ -327,7 +333,10 @@ function PostcardViewer({
           const mimeType = isVideo ? "video/mp4" : "image/jpeg";
           const file = new File([blob], `nextvibe-postcard.${ext}`, { type: mimeType });
 
-          if (navigator.canShare?.({ files: [file] })) {
+          // Try file share — works on iOS Safari and most Android Chrome
+          // Don't gate on canShare({ files }) — it returns false on some
+          // Android devices even though share({ files }) actually works
+          try {
             await navigator.share({
               files: [file],
               title: `${eventName} — NextVibe`,
@@ -335,11 +344,14 @@ function PostcardViewer({
             });
             setSharing(false);
             return;
+          } catch (shareErr: any) {
+            // AbortError = user cancelled, stop entirely
+            if (shareErr?.name === "AbortError") { setSharing(false); return; }
+            // NotAllowedError / TypeError = files not supported, fall through to text share
           }
         }
       } catch (e: any) {
         if (e?.name === "AbortError") { setSharing(false); return; }
-        // proxy failed — fall through to URL share
       }
       setSharing(false);
     }
