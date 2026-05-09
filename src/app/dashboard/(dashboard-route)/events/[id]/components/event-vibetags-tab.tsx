@@ -1,35 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Camera,
-  Tag,
-  Heart,
-  MessageCircle,
-  Sparkles,
-  ImageOff,
-  Loader2,
-} from "lucide-react";
+import { Camera, Tag, Heart, MessageCircle, Sparkles, ImageOff, Loader2 } from "lucide-react";
 import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
+import {
+  PostcardViewer, ProgressiveImage,
+  type PostcardData,
+} from "@/components/postcard-viewer";
 import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
-
-const TIMING_ORDER: ActivityTiming[] = [
-  "PRE_EVENT",
-  "DURING_EVENT",
-  "POST_EVENT",
-  "BOTH",
-];
 
 const TIMING_META: Record<ActivityTiming, { label: string; phase: string }> = {
   PRE_EVENT: { label: "Pre-Event", phase: "pre-event" },
@@ -61,79 +50,43 @@ const TIMING_PILL: Record<string, { label: string; color: string }> = {
 
 /** Single postcard tile — renders actual postcard media */
 function PostcardTile({
-  postcard,
-  vibeTagMap,
-  onLike,
+  postcard, vibeTagMap, onLike, onClick,
 }: {
-  postcard: any;
-  vibeTagMap: Record<string, VibeTag>;
-  onLike: (id: string) => void;
+  postcard: any; vibeTagMap: Record<string, VibeTag>; onLike: (id: string) => void; onClick: () => void;
 }) {
   const tag = vibeTagMap[postcard?.vibeTagId];
   const timing: string = tag?.activityTiming ?? "";
   const pill = TIMING_PILL[timing];
-  const authorName =
-    postcard?.author?.displayName ?? postcard?.author?.username ?? "";
+  const authorName = postcard?.author?.displayName ?? postcard?.author?.username ?? "";
 
-  // Resolve media — postcards have a media[] array with mediaUrl/storageKey
-  const storageBase =
-    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
-    "http://minio-production-5cff.up.railway.app:443/nextvibe";
-
+  const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL ?? "http://minio-production-5cff.up.railway.app:443/nextvibe";
   const mediaItems: any[] = postcard?.media ?? [];
   const firstMedia = mediaItems[0];
   const src = firstMedia?.mediaUrl
     ? firstMedia.mediaUrl
-    : firstMedia?.storageKey
-      ? `${storageBase}/${firstMedia.storageKey}`
-      : tag?.imageUrl ?? "";
-
+    : firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : tag?.imageUrl ?? "";
   const isVideo = firstMedia?.mediaType === "VIDEO";
 
-  // Never render a blank tile
   if (!src) return null;
 
   return (
-    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in">
+    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in cursor-pointer" onClick={onClick}>
       {isVideo ? (
-        <video
-          src={src}
-          muted
-          loop
-          playsInline
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
+        <video src={src} muted loop playsInline className="h-full w-full object-cover transition-transform group-hover:scale-105" />
       ) : (
-        <img
-          src={src}
-          alt={tag?.name ?? "Postcard"}
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
+        <img src={src} alt={tag?.name ?? "Postcard"} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
       )}
-
-      {/* activity timing pill */}
       {pill && (
-        <span
-          className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}
-        >
+        <span className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}>
           {pill.label}
         </span>
       )}
-
-      {/* gradient + author + likes */}
       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-3">
-        {authorName && (
-          <p className="mb-1 truncate text-xs font-medium text-white">
-            @{authorName}
-          </p>
-        )}
+        {authorName && <p className="mb-1 truncate text-xs font-medium text-white">@{authorName}</p>}
         <div className="flex items-center gap-3 text-white/80">
-          <button
-            onClick={() => onLike(postcard?.id)}
-            className="flex items-center gap-1 text-xs transition-colors hover:text-red-400"
-            aria-label="Like postcard"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onLike(postcard?.id); }}
+            className="flex items-center gap-1 text-xs transition-colors hover:text-red-400" aria-label="Like postcard">
             <Heart className="h-3.5 w-3.5 fill-current" />
             {postcard?.likeCount ?? 0}
           </button>
@@ -149,15 +102,10 @@ function PostcardTile({
 
 /** Fetches postcards for one phase and renders the grid */
 function PhasePostcards({
-  eventId,
-  phase,
-  vibeTagMap,
-  onLike,
+  eventId, phase, vibeTagMap, onLike, onSelect,
 }: {
-  eventId: string;
-  phase: string;
-  vibeTagMap: Record<string, VibeTag>;
-  onLike: (id: string) => void;
+  eventId: string; phase: string; vibeTagMap: Record<string, VibeTag>;
+  onLike: (id: string) => void; onSelect: (p: any) => void;
 }) {
   const { data, isLoading } = useGetEventPostcardsQuery(
     { eventId, phase: phase === "all" ? undefined : phase },
@@ -170,11 +118,7 @@ function PhasePostcards({
   );
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
@@ -182,9 +126,7 @@ function PhasePostcards({
       {postcards.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">
-            No postcards yet for this phase.
-          </p>
+          <p className="text-sm text-muted-foreground">No postcards yet for this phase.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -194,6 +136,7 @@ function PhasePostcards({
               postcard={postcard}
               vibeTagMap={vibeTagMap}
               onLike={onLike}
+              onClick={() => onSelect(postcard)}
             />
           ))}
         </div>
@@ -211,6 +154,7 @@ export function EventVibeTagsTab({
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
   const [postcardPhase, setPostcardPhase] = useState<string>("all");
+  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(null);
 
   // Same query as PhasePostcards — RTK Query deduplicates the request, no extra network call
   const { data: countData } = useGetEventPostcardsQuery(
@@ -401,12 +345,23 @@ export function EventVibeTagsTab({
               phase={postcardPhase}
               vibeTagMap={vibeTagMap}
               onLike={handleLike}
+              onSelect={(p) => setSelectedPostcard(p)}
             />
           )}
         </div>
 
         <AttendeePostcardLeaderboard eventId={eventId} showEngagement={true} />
       </div>
+
+      {selectedPostcard && eventId && (
+        <PostcardViewer
+          postcard={selectedPostcard}
+          eventId={eventId}
+          eventName={eventName}
+          onClose={() => setSelectedPostcard(null)}
+          zIndex={60}
+        />
+      )}
     </>
   );
 }

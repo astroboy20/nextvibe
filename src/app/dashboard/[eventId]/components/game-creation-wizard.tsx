@@ -144,11 +144,11 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>([]);
 
-  const [createGameMutation, { isLoading }]   = useCreateGameMutation();
   const accessToken                           = Cookies.get("accessToken");
   const progress                              = (step / totalSteps) * 100;
   const [validationError, setValidationError] = useState("");
   const [isDone, setIsDone]                   = useState(false);
+  const [isLoading, setIsLoading]             = useState(false);
 
   useBeforeUnload(!isDone && (step > 1 || gameName.trim().length > 0));
 
@@ -288,9 +288,15 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "AI generation failed");
 
-      // API returns: { success, data: { success, data: { suggestedTitle, suggestedDescription, questions: [...] } } }
+      // Actual response shape:
+      // { success, data: { success, data: { suggestedTitle, suggestedDescription, rounds: [{ title, questions: [...] }] } } }
       const inner = data?.data?.data ?? data?.data ?? data;
-      const rawQuestions: any[] = inner?.questions ?? [];
+
+      // Questions can be at inner.questions (flat) or inner.rounds[roundIdx].questions (nested)
+      const rawQuestions: any[] =
+        inner?.rounds?.[0]?.questions ??
+        inner?.questions ??
+        [];
 
       if (!rawQuestions.length) throw new Error("AI returned no questions. Try a different topic.");
 
@@ -306,8 +312,8 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         if (gameType === "word-puzzle") {
           return {
             ...base,
-            question: q.clue ?? q.question ?? q.text ?? "",
-            clue: q.clue ?? q.question ?? q.text ?? "",
+            question: q.clue ?? q.text ?? q.question ?? "",
+            clue: q.clue ?? q.text ?? q.question ?? "",
             correctAnswer: q.correctAnswer ?? q.answer ?? "",
             options: undefined,
           };
@@ -316,7 +322,9 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         if (gameType === "two-truths") {
           const options: string[] = q.options ?? [];
           const lieAnswer: string = q.correctAnswer ?? q.answer ?? options[0] ?? "";
-          const lieIndex = options.indexOf(lieAnswer);
+          const lieIndex = options.findIndex(
+            (o) => o.toLowerCase().trim() === lieAnswer.toLowerCase().trim()
+          );
           return {
             ...base,
             question: q.text ?? q.question ?? "",
@@ -327,14 +335,18 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         }
 
         // TRIVIA / THIS_OR_THAT
+        // correctAnswer is a string — find its index in options
         const options: string[] = q.options ?? [];
-        const correctIdx: number = q.correctIndex ?? 0;
+        const correctAnswerStr: string = q.correctAnswer ?? "";
+        const correctIdx = options.findIndex(
+          (o) => o.toLowerCase().trim() === correctAnswerStr.toLowerCase().trim()
+        );
         return {
           ...base,
           question: q.text ?? q.question ?? "",
           options,
-          correctIndex: correctIdx,
-          correctAnswer: options[correctIdx] ?? "",
+          correctIndex: correctIdx >= 0 ? correctIdx : (q.correctIndex ?? 0),
+          correctAnswer: correctAnswerStr || (options[q.correctIndex ?? 0] ?? ""),
         };
       });
       setRoundQuestions(roundIdx, generated);
@@ -361,7 +373,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message);
       const inner = data?.data?.data ?? data?.data ?? data;
-      const rawQuestions: any[] = inner?.questions ?? [];
+      const rawQuestions: any[] =
+        inner?.rounds?.[0]?.questions ??
+        inner?.questions ??
+        [];
       const replacement = rawQuestions[0];
       if (!replacement) throw new Error("No replacement question returned.");
       setRoundQuestions(activeRoundIdx, currentRound!.questions.map((q) =>
@@ -426,7 +441,22 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleComplete = async () => {
     try {
+      setIsLoading(true);
+      const rewardTierPayload = rewardTiers.map(({ id: _id, ...tier }) => ({
+        rank: tier.rank,
+        type: tier.type,
+        title: tier.title,
+        description: tier.description,
+        value: tier.value,
+        discountType: tier.discountType,
+        discountValue: tier.discountValue,
+        usageLimit: tier.usageLimit,
+        expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
+        quantity: tier.quantity,
+      }));
+
       const payload = {
+        eventId,
         title: gameName,
         scheduleType: SCHEDULE_TO_API[scheduleMode],
         priceCurrency,
@@ -436,77 +466,53 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         activityTiming: PHASE_TO_API[phase],
         maxWinners,
         gameDuration,
+        rewardTiers: rewardTierPayload,
         rounds: roundsData.map((r, i) => ({
           title: r.title || `Round ${i + 1}`,
           description: r.description,
           gameType: GAMETYPE_TO_API[r.gameType],
-          config: {
-            questions: r.questions.map((q) => {
-              // Build type-specific question payload
-              if (r.gameType === "word-puzzle") {
-                return {
-                  clue: q.clue ?? q.question,
-                  correctAnswer: q.correctAnswer ?? "",
-                  points: q.points ?? 10,
-                  timeLimitSecs: q.timeLimitSecs,
-                };
-              }
-              if (r.gameType === "two-truths") {
-                return {
-                  text: q.question,
-                  options: q.options ?? [],
-                  correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
-                  points: q.points ?? 10,
-                  timeLimitSecs: q.timeLimitSecs,
-                };
-              }
-              // TRIVIA / THIS_OR_THAT
+          orderIndex: i,
+          rewardTiers: rewardTierPayload,
+          questions: r.questions.map((q) => {
+            if (r.gameType === "word-puzzle") {
               return {
-                text: q.question,
-                options: q.options ?? [],
-                correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
+                clue: q.clue ?? q.question,
+                correctAnswer: q.correctAnswer ?? "",
                 points: q.points ?? 10,
                 timeLimitSecs: q.timeLimitSecs,
               };
-            }),
-          },
-          orderIndex: i,
-          rewardTiers: rewardTiers.map(({ id: _id, ...tier }) => ({
-            rank: tier.rank,
-            type: tier.type,
-            title: tier.title,
-            description: tier.description,
-            value: tier.value,
-            discountType: tier.discountType,
-            discountValue: tier.discountValue,
-            usageLimit: tier.usageLimit,
-            expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
-            quantity: tier.quantity,
-          })),
-        })),
-        rewardTiers: rewardTiers.map(({ id: _id, ...tier }) => ({
-          rank: tier.rank,
-          type: tier.type,
-          title: tier.title,
-          description: tier.description,
-          value: tier.value,
-          discountType: tier.discountType,
-          discountValue: tier.discountValue,
-          usageLimit: tier.usageLimit,
-          expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
-          quantity: tier.quantity,
+            }
+            // TRIVIA / TWO_TRUTHS / THIS_OR_THAT
+            return {
+              text: q.question,
+              options: q.options ?? [],
+              correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
+              points: q.points ?? 10,
+              timeLimitSecs: q.timeLimitSecs,
+            };
+          }),
         })),
       };
 
-      const request = await createGameMutation({ body: payload, eventId }).unwrap();
-      if (request.success) {
-        toast.success("Game created successfully!");
-        setIsDone(true);
-        clearSaved();
-        onCancel();
-      }
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/save-draft`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify(payload),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.message || "Failed to create game.");
+
+      toast.success("Game created successfully!");
+      setIsDone(true);
+      clearSaved();
+      onCancel();
     } catch (err: any) {
-      toast.error(err?.data?.message || err?.message || "Failed to create game. Please try again.");
+      toast.error(err?.message || "Failed to create game. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 

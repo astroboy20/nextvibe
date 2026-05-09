@@ -36,7 +36,6 @@ export function AttendeePostcardLeaderboard({
     { skip: !eventId }
   );
 
-  // API response: { success, data: [...] }
   const leaders: any[] = leaderboardData?.data ?? [];
 
   return (
