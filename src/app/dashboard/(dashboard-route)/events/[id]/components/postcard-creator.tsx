@@ -24,7 +24,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  useUploadMultipleFilesMutation,
   useCreatePostcardsMutation,
 } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
@@ -260,8 +259,11 @@ export function PostcardCreator({
   );
   const [isFlipping, setIsFlipping] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submitStage, setSubmitStage] = useState<"uploading" | "saving">("uploading");
+
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [localUploadProgress, setLocalUploadProgress] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -278,7 +280,6 @@ export function PostcardCreator({
     };
   }, [dispatch]);
 
-  const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
   const [createPostcards] = useCreatePostcardsMutation();
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
 
@@ -529,7 +530,7 @@ export function PostcardCreator({
       );
 
     setIsProcessingUpload(true);
-    setUploadProgress(0);
+    setLocalUploadProgress(0);
 
     for (let i = 0; i < toProcess.length; i++) {
       const file = toProcess[i];
@@ -544,11 +545,11 @@ export function PostcardCreator({
         const resized = await resizeTo1080p(raw);
         await addImageToQueue(resized, setUploadQueue, uploadQueue.length);
       }
-      setUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
+      setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
     }
 
     setIsProcessingUpload(false);
-    setUploadProgress(0);
+    setLocalUploadProgress(0);
     setMode("upload-review");
     setActiveIdx(0);
     e.target.value = "";
@@ -577,12 +578,14 @@ export function PostcardCreator({
   const handleSubmitAll = async (queue: QueuedItem[]) => {
     const ready = queue.filter((item) => !item.baking);
     if (!ready.length) return;
-    if (!eventId) {
-      toast.error("Event ID missing.");
-      return;
-    }
+    if (!eventId) { toast.error("Event ID missing."); return; }
+
     setIsSubmitting(true);
+    setSubmitProgress(0);
+    setSubmitStage("uploading");
+
     try {
+      // Build FormData
       const formData = new FormData();
       for (const item of ready) {
         if (item.kind === "video" && item.blob) {
@@ -594,7 +597,38 @@ export function PostcardCreator({
           formData.append("files", blob, `postcard-${item.id}.jpg`);
         }
       }
-      const uploadResult = await uploadMultipleFiles(formData).unwrap();
+
+      // Use XHR so we get real upload progress events
+      const accessToken = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("accessToken="))
+        ?.split("=")[1];
+
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL}/v1/storage/upload-multiple`);
+        if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            // Upload is 0–85% of total progress
+            setSubmitProgress(Math.round((e.loaded / e.total) * 85));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch { reject(new Error("Invalid response")); }
+          } else {
+            try { reject(new Error(JSON.parse(xhr.responseText)?.message || "Upload failed")); }
+            catch { reject(new Error("Upload failed")); }
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(formData);
+      });
+
       const uploadedItems: { fileKey: string; mediaType: string; mediaUrl?: string }[] = (
         uploadResult?.data ?? []
       ).map((item: { fileKey: string; mediaType: string; url: string }) => ({
@@ -602,26 +636,29 @@ export function PostcardCreator({
         mediaType: item.mediaType,
         mediaUrl: item.url,
       }));
+
       if (!uploadedItems.length) {
         toast.error("Upload failed — no file keys returned.");
         return;
       }
-      await createPostcards({
-        eventId,
-        vibeTagId,
-        media: uploadedItems,
-      }).unwrap();
-      toast.success(
-        `${ready.length} item${ready.length > 1 ? "s" : ""} posted!`
-      );
-      ready.forEach((item) =>
-        onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption })
-      );
+
+      // Saving stage — 85–100%
+      setSubmitStage("saving");
+      setSubmitProgress(90);
+
+      await createPostcards({ eventId, vibeTagId, media: uploadedItems }).unwrap();
+
+      setSubmitProgress(100);
+      await new Promise((r) => setTimeout(r, 300)); // brief pause to show 100%
+
+      toast.success(`${ready.length} item${ready.length > 1 ? "s" : ""} posted!`);
+      ready.forEach((item) => onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption }));
       onClose?.();
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to post. Please try again.");
+      toast.error(err?.data?.message ?? err?.message ?? "Failed to post. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setSubmitProgress(0);
     }
   };
 
@@ -996,14 +1033,14 @@ export function PostcardCreator({
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      uploading
+                      Processing…
                     </span>
-                    <span>{uploadProgress}%</span>
+                    <span>{localUploadProgress}%</span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
+                      style={{ width: `${localUploadProgress}%` }}
                     />
                   </div>
                 </div>
@@ -1206,10 +1243,18 @@ export function PostcardCreator({
                       className="w-full h-12 rounded-xl gap-2"
                     >
                       {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Posting…
-                        </>
+                        <div className="w-full space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span>{submitStage === "uploading" ? "Uploading…" : "Saving…"}</span>
+                            <span className="font-semibold">{submitProgress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                            <div
+                              className="h-full bg-white rounded-full transition-all duration-200"
+                              style={{ width: `${submitProgress}%` }}
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <>
                           <CheckCircle2 className="h-4 w-4" />
