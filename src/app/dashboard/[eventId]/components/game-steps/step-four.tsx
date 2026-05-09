@@ -42,10 +42,13 @@ const StepFour = ({
 }: StepFourProps) => {
   const addQuestion = () => {
     const newId = `q-${Date.now()}`;
+    const isWordPuzzle = gameType === "word-puzzle";
     const optionCount = gameType === "this-or-that" ? 2 : gameType === "two-truths" ? 3 : 4;
     setQuestions((prev: Question[]) => [
       ...prev,
-      { id: newId, question: "", options: Array(optionCount).fill(""), correctIndex: 0, timeLimitSecs: 15 },
+      isWordPuzzle
+        ? { id: newId, question: "", clue: "", correctAnswer: "", timeLimitSecs: 15, points: 10 }
+        : { id: newId, question: "", options: Array(optionCount).fill(""), correctIndex: 0, correctAnswer: "", timeLimitSecs: 15, points: 10 },
     ]);
     setEditingQuestion(newId);
   };
@@ -113,40 +116,78 @@ const StepFour = ({
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <Input
-                    value={q.question}
-                    onChange={(e) => handleQuestionEdit(q.id, "question", e.target.value)}
-                    placeholder="Type your question here…"
-                    className="h-10 font-medium"
-                    autoFocus
-                  />
-                  {q.options && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Options — tap circle to mark correct answer</Label>
-                      {q.options.map((opt, optIdx) => (
-                        <div key={optIdx} className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleQuestionEdit(q.id, "correctIndex", optIdx)}
-                            className={cn(
-                              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors",
-                              q.correctIndex === optIdx
-                                ? "bg-emerald-500 text-white"
-                                : "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
-                            )}
-                          >
-                            {q.correctIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
-                          </button>
-                          <Input
-                            value={opt}
-                            onChange={(e) => handleOptionEdit(q.id, optIdx, e.target.value)}
-                            placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                            className="h-9 text-sm flex-1"
-                          />
+
+                  {/* WORD PUZZLE: clue + answer */}
+                  {gameType === "word-puzzle" ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Clue (hint shown to players)</Label>
+                        <Input
+                          value={q.clue ?? q.question}
+                          onChange={(e) => handleQuestionEdit(q.id, "clue", e.target.value)}
+                          placeholder="e.g. A large African animal with a trunk"
+                          className="h-10 font-medium"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Answer (the word to solve)</Label>
+                        <Input
+                          value={q.correctAnswer ?? ""}
+                          onChange={(e) => handleQuestionEdit(q.id, "correctAnswer", e.target.value)}
+                          placeholder="e.g. ELEPHANT"
+                          className="h-10"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Question text */}
+                      <Input
+                        value={q.question}
+                        onChange={(e) => handleQuestionEdit(q.id, "question", e.target.value)}
+                        placeholder={gameType === "two-truths" ? "Theme / context (optional)" : "Type your question here…"}
+                        className="h-10 font-medium"
+                        autoFocus
+                      />
+
+                      {/* Options */}
+                      {q.options && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            {gameType === "two-truths"
+                              ? "Enter 3 statements — tap circle to mark the LIE"
+                              : "Options — tap circle to mark correct answer"}
+                          </Label>
+                          {q.options.map((opt, optIdx) => (
+                            <div key={optIdx} className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleQuestionEdit(q.id, "correctIndex", optIdx)}
+                                className={cn(
+                                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors",
+                                  q.correctIndex === optIdx
+                                    ? gameType === "two-truths"
+                                      ? "bg-red-500 text-white"
+                                      : "bg-emerald-500 text-white"
+                                    : "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
+                                )}
+                              >
+                                {q.correctIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
+                              </button>
+                              <Input
+                                value={opt}
+                                onChange={(e) => handleOptionEdit(q.id, optIdx, e.target.value)}
+                                placeholder={gameType === "two-truths" ? `Statement ${optIdx + 1}` : `Option ${String.fromCharCode(65 + optIdx)}`}
+                                className="h-9 text-sm flex-1"
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
+
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs text-muted-foreground whitespace-nowrap">Time limit (s)</Label>
@@ -174,9 +215,15 @@ const StepFour = ({
                   <Badge variant="secondary" className="shrink-0 text-xs mt-0.5">Q{index + 1}</Badge>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-snug">
-                      {q.question || <span className="text-muted-foreground italic">Empty question</span>}
+                      {gameType === "word-puzzle"
+                        ? (q.clue || <span className="text-muted-foreground italic">No clue set</span>)
+                        : (q.question || <span className="text-muted-foreground italic">Empty question</span>)}
                     </p>
-                    {q.options && (
+                    {gameType === "word-puzzle" ? (
+                      <p className="text-xs text-emerald-600 font-medium mt-1">
+                        Answer: {q.correctAnswer || <span className="text-muted-foreground italic">Not set</span>}
+                      </p>
+                    ) : q.options ? (
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {q.options.map((opt, optIdx) => (
                           <span
@@ -184,16 +231,18 @@ const StepFour = ({
                             className={cn(
                               "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs",
                               q.correctIndex === optIdx
-                                ? "bg-emerald-100 text-emerald-700 font-medium"
+                                ? gameType === "two-truths"
+                                  ? "bg-red-100 text-red-700 font-medium"
+                                  : "bg-emerald-100 text-emerald-700 font-medium"
                                 : "bg-muted text-muted-foreground"
                             )}
                           >
                             {opt || `Option ${String.fromCharCode(65 + optIdx)}`}
-                            {q.correctIndex === optIdx && " ✓"}
+                            {q.correctIndex === optIdx && (gameType === "two-truths" ? " 🤥" : " ✓")}
                           </span>
                         ))}
                       </div>
-                    )}
+                    ) : null}
                     <p className="text-[11px] text-muted-foreground mt-1">{q.timeLimitSecs}s limit</p>
                   </div>
                   <div className="flex gap-1 shrink-0">

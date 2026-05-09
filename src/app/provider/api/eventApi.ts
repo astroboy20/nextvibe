@@ -492,7 +492,11 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
-    toggleLikePostcard: builder.mutation<any, { eventId: string; postcardId: string }>({
+    /** POST /v1/postcards/:id/like — toggle like, returns { liked, currentLikes } */
+    toggleLikePostcard: builder.mutation<
+      { liked: boolean; currentLikes: number },
+      { eventId: string; postcardId: string }
+    >({
       query: ({ postcardId }) => ({
         url: `/v1/postcards/${postcardId}/like`,
         method: "POST",
@@ -500,7 +504,11 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
-    commentOnPostcard: builder.mutation<any, { postcardId: string; content: string }>({
+    /** POST /v1/postcards/:id/comment — add comment, returns comment with author */
+    commentOnPostcard: builder.mutation<
+      { id: string; content: string; createdAt: string; author: { displayName?: string; username?: string; avatarUrl?: string | null } },
+      { postcardId: string; content: string }
+    >({
       query: ({ postcardId, content }) => ({
         url: `/v1/postcards/${postcardId}/comment`,
         method: "POST",
@@ -508,10 +516,29 @@ export const eventsApi = createApi({
       }),
     }),
 
-    getPostcardLeaderboard: builder.query<any, { eventId: string; phase?: "pre-event" | "main-event" }>({
-      query: ({ eventId, phase }) => {
-        const params = phase ? `?phase=${phase}` : "";
-        return `/v1/events/${eventId}/postcards/leaderboard${params}`;
+    /** GET /v1/postcards/:id/likes — list of likes */
+    getPostcardLikes: builder.query<any, string>({
+      query: (postcardId) => `/v1/postcards/${postcardId}/likes`,
+      providesTags: (_, __, id) => [{ type: "Gallery", id: `likes-${id}` }],
+    }),
+
+    /** GET /v1/postcards/:id/comments — list of comments */
+    getPostcardComments: builder.query<any, string>({
+      query: (postcardId) => `/v1/postcards/${postcardId}/comments`,
+      providesTags: (_, __, id) => [{ type: "Gallery", id: `comments-${id}` }],
+    }),
+
+    /** GET /v1/postcards/:id — single postcard with likeCount */
+    getPostcard: builder.query<any, string>({
+      query: (postcardId) => `/v1/postcards/${postcardId}`,
+      providesTags: (_, __, id) => [{ type: "Gallery", id: `postcard-${id}` }],
+    }),
+
+    /** GET /v1/postcards/event/:eventId/leaderboard — postcard leaderboard, optional ?activityTiming= */
+    getPostcardLeaderboard: builder.query<any, { eventId: string; activityTiming?: string }>({
+      query: ({ eventId, activityTiming }) => {
+        const qs = activityTiming ? `?activityTiming=${activityTiming}` : "";
+        return `/v1/postcards/event/${eventId}/leaderboard${qs}`;
       },
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
@@ -587,6 +614,9 @@ export const {
   useCreatePostcardMutation,
   useToggleLikePostcardMutation,
   useCommentOnPostcardMutation,
+  useGetPostcardQuery,
+  useGetPostcardLikesQuery,
+  useGetPostcardCommentsQuery,
   useGetPostcardLeaderboardQuery,
   useGetPostcardsQuery,
   useUploadMultipleFilesMutation,

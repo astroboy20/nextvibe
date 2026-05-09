@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -46,10 +46,15 @@ export interface RewardTier {
 
 export interface Question {
   id: string;
+  // TRIVIA / TWO_TRUTHS / THIS_OR_THAT
   question: string;
   options?: string[];
-  correctIndex?: number;
-  answer?: string;
+  correctIndex?: number;   // TRIVIA: index of correct option; TWO_TRUTHS: index of the lie
+  correctAnswer?: string;  // derived from options[correctIndex] on submit
+  // WORD_PUZZLE
+  clue?: string;           // the hint shown to players
+  // shared
+  points?: number;
   timeLimitSecs: number;
 }
 
@@ -97,10 +102,6 @@ export const gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: st
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
 const STORAGE_KEY = "gameWizardState";
-const loadSaved = () => {
-  if (typeof window === "undefined") return null;
-  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null"); } catch { return null; }
-};
 const clearSaved = () => {
   if (typeof window !== "undefined") sessionStorage.removeItem(STORAGE_KEY);
 };
@@ -121,51 +122,35 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     : "";
   const maxStartsAt = gameEndsAt;
 
-  // Initialise all state from localStorage if available, otherwise use defaults
-  const saved = loadSaved();
-
-  const [step, setStep]                       = useState<number>(saved?.step ?? 1);
-  const [gameName, setGameName]               = useState<string>(saved?.gameName ?? "");
-  const [numberOfRounds, setNumberOfRounds]   = useState<number>(saved?.numberOfRounds ?? 1);
-  const [phase, setPhase]                     = useState<EventPhase>(saved?.phase ?? "main-event");
-  const [scheduleMode, setScheduleMode]       = useState<ScheduleMode>(saved?.scheduleMode ?? "concurrent");
-  const [startsAt, setStartsAt]               = useState<string>(saved?.startsAt ?? "");
-  const [gameDuration, setGameDuration]       = useState<number>(saved?.gameDuration ?? 30);
-  const [repetitions, setRepetitions]         = useState<number>(saved?.repetitions ?? 1);
-  const [maxWinners, setMaxWinners]           = useState<number>(saved?.maxWinners ?? 3);
+  const [step, setStep]                       = useState<number>(1);
+  const [gameName, setGameName]               = useState<string>("");
+  const [numberOfRounds, setNumberOfRounds]   = useState<number>(1);
+  const [phase, setPhase]                     = useState<EventPhase>("main-event");
+  const [scheduleMode, setScheduleMode]       = useState<ScheduleMode>("concurrent");
+  const [startsAt, setStartsAt]               = useState<string>("");
+  const [gameDuration, setGameDuration]       = useState<number>(30);
+  const [repetitions, setRepetitions]         = useState<number>(1);
+  const [maxWinners, setMaxWinners]           = useState<number>(3);
   const [priceCurrency]                       = useState("NGN");
-  const [activeRoundIdx, setActiveRoundIdx]   = useState<number>(saved?.activeRoundIdx ?? 0);
-  const [contentMode, setContentMode]         = useState<ContentMode>(saved?.contentMode ?? "ai");
+  const [activeRoundIdx, setActiveRoundIdx]   = useState<number>(0);
+  const [contentMode, setContentMode]         = useState<ContentMode>("ai");
   const [aiPrompt, setAiPrompt]               = useState<{
     topic: string; count: number | null; gameType: GameTypeOrEmpty;
     difficulty: string; activityTiming: "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
     eventName: string;
-  }>(saved?.aiPrompt ?? { topic: "", count: null, gameType: "trivia", difficulty: "", activityTiming: "", eventName });
-  const [roundsData, setRoundsData]           = useState<RoundData[]>(saved?.roundsData ?? []);
+  }>({ topic: "", count: null, gameType: "trivia", difficulty: "", activityTiming: "", eventName });
+  const [roundsData, setRoundsData]           = useState<RoundData[]>([]);
   const [isGenerating, setIsGenerating]       = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<string | null>(saved?.editingQuestion ?? null);
-  const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>(saved?.rewardTiers ?? []);
+  const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>([]);
 
   const [createGameMutation, { isLoading }]   = useCreateGameMutation();
   const accessToken                           = Cookies.get("accessToken");
   const progress                              = (step / totalSteps) * 100;
   const [validationError, setValidationError] = useState("");
+  const [isDone, setIsDone]                   = useState(false);
 
-  useBeforeUnload(step > 1 || gameName.trim().length > 0);
-
-  // Auto-save to sessionStorage on every state change (survives back navigation, cleared on tab close/refresh)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        step, gameName, numberOfRounds, phase, scheduleMode, startsAt,
-        gameDuration, repetitions, maxWinners, activeRoundIdx, contentMode,
-        aiPrompt, roundsData, rewardTiers, editingQuestion,
-      }));
-    } catch { /* storage quota exceeded */ }
-  }, [step, gameName, numberOfRounds, phase, scheduleMode, startsAt,
-      gameDuration, repetitions, maxWinners, activeRoundIdx, contentMode,
-      aiPrompt, roundsData, rewardTiers, editingQuestion]);
+  useBeforeUnload(!isDone && (step > 1 || gameName.trim().length > 0));
 
   // Current round being configured
   const currentRound: RoundData | undefined = roundsData[activeRoundIdx];
@@ -309,13 +294,49 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
 
       if (!rawQuestions.length) throw new Error("AI returned no questions. Try a different topic.");
 
-      const generated: Question[] = rawQuestions.map((q: any, i: number) => ({
-        id: `q-${roundIdx}-${i + 1}`,
-        question: q.question ?? q.text ?? "",
-        options: q.options ?? [],
-        correctIndex: q.correctIndex ?? 0,
-        timeLimitSecs: q.timeLimitSecs ?? 15,
-      }));
+      const gameType = roundsData[roundIdx]?.gameType ?? "trivia";
+
+      const generated: Question[] = rawQuestions.map((q: any, i: number) => {
+        const base = {
+          id: `q-${roundIdx}-${i + 1}`,
+          timeLimitSecs: q.timeLimitSecs ?? 15,
+          points: q.points ?? 10,
+        };
+
+        if (gameType === "word-puzzle") {
+          return {
+            ...base,
+            question: q.clue ?? q.question ?? q.text ?? "",
+            clue: q.clue ?? q.question ?? q.text ?? "",
+            correctAnswer: q.correctAnswer ?? q.answer ?? "",
+            options: undefined,
+          };
+        }
+
+        if (gameType === "two-truths") {
+          const options: string[] = q.options ?? [];
+          const lieAnswer: string = q.correctAnswer ?? q.answer ?? options[0] ?? "";
+          const lieIndex = options.indexOf(lieAnswer);
+          return {
+            ...base,
+            question: q.text ?? q.question ?? "",
+            options,
+            correctIndex: lieIndex >= 0 ? lieIndex : 0,
+            correctAnswer: lieAnswer,
+          };
+        }
+
+        // TRIVIA / THIS_OR_THAT
+        const options: string[] = q.options ?? [];
+        const correctIdx: number = q.correctIndex ?? 0;
+        return {
+          ...base,
+          question: q.text ?? q.question ?? "",
+          options,
+          correctIndex: correctIdx,
+          correctAnswer: options[correctIdx] ?? "",
+        };
+      });
       setRoundQuestions(roundIdx, generated);
       setStep(4);
     } catch (err: any) {
@@ -361,9 +382,17 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         ...current,
         questions: current.questions.map((q) => {
           if (q.id !== id) return q;
-          if (field === "question") return { ...q, question: value as string };
-          if (field === "correctIndex") return { ...q, correctIndex: value as number };
+          if (field === "question") return { ...q, question: value as string, clue: value as string };
+          if (field === "clue") return { ...q, clue: value as string, question: value as string };
+          if (field === "correctAnswer") return { ...q, correctAnswer: value as string };
+          if (field === "correctIndex") {
+            // Keep correctAnswer in sync with the selected option
+            const newIdx = value as number;
+            const newAnswer = q.options?.[newIdx] ?? "";
+            return { ...q, correctIndex: newIdx, correctAnswer: newAnswer };
+          }
           if (field === "timeLimitSecs") return { ...q, timeLimitSecs: value as number };
+          if (field === "points") return { ...q, points: value as number };
           return q;
         }),
       };
@@ -381,7 +410,9 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           if (q.id !== questionId || !q.options) return q;
           const newOptions = [...q.options];
           newOptions[optionIndex] = value;
-          return { ...q, options: newOptions };
+          // Keep correctAnswer in sync if the correct option text changed
+          const newCorrectAnswer = newOptions[q.correctIndex ?? 0] ?? q.correctAnswer;
+          return { ...q, options: newOptions, correctAnswer: newCorrectAnswer };
         }),
       };
       return next;
@@ -410,12 +441,34 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           description: r.description,
           gameType: GAMETYPE_TO_API[r.gameType],
           config: {
-            questions: r.questions.map((q) => ({
-              text: q.question,
-              options: q.options,
-              correctIndex: q.correctIndex,
-              timeLimitSecs: q.timeLimitSecs,
-            })),
+            questions: r.questions.map((q) => {
+              // Build type-specific question payload
+              if (r.gameType === "word-puzzle") {
+                return {
+                  clue: q.clue ?? q.question,
+                  correctAnswer: q.correctAnswer ?? "",
+                  points: q.points ?? 10,
+                  timeLimitSecs: q.timeLimitSecs,
+                };
+              }
+              if (r.gameType === "two-truths") {
+                return {
+                  text: q.question,
+                  options: q.options ?? [],
+                  correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
+                  points: q.points ?? 10,
+                  timeLimitSecs: q.timeLimitSecs,
+                };
+              }
+              // TRIVIA / THIS_OR_THAT
+              return {
+                text: q.question,
+                options: q.options ?? [],
+                correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
+                points: q.points ?? 10,
+                timeLimitSecs: q.timeLimitSecs,
+              };
+            }),
           },
           orderIndex: i,
           rewardTiers: rewardTiers.map(({ id: _id, ...tier }) => ({
@@ -448,6 +501,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const request = await createGameMutation({ body: payload, eventId }).unwrap();
       if (request.success) {
         toast.success("Game created successfully!");
+        setIsDone(true);
         clearSaved();
         onCancel();
       }
@@ -663,7 +717,7 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         ) : (
           <Button
             variant="outline"
-            onClick={() => { clearSaved(); onCancel(); }}
+            onClick={() => { setIsDone(true); clearSaved(); onCancel(); }}
             className="flex-1"
           >Cancel</Button>
         )}

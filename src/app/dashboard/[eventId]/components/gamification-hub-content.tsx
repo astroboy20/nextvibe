@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -129,6 +131,10 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
   const [activePhase, setActivePhase] = useState<"all" | "pre-event" | "main-event" | "post-event">("all");
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const dispatch = useDispatch();
+
+  const openDialog = () => { dispatch(setHideHeader(true)); setIsAddingGame(true); };
+  const closeDialog = () => { dispatch(setHideHeader(false)); setIsAddingGame(false); };
 
   const { data: gamesDetails, isLoading, isError } = useGetGamesQuery(eventId);
   const [updateSessionStatus, { isLoading: isUpdatingSession }] = useUpdateGameStatusMutation();
@@ -175,24 +181,35 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
         <Button
           size="sm"
           className="w-full gap-1.5 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-          onClick={() => setIsAddingGame(true)}
+          onClick={() => openDialog()}
         >
           <Plus className="h-3.5 w-3.5" />
           Add Game Session
         </Button>
 
-        <Dialog open={isAddingGame} onOpenChange={setIsAddingGame}>
+        <Dialog open={isAddingGame} onOpenChange={(open) => {
+          if (!open) {
+            if (typeof window !== "undefined") sessionStorage.removeItem("gameWizardState");
+            closeDialog();
+          } else {
+            openDialog();
+          }
+        }}>
           <DialogContent className="w-[90%] max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Game Session</DialogTitle>
             </DialogHeader>
-            <GameCreationWizard
-              onComplete={() => setIsAddingGame(false)}
-              onCancel={() => setIsAddingGame(false)}
-              eventId={eventId}
-              eventName={eventName}
-              eventStartsAt={eventStartsAt}
-            />
+            {/* key forces full remount every time dialog opens — no stale state */}
+            {isAddingGame && (
+              <GameCreationWizard
+                key={String(isAddingGame)}
+                onComplete={() => closeDialog()}
+                onCancel={() => closeDialog()}
+                eventId={eventId}
+                eventName={eventName}
+                eventStartsAt={eventStartsAt}
+              />
+            )}
           </DialogContent>
         </Dialog>
       </div>

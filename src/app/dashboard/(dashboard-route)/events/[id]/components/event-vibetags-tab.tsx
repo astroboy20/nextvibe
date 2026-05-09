@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,10 +53,10 @@ interface EventVibeTagsTabProps {
 }
 
 const TIMING_PILL: Record<string, { label: string; color: string }> = {
-  PRE_EVENT:    { label: "Pre",  color: "bg-amber-400 text-white" },
+  PRE_EVENT: { label: "Pre", color: "bg-amber-400 text-white" },
   DURING_EVENT: { label: "Main", color: "bg-primary text-white" },
-  POST_EVENT:   { label: "Post", color: "bg-emerald-500 text-white" },
-  BOTH:         { label: "All",  color: "bg-violet-500 text-white" },
+  POST_EVENT: { label: "Post", color: "bg-emerald-500 text-white" },
+  BOTH: { label: "All", color: "bg-violet-500 text-white" },
 };
 
 /** Single postcard tile — renders actual postcard media */
@@ -85,11 +85,12 @@ function PostcardTile({
   const src = firstMedia?.mediaUrl
     ? firstMedia.mediaUrl
     : firstMedia?.storageKey
-    ? `${storageBase}/${firstMedia.storageKey}`
-    : tag?.imageUrl ?? "";
+      ? `${storageBase}/${firstMedia.storageKey}`
+      : tag?.imageUrl ?? "";
 
   const isVideo = firstMedia?.mediaType === "VIDEO";
 
+  // Never render a blank tile
   if (!src) return null;
 
   return (
@@ -152,19 +153,29 @@ function PhasePostcards({
   phase,
   vibeTagMap,
   onLike,
+  onCountChange,
 }: {
   eventId: string;
   phase: string;
   vibeTagMap: Record<string, VibeTag>;
   onLike: (id: string) => void;
+  onCountChange?: (count: number) => void;
 }) {
   const { data, isLoading } = useGetEventPostcardsQuery(
     { eventId, phase: phase === "all" ? undefined : phase },
     { skip: !eventId }
   );
 
-  const postcards: any[] = data?.data?.data ?? data?.data ?? [];
+  const rawList: any[] = data?.data?.data ?? data?.data ?? [];
+  const postcards: any[] = rawList.filter((p: any) =>
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl)
+  );
   const total: number = data?.data?.meta?.total ?? postcards.length;
+
+  // Notify parent of count whenever it changes
+  useEffect(() => {
+    onCountChange?.(total);
+  }, [total, onCountChange]);
 
   if (isLoading) {
     return (
@@ -177,13 +188,7 @@ function PhasePostcards({
   return (
     <>
       {/* header with count */}
-      {total > 0 && (
-        <div className="flex justify-end">
-          <span className="text-xs text-muted-foreground">
-            {total} postcard{total !== 1 ? "s" : ""}
-          </span>
-        </div>
-      )}
+
 
       {postcards.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -216,8 +221,12 @@ export function EventVibeTagsTab({
 }: EventVibeTagsTabProps) {
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
-  // Separate state for the postcards section — independent from the vibeTag card tabs
   const [postcardPhase, setPostcardPhase] = useState<string>("all");
+  const [postcardCount, setPostcardCount] = useState<number>(0);
+
+  const handleCountChange = useCallback((count: number) => {
+    setPostcardCount(count);
+  }, []);
 
   const eventHasStarted = eventStartsAt
     ? new Date() >= new Date(eventStartsAt)
@@ -225,7 +234,6 @@ export function EventVibeTagsTab({
 
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
-  // Always show Pre / Main / Post + All tabs regardless of vibeTag data
   const timingTabs: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT", "BOTH"];
 
   const resolvedTiming: ActivityTiming = activeTiming;
@@ -374,6 +382,11 @@ export function EventVibeTagsTab({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Event Postcards</h3>
+            {postcardCount > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {postcardCount} postcard{postcardCount !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
 
           <Tabs
@@ -394,6 +407,7 @@ export function EventVibeTagsTab({
               phase={postcardPhase}
               vibeTagMap={vibeTagMap}
               onLike={handleLike}
+              onCountChange={handleCountChange}
             />
           )}
         </div>

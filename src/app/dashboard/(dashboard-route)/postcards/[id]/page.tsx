@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
@@ -18,6 +19,7 @@ import {
   useGetEventDetailsQuery,
   useToggleLikePostcardMutation,
   useCommentOnPostcardMutation,
+  useGetPostcardCommentsQuery,
 } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import BottomNav from "@/components/navbar/bottom-navbar";
@@ -114,21 +116,30 @@ function ProgressiveImage({
 
 // ─── Comment Sheet ────────────────────────────────────────────────────────────
 
+interface Comment {
+  id: string;
+  content: string;
+  createdAt?: string;
+  author?: { displayName?: string; username?: string; avatarUrl?: string | null };
+}
+
 function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: () => void }) {
   const [body, setBody] = useState("");
-  const [localComments, setLocalComments] = useState<{ id: string; text: string }[]>([]);
   const [postComment, { isLoading: isPosting }] = useCommentOnPostcardMutation();
+
+  const { data: commentsData, isLoading: loadingComments, refetch } = useGetPostcardCommentsQuery(postcardId);
+
+  const comments: Comment[] = commentsData?.data ?? commentsData ?? [];
 
   const handleSubmit = async () => {
     const trimmed = body.trim();
     if (!trimmed) return;
-    const tempId = Date.now().toString();
-    setLocalComments((prev) => [...prev, { id: tempId, text: trimmed }]);
     setBody("");
     try {
       await postComment({ postcardId, content: trimmed }).unwrap();
+      // Refetch to get the latest comments including the one just posted
+      refetch();
     } catch {
-      setLocalComments((prev) => prev.filter((c) => c.id !== tempId));
       setBody(trimmed);
       toast.error("Could not post comment.");
     }
@@ -137,23 +148,44 @@ function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: ()
   return (
     <div className="fixed inset-0 z-60 flex flex-col bg-background">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="font-semibold text-base">Comments</span>
+        <span className="font-semibold text-base">Comments {comments.length > 0 && `(${comments.length})`}</span>
         <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors">
           <X className="h-5 w-5" />
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {localComments.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">No comments yet. Be the first!</p>
-        ) : localComments.map((c) => (
-          <div key={c.id} className="flex gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">Y</div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold">You</span>
-              <p className="text-sm text-foreground mt-0.5">{c.text}</p>
-            </div>
+        {loadingComments ? (
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-1/4" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : comments.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">No comments yet. Be the first!</p>
+        ) : comments.map((c) => {
+          const name = c.author?.displayName ?? c.author?.username ?? "User";
+          return (
+            <div key={c.id} className="flex gap-3">
+              {c.author?.avatarUrl ? (
+                <img src={c.author.avatarUrl} alt={name} className="h-8 w-8 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                  {name[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold">{name}</span>
+                <p className="text-sm text-foreground mt-0.5">{c.content}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
       <div className="flex items-center gap-3 px-4 py-3 border-t border-border bg-background">
         <input
@@ -237,11 +269,15 @@ function PostcardViewer({
   const [activeIndex, setActiveIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(postcard.likeCount ?? 0);
-  const [commentCount] = useState(postcard.commentCount ?? 0);
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const lastTapRef = useRef<number>(0);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
+
+  // Live comment count from the server
+  const { data: commentsData } = useGetPostcardCommentsQuery(postcard.id!, { skip: !postcard.id });
+  const liveComments: Comment[] = commentsData?.data ?? commentsData ?? [];
+  const commentCount = liveComments.length > 0 ? liveComments.length : (postcard.commentCount ?? 0);
 
   useEffect(() => {
     dispatch(setHideHeader(true));
@@ -283,11 +319,16 @@ function PostcardViewer({
   const handleLike = useCallback(async () => {
     if (!postcard.id) return;
     const wasLiked = liked;
+    // Optimistic update
     setLiked(!wasLiked);
     setLikeCount((c) => wasLiked ? c - 1 : c + 1);
     try {
-      await toggleLikeMutation({ eventId, postcardId: postcard.id }).unwrap();
+      const result = await toggleLikeMutation({ eventId, postcardId: postcard.id }).unwrap();
+      // Sync with server's authoritative count
+      if (result?.currentLikes !== undefined) setLikeCount(result.currentLikes);
+      if (result?.liked !== undefined) setLiked(result.liked);
     } catch {
+      // Roll back on failure
       setLiked(wasLiked);
       setLikeCount((c) => wasLiked ? c + 1 : c - 1);
       toast.error("Could not update like.");
@@ -527,10 +568,13 @@ export default function EventPostcardsPage({ params }: { params: Promise<{ id: s
     ...(phase !== "all" ? { phase } : {}),
   });
 
-  const postcards: Postcard[] = postcardsData?.data ?? [];
-  const meta = postcardsData?.meta;
+  // Filter out postcards where ALL media items have null mediaUrl
+  const postcards: Postcard[] = (postcardsData?.data?.data ?? postcardsData?.data ?? [])
+    .filter((p: Postcard) => (p.media ?? []).some((m) => !!m.mediaUrl));
+  const meta = postcardsData?.data?.meta ?? postcardsData?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";
-  const gridItems = postcards.filter((p) => (p.media ?? []).some((m) => !!m.mediaUrl));
+  // gridItems is now the same as postcards — nulls already stripped above
+  const gridItems = postcards;
 
   const handlePhaseChange = (value: string) => { setPhase(value as Phase); setPage(1); };
 

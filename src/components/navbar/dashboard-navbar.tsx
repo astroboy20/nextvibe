@@ -16,8 +16,8 @@ const DashboardNavbar = ({ showSearch = true, title }: HeaderProps) => {
   if (hideHeader) return null;
 
   return (
-    <header className="sticky top-0 z-1000000   w-full bg-white">
-      <div className="container flex h-24   px-2 items-center justify-between lg:max-w-7xl mx-auto">
+    <header className="sticky top-0 z-1000000 border  w-full bg-white">
+      <div className="container flex h-16 my-4 px-2 items-center justify-between lg:max-w-7xl mx-auto ">
         <div className="flex items-center gap-3">
           <NewLogo />
           {title && (
