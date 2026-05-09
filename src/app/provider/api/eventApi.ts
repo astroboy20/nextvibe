@@ -501,7 +501,10 @@ export const eventsApi = createApi({
         url: `/v1/postcards/${postcardId}/like`,
         method: "POST",
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+      invalidatesTags: (_, __, { eventId, postcardId }) => [
+        { type: "Gallery", id: eventId },
+        { type: "Gallery", id: `postcard-${postcardId}` },
+      ],
     }),
 
     /** POST /v1/postcards/:id/comment — add comment, returns comment with author */

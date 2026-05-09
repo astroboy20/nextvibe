@@ -153,13 +153,11 @@ function PhasePostcards({
   phase,
   vibeTagMap,
   onLike,
-  onCountChange,
 }: {
   eventId: string;
   phase: string;
   vibeTagMap: Record<string, VibeTag>;
   onLike: (id: string) => void;
-  onCountChange?: (count: number) => void;
 }) {
   const { data, isLoading } = useGetEventPostcardsQuery(
     { eventId, phase: phase === "all" ? undefined : phase },
@@ -170,12 +168,6 @@ function PhasePostcards({
   const postcards: any[] = rawList.filter((p: any) =>
     (p?.media ?? []).some((m: any) => !!m.mediaUrl)
   );
-  const total: number = data?.data?.meta?.total ?? postcards.length;
-
-  // Notify parent of count whenever it changes
-  useEffect(() => {
-    onCountChange?.(total);
-  }, [total, onCountChange]);
 
   if (isLoading) {
     return (
@@ -187,9 +179,6 @@ function PhasePostcards({
 
   return (
     <>
-      {/* header with count */}
-
-
       {postcards.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
@@ -222,11 +211,16 @@ export function EventVibeTagsTab({
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
   const [postcardPhase, setPostcardPhase] = useState<string>("all");
-  const [postcardCount, setPostcardCount] = useState<number>(0);
 
-  const handleCountChange = useCallback((count: number) => {
-    setPostcardCount(count);
-  }, []);
+  // Same query as PhasePostcards — RTK Query deduplicates the request, no extra network call
+  const { data: countData } = useGetEventPostcardsQuery(
+    { eventId: eventId ?? "", phase: postcardPhase === "all" ? undefined : postcardPhase },
+    { skip: !eventId }
+  );
+  const countRaw: any[] = countData?.data?.data ?? countData?.data ?? [];
+  const postcardCount = countRaw.filter((p: any) =>
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl)
+  ).length;
 
   const eventHasStarted = eventStartsAt
     ? new Date() >= new Date(eventStartsAt)
@@ -407,7 +401,6 @@ export function EventVibeTagsTab({
               phase={postcardPhase}
               vibeTagMap={vibeTagMap}
               onLike={handleLike}
-              onCountChange={handleCountChange}
             />
           )}
         </div>

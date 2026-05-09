@@ -20,6 +20,7 @@ import {
   useToggleLikePostcardMutation,
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
+  useGetPostcardQuery,
 } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import BottomNav from "@/components/navbar/bottom-navbar";
@@ -274,6 +275,15 @@ function PostcardViewer({
   const lastTapRef = useRef<number>(0);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
+  // Fetch fresh postcard data so like count + liked state are accurate on open
+  const { data: freshPostcard } = useGetPostcardQuery(postcard.id!, { skip: !postcard.id });
+  useEffect(() => {
+    const fresh = freshPostcard?.data ?? freshPostcard;
+    if (!fresh) return;
+    if (fresh.likeCount !== undefined) setLikeCount(fresh.likeCount);
+    if (fresh.isLiked !== undefined) setLiked(fresh.isLiked);
+  }, [freshPostcard]);
+
   // Live comment count from the server
   const { data: commentsData } = useGetPostcardCommentsQuery(postcard.id!, { skip: !postcard.id });
   const liveComments: Comment[] = commentsData?.data ?? commentsData ?? [];
@@ -324,7 +334,7 @@ function PostcardViewer({
     setLikeCount((c) => wasLiked ? c - 1 : c + 1);
     try {
       const result = await toggleLikeMutation({ eventId, postcardId: postcard.id }).unwrap();
-      // Sync with server's authoritative count
+      // Sync with server's authoritative values
       if (result?.currentLikes !== undefined) setLikeCount(result.currentLikes);
       if (result?.liked !== undefined) setLiked(result.liked);
     } catch {
