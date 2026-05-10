@@ -116,6 +116,7 @@ interface GameCreationWizardProps {
 
 export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt }: GameCreationWizardProps) {
   const totalSteps = 6;
+  const [createGame] = useCreateGameMutation();
 
   const gameEndsAt = eventStartsAt
     ? new Date(new Date(eventStartsAt).getTime() - 60 * 1000).toISOString().slice(0, 16)
@@ -442,21 +443,23 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   const handleComplete = async () => {
     try {
       setIsLoading(true);
+
       const rewardTierPayload = rewardTiers.map(({ id: _id, ...tier }) => ({
         rank: tier.rank,
         type: tier.type,
-        title: tier.title,
-        description: tier.description,
+        title: tier.title || `${tier.rank === 1 ? "1st" : tier.rank === 2 ? "2nd" : tier.rank === 3 ? "3rd" : `${tier.rank}th`} Place Winner`,
+        description: tier.description || "Prize for the top performer.",
         value: tier.value,
-        discountType: tier.discountType,
-        discountValue: tier.discountValue,
-        usageLimit: tier.usageLimit,
-        expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
+        ...(tier.type === "COUPON" && {
+          discountType: tier.discountType,
+          discountValue: tier.discountValue,
+          usageLimit: tier.usageLimit,
+          expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
+        }),
         quantity: tier.quantity,
       }));
 
       const payload = {
-        eventId,
         title: gameName,
         scheduleType: SCHEDULE_TO_API[scheduleMode],
         priceCurrency,
@@ -466,44 +469,52 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         activityTiming: PHASE_TO_API[phase],
         maxWinners,
         gameDuration,
+        basePrice: 0,
+        perRoundPrice: 0,
         rewardTiers: rewardTierPayload,
-        rounds: roundsData.map((r, i) => ({
-          title: r.title || `Round ${i + 1}`,
-          description: r.description,
-          gameType: GAMETYPE_TO_API[r.gameType],
-          orderIndex: i,
-          rewardTiers: rewardTierPayload,
-          questions: r.questions.map((q) => {
+        rounds: roundsData.map((r, i) => {
+          // Build the config.questions array in the shape the backend expects
+          const configQuestions = r.questions.map((q) => {
             if (r.gameType === "word-puzzle") {
               return {
-                clue: q.clue ?? q.question,
+                text: q.clue ?? q.question,
                 correctAnswer: q.correctAnswer ?? "",
                 points: q.points ?? 10,
                 timeLimitSecs: q.timeLimitSecs,
               };
             }
-            // TRIVIA / TWO_TRUTHS / THIS_OR_THAT
+            // TRIVIA / TWO_TRUTHS_ONE_LIE / THIS_OR_THAT
+            // Backend uses correctIndex (number) for index-based scoring
+            const options: string[] = q.options ?? [];
+            const correctIndex =
+              q.correctIndex !== undefined
+                ? q.correctIndex
+                : options.findIndex(
+                    (o) =>
+                      o.toLowerCase().trim() ===
+                      (q.correctAnswer ?? "").toLowerCase().trim()
+                  );
             return {
               text: q.question,
-              options: q.options ?? [],
-              correctAnswer: q.correctAnswer ?? q.options?.[q.correctIndex ?? 0] ?? "",
+              options,
+              correctIndex: correctIndex >= 0 ? correctIndex : 0,
               points: q.points ?? 10,
               timeLimitSecs: q.timeLimitSecs,
             };
-          }),
-        })),
+          });
+
+          return {
+            title: r.title || `Round ${i + 1}`,
+            description: r.description,
+            gameType: GAMETYPE_TO_API[r.gameType],
+            orderIndex: i,
+            config: { questions: configQuestions },
+            rewardTiers: rewardTierPayload,
+          };
+        }),
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/save-draft`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify(payload),
-        }
-      );
-      const result = await response.json();
-      if (!response.ok) throw new Error(result?.message || "Failed to create game.");
+      await createGame({ eventId, body: payload }).unwrap();
 
       toast.success("Game created successfully!");
       setIsDone(true);

@@ -322,7 +322,10 @@ export const eventsApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Games"]
+      invalidatesTags: (_result, _error, { eventId }) => [
+        "Games",
+        { type: "Event", id: eventId },
+      ],
     }),
 
     updateGameStatus: builder.mutation<

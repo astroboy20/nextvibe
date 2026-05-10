@@ -332,30 +332,33 @@ export function PostcardCreator({
       const id = `${Date.now()}-${Math.random()}`;
       const raw = URL.createObjectURL(blob);
 
-      // Add immediately as baking so UI shows spinner
+      // Show raw video immediately so preview works — baking: true disables submit
+      // until the overlay is baked in, but the user can still see/play the video
       setter((q) => [
         ...q,
-        { id, kind: "video", raw, baked: null, caption: "", baking: true, blob },
+        { id, kind: "video", raw, baked: raw, caption: "", baking: hasOverlay && !!vibeTagOverlay?.imageUrl, blob },
       ]);
 
-      let finalBlob = blob;
       if (hasOverlay && vibeTagOverlay?.imageUrl) {
         try {
-          finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
+          const finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
+          const bakedUrl = URL.createObjectURL(finalBlob);
+          setter((q) =>
+            q.map((item) =>
+              item.id === id
+                ? { ...item, baked: bakedUrl, baking: false, blob: finalBlob }
+                : item
+            )
+          );
         } catch {
-          // fallback to original
-          finalBlob = blob;
+          // fallback — use original, mark done so submit isn't blocked forever
+          setter((q) =>
+            q.map((item) =>
+              item.id === id ? { ...item, baking: false } : item
+            )
+          );
         }
       }
-
-      const bakedUrl = URL.createObjectURL(finalBlob);
-      setter((q) =>
-        q.map((item) =>
-          item.id === id
-            ? { ...item, baked: bakedUrl, baking: false, blob: finalBlob }
-            : item
-        )
-      );
     },
     [hasOverlay, vibeTagOverlay]
   );
@@ -1090,7 +1093,7 @@ export function PostcardCreator({
                   )}
                   style={{ width: "45px", height: "80px" }}
                 >
-                  {item.baking ? (
+                  {item.baking && item.kind === "image" ? (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
                     </div>
@@ -1103,6 +1106,11 @@ export function PostcardCreator({
                           alt=""
                           className="absolute inset-0 w-full h-full object-contain opacity-60 pointer-events-none"
                         />
+                      )}
+                      {item.baking && (
+                        <div className="absolute bottom-0.5 right-0.5">
+                          <Loader2 className="h-2.5 w-2.5 animate-spin text-white" />
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -1140,7 +1148,7 @@ export function PostcardCreator({
                     className="relative w-full overflow-hidden bg-muted shadow-md"
                     style={{ aspectRatio: "9/16" }}
                   >
-                    {activeItem.baking ? (
+                    {activeItem.baking && activeItem.kind === "image" ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
                         <Loader2 className="h-7 w-7 animate-spin text-primary" />
                         <p className="text-xs text-muted-foreground">
@@ -1155,14 +1163,21 @@ export function PostcardCreator({
                           className="h-full w-full object-cover"
                           playsInline
                         />
-                        {/* Show overlay visually while still baking */}
-                        {activeItem.baking && hasOverlay && (
+                        {/* Overlay image shown on top of video preview */}
+                        {hasOverlay && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
                               src={vibeTagOverlay!.imageUrl}
                               alt={vibeTagOverlay!.name}
                               className="w-full h-full object-contain"
                             />
+                          </div>
+                        )}
+                        {/* Small badge while baking is still in progress */}
+                        {activeItem.baking && (
+                          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm rounded-full px-2.5 py-1">
+                            <Loader2 className="h-3 w-3 animate-spin text-white" />
+                            <span className="text-white text-[10px] font-medium">Stamping VibeTag…</span>
                           </div>
                         )}
                       </>
