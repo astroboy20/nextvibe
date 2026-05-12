@@ -19,6 +19,9 @@ const PUBLIC_ROUTES = [
   "/dashboard/postcards",
 ];
 
+// Admin-only routes — protected by admin_accessToken
+const ADMIN_ROUTES = ["/admin"];
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Token expiry in seconds
@@ -44,6 +47,14 @@ function redirectToLogin(req: NextRequest): NextResponse {
   return res;
 }
 
+// Clear admin tokens and redirect to login
+function redirectAdminToLogin(req: NextRequest): NextResponse {
+  const res = NextResponse.redirect(new URL("/auth/login", req.url));
+  res.cookies.delete("admin_accessToken");
+  res.cookies.delete("admin_refreshToken");
+  return res;
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -55,6 +66,79 @@ export async function proxy(req: NextRequest) {
     pathname.includes(".")
   ) {
     return NextResponse.next();
+  }
+
+  // Handle admin routes — require admin_accessToken
+  const isAdminRoute = ADMIN_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+
+  if (isAdminRoute) {
+    const adminAccessToken = req.cookies.get("admin_accessToken")?.value;
+    const adminRefreshToken = req.cookies.get("admin_refreshToken")?.value;
+
+    // No admin tokens — send to login
+    if (!adminAccessToken && !adminRefreshToken) {
+      return redirectAdminToLogin(req);
+    }
+
+    // Admin access token is still valid — let through
+    if (adminAccessToken && !isTokenExpired(adminAccessToken)) {
+      return NextResponse.next();
+    }
+
+    // Admin access token missing or expired — try to refresh
+    if (!adminRefreshToken) {
+      return redirectAdminToLogin(req);
+    }
+
+    try {
+      const refreshRes = await fetch(`${API_URL}/v1/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          // Send the admin refresh token as the cookie header
+          cookie: `refreshToken=${adminRefreshToken}`,
+        },
+      });
+
+      if (!refreshRes.ok) {
+        return redirectAdminToLogin(req);
+      }
+
+      const { data } = await refreshRes.json();
+      const newAccessToken = data?.accessToken;
+      const newRefreshToken = data?.refreshToken;
+
+      if (!newAccessToken) {
+        return redirectAdminToLogin(req);
+      }
+
+      const response = NextResponse.next();
+
+      response.cookies.set("admin_accessToken", newAccessToken, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: ACCESS_TOKEN_MAX_AGE,
+      });
+
+      if (newRefreshToken) {
+        response.cookies.set("admin_refreshToken", newRefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: REFRESH_TOKEN_MAX_AGE,
+        });
+      }
+
+      return response;
+    } catch {
+      return redirectAdminToLogin(req);
+    }
   }
 
   // Allow public routes

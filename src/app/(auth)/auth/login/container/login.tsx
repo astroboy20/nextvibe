@@ -67,21 +67,31 @@ const LoginContent = () => {
     try {
       const res = await loginMutation(body).unwrap();
 
-      Cookies.set("accessToken", res?.data?.accessToken, {
+      const isSuperAdmin = res?.data?.user?.role === "SUPER_ADMIN";
+      const cookiePrefix = isSuperAdmin ? "admin_" : "";
+
+      Cookies.set(`${cookiePrefix}accessToken`, res?.data?.accessToken, {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         expires: 7,
       });
-      Cookies.set("refreshToken", res?.data?.refreshToken, {
+      Cookies.set(`${cookiePrefix}refreshToken`, res?.data?.refreshToken, {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         expires: 7,
       });
+
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      router.push("/dashboard/events");
+
+      if (isSuperAdmin) {
+        router.push("/admin");
+      } else {
+        router.push(from.startsWith("/") ? from : "/dashboard/events");
+      }
+
       router.refresh();
       toast.success(res.message || "Logged in successfully");
     } catch (error: any) {

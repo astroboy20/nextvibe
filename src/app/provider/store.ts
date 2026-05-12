@@ -12,6 +12,7 @@ import { messagingApi } from "./api/messagingApi";
 import { socialApi } from "./api/socialApi";
 import { paymentApi } from "./api/paymentApi";
 import { notificationApi } from "./api/notificationApi";
+import { adminApi } from "./api/admin";
 
 export const store = configureStore({
     reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
         [socialApi.reducerPath]: socialApi.reducer,
         [paymentApi.reducerPath]: paymentApi.reducer,
         [notificationApi.reducerPath]: notificationApi.reducer,
+        [adminApi.reducerPath]: adminApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -39,6 +41,7 @@ export const store = configureStore({
             socialApi.middleware,
             paymentApi.middleware,
             notificationApi.middleware,
+            adminApi.middleware,
         )
     }
 })

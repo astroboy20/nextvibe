@@ -5,15 +5,16 @@ const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, refreshToken } = await request.json();
+    const { accessToken, refreshToken, isAdmin } = await request.json();
 
     if (!accessToken) {
       return NextResponse.json({ message: "accessToken is required" }, { status: 400 });
     }
 
+    const prefix = isAdmin ? "admin_" : "";
     const response = NextResponse.json({ message: "Tokens stored successfully" }, { status: 200 });
 
-    response.cookies.set("accessToken", accessToken, {
+    response.cookies.set(`${prefix}accessToken`, accessToken, {
       httpOnly: false, // must be readable by js-cookie on the client for Authorization headers
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (refreshToken) {
-      response.cookies.set("refreshToken", refreshToken, {
+      response.cookies.set(`${prefix}refreshToken`, refreshToken, {
         httpOnly: true, // only read server-side by middleware — never exposed to JS
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",

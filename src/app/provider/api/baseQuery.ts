@@ -12,7 +12,13 @@ const rawBaseQuery = fetchBaseQuery({
   credentials: "include",
   timeout: 15000, // 15 second timeout
   prepareHeaders: (headers) => {
-    const accessToken = Cookies.get("accessToken");
+    // Prefer admin token when on admin routes
+    const isAdminRoute =
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/admin");
+    const accessToken = isAdminRoute
+      ? (Cookies.get("admin_accessToken") ?? Cookies.get("accessToken"))
+      : Cookies.get("accessToken");
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
@@ -30,7 +36,11 @@ export const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   // Don't refresh on logout requests
   const isLogoutRequest = typeof args === "object" && args.url === "/v1/auth/logout";
-  
+
+  const isAdminRoute =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/admin");
+
   let result = await baseQueryWithRetry(args, api, extraOptions);
 
   if (result.error?.status === 401 && !isLogoutRequest) {
@@ -50,27 +60,27 @@ export const baseQueryWithReauth: BaseQueryFn<
         await fetch("/api/auth/store-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: newAccessToken }),
+          body: JSON.stringify({ accessToken: newAccessToken, isAdmin: isAdminRoute }),
         });
 
         // Retry the original request with the new token
         result = await baseQueryWithRetry(args, api, extraOptions);
       } else {
         // No access token in response — redirect to login
-        Cookies.remove("accessToken");
+        isAdminRoute ? Cookies.remove("admin_accessToken") : Cookies.remove("accessToken");
         if (typeof window !== "undefined") {
           window.location.href = "/auth/login";
         }
       }
     } else if (refreshResult.error?.status === 401) {
       // Refresh token is also expired — redirect to login immediately
-      Cookies.remove("accessToken");
+      isAdminRoute ? Cookies.remove("admin_accessToken") : Cookies.remove("accessToken");
       if (typeof window !== "undefined") {
         window.location.href = "/auth/login";
       }
     } else {
       // Other refresh error — redirect to login
-      Cookies.remove("accessToken");
+      isAdminRoute ? Cookies.remove("admin_accessToken") : Cookies.remove("accessToken");
       if (typeof window !== "undefined") {
         window.location.href = "/auth/login";
       }

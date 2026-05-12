@@ -1,10 +1,13 @@
-
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
-    const cookieStore = await cookies();
-    const token = cookieStore?.get("accessToken")?.value;
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies();
+  const { searchParams } = request.nextUrl;
+  const isAdmin = searchParams.get("isAdmin") === "true";
 
-    return NextResponse.json({ token });
+  const cookieName = isAdmin ? "admin_accessToken" : "accessToken";
+  const token = cookieStore?.get(cookieName)?.value;
+
+  return NextResponse.json({ token });
 }

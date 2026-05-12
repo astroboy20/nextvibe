@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Shield, Target, Globe, Users, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -306,7 +307,7 @@ const AboutContent = () => {
               variants={fadeUp}
               className="flex gap-4 items-start relative pl-6 pb-8 border-l-2 border-primary/30 last:border-l-0 last:pb-0"
             >
-              <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-[#5b1a57] " />
+              <div className="absolute -left-1.75 top-1 w-3 h-3 rounded-full bg-[#5b1a57] " />
               <div>
                 <span className="text-xs font-bold text-primary">{m.year}</span>
                 <p className="text-sm text-foreground">{m.event}</p>
@@ -360,9 +361,11 @@ const AboutContent = () => {
           variants={fadeUp}
           className="rounded-2xl overflow-hidden"
         >
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop"
             alt="People connecting and celebrating at an event"
+            width={1200}
+            height={720}
             className="w-full h-56 md:h-72 object-cover"
           />
         </motion.div>
