@@ -154,11 +154,30 @@ const AboutContent = () => {
             </p>
           </div>
         </motion.div>
+
+        {/* IMAGE 1 — Story anchor image, after founding narrative */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          custom={2}
+          variants={fadeUp}
+          className="mt-10 rounded-2xl overflow-hidden"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&auto=format&fit=crop"
+            alt="Vibrant event crowd celebrating together"
+            className="w-full h-64 md:h-80 object-cover"
+          />
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            The kind of moments we refuse to let disappear.
+          </p>
+        </motion.div>
       </section>
 
       {/* Mission */}
       <section className="bg-gradient-vibe py-16">
-        <div className="container px-4 max-w-3xl mx-auto text-center text-[#120A12]">
+        <div className="container px-4 max-w-3xl mx-auto text-center text-white">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -190,6 +209,42 @@ const AboutContent = () => {
               ))}
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* IMAGE 2 — 3-photo strip between Mission and Values */}
+      <section className="container px-4 py-12 max-w-5xl mx-auto">
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          {[
+            {
+              src: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop",
+              alt: "Concert crowd with colourful lights",
+            },
+            {
+              src: "https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&auto=format&fit=crop",
+              alt: "Friends celebrating at a party",
+            },
+            {
+              src: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=600&auto=format&fit=crop",
+              alt: "Outdoor festival gathering",
+            },
+          ].map((img, i) => (
+            <motion.div
+              key={i}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              custom={i}
+              variants={fadeUp}
+              className="rounded-xl overflow-hidden aspect-square"
+            >
+              <img
+                src={img.src}
+                alt={img.alt}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              />
+            </motion.div>
+          ))}
         </div>
       </section>
 
@@ -294,6 +349,24 @@ const AboutContent = () => {
           </div>
         </div>
       </section>
+
+      {/* IMAGE 3 — Wide atmosphere shot just before CTA */}
+      <div className="container px-4 max-w-4xl mx-auto pt-16 pb-2">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          custom={0}
+          variants={fadeUp}
+          className="rounded-2xl overflow-hidden"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&auto=format&fit=crop"
+            alt="People connecting and celebrating at an event"
+            className="w-full h-56 md:h-72 object-cover"
+          />
+        </motion.div>
+      </div>
 
       {/* CTA */}
       <section className="container px-4 py-20 text-center max-w-2xl mx-auto">

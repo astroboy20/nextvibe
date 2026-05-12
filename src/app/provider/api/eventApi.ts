@@ -421,7 +421,10 @@ export const eventsApi = createApi({
         method: "POST",
         body: { qrCode },
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Event", id: eventId },
+        { type: "Event", id: `game-status-${eventId}` },
+      ],
     }),
 
     /** GET /v1/events/:eventId/attendees */
@@ -569,6 +572,12 @@ export const eventsApi = createApi({
       providesTags: (_, __, eventId) => [{ type: "Gallery", id: `memories-${eventId}` }],
     }),
 
+    /** GET /v1/events/:eventId/active-game-status — check if user is checked in and get active game info */
+    getActiveGameStatus: builder.query<any, string>({
+      query: (eventId) => `/v1/events/${eventId}/active-game-status`,
+      providesTags: (_, __, eventId) => [{ type: "Event", id: `game-status-${eventId}` }],
+    }),
+
   }),
 });
 
@@ -628,4 +637,5 @@ export const {
   useUploadMultipleFilesMutation,
   useCreatePostcardsMutation,
   useGetEventMemoriesCountQuery,
+  useGetActiveGameStatusQuery,
 } = eventsApi;

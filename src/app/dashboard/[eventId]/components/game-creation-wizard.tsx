@@ -24,10 +24,18 @@ import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 export type GameTypeOrEmpty = "" | GameType;
+export type ApiGameType = "TRIVIA" | "WORD_PUZZLE" | "TWO_TRUTHS_ONE_LIE" | "THIS_OR_THAT";
 export type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
-export type RewardType = "CASH" | "COUPON" | "MERCHANDISE" | "FREE_TICKET" | "BADGE" | "POINTS" | "OTHER";
+export type RewardType =
+  | "CASH"
+  | "COUPON"
+  | "MERCHANDISE"
+  | "FREE_TICKET"
+  | "BADGE"
+  | "POINTS"
+  | "OTHER";
 export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
 
 export interface RewardTier {
@@ -49,10 +57,10 @@ export interface Question {
   // TRIVIA / TWO_TRUTHS / THIS_OR_THAT
   question: string;
   options?: string[];
-  correctIndex?: number;   // TRIVIA: index of correct option; TWO_TRUTHS: index of the lie
-  correctAnswer?: string;  // derived from options[correctIndex] on submit
+  correctIndex?: number; // TRIVIA: index of correct option; TWO_TRUTHS: index of the lie
+  correctAnswer?: string; // derived from options[correctIndex] on submit
   // WORD_PUZZLE
-  clue?: string;           // the hint shown to players
+  clue?: string; // the hint shown to players
   // shared
   points?: number;
   timeLimitSecs: number;
@@ -66,40 +74,63 @@ export interface RoundData {
 }
 
 const PHASE_TO_API: Record<EventPhase, string> = {
-  "pre-event":  "PRE_EVENT",
+  "pre-event": "PRE_EVENT",
   "main-event": "DURING_EVENT",
   "post-event": "POST_EVENT",
-  both:         "BOTH",
+  both: "BOTH",
 };
 
 const SCHEDULE_TO_API: Record<ScheduleMode, string> = {
   concurrent: "ALL_AT_ONCE",
-  daily:      "DAILY",
-  weekly:     "WEEKLY",
+  daily: "DAILY",
+  weekly: "WEEKLY",
 };
 
-const GAMETYPE_TO_API: Record<GameType, string> = {
-  trivia:         "TRIVIA",
-  "word-puzzle":  "WORD_PUZZLE",
-  "two-truths":   "TWO_TRUTHS_ONE_LIE",
+const GAMETYPE_TO_API: Record<GameType, ApiGameType> = {
+  trivia: "TRIVIA",
+  "word-puzzle": "WORD_PUZZLE",
+  "two-truths": "TWO_TRUTHS_ONE_LIE",
   "this-or-that": "THIS_OR_THAT",
 };
 
-const GAMETYPE_TO_AI_KEY: Record<GameType, GameTypeOrEmpty> = {
-  trivia:         "trivia",
-  "word-puzzle":  "word-puzzle",
-  "two-truths":   "two-truths",
-  "this-or-that": "this-or-that",
+export const gameTypeConfig: Record<
+  GameType,
+  { icon: React.ReactNode; label: string; description: string }
+> = {
+  trivia: {
+    icon: <HelpCircle className="h-5 w-5" />,
+    label: "Trivia",
+    description: "Multiple choice questions",
+  },
+  "word-puzzle": {
+    icon: <Puzzle className="h-5 w-5" />,
+    label: "Word Puzzle",
+    description: "Find words from letters",
+  },
+  "two-truths": {
+    icon: <MessageSquare className="h-5 w-5" />,
+    label: "2 Truths & 1 Lie",
+    description: "Guess the lie",
+  },
+  "this-or-that": {
+    icon: <Zap className="h-5 w-5" />,
+    label: "This or That",
+    description: "Choose between options",
+  },
 };
 
-export const gameTypeConfig: Record<GameType, { icon: React.ReactNode; label: string; description: string }> = {
-  trivia:         { icon: <HelpCircle className="h-5 w-5" />,    label: "Trivia",           description: "Multiple choice questions" },
-  "word-puzzle":  { icon: <Puzzle className="h-5 w-5" />,        label: "Word Puzzle",      description: "Find words from letters" },
-  "two-truths":   { icon: <MessageSquare className="h-5 w-5" />, label: "2 Truths & 1 Lie", description: "Guess the lie" },
-  "this-or-that": { icon: <Zap className="h-5 w-5" />,           label: "This or That",     description: "Choose between options" },
-};
-
-const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
+const ORDINALS = [
+  "1st",
+  "2nd",
+  "3rd",
+  "4th",
+  "5th",
+  "6th",
+  "7th",
+  "8th",
+  "9th",
+  "10th",
+];
 
 const STORAGE_KEY = "gameWizardState";
 const clearSaved = () => {
@@ -114,42 +145,59 @@ interface GameCreationWizardProps {
   eventStartsAt?: string;
 }
 
-export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt }: GameCreationWizardProps) {
+export function GameCreationWizard({
+  onCancel,
+  eventId,
+  eventName,
+  eventStartsAt,
+}: GameCreationWizardProps) {
   const totalSteps = 6;
   const [createGame] = useCreateGameMutation();
 
   const gameEndsAt = eventStartsAt
-    ? new Date(new Date(eventStartsAt).getTime() - 60 * 1000).toISOString().slice(0, 16)
+    ? new Date(new Date(eventStartsAt).getTime() - 60 * 1000)
+        .toISOString()
+        .slice(0, 16)
     : "";
   const maxStartsAt = gameEndsAt;
 
-  const [step, setStep]                       = useState<number>(1);
-  const [gameName, setGameName]               = useState<string>("");
-  const [numberOfRounds, setNumberOfRounds]   = useState<number>(1);
-  const [phase, setPhase]                     = useState<EventPhase>("main-event");
-  const [scheduleMode, setScheduleMode]       = useState<ScheduleMode>("concurrent");
-  const [startsAt, setStartsAt]               = useState<string>("");
-  const [gameDuration, setGameDuration]       = useState<number>(30);
-  const [repetitions, setRepetitions]         = useState<number>(1);
-  const [maxWinners, setMaxWinners]           = useState<number>(3);
-  const [priceCurrency]                       = useState("NGN");
-  const [activeRoundIdx, setActiveRoundIdx]   = useState<number>(0);
-  const [contentMode, setContentMode]         = useState<ContentMode>("ai");
-  const [aiPrompt, setAiPrompt]               = useState<{
-    topic: string; count: number | null; gameType: GameTypeOrEmpty;
-    difficulty: string; activityTiming: "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
+  const [step, setStep] = useState<number>(1);
+  const [gameName, setGameName] = useState<string>("");
+  const [numberOfRounds, setNumberOfRounds] = useState<number>(1);
+  const [phase, setPhase] = useState<EventPhase>("main-event");
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("concurrent");
+  const [startsAt, setStartsAt] = useState<string>("");
+  const [gameDuration, setGameDuration] = useState<number>(30);
+  const [repetitions, setRepetitions] = useState<number>(1);
+  const [maxWinners, setMaxWinners] = useState<number>(3);
+  const [priceCurrency] = useState("NGN");
+  const [activeRoundIdx, setActiveRoundIdx] = useState<number>(0);
+  const [contentMode, setContentMode] = useState<ContentMode>("ai");
+  const [aiPrompt, setAiPrompt] = useState<{
+    topic: string;
+    count: number | null;
+    gameType: ApiGameType | "";
+    difficulty: string;
+    activityTiming: "" | "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
     eventName: string;
-  }>({ topic: "", count: null, gameType: "trivia", difficulty: "", activityTiming: "", eventName });
-  const [roundsData, setRoundsData]           = useState<RoundData[]>([]);
-  const [isGenerating, setIsGenerating]       = useState(false);
+  }>({
+    topic: "",
+    count: null,
+    gameType: "TRIVIA",
+    difficulty: "",
+    activityTiming: "",
+    eventName,
+  });
+  const [roundsData, setRoundsData] = useState<RoundData[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-  const [rewardTiers, setRewardTiers]         = useState<RewardTier[]>([]);
+  const [rewardTiers, setRewardTiers] = useState<RewardTier[]>([]);
 
-  const accessToken                           = Cookies.get("accessToken");
-  const progress                              = (step / totalSteps) * 100;
+  const accessToken = Cookies.get("accessToken");
+  const progress = (step / totalSteps) * 100;
   const [validationError, setValidationError] = useState("");
-  const [isDone, setIsDone]                   = useState(false);
-  const [isLoading, setIsLoading]             = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useBeforeUnload(!isDone && (step > 1 || gameName.trim().length > 0));
 
@@ -171,10 +219,14 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       next[idx] = { ...next[idx], gameType: type, questions: [] };
       return next;
     });
-    setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_AI_KEY[type] }));
+    setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_API[type] }));
   };
 
-  const updateRoundMeta = (idx: number, field: "title" | "description", value: string) => {
+  const updateRoundMeta = (
+    idx: number,
+    field: "title" | "description",
+    value: string
+  ) => {
     setRoundsData((prev) => {
       const next = [...prev];
       next[idx] = { ...next[idx], [field]: value };
@@ -195,8 +247,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       id: `tier-${i + 1}`,
       rank: i + 1,
       type: "CASH" as RewardType,
-      title: rewardTiers[i]?.title ?? `${ORDINALS[i] ?? `${i + 1}th`} Place Winner`,
-      description: rewardTiers[i]?.description ?? "Prize for the top performer.",
+      title:
+        rewardTiers[i]?.title ?? `${ORDINALS[i] ?? `${i + 1}th`} Place Winner`,
+      description:
+        rewardTiers[i]?.description ?? "Prize for the top performer.",
       value: rewardTiers[i]?.value ?? "",
       discountType: "PERCENTAGE" as DiscountType,
       discountValue: rewardTiers[i]?.discountValue ?? 0,
@@ -210,7 +264,8 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     switch (s) {
       case 1:
         if (!gameName.trim()) return "Please enter a game name.";
-        if (numberOfRounds < 1 || numberOfRounds > 10) return "Rounds must be between 1 and 10.";
+        if (numberOfRounds < 1 || numberOfRounds > 10)
+          return "Rounds must be between 1 and 10.";
         return "";
       case 2:
         if (!startsAt) return "Please set a start date and time.";
@@ -221,8 +276,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         return "";
       case 3:
         if (contentMode === "ai") {
-          if (!aiPrompt.topic.trim()) return "Please enter a topic for AI generation.";
-          if (!aiPrompt.count || aiPrompt.count <= 0) return "Please enter a valid question count.";
+          if (!aiPrompt.topic.trim())
+            return "Please enter a topic for AI generation.";
+          if (!aiPrompt.count || aiPrompt.count <= 0)
+            return "Please enter a valid question count.";
           if (!aiPrompt.gameType) return "Please select a game type.";
           if (!aiPrompt.difficulty) return "Please select a difficulty level.";
           // activityTiming is always derived from phase — no need to validate it here
@@ -231,11 +288,16 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       case 4:
         // Only validate the current round being edited
         if (!roundsData[activeRoundIdx]?.questions?.length)
-          return `Round ${activeRoundIdx + 1} has no questions. Please add or generate content.`;
+          return `Round ${
+            activeRoundIdx + 1
+          } has no questions. Please add or generate content.`;
         for (const q of roundsData[activeRoundIdx].questions) {
-          if (!q.question.trim()) return `Round ${activeRoundIdx + 1}: all questions must have text.`;
+          if (!q.question.trim())
+            return `Round ${activeRoundIdx + 1}: all questions must have text.`;
           if (q.options?.some((o) => !o.trim()))
-            return `Round ${activeRoundIdx + 1}: all answer options must be filled in.`;
+            return `Round ${
+              activeRoundIdx + 1
+            }: all answer options must be filled in.`;
         }
         return "";
       case 5:
@@ -243,9 +305,16 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           if (!tier.title.trim())
             return `Reward tier #${tier.rank} needs a title.`;
           if (!tier.value)
-            return `Set a prize value for the ${ORDINALS[tier.rank - 1] ?? `${tier.rank}th`} place winner.`;
-          if ((tier.type === "CASH" || tier.type === "POINTS") && Number(tier.value) <= 0)
-            return `${ORDINALS[tier.rank - 1] ?? `${tier.rank}th`} place: enter a valid amount.`;
+            return `Set a prize value for the ${
+              ORDINALS[tier.rank - 1] ?? `${tier.rank}th`
+            } place winner.`;
+          if (
+            (tier.type === "CASH" || tier.type === "POINTS") &&
+            Number(tier.value) <= 0
+          )
+            return `${
+              ORDINALS[tier.rank - 1] ?? `${tier.rank}th`
+            } place: enter a valid amount.`;
         }
         return "";
       default:
@@ -257,18 +326,28 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   const generateQuestionsWithAI = async (roundIdx: number = activeRoundIdx) => {
     // Always derive activityTiming from the selected phase — don't rely on aiPrompt state
     const timingMap: Record<EventPhase, string> = {
-      "pre-event": "PRE_EVENT", "main-event": "DURING_EVENT",
-      "post-event": "POST_EVENT", "both": "BOTH",
+      "pre-event": "PRE_EVENT",
+      "main-event": "DURING_EVENT",
+      "post-event": "POST_EVENT",
+      both: "BOTH",
     };
-    const resolvedTiming = timingMap[phase] as "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
+    const resolvedTiming = timingMap[phase] as
+      | "PRE_EVENT"
+      | "DURING_EVENT"
+      | "POST_EVENT"
+      | "BOTH";
     const promptToSend = { ...aiPrompt, activityTiming: resolvedTiming };
 
     // Validate with the resolved prompt
     const validationErrors: string[] = [];
-    if (!promptToSend.topic.trim()) validationErrors.push("Please enter a topic for AI generation.");
-    if (!promptToSend.count || promptToSend.count <= 0) validationErrors.push("Please enter a valid question count.");
-    if (!promptToSend.gameType) validationErrors.push("Please select a game type.");
-    if (!promptToSend.difficulty) validationErrors.push("Please select a difficulty level.");
+    if (!promptToSend.topic.trim())
+      validationErrors.push("Please enter a topic for AI generation.");
+    if (!promptToSend.count || promptToSend.count <= 0)
+      validationErrors.push("Please enter a valid question count.");
+    if (!promptToSend.gameType)
+      validationErrors.push("Please select a game type.");
+    if (!promptToSend.difficulty)
+      validationErrors.push("Please select a difficulty level.");
     if (validationErrors.length) {
       const err = validationErrors[0];
       toast.error(err);
@@ -282,12 +361,16 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify(promptToSend),
         }
       );
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "AI generation failed");
+      if (!response.ok)
+        throw new Error(data?.message || "AI generation failed");
 
       // Actual response shape:
       // { success, data: { success, data: { suggestedTitle, suggestedDescription, rounds: [{ title, questions: [...] }] } } }
@@ -295,11 +378,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
 
       // Questions can be at inner.questions (flat) or inner.rounds[roundIdx].questions (nested)
       const rawQuestions: any[] =
-        inner?.rounds?.[0]?.questions ??
-        inner?.questions ??
-        [];
+        inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
 
-      if (!rawQuestions.length) throw new Error("AI returned no questions. Try a different topic.");
+      if (!rawQuestions.length)
+        throw new Error("AI returned no questions. Try a different topic.");
 
       const gameType = roundsData[roundIdx]?.gameType ?? "trivia";
 
@@ -322,7 +404,8 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
 
         if (gameType === "two-truths") {
           const options: string[] = q.options ?? [];
-          const lieAnswer: string = q.correctAnswer ?? q.answer ?? options[0] ?? "";
+          const lieAnswer: string =
+            q.correctAnswer ?? q.answer ?? options[0] ?? "";
           const lieIndex = options.findIndex(
             (o) => o.toLowerCase().trim() === lieAnswer.toLowerCase().trim()
           );
@@ -340,14 +423,16 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         const options: string[] = q.options ?? [];
         const correctAnswerStr: string = q.correctAnswer ?? "";
         const correctIdx = options.findIndex(
-          (o) => o.toLowerCase().trim() === correctAnswerStr.toLowerCase().trim()
+          (o) =>
+            o.toLowerCase().trim() === correctAnswerStr.toLowerCase().trim()
         );
         return {
           ...base,
           question: q.text ?? q.question ?? "",
           options,
-          correctIndex: correctIdx >= 0 ? correctIdx : (q.correctIndex ?? 0),
-          correctAnswer: correctAnswerStr || (options[q.correctIndex ?? 0] ?? ""),
+          correctIndex: correctIdx >= 0 ? correctIdx : q.correctIndex ?? 0,
+          correctAnswer:
+            correctAnswerStr || (options[q.correctIndex ?? 0] ?? ""),
         };
       });
       setRoundQuestions(roundIdx, generated);
@@ -367,7 +452,10 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ ...aiPrompt, count: 1 }),
         }
       );
@@ -375,22 +463,34 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       if (!response.ok) throw new Error(data?.message);
       const inner = data?.data?.data ?? data?.data ?? data;
       const rawQuestions: any[] =
-        inner?.rounds?.[0]?.questions ??
-        inner?.questions ??
-        [];
+        inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
       const replacement = rawQuestions[0];
       if (!replacement) throw new Error("No replacement question returned.");
-      setRoundQuestions(activeRoundIdx, currentRound!.questions.map((q) =>
-        q.id === id
-          ? { ...q, question: replacement?.question ?? replacement?.text ?? q.question, options: replacement?.options ?? q.options, correctIndex: replacement?.correctIndex ?? q.correctIndex, timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs }
-          : q
-      ));
+      setRoundQuestions(
+        activeRoundIdx,
+        currentRound!.questions.map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                question:
+                  replacement?.question ?? replacement?.text ?? q.question,
+                options: replacement?.options ?? q.options,
+                correctIndex: replacement?.correctIndex ?? q.correctIndex,
+                timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
+              }
+            : q
+        )
+      );
     } catch {
       toast.error("Could not regenerate question. Please edit it manually.");
     }
   };
 
-  const handleQuestionEdit = (id: string, field: string, value: string | number) => {
+  const handleQuestionEdit = (
+    id: string,
+    field: string,
+    value: string | number
+  ) => {
     setRoundsData((prev) => {
       const next = [...prev];
       const current = next[activeRoundIdx];
@@ -398,16 +498,20 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         ...current,
         questions: current.questions.map((q) => {
           if (q.id !== id) return q;
-          if (field === "question") return { ...q, question: value as string, clue: value as string };
-          if (field === "clue") return { ...q, clue: value as string, question: value as string };
-          if (field === "correctAnswer") return { ...q, correctAnswer: value as string };
+          if (field === "question")
+            return { ...q, question: value as string, clue: value as string };
+          if (field === "clue")
+            return { ...q, clue: value as string, question: value as string };
+          if (field === "correctAnswer")
+            return { ...q, correctAnswer: value as string };
           if (field === "correctIndex") {
             // Keep correctAnswer in sync with the selected option
             const newIdx = value as number;
             const newAnswer = q.options?.[newIdx] ?? "";
             return { ...q, correctIndex: newIdx, correctAnswer: newAnswer };
           }
-          if (field === "timeLimitSecs") return { ...q, timeLimitSecs: value as number };
+          if (field === "timeLimitSecs")
+            return { ...q, timeLimitSecs: value as number };
           if (field === "points") return { ...q, points: value as number };
           return q;
         }),
@@ -416,7 +520,11 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     });
   };
 
-  const handleOptionEdit = (questionId: string, optionIndex: number, value: string) => {
+  const handleOptionEdit = (
+    questionId: string,
+    optionIndex: number,
+    value: string
+  ) => {
     setRoundsData((prev) => {
       const next = [...prev];
       const current = next[activeRoundIdx];
@@ -427,7 +535,8 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           const newOptions = [...q.options];
           newOptions[optionIndex] = value;
           // Keep correctAnswer in sync if the correct option text changed
-          const newCorrectAnswer = newOptions[q.correctIndex ?? 0] ?? q.correctAnswer;
+          const newCorrectAnswer =
+            newOptions[q.correctIndex ?? 0] ?? q.correctAnswer;
           return { ...q, options: newOptions, correctAnswer: newCorrectAnswer };
         }),
       };
@@ -435,8 +544,14 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     });
   };
 
-  const updateRewardTier = (id: string, field: keyof RewardTier, value: string | number) => {
-    setRewardTiers((prev) => prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  const updateRewardTier = (
+    id: string,
+    field: keyof RewardTier,
+    value: string | number
+  ) => {
+    setRewardTiers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -447,14 +562,26 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       const rewardTierPayload = rewardTiers.map(({ id: _id, ...tier }) => ({
         rank: tier.rank,
         type: tier.type,
-        title: tier.title || `${tier.rank === 1 ? "1st" : tier.rank === 2 ? "2nd" : tier.rank === 3 ? "3rd" : `${tier.rank}th`} Place Winner`,
+        title:
+          tier.title ||
+          `${
+            tier.rank === 1
+              ? "1st"
+              : tier.rank === 2
+              ? "2nd"
+              : tier.rank === 3
+              ? "3rd"
+              : `${tier.rank}th`
+          } Place Winner`,
         description: tier.description || "Prize for the top performer.",
         value: tier.value,
         ...(tier.type === "COUPON" && {
           discountType: tier.discountType,
           discountValue: tier.discountValue,
           usageLimit: tier.usageLimit,
-          expiryDate: tier.expiryDate ? new Date(tier.expiryDate).toISOString() : undefined,
+          expiryDate: tier.expiryDate
+            ? new Date(tier.expiryDate).toISOString()
+            : undefined,
         }),
         quantity: tier.quantity,
       }));
@@ -530,7 +657,11 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
   // ── Navigation ─────────────────────────────────────────────────────────────
   const handleNext = () => {
     const err = validateStep(step);
-    if (err) { toast.error(err); setValidationError(err); return; }
+    if (err) {
+      toast.error(err);
+      setValidationError(err);
+      return;
+    }
     setValidationError("");
 
     if (step === 1) {
@@ -544,12 +675,19 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
     if (step === 2) {
       // Initialise reward tiers based on maxWinners
       setRewardTiers(buildRewardTiers(maxWinners));
-      // Sync activityTiming from phase so AI prompt is pre-filled
+      // Sync activityTiming and gameType from current round so AI prompt is pre-filled
       const timingMap: Record<EventPhase, string> = {
-        "pre-event": "PRE_EVENT", "main-event": "DURING_EVENT",
-        "post-event": "POST_EVENT", "both": "BOTH",
+        "pre-event": "PRE_EVENT",
+        "main-event": "DURING_EVENT",
+        "post-event": "POST_EVENT",
+        both: "BOTH",
       };
-      setAiPrompt((prev) => ({ ...prev, activityTiming: timingMap[phase] as any }));
+      const firstRoundType = roundsData[0]?.gameType ?? "trivia";
+      setAiPrompt((prev) => ({
+        ...prev,
+        activityTiming: timingMap[phase] as any,
+        gameType: GAMETYPE_TO_API[firstRoundType],
+      }));
       setStep(3);
       return;
     }
@@ -575,7 +713,13 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
         setActiveRoundIdx(nextRound);
         // Sync aiPrompt gameType to next round's type — keep activityTiming from phase
         const nextType = roundsData[nextRound]?.gameType ?? "trivia";
-        setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_AI_KEY[nextType], topic: "", count: null, difficulty: "" }));
+        setAiPrompt((prev) => ({
+          ...prev,
+          gameType: GAMETYPE_TO_API[nextType],
+          topic: "",
+          count: null,
+          difficulty: "",
+        }));
         setStep(3);
         return;
       }
@@ -617,7 +761,9 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">Step {step} of {totalSteps}</span>
+          <span className="font-medium">
+            Step {step} of {totalSteps}
+          </span>
           <span className="text-muted-foreground">{stepLabel}</span>
         </div>
         <Progress value={progress} className="h-2" />
@@ -663,8 +809,12 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           totalRounds={numberOfRounds}
           roundTitle={roundsData[activeRoundIdx]?.title ?? ""}
           roundDescription={roundsData[activeRoundIdx]?.description ?? ""}
-          onRoundTitleChange={(v) => updateRoundMeta(activeRoundIdx, "title", v)}
-          onRoundDescriptionChange={(v) => updateRoundMeta(activeRoundIdx, "description", v)}
+          onRoundTitleChange={(v) =>
+            updateRoundMeta(activeRoundIdx, "title", v)
+          }
+          onRoundDescriptionChange={(v) =>
+            updateRoundMeta(activeRoundIdx, "description", v)
+          }
           selectedGameType={roundsData[activeRoundIdx]?.gameType ?? "trivia"}
           onGameTypeChange={(type) => updateRoundGameType(activeRoundIdx, type)}
           contentMode={contentMode}
@@ -680,18 +830,28 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
           roundTitle={roundsData[activeRoundIdx]?.title ?? ""}
           contentMode={contentMode}
           questions={currentRound?.questions ?? []}
-          generateQuestionsWithAI={() => generateQuestionsWithAI(activeRoundIdx)}
+          generateQuestionsWithAI={() =>
+            generateQuestionsWithAI(activeRoundIdx)
+          }
           editingQuestion={editingQuestion}
           handleQuestionEdit={handleQuestionEdit}
           handleOptionEdit={handleOptionEdit}
           setEditingQuestion={setEditingQuestion}
           regenerateQuestion={regenerateQuestion}
           gameType={currentRound?.gameType ?? "trivia"}
-          setQuestions={(qs: Question[] | ((prev: Question[]) => Question[])) => {
+          setQuestions={(
+            qs: Question[] | ((prev: Question[]) => Question[])
+          ) => {
             setRoundsData((prev) => {
               const next = [...prev];
-              const current = next[activeRoundIdx] ?? { gameType: "trivia", title: "", description: "", questions: [] };
-              const resolved = typeof qs === "function" ? qs(current.questions) : qs;
+              const current = next[activeRoundIdx] ?? {
+                gameType: "trivia",
+                title: "",
+                description: "",
+                questions: [],
+              };
+              const resolved =
+                typeof qs === "function" ? qs(current.questions) : qs;
               next[activeRoundIdx] = { ...current, questions: resolved };
               return next;
             });
@@ -728,15 +888,25 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
       {/* Navigation */}
       <div className="flex gap-3 pt-4 border-t border-border">
         {step > 1 ? (
-          <Button variant="outline" onClick={handleBack} className="flex-1 gap-1.5">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            className="flex-1 gap-1.5"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
         ) : (
           <Button
             variant="outline"
-            onClick={() => { setIsDone(true); clearSaved(); onCancel(); }}
+            onClick={() => {
+              setIsDone(true);
+              clearSaved();
+              onCancel();
+            }}
             className="flex-1"
-          >Cancel</Button>
+          >
+            Cancel
+          </Button>
         )}
 
         {step < totalSteps && (
@@ -746,13 +916,21 @@ export function GameCreationWizard({ onCancel, eventId, eventName, eventStartsAt
             className="flex-1 gap-1.5 bg-[#531342] hover:bg-[#531342]/90 text-white"
           >
             {isGenerating ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Generating...
+              </>
             ) : step === 3 && contentMode === "ai" ? (
-              <><Sparkles className="h-4 w-4" /> Generate Questions</>
+              <>
+                <Sparkles className="h-4 w-4" /> Generate Questions
+              </>
             ) : step === 4 && activeRoundIdx + 1 < numberOfRounds ? (
-              <>Next Round <ArrowRight className="h-4 w-4" /></>
+              <>
+                Next Round <ArrowRight className="h-4 w-4" />
+              </>
             ) : (
-              <>Next <ArrowRight className="h-4 w-4" /></>
+              <>
+                Next <ArrowRight className="h-4 w-4" />
+              </>
             )}
           </Button>
         )}

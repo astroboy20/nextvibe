@@ -434,7 +434,7 @@ export function PostcardViewer({
 
           {showHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <Heart className="h-24 w-24 fill-white text-white opacity-90 animate-ping" />
+              <Heart className="h-24 w-24 fill-[#5B1A57] text-[#5B1A57] opacity-90 animate-ping" />
             </div>
           )}
         </div>
@@ -458,7 +458,7 @@ export function PostcardViewer({
         {/* Actions */}
         <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
           <button onClick={handleLike} className="flex items-center gap-1.5 transition-transform active:scale-90">
-            <Heart className={cn("h-6 w-6 transition-all duration-150", liked ? "fill-red-500 text-red-500 scale-110" : "text-foreground")} />
+            <Heart className={cn("h-6 w-6 transition-all duration-150", liked ? "fill-[#5B1A57] text-[#5B1A57] scale-110" : "text-foreground")} />
             <span className="text-sm font-medium text-foreground">{likeCount}</span>
           </button>
           <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">

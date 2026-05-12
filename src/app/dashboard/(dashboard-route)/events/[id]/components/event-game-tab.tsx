@@ -15,7 +15,6 @@ import {
   Zap,
   ChevronRight,
   Loader2,
-  QrCode,
   CheckCircle2,
   Timer,
   XCircle,
@@ -28,8 +27,8 @@ import {
   useJoinGameSessionMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
-  useCheckinEventMutation,
   useGetGameSessionQuery,
+  useGetActiveGameStatusQuery,
 } from "@/app/provider/api/eventApi";
 import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
@@ -239,8 +238,8 @@ function RoundPlayer({
 
   const handleSelectOption = (idx: number) => {
     if (flash) return;
-    const correctIdx: number | string =
-      q?.correctAnswer ?? q?.correct ?? q?.answer ?? 0;
+    // correctIndex is the numeric index stored in config.questions
+    const correctIdx: number = q?.correctIndex ?? 0;
     const isCorrect = idx === correctIdx;
 
     const newAnswers = [...answers];
@@ -254,16 +253,16 @@ function RoundPlayer({
 
   const handleWordSubmit = () => {
     if (flash || !wordInput.trim()) return;
-    const correctIdx: number | string =
-      q?.correctAnswer ?? q?.correct ?? q?.answer ?? "";
+    // correctAnswer is the string stored in config.questions for word-puzzle
+    const correctAnswer: string = q?.correctAnswer ?? q?.answer ?? "";
     const isCorrect =
       wordInput.trim().toLowerCase() ===
-      String(correctIdx).trim().toLowerCase();
+      correctAnswer.trim().toLowerCase();
 
     const newAnswers = [...answers];
     newAnswers[currentQ] = wordInput;
     setAnswers(newAnswers);
-    setFlash({ selected: wordInput, correct: correctIdx, isCorrect });
+    setFlash({ selected: wordInput, correct: correctAnswer, isCorrect });
 
     setTimeout(() => advance(wordInput, newAnswers), 800);
   };
@@ -786,11 +785,27 @@ function SessionFetcher({
   return null;
 }
 export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
-  const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
+  const { data: eventDetails } = useGetEventDetailsQuery(
     eventProp?.id,
     { skip: !eventProp?.id, refetchOnMountOrArgChange: true }
   );
   const event = eventDetails?.data ?? eventProp;
+
+  // Use the dedicated endpoint to check if the user has joined the active game
+  const {
+    data: gameStatusData,
+    isLoading: isLoadingStatus,
+    refetch: refetchGameStatus,
+  } = useGetActiveGameStatusQuery(event?.id, {
+    skip: !event?.id,
+    refetchOnMountOrArgChange: true,
+  });
+
+  const hasActiveGame: boolean = gameStatusData?.data?.hasActiveGame ?? false;
+  // isJoined from the status endpoint — true once the user has called /join
+  const isJoinedFromStatus: boolean = gameStatusData?.data?.isJoined ?? false;
+  // The active session id from the status response — use to pre-select the session
+  const activeSessionIdFromStatus: string | undefined = gameStatusData?.data?.session?.id;
 
   const { data: gamesData, isLoading } = useGetGamesQuery(event?.id, {
     skip: !event?.id,
@@ -799,7 +814,6 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const [joinSession, { isLoading: isJoining }] = useJoinGameSessionMutation();
   const [submitAnswers, { isLoading: isSubmitting }] =
     useSubmitRoundAnswersMutation();
-  const [checkinEvent, { isLoading: isCheckingIn }] = useCheckinEventMutation();
 
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -847,12 +861,6 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   };
 
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
-  const [localCheckedIn, setLocalCheckedIn] = useState(false);
-
-  const isCheckedIn =
-    localCheckedIn ||
-    (event?.isCheckedIn ?? false) ||
-    (event?.checkedInCount ?? 0) >= 1;
 
   const eventHasStarted = event?.startsAt
     ? new Date() >= new Date(event.startsAt)
@@ -883,19 +891,14 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     (s: any) => s.mappedPhase === activePhase
   );
 
-  const handleCheckin = async () => {
-    try {
-      await checkinEvent({
-        qrCode: event?.qrCode ?? event?.id,
-        eventId: event?.id,
-      }).unwrap();
-      setLocalCheckedIn(true);
-      refetchEvent();
-      toast.success("Checked in! You can now join games.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Check-in failed. Try again.");
+  // Seed joinedSessions from the status endpoint on load — covers the case
+  // where the user joined in a previous session and localStorage was cleared.
+  useEffect(() => {
+    if (isJoinedFromStatus && activeSessionIdFromStatus) {
+      markSessionJoined(activeSessionIdFromStatus);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isJoinedFromStatus, activeSessionIdFromStatus]);
 
   const handleJoin = async (sessionId: string) => {
     try {
@@ -904,6 +907,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       setActiveSessionId(sessionId);
       // Refetch this session so isJoined + hasPlayed are up to date
       sessionRefetchMap[sessionId]?.();
+      refetchGameStatus();
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
       toast.error(
@@ -938,35 +942,9 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     }
   };
 
-  if (!isCheckedIn) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-          <QrCode className="h-8 w-8 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground">Check In First</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-            You need to check in to this event before you can join any games.
-          </p>
-        </div>
-        <Button
-          className="gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-          onClick={handleCheckin}
-          disabled={isCheckingIn}
-        >
-          {isCheckingIn ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <QrCode className="h-4 w-4" />
-          )}
-          Check In to Event
-        </Button>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  // While we're fetching check-in status, show a spinner — avoids flashing
+  // the sessions list before we know the user's state.
+  if (isLoadingStatus || isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -1094,7 +1072,10 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
       {sessions.map((session: any) => {
         const isActive = session.mappedStatus === "live";
         const isEnded = session.mappedStatus === "ended";
-        const isJoined = joinedSessions.has(session.id);
+        // Check local joined set OR the status endpoint (covers page-refresh case)
+        const isJoined =
+          joinedSessions.has(session.id) ||
+          (isJoinedFromStatus && session.id === activeSessionIdFromStatus);
 
         return (
           <SessionCard

@@ -72,13 +72,6 @@ const SuccessModal = ({ eventId, onClose }: SuccessModalProps) => {
             <Pencil className="w-4 h-4" />
             Continue Editing
           </Button>
-
-          <button
-            onClick={onClose}
-            className="text-xs text-muted-foreground hover:text-gray-700 transition-colors text-center mt-1"
-          >
-            Dismiss
-          </button>
         </div>
       </div>
     </div>
