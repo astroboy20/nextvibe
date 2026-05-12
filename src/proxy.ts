@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = [
   "/verify-email",
   "/check-verification",
   "/game",
+  "/faq",
   "/dashboard/events",
   "/dashboard/postcards",
 ];

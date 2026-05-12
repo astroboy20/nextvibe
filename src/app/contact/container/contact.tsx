@@ -6,7 +6,7 @@ import {
     HelpCircle,
   } from "lucide-react";
 import Link from "next/link";
-import FAQs from "./component/faq";
+import FAQs from "../component/faq";
   
   const items = [
     {

@@ -18,6 +18,7 @@ const links = [
   { name: "Pricing", href: "/pricing" },
   { name: "Contact us", href: "/contact" },
   { name: "How it works", href: "/how-it-works" },
+  { name: "FAQ", href: "/faq" },
 ];
 
 export default function Navbar() {
@@ -34,7 +35,6 @@ export default function Navbar() {
             <NewLogo />
           </Link>
 
-      
           <nav className="hidden md:flex items-center gap-1 bg-[#5b1a57] rounded-[31px] px-12.5 py-2.5 shadow-sm border border-gray-100">
             {links.map((link, index) => (
               <Link
@@ -42,9 +42,7 @@ export default function Navbar() {
                 href={link.href}
                 className={cn(
                   " text-white py-0.5 px-3 rounded-2xl font-semibold border-5 border-transparent text-sm transition-colors duration-150",
-                  currentPath === link.href
-                    ? "bg-[#a1349a]"
-                    : ""
+                  currentPath === link.href ? "bg-[#a1349a]" : ""
                 )}
               >
                 {link.name}
@@ -52,7 +50,6 @@ export default function Navbar() {
             ))}
           </nav>
 
-   
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <Button
@@ -82,14 +79,14 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Hamburger */}
-          <Sheet  open={open} onOpenChange={setOpen}>
-            <SheetTrigger  asChild className="md:hidden">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon" aria-label="Toggle navbar">
                 <Menu className="h-6 w-6 text-[#5b1a57]" />
               </Button>
             </SheetTrigger>
 
-            <SheetContent  side="right" className="w-70 pt-10 px-6 bg-white">
+            <SheetContent side="right" className="w-70 pt-10 px-6 bg-white">
               {/* Mobile Logo */}
               <div className="mb-8">
                 <Link href="/" onClick={() => setOpen(false)}>

@@ -23,20 +23,22 @@ import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
 import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
 // import { RecentPurchasesContent } from "./components/recent-purchases-content";
 import { GamificationHubContent } from "./components/gamification-hub-content";
-// import { PaymentModule } from "./components/payment-module";
+import { PaymentModule } from "./components/payment-module";
 import Image from "next/image";
 // import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 // import PostcardLeaderboardContent from "./components/leaderboard-content";
-import { useGetEventDetailsQuery, useGetGamesQuery, useUpdateEventStatusMutation } from "@/app/provider/api/eventApi";
+import {
+  useGetEventDetailsQuery,
+  useGetGamesQuery,
+  useUpdateEventStatusMutation,
+} from "@/app/provider/api/eventApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-
-
 
 function EventHeaderSkeleton() {
   return (
@@ -86,16 +88,20 @@ export default function OrganizerDashboard({
 }: OrganizerDashboardProps) {
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(eventId);
   const { data: gamesData } = useGetGamesQuery(eventId);
-  const [updateEventStatus, { isLoading: isUpdatingStatus }] = useUpdateEventStatusMutation();
+  const [updateEventStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateEventStatusMutation();
   const [showQR, setShowQR] = useState(false);
-  const [confirmStatus, setConfirmStatus] = useState<"PUBLISHED" | "CANCELLED" | "ENDED" | null>(null);
+  const [confirmStatus, setConfirmStatus] = useState<
+    "PUBLISHED" | "CANCELLED" | "ENDED" | null
+  >(null);
 
   const event = eventDetails?.data;
 
-  const totalTicketsSold = event?.ticketTiers?.reduce(
-    (total: number, tier: any) => total + (tier.quantitySold ?? 0),
-    0
-  ) ?? 0;
+  const totalTicketsSold =
+    event?.ticketTiers?.reduce(
+      (total: number, tier: any) => total + (tier.quantitySold ?? 0),
+      0
+    ) ?? 0;
 
   const rsvpCount = event?.attendingCount ?? event?.rsvpCount ?? 0;
 
@@ -105,9 +111,10 @@ export default function OrganizerDashboard({
 
   const vibeTagCount = (event?.vibeTag ?? []).length;
 
-  const eventUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/dashboard/events/${eventId}`
-    : "";
+  const eventUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard/events/${eventId}`
+      : "";
 
   const handleShare = async () => {
     try {
@@ -121,17 +128,20 @@ export default function OrganizerDashboard({
         await navigator.clipboard.writeText(eventUrl);
         toast.success("Link copied to clipboard");
       }
-    } catch {
-    }
+    } catch {}
   };
 
-  const handleStatusUpdate = async (status: "PUBLISHED" | "CANCELLED" | "ENDED") => {
+  const handleStatusUpdate = async (
+    status: "PUBLISHED" | "CANCELLED" | "ENDED"
+  ) => {
     try {
       await updateEventStatus({ eventId, status }).unwrap();
       toast.success(
-        status === "PUBLISHED" ? "Event published! It's now live." :
-        status === "ENDED" ? "Event marked as ended." :
-        "Event cancelled."
+        status === "PUBLISHED"
+          ? "Event published! It's now live."
+          : status === "ENDED"
+          ? "Event marked as ended."
+          : "Event cancelled."
       );
       setConfirmStatus(null);
     } catch (err: any) {
@@ -187,13 +197,17 @@ export default function OrganizerDashboard({
                 {event?.status === "LIVE" && (
                   <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-green-500 px-2 py-0.5">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                    <span className="text-[10px] font-semibold text-white">LIVE</span>
+                    <span className="text-[10px] font-semibold text-white">
+                      LIVE
+                    </span>
                   </div>
                 )}
                 {event?.status === "DRAFT" && (
                   <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-gray-500 px-2 py-0.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                    <span className="text-[10px] font-semibold text-white">DRAFT</span>
+                    <span className="text-[10px] font-semibold text-white">
+                      DRAFT
+                    </span>
                   </div>
                 )}
               </div>
@@ -296,9 +310,11 @@ export default function OrganizerDashboard({
                   <CheckCircle2 className="h-6 w-6 text-[#531342] shrink-0" />
                 )}
                 <h3 className="font-semibold text-foreground">
-                  {confirmStatus === "ENDED" ? "End Event?" :
-                   confirmStatus === "CANCELLED" ? "Cancel Event?" :
-                   "Publish Event?"}
+                  {confirmStatus === "ENDED"
+                    ? "End Event?"
+                    : confirmStatus === "CANCELLED"
+                    ? "Cancel Event?"
+                    : "Publish Event?"}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -319,11 +335,15 @@ export default function OrganizerDashboard({
                 </Button>
                 <Button
                   className={`flex-1 rounded-xl text-white ${
-                    confirmStatus === "ENDED" ? "bg-red-500 hover:bg-red-600" :
-                    confirmStatus === "CANCELLED" ? "bg-gray-500 hover:bg-gray-600" :
-                    "bg-[#531342] hover:bg-[#531342]/90"
+                    confirmStatus === "ENDED"
+                      ? "bg-red-500 hover:bg-red-600"
+                      : confirmStatus === "CANCELLED"
+                      ? "bg-gray-500 hover:bg-gray-600"
+                      : "bg-[#531342] hover:bg-[#531342]/90"
                   }`}
-                  onClick={() => confirmStatus && handleStatusUpdate(confirmStatus)}
+                  onClick={() =>
+                    confirmStatus && handleStatusUpdate(confirmStatus)
+                  }
                   disabled={isUpdatingStatus}
                 >
                   {isUpdatingStatus ? (
@@ -331,9 +351,13 @@ export default function OrganizerDashboard({
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       Updating...
                     </span>
-                  ) : confirmStatus === "ENDED" ? "End Event" :
-                     confirmStatus === "CANCELLED" ? "Cancel Event" :
-                     "Publish"}
+                  ) : confirmStatus === "ENDED" ? (
+                    "End Event"
+                  ) : confirmStatus === "CANCELLED" ? (
+                    "Cancel Event"
+                  ) : (
+                    "Publish"
+                  )}
                 </Button>
               </div>
             </div>
@@ -450,11 +474,15 @@ export default function OrganizerDashboard({
                 <Badge
                   variant="outline"
                   className={
-                    event?.status === "PUBLISHED" ? "border-green-500 text-green-600" :
-                    event?.status === "LIVE" ? "border-green-500 text-green-600 animate-pulse" :
-                    event?.status === "ENDED" ? "border-gray-400 text-gray-500" :
-                    event?.status === "CANCELLED" ? "border-red-400 text-red-500" :
-                    "border-amber-500 text-amber-600"
+                    event?.status === "PUBLISHED"
+                      ? "border-green-500 text-green-600"
+                      : event?.status === "LIVE"
+                      ? "border-green-500 text-green-600 animate-pulse"
+                      : event?.status === "ENDED"
+                      ? "border-gray-400 text-gray-500"
+                      : event?.status === "CANCELLED"
+                      ? "border-red-400 text-red-500"
+                      : "border-amber-500 text-amber-600"
                   }
                 >
                   {event?.status ?? "DRAFT"}
@@ -465,7 +493,8 @@ export default function OrganizerDashboard({
                 {event?.status === "DRAFT" && (
                   <div className="rounded-xl border border-border p-4 space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      Your event is a draft. Publish it to make it visible to attendees.
+                      Your event is a draft. Publish it to make it visible to
+                      attendees.
                     </p>
                     <Button
                       className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
@@ -478,11 +507,13 @@ export default function OrganizerDashboard({
                   </div>
                 )}
 
-                {(event?.status === "PUBLISHED" || event?.status === "LIVE") && (
+                {(event?.status === "PUBLISHED" ||
+                  event?.status === "LIVE") && (
                   <div className="space-y-2">
                     <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
                       <p className="text-sm text-muted-foreground">
-                        Mark the event as ended once it&apos;s over. Rewards will be distributed automatically.
+                        Mark the event as ended once it&apos;s over. Rewards
+                        will be distributed automatically.
                       </p>
                       <Button
                         variant="outline"
@@ -511,10 +542,13 @@ export default function OrganizerDashboard({
                   </div>
                 )}
 
-                {(event?.status === "ENDED" || event?.status === "CANCELLED") && (
+                {(event?.status === "ENDED" ||
+                  event?.status === "CANCELLED") && (
                   <div className="rounded-xl border border-border p-4 text-center">
                     <p className="text-sm text-muted-foreground">
-                      This event has been {event?.status === "ENDED" ? "ended" : "cancelled"} and cannot be modified.
+                      This event has been{" "}
+                      {event?.status === "ENDED" ? "ended" : "cancelled"} and
+                      cannot be modified.
                     </p>
                   </div>
                 )}
@@ -557,7 +591,7 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )} */}
 
-          {/* {isLoading ? <DashboardCardSkeleton /> : <PaymentModule />} */}
+          {isLoading ? <DashboardCardSkeleton /> : <PaymentModule />}
 
           {/* {isLoading ? (
             <DashboardCardSkeleton />
