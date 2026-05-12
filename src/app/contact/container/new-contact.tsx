@@ -138,7 +138,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="pt-20 pb-24">
+      <main className="pt-20">
         {/* Hero */}
         <section className="container px-4 py-16 md:py-24 text-center max-w-3xl mx-auto">
           <motion.p
