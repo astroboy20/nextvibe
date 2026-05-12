@@ -188,7 +188,8 @@ export default function Pricing() {
             variants={fadeUp}
             className="font-display text-3xl md:text-5xl font-bold text-foreground leading-tight mb-4"
           >
-            Your first event is <span className="text-gradient">on us.</span>
+            Pricing built for every{" "}
+            <span className="text-gradient">event size.</span>
           </motion.h1>
           <motion.p
             initial="hidden"
@@ -197,8 +198,8 @@ export default function Pricing() {
             variants={fadeUp}
             className="text-lg text-muted-foreground"
           >
-            Free event pages. Free RSVPs. Free discovery. Then pay only for what
-            makes your event truly unforgettable.
+            Choose the experiences your event needs from VibeTags to games,
+            analytics, and more.
           </motion.p>
         </section>
 
