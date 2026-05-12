@@ -74,8 +74,8 @@ export default function VibeTagsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Vibe Tags</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Vibe Tags</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Platform-wide vibe tag usage statistics.
           </p>
         </div>

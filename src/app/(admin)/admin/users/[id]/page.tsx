@@ -105,7 +105,6 @@ export default function UserDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Back nav */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/admin/users">
@@ -268,28 +267,34 @@ export default function UserDetailPage({
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <Ticket className="w-5 h-5 text-muted-foreground" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Ticket className="w-5 h-5 text-primary" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Purchases</p>
-                    <p className="text-xl font-bold">{user.counts.purchases ?? 0}</p>
+                    <p className="text-xl font-bold tabular-nums">{user.counts.purchases ?? 0}</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                  <div className="w-10 h-10 rounded-xl bg-[hsl(195_100%_42%/0.12)] flex items-center justify-center shrink-0">
+                    <Calendar className="w-5 h-5 text-[hsl(195,100%,38%)]" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Events</p>
-                    <p className="text-xl font-bold">{user.counts.events ?? 0}</p>
+                    <p className="text-xl font-bold tabular-nums">{user.counts.events ?? 0}</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <Image className="w-5 h-5 text-muted-foreground" />
+                  <div className="w-10 h-10 rounded-xl bg-[hsl(330_70%_55%/0.12)] flex items-center justify-center shrink-0">
+                    <Image className="w-5 h-5 text-[hsl(330,70%,50%)]" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Postcards</p>
-                    <p className="text-xl font-bold">{user.counts.postcards ?? 0}</p>
+                    <p className="text-xl font-bold tabular-nums">{user.counts.postcards ?? 0}</p>
                   </div>
                 </CardContent>
               </Card>

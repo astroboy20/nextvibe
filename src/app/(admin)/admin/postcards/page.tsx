@@ -62,15 +62,15 @@ export default function PostcardsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Postcards</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Postcards</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             All postcards uploaded on the platform.
           </p>
         </div>
         {!isLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
-            <ImageIcon className="w-4 h-4" />
-            <span>{total.toLocaleString()} total postcards</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 border border-primary/10 px-3 py-1.5 rounded-lg">
+            <ImageIcon className="w-4 h-4 text-primary" />
+            <span className="font-medium">{total.toLocaleString()} total postcards</span>
           </div>
         )}
       </div>

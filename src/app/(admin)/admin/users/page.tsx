@@ -168,9 +168,9 @@ export default function UsersPage() {
           </p>
         </div>
         {!isLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
-            <Users className="w-4 h-4" />
-            <span>{total.toLocaleString()} total users</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 border border-primary/10 px-3 py-1.5 rounded-lg">
+            <Users className="w-4 h-4 text-primary" />
+            <span className="font-medium">{total.toLocaleString()} total users</span>
           </div>
         )}
       </div>

@@ -159,16 +159,16 @@ function CouponDetailSheet({
           <div className="space-y-6">
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border bg-muted/40 p-4">
+              <div className="rounded-xl border bg-primary/5 p-4">
                 <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <BarChart2 className="w-3 h-3" /> Redemptions
+                  <BarChart2 className="w-3 h-3 text-primary" /> Redemptions
                 </p>
-                <p className="text-2xl font-bold">{coupon.usedCount}</p>
+                <p className="text-2xl font-bold tabular-nums text-primary">{coupon.usedCount}</p>
                 {coupon.usageLimit && (
                   <p className="text-xs text-muted-foreground">of {coupon.usageLimit} limit</p>
                 )}
               </div>
-              <div className="rounded-lg border bg-muted/40 p-4">
+              <div className="rounded-xl border bg-muted/40 p-4">
                 <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3" /> Expires
                 </p>
