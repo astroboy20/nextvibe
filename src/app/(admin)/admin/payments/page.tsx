@@ -110,7 +110,7 @@ export default function PaymentsPage() {
                         <div className="font-medium">{payment.user?.displayName ?? payment.user?.username ?? "—"}</div>
                         <div className="text-xs text-muted-foreground">{payment.user?.email}</div>
                       </td>
-                      <td className="py-3 pr-4 max-w-[200px] truncate">{payment.event?.title ?? "—"}</td>
+                      <td className="py-3 pr-4 max-w-50 truncate">{payment.event?.title ?? "—"}</td>
                       <td className="py-3 pr-4 font-medium">${Number(payment.amount ?? 0).toLocaleString()}</td>
                       <td className="py-3 pr-4 text-muted-foreground">
                         {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : "—"}

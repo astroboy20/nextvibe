@@ -45,7 +45,7 @@ export function StatsCard({
   const colors = accentMap[accent];
 
   return (
-    <Card className="relative overflow-hidden transition-shadow hover:shadow-[var(--shadow-card-hover)]">
+    <Card className="relative overflow-hidden transition-shadow hover:shadow-(--shadow-card-hover)">
       <CardContent className="pt-5 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">

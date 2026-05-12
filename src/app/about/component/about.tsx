@@ -165,10 +165,12 @@ const AboutContent = () => {
           variants={fadeUp}
           className="mt-10 rounded-2xl overflow-hidden"
         >
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&auto=format&fit=crop"
             alt="Vibrant event crowd celebrating together"
             className="w-full h-64 md:h-80 object-cover"
+            width={900}
+            height={640}
           />
           <p className="text-xs text-muted-foreground text-center mt-2">
             The kind of moments we refuse to let disappear.
@@ -239,9 +241,11 @@ const AboutContent = () => {
               variants={fadeUp}
               className="rounded-xl overflow-hidden aspect-square"
             >
-              <img
+              <Image
                 src={img.src}
                 alt={img.alt}
+                width={600}
+                height={600}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
             </motion.div>

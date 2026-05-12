@@ -41,7 +41,7 @@ export function Header() {
     <header className="md:hidden sticky top-0 z-40 bg-card border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-[image:var(--vibe-gradient)] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-md bg-(image:--vibe-gradient) flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="text-base font-bold text-foreground">NextVibe</span>
@@ -57,7 +57,7 @@ export function Header() {
           <SheetContent side="left" className="p-0 w-64">
             {/* Brand */}
             <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-              <div className="w-8 h-8 rounded-lg bg-[image:var(--vibe-gradient)] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-(image:--vibe-gradient) flex items-center justify-center shrink-0">
                 <Zap className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -84,7 +84,7 @@ export function Header() {
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                       isActive
-                        ? "bg-[image:var(--vibe-gradient)] text-white shadow-sm"
+                        ? "bg-(image:--vibe-gradient) text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                   >

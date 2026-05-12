@@ -167,7 +167,7 @@ export default function GameSessionsPage() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 pr-4 max-w-[180px]">
+                        <td className="py-3 pr-4 max-w-45">
                           <span className="truncate block">
                             {session.event?.title ?? "—"}
                           </span>

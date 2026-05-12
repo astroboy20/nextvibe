@@ -329,7 +329,7 @@ export default function FAQ() {
                   value: "@mynextvibe",
                   sub: "Instagram or Twitter",
                 },
-              ].map((c, i) => {
+              ].map((c) => {
                 const Icon = c.icon;
                 return (
                   <div

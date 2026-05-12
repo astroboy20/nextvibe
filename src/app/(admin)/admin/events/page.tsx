@@ -203,7 +203,7 @@ export default function EventsPage() {
                         key={event.id}
                         className="border-b last:border-0 hover:bg-muted/40 transition-colors"
                       >
-                        <td className="py-3 pr-4 max-w-[220px]">
+                        <td className="py-3 pr-4 max-w-55">
                           <div className="font-medium truncate">{event.title}</div>
                           <div className="text-xs text-muted-foreground truncate">
                             {normaliseLocation(event.location)}

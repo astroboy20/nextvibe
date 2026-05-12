@@ -35,9 +35,8 @@ import {
   Phone,
   Calendar,
   UserCog,
-  Image,
+  Image as ImageIcon,
   Ticket,
-  Gamepad2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -290,7 +289,7 @@ export default function UserDetailPage({
               <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[hsl(330_70%_55%/0.12)] flex items-center justify-center shrink-0">
-                    <Image className="w-5 h-5 text-[hsl(330,70%,50%)]" />
+                    <ImageIcon className="w-5 h-5 text-[hsl(330,70%,50%)]"  />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Postcards</p>
@@ -306,7 +305,7 @@ export default function UserDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Image className="w-4 h-4" /> Recent Postcards
+                  <ImageIcon className="w-4 h-4" /> Recent Postcards
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -318,11 +317,11 @@ export default function UserDetailPage({
                         <img
                           src={p.imageUrl}
                           alt="Postcard"
-                          className="aspect-[4/3] w-full object-cover"
+                          className="aspect-4/3 w-full object-cover"
                         />
                       ) : (
-                        <div className="aspect-[4/3] w-full bg-muted flex items-center justify-center">
-                          <Image className="w-6 h-6 text-muted-foreground" />
+                        <div className="aspect-4/3 w-full bg-muted flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground p-2 truncate">

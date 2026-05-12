@@ -64,7 +64,6 @@ import {
   Users,
   Calendar,
   BarChart2,
-  ToggleLeft,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -458,7 +457,7 @@ export default function CouponsPage() {
         </div>
         <Button
           onClick={() => setShowCreate(true)}
-          className="bg-[image:var(--vibe-gradient)] text-white hover:opacity-90 shadow-sm"
+          className="bg-(image:--vibe-gradient) text-white hover:opacity-90 shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" /> Create Coupon
         </Button>
@@ -550,7 +549,7 @@ export default function CouponsPage() {
                           </button>
                         </div>
                         {coupon.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 max-w-[180px] truncate">
+                          <p className="text-xs text-muted-foreground mt-0.5 max-w-45cate">
                             {coupon.description}
                           </p>
                         )}

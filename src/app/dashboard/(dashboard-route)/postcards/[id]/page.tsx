@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { use, useState } from "react";
@@ -40,7 +39,7 @@ function GridTile({ postcard, onClick }: { postcard: PostcardData; onClick: () =
             muted
             playsInline
             preload="none"
-            className="w-full object-cover rounded-lg min-h-[120px]"
+            className="w-full object-cover rounded-lg min-h-30"
           />
           <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
             <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">

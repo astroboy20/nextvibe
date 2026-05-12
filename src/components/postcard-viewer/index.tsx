@@ -66,7 +66,7 @@ export function ProgressiveImage({
   }, [src]);
 
   return (
-    <div className={cn("relative w-full min-h-[120px]", fullscreen ? "h-full" : "")}>
+    <div className={cn("relative w-full min-h-30", fullscreen ? "h-full" : "")}>
       {!loaded && !error && (
         <div className={cn("absolute inset-0 bg-muted animate-pulse", fullscreen ? "" : "rounded-inherit")} />
       )}
@@ -166,7 +166,7 @@ export function CommentSheet({ postcardId, onClose }: { postcardId: string; onCl
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background">
+    <div className="fixed inset-0 z-70 flex flex-col bg-background">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="font-semibold text-base">
           Comments {comments.length > 0 && `(${comments.length})`}
