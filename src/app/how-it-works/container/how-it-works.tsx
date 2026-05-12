@@ -334,7 +334,7 @@ const HowItWorksContent = () => {
 
       {/* For Attendees */}
       <section className="bg-gradient-vibe py-16 mb-16">
-        <div className="container px-4 max-w-3xl mx-auto text-black">
+        <div className="container px-4 max-w-3xl mx-auto text-white">
           <motion.h2
             initial="hidden"
             whileInView="visible"
