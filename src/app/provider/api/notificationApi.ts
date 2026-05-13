@@ -39,7 +39,7 @@ export const notificationApi = createApi({
   endpoints: (builder) => ({
     /** GET /v1/notifications */
     getNotifications: builder.query<NotificationsResponse, void>({
-      query: () => "/v1/notifications",
+      query: () => "/v1/notifications/trigger-reminders",
       providesTags: ["Notifications"],
     }),
 

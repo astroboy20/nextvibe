@@ -2,7 +2,7 @@
 
 import { Facebook, Twitter, Instagram } from "lucide-react";
 import Link from "next/link";
-import {motion} from "framer-motion"
+import { motion } from "framer-motion";
 
 const Footer = () => {
   const footerLinks = [
@@ -62,8 +62,9 @@ const Footer = () => {
             >
               <h3 className="text-3xl font-bold mb-4">NextVibe</h3>
               <p className="text-white/80 mb-6 leading-relaxed">
-                The world&apos;s first platform that transforms events into a shared,
-                digital legacy. Capture every moment with the power of VibeTag.
+                The world&apos;s first platform that transforms events into a
+                shared, digital legacy. Capture every moment with the power of
+                VibeTag.
               </p>
             </motion.div>
           </div>
@@ -137,13 +138,13 @@ const Footer = () => {
             className="flex gap-6 text-sm"
           >
             <Link
-              href="/"
+              href="/privacy"
               className="text-white/70 hover:text-white transition-colors"
             >
               Privacy Policy
             </Link>
             <Link
-              href="/"
+              href="/terms"
               className="text-white/70 hover:text-white transition-colors"
             >
               Terms of Service

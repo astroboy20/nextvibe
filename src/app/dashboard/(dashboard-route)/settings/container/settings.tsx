@@ -24,46 +24,31 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogoutMutation } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { useDispatch } from "react-redux";
 
 const Settings = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [logout, { isLoading: isSigningOut }] = useLogoutMutation();
-  const [userInterests, setUserInterests] = useState<string[]>([]);
-  const [userLocation, setUserLocation] = useState<{
-    city: string;
-    country: string;
-  } | null>(null);
 
-  // Load stored preferences
   useEffect(() => {
-    const storedInterests = localStorage.getItem("nextvibe_interests");
-    if (storedInterests) {
-      setUserInterests(JSON.parse(storedInterests));
-    }
-
-    const storedLocation = localStorage.getItem("nextvibe_location");
-    if (storedLocation) {
-      setUserLocation(JSON.parse(storedLocation));
-    }
-  }, []);
+    dispatch(setHideHeader(true));
+    return () => {
+      dispatch(setHideHeader(false));
+    };
+  }, [dispatch]);
 
   const handleSignOut = async () => {
     try {
       await logout().unwrap();
     } catch {
-      // proceed with local cleanup even if the API call fails
     } finally {
       Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
       toast.success("See you next time!");
       router.push("/auth/login");
     }
-  };
-
-  const handleUpdateInterests = () => {
-    localStorage.removeItem("nextvibe_onboarding_complete");
-    toast.success(
-      "Your interests have been reset. Refresh the page to update your feed."
-    );
   };
 
   return (
@@ -82,58 +67,6 @@ const Settings = () => {
       </div>
 
       <main className="container px-4 py-6 max-w-lg mx-auto space-y-6">
-
-        {/* Preferences */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Preferences</CardTitle>
-            <CardDescription>Personalize your experience</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Interests */}
-            <button
-              onClick={handleUpdateInterests}
-              className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Interests</p>
-                  <p className="text-sm text-muted-foreground">
-                    {userInterests.length > 0
-                      ? `${userInterests.length} selected`
-                      : "Not set"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-
-            {/* Location */}
-            <button
-              onClick={handleUpdateInterests}
-              className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
-                  <MapPin className="h-5 w-5 text-accent" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Location</p>
-                  <p className="text-sm text-muted-foreground">
-                    {userLocation
-                      ? `${userLocation.city}, ${userLocation.country}`
-                      : "Not set"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-          </CardContent>
-        </Card>
-
         {/* App Settings */}
         <Card>
           <CardHeader className="pb-3">
@@ -141,25 +74,9 @@ const Settings = () => {
           </CardHeader>
           <CardContent className="space-y-1">
             <button
-              onClick={() => router.push("/dashboard/notifications")}
               className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
+              onClick={() => router.push("/privacy")}
             >
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Notifications</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-
-            <button className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors">
-              <div className="flex items-center gap-3">
-                <Palette className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Appearance</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-
-            <button className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-muted-foreground" />
                 <span className="font-medium">Privacy & Security</span>
@@ -168,7 +85,7 @@ const Settings = () => {
             </button>
 
             <button
-              onClick={() => router.push("/dashboard/help")}
+              onClick={() => router.push("/contact")}
               className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-3">
