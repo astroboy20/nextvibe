@@ -156,7 +156,7 @@ function CouponDetailSheet({
         ) : !coupon ? (
           <p className="text-muted-foreground text-sm">Failed to load coupon.</p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 px-5">
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border bg-primary/5 p-4">
@@ -494,7 +494,7 @@ export default function CouponsPage() {
 
       {/* Summary stats */}
       {!isLoading && !isError && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Total Coupons</p>
@@ -542,27 +542,115 @@ export default function CouponsPage() {
               icon={<Tag className="w-12 h-12 text-muted-foreground" />}
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground text-xs uppercase tracking-wide">
-                    <th className="text-left py-3 pr-4 font-medium">Code</th>
-                    <th className="text-left py-3 pr-4 font-medium">Discount</th>
-                    <th className="text-left py-3 pr-4 font-medium">Uses</th>
-                    <th className="text-left py-3 pr-4 font-medium">Expires</th>
-                    <th className="text-left py-3 pr-4 font-medium">Status</th>
-                    <th className="text-left py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((coupon: IAdminCoupon) => (
-                    <tr
-                      key={coupon.id}
-                      className="border-b last:border-0 hover:bg-muted/40 transition-colors"
-                    >
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-1.5">
-                          <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono font-semibold">
+            <>
+              {/* Desktop table view */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground text-xs uppercase tracking-wide">
+                      <th className="text-left py-3 pr-4 font-medium">Code</th>
+                      <th className="text-left py-3 pr-4 font-medium">Discount</th>
+                      <th className="text-left py-3 pr-4 font-medium">Uses</th>
+                      <th className="text-left py-3 pr-4 font-medium">Expires</th>
+                      <th className="text-left py-3 pr-4 font-medium">Status</th>
+                      <th className="text-left py-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((coupon: IAdminCoupon) => (
+                      <tr
+                        key={coupon.id}
+                        className="border-b last:border-0 hover:bg-muted/40 transition-colors"
+                      >
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-1.5">
+                            <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono font-semibold">
+                              {coupon.code}
+                            </code>
+                            <button
+                              onClick={() => copyCode(coupon.code, coupon.id)}
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              title="Copy code"
+                            >
+                              {copiedId === coupon.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                          {coupon.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 max-w-45cate">
+                              {coupon.description}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 font-medium">
+                          {coupon.discountType === "PERCENTAGE"
+                            ? `${coupon.discountValue}%`
+                            : `$${coupon.discountValue}`}
+                          <span className="ml-1 text-xs text-muted-foreground font-normal">
+                            {coupon.discountType === "PERCENTAGE" ? "off" : "flat"}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4 text-muted-foreground">
+                          <span className="font-medium text-foreground">{coupon.usedCount ?? 0}</span>
+                          {coupon.usageLimit ? (
+                            <span> / {coupon.usageLimit}</span>
+                          ) : (
+                            <span className="text-xs"> ∞</span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-muted-foreground">
+                          {fmtDate(coupon.expiresAt)}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <StatusBadge coupon={coupon} />
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="View detail"
+                              onClick={() => setDetailId(coupon.id)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Edit"
+                              onClick={() => setEditCoupon(coupon)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Deactivate"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setDeleteId(coupon.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile card view */}
+              <div className="md:hidden space-y-4">
+                {filtered.map((coupon: IAdminCoupon) => (
+                  <Card key={coupon.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Code and copy button */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-2 py-1 rounded text-sm font-mono font-semibold">
                             {coupon.code}
                           </code>
                           <button
@@ -571,74 +659,84 @@ export default function CouponsPage() {
                             title="Copy code"
                           >
                             {copiedId === coupon.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              <Check className="w-4 h-4 text-emerald-500" />
                             ) : (
-                              <Copy className="w-3.5 h-3.5" />
+                              <Copy className="w-4 h-4" />
                             )}
                           </button>
                         </div>
-                        {coupon.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 max-w-45cate">
-                            {coupon.description}
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-3 pr-4 font-medium">
-                        {coupon.discountType === "PERCENTAGE"
-                          ? `${coupon.discountValue}%`
-                          : `$${coupon.discountValue}`}
-                        <span className="ml-1 text-xs text-muted-foreground font-normal">
-                          {coupon.discountType === "PERCENTAGE" ? "off" : "flat"}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        <span className="font-medium text-foreground">{coupon.usedCount ?? 0}</span>
-                        {coupon.usageLimit ? (
-                          <span> / {coupon.usageLimit}</span>
-                        ) : (
-                          <span className="text-xs"> ∞</span>
-                        )}
-                      </td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        {fmtDate(coupon.expiresAt)}
-                      </td>
-                      <td className="py-3 pr-4">
                         <StatusBadge coupon={coupon} />
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="View detail"
-                            onClick={() => setDetailId(coupon.id)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Edit"
-                            onClick={() => setEditCoupon(coupon)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Deactivate"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteId(coupon.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                      </div>
+
+                      {/* Description */}
+                      {coupon.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {coupon.description}
+                        </p>
+                      )}
+
+                      {/* Details grid */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Discount</p>
+                          <p className="font-medium">
+                            {coupon.discountType === "PERCENTAGE"
+                              ? `${coupon.discountValue}%`
+                              : `$${coupon.discountValue}`}
+                            <span className="ml-1 text-xs text-muted-foreground font-normal">
+                              {coupon.discountType === "PERCENTAGE" ? "off" : "flat"}
+                            </span>
+                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Uses</p>
+                          <p className="font-medium">
+                            {coupon.usedCount ?? 0}
+                            {coupon.usageLimit ? (
+                              <span className="text-muted-foreground"> / {coupon.usageLimit}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground"> / ∞</span>
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Expires</p>
+                          <p className="font-medium">{fmtDate(coupon.expiresAt)}</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDetailId(coupon.id)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" /> View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setEditCoupon(coupon)}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" /> Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(coupon.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Pagination */}

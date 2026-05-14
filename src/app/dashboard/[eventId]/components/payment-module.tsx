@@ -336,6 +336,9 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
       setQuotedPlan(res.data);
       setAppliedCoupon(couponInput.trim());
       toast.success("Coupon applied!");
+      
+      // Refetch publish preview to update pricing
+      refetchPreview();
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Invalid or expired coupon.");
     }
