@@ -11,11 +11,21 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Carousel, CarouselContent, CarouselItem, type CarouselApi,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import {
-  Heart, MessageCircle, Share2, X, Send, Loader2,
-  Volume2, VolumeX, ImageOff,
+  Heart,
+  MessageCircle,
+  Share2,
+  X,
+  Send,
+  Loader2,
+  Volume2,
+  VolumeX,
+  ImageOff,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -39,7 +49,16 @@ export interface PostcardData {
   commentCount?: number;
   eventId?: string;
   createdAt?: string;
-  author?: { displayName?: string; username?: string; avatarUrl?: string | null };
+  author?: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string | null;
+  };
+  event?: {
+    id?: string;
+    name?: string;
+    locationName?: string | null;
+  };
   media?: PostcardMediaItem[];
 }
 
@@ -47,15 +66,27 @@ export interface CommentData {
   id: string;
   content: string;
   createdAt?: string;
-  author?: { displayName?: string; username?: string; avatarUrl?: string | null };
+  author?: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string | null;
+  };
 }
 
 // ─── ProgressiveImage ─────────────────────────────────────────────────────────
 
 export function ProgressiveImage({
-  src, alt, className, fullscreen, eager,
+  src,
+  alt,
+  className,
+  fullscreen,
+  eager,
 }: {
-  src: string; alt: string; className?: string; fullscreen?: boolean; eager?: boolean;
+  src: string;
+  alt: string;
+  className?: string;
+  fullscreen?: boolean;
+  eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -67,7 +98,8 @@ export function ProgressiveImage({
   }, [src]);
 
   useEffect(() => {
-    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) setLoaded(true);
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0)
+      setLoaded(true);
   }, [src]);
 
   if (fullscreen) {
@@ -108,7 +140,10 @@ export function ProgressiveImage({
         <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
       )}
       {error ? (
-        <div className="flex items-center justify-center bg-muted rounded-inherit" style={{ minHeight: 120 }}>
+        <div
+          className="flex items-center justify-center bg-muted rounded-inherit"
+          style={{ minHeight: 120 }}
+        >
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
         </div>
       ) : (
@@ -155,8 +190,11 @@ export function VideoPlayer({
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    if (active) vid.play().catch(() => {});
-    else { vid.pause(); vid.currentTime = 0; }
+    if (active) vid.play().catch(() => { });
+    else {
+      vid.pause();
+      vid.currentTime = 0;
+    }
   }, [active]);
 
   const handleTap = (e: React.MouseEvent) => {
@@ -179,7 +217,7 @@ export function VideoPlayer({
         // Single tap: toggle mute
         const vid = videoRef.current;
         if (!vid) return;
-        if (vid.paused) vid.play().catch(() => {});
+        if (vid.paused) vid.play().catch(() => { });
         const next = !muted;
         vid.muted = next;
         setMuted(next);
@@ -189,9 +227,12 @@ export function VideoPlayer({
   };
 
   // Cleanup timer on unmount
-  useEffect(() => () => {
-    if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+    },
+    []
+  );
 
   return (
     <div className="relative w-full h-full bg-black" onClick={handleTap}>
@@ -214,7 +255,11 @@ export function VideoPlayer({
         className="w-full h-full object-contain"
       />
       <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-10">
-        {muted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
+        {muted ? (
+          <VolumeX className="h-4 w-4 text-white" />
+        ) : (
+          <Volume2 className="h-4 w-4 text-white" />
+        )}
       </div>
     </div>
   );
@@ -222,10 +267,21 @@ export function VideoPlayer({
 
 // ─── CommentSheet ─────────────────────────────────────────────────────────────
 
-export function CommentSheet({ postcardId, onClose }: { postcardId: string; onClose: () => void }) {
+export function CommentSheet({
+  postcardId,
+  onClose,
+}: {
+  postcardId: string;
+  onClose: () => void;
+}) {
   const [body, setBody] = useState("");
-  const [postComment, { isLoading: isPosting }] = useCommentOnPostcardMutation();
-  const { data: commentsData, isLoading: loadingComments, refetch } = useGetPostcardCommentsQuery(postcardId);
+  const [postComment, { isLoading: isPosting }] =
+    useCommentOnPostcardMutation();
+  const {
+    data: commentsData,
+    isLoading: loadingComments,
+    refetch,
+  } = useGetPostcardCommentsQuery(postcardId);
   const comments: CommentData[] = commentsData?.data ?? commentsData ?? [];
 
   const handleSubmit = async () => {
@@ -247,7 +303,10 @@ export function CommentSheet({ postcardId, onClose }: { postcardId: string; onCl
         <span className="font-semibold text-base">
           Comments {comments.length > 0 && `(${comments.length})`}
         </span>
-        <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors">
+        <button
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -266,25 +325,33 @@ export function CommentSheet({ postcardId, onClose }: { postcardId: string; onCl
             ))}
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">No comments yet. Be the first!</p>
-        ) : comments.map((c) => {
-          const name = c.author?.displayName ?? c.author?.username ?? "User";
-          return (
-            <div key={c.id} className="flex gap-3">
-              {c.author?.avatarUrl ? (
-                <img src={c.author.avatarUrl} alt={name} className="h-8 w-8 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                  {name[0]?.toUpperCase()}
+          <p className="text-center text-sm text-muted-foreground py-8">
+            No comments yet. Be the first!
+          </p>
+        ) : (
+          comments.map((c) => {
+            const name = c.author?.displayName ?? c.author?.username ?? "User";
+            return (
+              <div key={c.id} className="flex gap-3">
+                {c.author?.avatarUrl ? (
+                  <img
+                    src={c.author.avatarUrl}
+                    alt={name}
+                    className="h-8 w-8 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    {name[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold">{name}</span>
+                  <p className="text-sm text-foreground mt-0.5">{c.content}</p>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold">{name}</span>
-                <p className="text-sm text-foreground mt-0.5">{c.content}</p>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       <div className="flex items-center gap-3 px-4 py-3 border-t border-border bg-background">
@@ -301,7 +368,11 @@ export function CommentSheet({ postcardId, onClose }: { postcardId: string; onCl
           disabled={!body.trim() || isPosting}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
         >
-          {isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isPosting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </button>
       </div>
     </div>
@@ -330,8 +401,14 @@ function DotIndicator({
   let start = active - half;
   let end = start + DOT_WINDOW - 1;
 
-  if (start < 0) { start = 0; end = Math.min(DOT_WINDOW - 1, total - 1); }
-  if (end >= total) { end = total - 1; start = Math.max(0, end - DOT_WINDOW + 1); }
+  if (start < 0) {
+    start = 0;
+    end = Math.min(DOT_WINDOW - 1, total - 1);
+  }
+  if (end >= total) {
+    end = total - 1;
+    start = Math.max(0, end - DOT_WINDOW + 1);
+  }
 
   const dots: number[] = [];
   for (let i = start; i <= end; i++) dots.push(i);
@@ -341,7 +418,8 @@ function DotIndicator({
       {dots.map((i) => {
         const isActive = i === active;
         // Edge dots (first/last in window when there are more items outside) shrink
-        const isEdge = (i === start && start > 0) || (i === end && end < total - 1);
+        const isEdge =
+          (i === start && start > 0) || (i === end && end < total - 1);
         return (
           <button
             key={i}
@@ -351,8 +429,8 @@ function DotIndicator({
               isActive
                 ? "w-4 h-1.5 bg-primary"
                 : isEdge
-                ? "w-1 h-1 bg-muted-foreground/20"
-                : "w-1.5 h-1.5 bg-muted-foreground/30"
+                  ? "w-1 h-1 bg-muted-foreground/20"
+                  : "w-1.5 h-1.5 bg-muted-foreground/30"
             )}
           />
         );
@@ -364,7 +442,11 @@ function DotIndicator({
 // ─── PostcardViewer ───────────────────────────────────────────────────────────
 
 export function PostcardViewer({
-  postcard, eventId, eventName, onClose, zIndex = 50,
+  postcard,
+  eventId,
+  eventName,
+  onClose,
+  zIndex = 50,
 }: {
   postcard: PostcardData;
   eventId: string;
@@ -383,19 +465,29 @@ export function PostcardViewer({
   const [sharing, setSharing] = useState(false);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
-  // Fetch fresh like state on open
-  const { data: freshPostcard } = useGetPostcardQuery(postcard.id!, { skip: !postcard.id });
+  // Fetch fresh like state + full author on open
+  const { data: freshPostcard } = useGetPostcardQuery(postcard.id!, {
+    skip: !postcard.id,
+  });
+
+  const freshData = freshPostcard?.data ?? freshPostcard;
+
+  // Merge fresh author data over the prop — list queries may return partial author
+  const resolvedAuthor = freshData?.author ?? postcard.author;
+
   useEffect(() => {
-    const fresh = freshPostcard?.data ?? freshPostcard;
-    if (!fresh) return;
-    if (fresh.likeCount !== undefined) setLikeCount(fresh.likeCount);
-    if (fresh.isLiked !== undefined) setLiked(fresh.isLiked);
-  }, [freshPostcard]);
+    if (!freshData) return;
+    if (freshData.likeCount !== undefined) setLikeCount(freshData.likeCount);
+    if (freshData.isLiked !== undefined) setLiked(freshData.isLiked);
+  }, [freshData]);
 
   // Live comment count
-  const { data: commentsData } = useGetPostcardCommentsQuery(postcard.id!, { skip: !postcard.id });
+  const { data: commentsData } = useGetPostcardCommentsQuery(postcard.id!, {
+    skip: !postcard.id,
+  });
   const liveComments: CommentData[] = commentsData?.data ?? commentsData ?? [];
-  const commentCount = liveComments.length > 0 ? liveComments.length : (postcard.commentCount ?? 0);
+  const commentCount =
+    liveComments.length > 0 ? liveComments.length : postcard.commentCount ?? 0;
 
   // Lock scroll + hide header
   useEffect(() => {
@@ -412,11 +504,16 @@ export function PostcardViewer({
     if (!carouselApi) return;
     const onSelect = () => setActiveIndex(carouselApi.selectedScrollSnap());
     carouselApi.on("select", onSelect);
-    return () => { carouselApi.off("select", onSelect); };
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
   }, [carouselApi]);
 
   const media = (postcard.media ?? []).filter((m) => !!m.mediaUrl);
-  const authorName = postcard.author?.displayName ?? postcard.author?.username ?? eventName;
+  const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "User";
+  const username = resolvedAuthor?.username;
+  const resolvedEventName = postcard.event?.name ?? eventName;
+
   const timeAgo = postcard.createdAt
     ? formatDistanceToNow(new Date(postcard.createdAt), { addSuffix: true })
     : "";
@@ -436,14 +533,17 @@ export function PostcardViewer({
     if (!postcard.id) return;
     const wasLiked = liked;
     setLiked(!wasLiked);
-    setLikeCount((c) => wasLiked ? c - 1 : c + 1);
+    setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
     try {
-      const result = await toggleLikeMutation({ eventId, postcardId: postcard.id }).unwrap();
+      const result = await toggleLikeMutation({
+        eventId,
+        postcardId: postcard.id,
+      }).unwrap();
       if (result?.currentLikes !== undefined) setLikeCount(result.currentLikes);
       if (result?.liked !== undefined) setLiked(result.liked);
     } catch {
       setLiked(wasLiked);
-      setLikeCount((c) => wasLiked ? c + 1 : c - 1);
+      setLikeCount((c) => (wasLiked ? c + 1 : c - 1));
       toast.error("Could not update like.");
     }
   }, [liked, postcard.id, eventId, toggleLikeMutation]);
@@ -466,16 +566,21 @@ export function PostcardViewer({
 
   const handleShare = async () => {
     const currentMedia = media[activeIndex];
-    const authorLabel = postcard.author?.displayName ?? postcard.author?.username ?? eventName;
+    const authorLabel = postcard.author?.displayName ?? postcard.author?.username ?? "User";
     const text = postcard.caption
-      ? `${postcard.caption}\n\n— ${authorLabel} at ${eventName} via NextVibe`
-      : `Check out this memory from ${eventName} by ${authorLabel} — NextVibe`;
+      ? `${postcard.caption}\n\n— ${authorLabel} at ${resolvedEventName} via NextVibe`
+      : `Check out this memory from ${resolvedEventName} by ${authorLabel} — NextVibe`;
     const shareUrl = postcard.id
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/postcard/${postcard.id}`
-      : typeof window !== "undefined" ? window.location.href : "";
+      ? `${typeof window !== "undefined" ? window.location.origin : ""
+      }/postcard/${postcard.id}`
+      : typeof window !== "undefined"
+        ? window.location.href
+        : "";
 
     if (!navigator.share) {
-      await navigator.clipboard.writeText(`${text}\n\n${shareUrl}`).catch(() => {});
+      await navigator.clipboard
+        .writeText(`${text}\n\n${shareUrl}`)
+        .catch(() => { });
       toast.success("Link copied to clipboard");
       return;
     }
@@ -483,42 +588,65 @@ export function PostcardViewer({
     if (currentMedia?.mediaUrl) {
       setSharing(true);
       try {
-        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(
+          currentMedia.mediaUrl
+        )}`;
         const res = await fetch(proxyUrl);
         if (res.ok) {
           const blob = await res.blob();
           const isVideo = currentMedia.mediaType === "VIDEO";
-          const ext = isVideo ? (blob.type.includes("webm") ? "webm" : "mp4") : "jpg";
-          const file = new File(
-            [blob],
-            `nextvibe-postcard.${ext}`,
-            { type: blob.type || (isVideo ? "video/mp4" : "image/jpeg") }
-          );
+          const ext = isVideo
+            ? blob.type.includes("webm")
+              ? "webm"
+              : "mp4"
+            : "jpg";
+          const file = new File([blob], `nextvibe-postcard.${ext}`, {
+            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          });
           if (navigator.canShare?.({ files: [file] })) {
             try {
-              await navigator.share({ files: [file], title: `${eventName} — NextVibe`, text, url: shareUrl });
+              await navigator.share({
+                files: [file],
+                title: `${resolvedEventName} — NextVibe`,
+                text,
+                url: shareUrl,
+              });
               setSharing(false);
               return;
             } catch (e: any) {
-              if (e?.name === "AbortError") { setSharing(false); return; }
+              if (e?.name === "AbortError") {
+                setSharing(false);
+                return;
+              }
             }
           }
         }
-      } catch { /* fall through to text share */ }
+      } catch {
+        /* fall through to text share */
+      }
       setSharing(false);
     }
 
     try {
-      await navigator.share({ title: `${eventName} — NextVibe`, text, url: shareUrl });
+      await navigator.share({
+        title: `${resolvedEventName} — NextVibe`,
+        text,
+        url: shareUrl,
+      });
     } catch (e: any) {
       if (e?.name !== "AbortError") {
-        await navigator.clipboard.writeText(`${text}\n\n${shareUrl}`).catch(() => {});
+        await navigator.clipboard
+          .writeText(`${text}\n\n${shareUrl}`)
+          .catch(() => { });
         toast.success("Link copied to clipboard");
       }
     }
   };
 
-  if (media.length === 0) { onClose(); return null; }
+  if (media.length === 0) {
+    onClose();
+    return null;
+  }
 
   return (
     <>
@@ -526,35 +654,15 @@ export function PostcardViewer({
         className="fixed inset-0 flex flex-col bg-background overflow-hidden"
         style={{ zIndex }}
       >
-        {/* Author row */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
-          {postcard.author?.avatarUrl ? (
-            <Image
-              src={postcard.author.avatarUrl}
-              alt={authorName}
-              width={40} height={40}
-              className="h-10 w-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-              {authorName?.[0]?.toUpperCase() ?? "?"}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight">{authorName}</p>
-            {timeAgo && <p className="text-xs text-muted-foreground">{timeAgo}</p>}
-          </div>
-          <button
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted transition-colors shrink-0"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+
 
         {/* Carousel — flex-1 so it fills remaining height */}
         <div className="relative flex-1 min-h-0 w-full bg-black overflow-hidden">
-          <Carousel setApi={setCarouselApi} opts={{ loop: false }} className="w-full h-full">
+          <Carousel
+            setApi={setCarouselApi}
+            opts={{ loop: false }}
+            className="w-full h-full"
+          >
             <CarouselContent className="ml-0 h-full">
               {media.map((m, i) => (
                 <CarouselItem key={m.id ?? i} className="pl-0 basis-full h-full">
@@ -563,10 +671,8 @@ export function PostcardViewer({
                       src={m.mediaUrl!}
                       active={i === activeIndex}
                       onDoubleTap={triggerLikeAnimation}
-                      // single tap (mute toggle) is handled inside VideoPlayer
                     />
                   ) : (
-                    // Wrap in a click handler for double-tap-to-like on images
                     <div className="w-full h-full" onClick={handleImageTap}>
                       <ProgressiveImage
                         src={m.mediaUrl!}
@@ -580,6 +686,13 @@ export function PostcardViewer({
               ))}
             </CarouselContent>
           </Carousel>
+          <button
+            onClick={onClose}
+            className="absolute top-4 left-4 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white transition-colors hover:bg-black/70"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
 
           {showHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
@@ -595,29 +708,68 @@ export function PostcardViewer({
           onSelect={(i) => carouselApi?.scrollTo(i)}
         />
 
-        {/* Actions */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
-          <button onClick={handleLike} className="flex items-center gap-1.5 transition-transform active:scale-90">
-            <Heart className={cn("h-6 w-6 transition-all duration-150", liked ? "fill-[#5B1A57] text-[#5B1A57] scale-110" : "text-foreground")} />
-            <span className="text-sm font-medium text-foreground">{likeCount}</span>
-          </button>
-          <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">
-            <MessageCircle className="h-6 w-6 text-foreground" />
-            <span className="text-sm font-medium text-foreground">{commentCount}</span>
-          </button>
-          <button onClick={handleShare} disabled={sharing} className="flex items-center gap-1.5 ml-auto disabled:opacity-50">
-            {sharing
-              ? <Loader2 className="h-6 w-6 animate-spin text-foreground" />
-              : <Share2 className="h-6 w-6 text-foreground" />}
-          </button>
-        </div>
+        <>
+          {/* Author row — top, with close button */}
+          <div className="flex items-center gap-3 px-4 pt-3  bg-background shrink-0">
+            {resolvedAuthor?.avatarUrl ? (
+              <Image
+                src={resolvedAuthor.avatarUrl}
+                alt={displayName}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                {displayName?.[0]?.toUpperCase() ?? "?"}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-tight truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {username ? `@${username}` : ""}
+                {username && timeAgo ? ` · ${timeAgo}` : timeAgo}
+              </p>
+            </div>
 
-        {postcard.caption && (
+          </div>
+          {/* Actions */}
+          <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
+            <button
+              onClick={handleLike}
+              className="flex items-center gap-1.5 transition-transform active:scale-90"
+            >
+              <Heart
+                className={cn(
+                  "h-6 w-6 transition-all duration-150",
+                  liked ? "fill-[#5B1A57] text-[#5B1A57] scale-110" : "text-foreground"
+                )}
+              />
+              <span className="text-sm font-medium text-foreground">{likeCount}</span>
+            </button>
+            <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">
+              <MessageCircle className="h-6 w-6 text-foreground" />
+              <span className="text-sm font-medium text-foreground">{commentCount}</span>
+            </button>
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="flex items-center gap-1.5 ml-auto disabled:opacity-50"
+            >
+              {sharing
+                ? <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+                : <Send className="h-6 w-6 text-foreground" />}
+            </button>
+          </div>
+        </>
+
+
+        {/* {postcard.caption && (
           <div className="px-4 pb-4 pt-1 bg-background shrink-0">
-            <span className="text-sm font-semibold mr-1">{authorName}</span>
+            <span className="text-sm font-semibold mr-1">{displayName}</span>
             <span className="text-sm text-foreground">{postcard.caption}</span>
           </div>
-        )}
+        )} */}
       </div>
 
       {showComments && postcard.id && (
