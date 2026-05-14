@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useRegisterMutation } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
 import PasswordField from "../component/password-field";
+import { useState } from "react";
 
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -37,6 +38,7 @@ export default function RegisterContent() {
 
   const from = searchParams.get("from") || "/events";
   const [registerMutation, { isLoading }] = useRegisterMutation();
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(registerSchema),
@@ -72,7 +74,7 @@ export default function RegisterContent() {
 
   return (
     <div>
-      <GoogleLoginButton />
+      <GoogleLoginButton onLoadingChange={setGoogleLoading} />
 
       <div className="py-4 flex items-center gap-2 text-sm text-gray-500">
         <span className="h-px bg-gray-300 flex-1" />
@@ -152,7 +154,7 @@ export default function RegisterContent() {
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || googleLoading}
               className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium"
             >
               {isLoading ? (

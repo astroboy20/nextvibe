@@ -8,7 +8,11 @@ import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
 import { Loader2 } from "lucide-react";
 
-const GoogleLoginButtonInner = () => {
+interface GoogleLoginButtonProps {
+  onLoadingChange?: (loading: boolean) => void;
+}
+
+const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
   const [googleLogin, { isLoading }] = useGoogleLoginMutation();
@@ -30,6 +34,11 @@ const GoogleLoginButtonInner = () => {
     }, 100);
     return () => clearInterval(interval);
   }, []);
+
+  // Notify parent whenever loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
 
   if (isLoading) return <Loader2 className="animate-spin mx-auto mb-4" />;
   if (!isLoaded) return null;
@@ -66,9 +75,9 @@ const GoogleLoginButtonInner = () => {
   );
 };
 
-const GoogleLoginButton = () => (
+const GoogleLoginButton = ({ onLoadingChange }: GoogleLoginButtonProps) => (
   <Suspense fallback={null}>
-    <GoogleLoginButtonInner />
+    <GoogleLoginButtonInner onLoadingChange={onLoadingChange} />
   </Suspense>
 );
 

@@ -36,6 +36,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const LoginContent = () => {
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
@@ -171,7 +172,7 @@ const LoginContent = () => {
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || googleLoading}
             className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors"
           >
             {isLoading ? (
@@ -193,7 +194,7 @@ const LoginContent = () => {
 
         <div className="flex flex-col items-center gap-4 ">
           <div className=" w-full">
-            <GoogleLoginButton />
+            <GoogleLoginButton onLoadingChange={setGoogleLoading} />
           </div>
 
           <p className="text-center text-sm font-medium text-gray-600 mt-2">

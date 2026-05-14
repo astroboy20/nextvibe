@@ -12,6 +12,7 @@ import type {
   IAdminCoupon,
   IAdminCouponDetail,
   IAdminCouponRedemption,
+  ICreateAdminCouponInput,
 } from "@/app/provider/api/admin";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -378,7 +379,7 @@ const emptyForm = { ...emptyCreateForm };
 
 export default function CouponsPage() {
   const [page, setPage] = useState(1);
-  const { data: result, isLoading, isError } = useGetCouponsQuery({ page, limit: 20 });
+  const { data: result, isLoading, isError } = useGetCouponsQuery();
   const [createCoupon, { isLoading: creating }] = useCreateCouponMutation();
   const [deleteCoupon, { isLoading: deleting }] = useDeleteCouponMutation();
 
@@ -406,22 +407,50 @@ export default function CouponsPage() {
   };
 
   const handleCreate = async () => {
-    const payload: any = {
+    // Validate required fields
+    if (!form.code.trim()) {
+      toast.error("Code is required");
+      return;
+    }
+    if (!form.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    const discountValue = Number(form.discountValue);
+    if (!discountValue || discountValue <= 0) {
+      toast.error("Discount value must be greater than 0");
+      return;
+    }
+    if (form.discountType === "PERCENTAGE" && discountValue > 100) {
+      toast.error("Percentage discount cannot exceed 100%");
+      return;
+    }
+    if (!form.usageLimit || Number(form.usageLimit) <= 0) {
+      toast.error("Usage limit is required and must be greater than 0");
+      return;
+    }
+    if (!form.expiresAt) {
+      toast.error("Expiry date is required");
+      return;
+    }
+
+    // Build payload with all required fields
+    const payload = {
+      code: form.code.trim().toUpperCase(),
+      description: form.description.trim(),
       discountType: form.discountType,
-      discountValue: Number(form.discountValue),
+      discountValue,
+      usageLimit: Number(form.usageLimit),
+      expiresAt: new Date(form.expiresAt + "T23:59:59Z").toISOString(),
     };
-    if (form.code) payload.code = form.code;
-    if (form.usageLimit) payload.usageLimit = Number(form.usageLimit);
-    if (form.expiresAt) payload.expiresAt = new Date(form.expiresAt).toISOString();
-    if (form.description) payload.description = form.description;
 
     try {
       await createCoupon(payload).unwrap();
-      toast.success("Coupon created");
+      toast.success("Coupon created successfully");
       setShowCreate(false);
       setForm(emptyForm);
-    } catch {
-      toast.error("Failed to create coupon");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? err?.message ?? "Failed to create coupon");
     }
   };
 
@@ -465,7 +494,7 @@ export default function CouponsPage() {
 
       {/* Summary stats */}
       {!isLoading && !isError && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Total Coupons</p>
@@ -649,15 +678,24 @@ export default function CouponsPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="code">
-                Code{" "}
-                <span className="text-muted-foreground font-normal text-xs">(optional — auto-generated if blank)</span>
-              </Label>
+              <Label htmlFor="code">Code</Label>
               <Input
                 id="code"
-                placeholder="e.g. SUMMER20"
+                placeholder="e.g. LAUNCH50"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="e.g. Launch promo for early organizers"
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-1.5">
@@ -689,36 +727,29 @@ export default function CouponsPage() {
                 placeholder={form.discountType === "PERCENTAGE" ? "e.g. 20" : "e.g. 10"}
                 value={form.discountValue}
                 onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="usageLimit">Usage Limit (optional)</Label>
+              <Label htmlFor="usageLimit">Usage Limit</Label>
               <Input
                 id="usageLimit"
                 type="number"
                 min="1"
-                placeholder="Leave blank for unlimited"
+                placeholder="e.g. 100"
                 value={form.usageLimit}
                 onChange={(e) => setForm({ ...form, usageLimit: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="expiresAt">Expiry Date (optional)</Label>
+              <Label htmlFor="expiresAt">Expiry Date</Label>
               <Input
                 id="expiresAt"
                 type="date"
                 value={form.expiresAt}
                 onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Internal note about this coupon"
-                rows={2}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                required
               />
             </div>
           </div>
@@ -728,7 +759,7 @@ export default function CouponsPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={creating || !form.discountValue}
+              disabled={creating || !form.code || !form.description || !form.discountValue || !form.usageLimit || !form.expiresAt}
             >
               {creating ? "Creating..." : "Create Coupon"}
             </Button>

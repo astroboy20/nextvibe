@@ -5,16 +5,8 @@ import { StatsCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Users,
-  Calendar,
-  ImageIcon,
-  Gamepad2,
-  DollarSign,
-  Tag,
-  TrendingUp,
-  Activity,
-  CheckCircle,
-  XCircle,
+  Users, Calendar, ImageIcon, Gamepad2, DollarSign,
+  Tag, TrendingUp, Activity, Heart, MessageCircle, Share2,
 } from "lucide-react";
 
 function StatsSkeleton() {
@@ -69,126 +61,95 @@ export default function StatsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatsCard
                 title="Total Users"
-                value={(stats?.totalUsers ?? stats?.total_users ?? 0).toLocaleString()}
+                value={(stats?.totalUsers ?? 0).toLocaleString()}
                 icon={Users}
                 accent="plum"
               />
               <StatsCard
                 title="Total Events"
-                value={(stats?.totalEvents ?? stats?.total_events ?? 0).toLocaleString()}
+                value={(stats?.totalEvents ?? 0).toLocaleString()}
                 icon={Calendar}
                 accent="cyan"
               />
               <StatsCard
-                title="Active Events"
-                value={(stats?.activeEvents ?? stats?.active_events ?? 0).toLocaleString()}
+                title="Published Events"
+                value={(stats?.eventsByStatus?.PUBLISHED ?? 0).toLocaleString()}
                 icon={Activity}
                 accent="cyan"
               />
               <StatsCard
-                title="Total Postcards"
-                value={(stats?.totalPostcards ?? stats?.total_postcards ?? 0).toLocaleString()}
-                icon={ImageIcon}
-                accent="pink"
+                title="Draft Events"
+                value={(stats?.eventsByStatus?.DRAFT ?? 0).toLocaleString()}
+                icon={Calendar}
               />
             </div>
           </div>
 
-          {/* Engagement & Revenue */}
+          {/* Content */}
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              Engagement &amp; Revenue
+              Content
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatsCard
-                title="Active Sessions"
-                value={(stats?.activeSessions ?? stats?.active_sessions ?? 0).toLocaleString()}
+                title="Total Postcards"
+                value={(stats?.totalPostcards ?? 0).toLocaleString()}
+                icon={ImageIcon}
+                accent="pink"
+              />
+              <StatsCard
+                title="Game Sessions"
+                value={(stats?.totalGameSessions ?? 0).toLocaleString()}
                 icon={Gamepad2}
                 accent="purple"
               />
               <StatsCard
-                title="Total Revenue"
-                value={
-                  (stats?.totalRevenue ?? stats?.total_revenue)
-                    ? `$${Number(stats?.totalRevenue ?? stats?.total_revenue).toLocaleString()}`
-                    : "$0"
-                }
-                icon={DollarSign}
-                accent="plum"
-              />
-              <StatsCard
-                title="Total Coupons"
-                value={(stats?.totalCoupons ?? stats?.total_coupons ?? 0).toLocaleString()}
+                title="Total Vibe Tags"
+                value={(stats?.totalVibeTags ?? 0).toLocaleString()}
                 icon={Tag}
                 accent="pink"
               />
               <StatsCard
-                title="Total Vibe Tags"
-                value={(stats?.totalVibetags ?? stats?.total_vibetags ?? 0).toLocaleString()}
+                title="Tickets Sold"
+                value={(stats?.totalTicketsSold ?? 0).toLocaleString()}
                 icon={TrendingUp}
                 accent="purple"
               />
             </div>
           </div>
 
-          {/* User Status */}
+          {/* Revenue & Social */}
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              User Status
+              Revenue &amp; Social
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatsCard
-                title="Verified Users"
-                value={(stats?.verifiedUsers ?? stats?.verified_users ?? 0).toLocaleString()}
-                icon={CheckCircle}
-                accent="cyan"
-              />
-              <StatsCard
-                title="Banned Users"
-                value={(stats?.bannedUsers ?? stats?.banned_users ?? 0).toLocaleString()}
-                icon={XCircle}
-              />
-              <StatsCard
-                title="Total Game Sessions"
-                value={(stats?.totalGameSessions ?? stats?.total_game_sessions ?? 0).toLocaleString()}
-                icon={Gamepad2}
-                accent="purple"
-              />
-              <StatsCard
-                title="Total Payments"
-                value={(stats?.totalPayments ?? stats?.total_payments ?? 0).toLocaleString()}
+                title="Total Revenue"
+                value={`₦${Number(stats?.totalRevenue ?? 0).toLocaleString()}`}
                 icon={DollarSign}
                 accent="plum"
               />
+              <StatsCard
+                title="Total Likes"
+                value={(stats?.totalLikes ?? 0).toLocaleString()}
+                icon={Heart}
+                accent="pink"
+              />
+              <StatsCard
+                title="Total Comments"
+                value={(stats?.totalComments ?? 0).toLocaleString()}
+                icon={MessageCircle}
+                accent="cyan"
+              />
+              <StatsCard
+                title="Total Shares"
+                value={(stats?.totalShares ?? 0).toLocaleString()}
+                icon={Share2}
+                accent="purple"
+              />
             </div>
           </div>
-
-          {/* Raw data fallback */}
-          {stats && Object.keys(stats).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  All Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(stats).map(([key, value]) => (
-                    <div key={key} className="space-y-0.5">
-                      <p className="text-[11px] text-muted-foreground capitalize">
-                        {key.replace(/_/g, " ").replace(/([A-Z])/g, " $1").trim()}
-                      </p>
-                      <p className="text-lg font-bold tabular-nums">
-                        {typeof value === "number"
-                          ? value.toLocaleString()
-                          : String(value ?? "—")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
     </div>
