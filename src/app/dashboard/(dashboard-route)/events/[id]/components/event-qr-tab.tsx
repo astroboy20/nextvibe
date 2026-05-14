@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { QrCode, Download, Share2, Copy, Check } from "lucide-react";
 import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 
 interface EventQRTabProps {
   event: any;
@@ -25,10 +26,13 @@ export function EventQRTab({ event }: EventQRTabProps) {
         });
       } else {
         await navigator.clipboard.writeText(eventUrl);
-        alert("Link copied to clipboard");
+        toast.success("Link copied to clipboard");
       }
-    } catch (err) {
-      console.error("Share failed:", err);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        await navigator.clipboard.writeText(eventUrl).catch(() => {});
+        toast.success("Link copied to clipboard");
+      }
     }
   };
 

@@ -123,9 +123,12 @@ async function bakeOverlayOntoVideo(
 ): Promise<Blob> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
-    video.muted = true;
+    // Do NOT mute — we need audio to flow through AudioContext
+    video.muted = false;
     video.playsInline = true;
     video.preload = "auto";
+    // Keep it off-screen so it doesn't make noise during processing
+    video.volume = 0;
 
     const objectUrl = URL.createObjectURL(videoBlob);
     video.src = objectUrl;
@@ -155,22 +158,28 @@ async function bakeOverlayOntoVideo(
           ? "video/webm"
           : "video/mp4";
 
-        const stream = (canvas as any).captureStream(30) as MediaStream;
+        const videoStream = (canvas as any).captureStream(30) as MediaStream;
 
-        // Include audio if available
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaElementSource(video);
-        const dest = audioCtx.createMediaStreamDestination();
-        source.connect(dest);
-        source.connect(audioCtx.destination);
-        dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+        // Route audio through AudioContext so it ends up in the output stream
+        let audioCtx: AudioContext | null = null;
+        try {
+          audioCtx = new AudioContext();
+          const source = audioCtx.createMediaElementSource(video);
+          const dest = audioCtx.createMediaStreamDestination();
+          // Connect to destination so AudioContext stays active, but silence
+          // the actual speaker output (volume is already 0 on the element)
+          source.connect(dest);
+          dest.stream.getAudioTracks().forEach((t) => videoStream.addTrack(t));
+        } catch {
+          // AudioContext not available — video will be silent, that's acceptable
+        }
 
-        const recorder = new MediaRecorder(stream, { mimeType });
+        const recorder = new MediaRecorder(videoStream, { mimeType });
         const chunks: Blob[] = [];
         recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
         recorder.onstop = () => {
           URL.revokeObjectURL(objectUrl);
-          audioCtx.close();
+          audioCtx?.close();
           const result = new Blob(chunks, { type: mimeType });
           resolve(result.size > 0 ? result : videoBlob);
         };
@@ -178,14 +187,12 @@ async function bakeOverlayOntoVideo(
         let animFrame: number;
         const drawFrame = () => {
           if (video.paused || video.ended) return;
-          // Draw video frame
           const scale = Math.max(vw / video.videoWidth, vh / video.videoHeight);
           const sw = video.videoWidth * scale;
           const sh = video.videoHeight * scale;
           const sx = (vw - sw) / 2;
           const sy = (vh - sh) / 2;
           ctx.drawImage(video, sx, sy, sw, sh);
-          // Draw overlay on top
           ctx.drawImage(overlayImg, 0, 0, vw, vh);
           animFrame = requestAnimationFrame(drawFrame);
         };
@@ -385,8 +392,6 @@ export function PostcardCreator({
           audio: true,
           video: {
             facingMode: { ideal: facing },
-            width: { ideal: 1080 },
-            height: { ideal: 1920 },
           },
         });
         streamRef.current = stream;
@@ -686,13 +691,18 @@ export function PostcardCreator({
         });
       } else {
         const blob = dataUrlToBlob(src);
-        file = new File([blob], "postcard.png", { type: blob.type });
+        file = new File([blob], "postcard.jpg", { type: blob.type });
       }
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
           title: `${eventName} Postcard`,
-          text: item.caption,
+          text: item.caption || `Check out my postcard from ${eventName}!`,
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          title: `${eventName} Postcard`,
+          text: item.caption || `Check out my postcard from ${eventName}!`,
         });
       } else {
         await navigator.clipboard.writeText(

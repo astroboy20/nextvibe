@@ -62,16 +62,53 @@ export function ProgressiveImage({
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    setLoaded(false);
+    setError(false);
+  }, [src]);
+
+  useEffect(() => {
     if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) setLoaded(true);
   }, [src]);
 
+  if (fullscreen) {
+    // In fullscreen mode render as a flex-fill container so height is always
+    // driven by the parent (CarouselItem) rather than the image's intrinsic size.
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-black">
+        {!loaded && !error && (
+          <div className="absolute inset-0 bg-black animate-pulse" />
+        )}
+        {error ? (
+          <div className="flex items-center justify-center w-full h-full">
+            <ImageOff className="h-8 w-8 text-white/40" />
+          </div>
+        ) : (
+          <img
+            ref={imgRef}
+            src={src}
+            alt={alt}
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            className={cn(
+              "max-w-full max-h-full object-contain transition-opacity duration-300",
+              loaded ? "opacity-100" : "opacity-0",
+              className
+            )}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("relative w-full min-h-30", fullscreen ? "h-full" : "")}>
+    <div className="relative w-full min-h-[120px]">
       {!loaded && !error && (
-        <div className={cn("absolute inset-0 bg-muted animate-pulse", fullscreen ? "" : "rounded-inherit")} />
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
       )}
       {error ? (
-        <div className={cn("flex items-center justify-center bg-muted", fullscreen ? "h-full" : "rounded-inherit")} style={{ minHeight: 120 }}>
+        <div className="flex items-center justify-center bg-muted rounded-inherit" style={{ minHeight: 120 }}>
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
         </div>
       ) : (
@@ -84,8 +121,7 @@ export function ProgressiveImage({
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
           className={cn(
-            "transition-opacity duration-300",
-            fullscreen ? "w-full h-full object-contain" : "w-full h-auto block",
+            "w-full h-auto block transition-opacity duration-300",
             loaded ? "opacity-100" : "opacity-0",
             className
           )}
@@ -97,10 +133,24 @@ export function ProgressiveImage({
 
 // ─── VideoPlayer ──────────────────────────────────────────────────────────────
 
-export function VideoPlayer({ src, active = true }: { src: string; active?: boolean }) {
+export function VideoPlayer({
+  src,
+  active = true,
+  onSingleTap,
+  onDoubleTap,
+}: {
+  src: string;
+  active?: boolean;
+  /** Called when the user single-taps the video (toggle mute) */
+  onSingleTap?: () => void;
+  /** Called when the user double-taps the video (like) */
+  onDoubleTap?: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [buffering, setBuffering] = useState(true);
+  const lastTapRef = useRef<number>(0);
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -111,11 +161,37 @@ export function VideoPlayer({ src, active = true }: { src: string; active?: bool
 
   const handleTap = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const vid = videoRef.current;
-    if (!vid) return;
-    if (vid.paused) vid.play().catch(() => {});
-    setMuted((m) => { vid.muted = !m; return !m; });
+    const now = Date.now();
+    const delta = now - lastTapRef.current;
+    lastTapRef.current = now;
+
+    if (delta < 300) {
+      // Double tap — cancel pending single-tap and fire double-tap
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      onDoubleTap?.();
+    } else {
+      // Potential single tap — wait to see if a second tap follows
+      singleTapTimerRef.current = setTimeout(() => {
+        singleTapTimerRef.current = null;
+        // Single tap: toggle mute
+        const vid = videoRef.current;
+        if (!vid) return;
+        if (vid.paused) vid.play().catch(() => {});
+        const next = !muted;
+        vid.muted = next;
+        setMuted(next);
+        onSingleTap?.();
+      }, 300);
+    }
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => () => {
+    if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+  }, []);
 
   return (
     <div className="relative w-full h-full bg-black" onClick={handleTap}>
@@ -232,6 +308,59 @@ export function CommentSheet({ postcardId, onClose }: { postcardId: string; onCl
   );
 }
 
+// ─── DotIndicator ─────────────────────────────────────────────────────────────
+// Shows at most 5 dots. The active dot is always centred in the window.
+// Dots at the edges of the window shrink to signal there are more items.
+
+const DOT_WINDOW = 5;
+
+function DotIndicator({
+  total,
+  active,
+  onSelect,
+}: {
+  total: number;
+  active: number;
+  onSelect: (i: number) => void;
+}) {
+  if (total <= 1) return null;
+
+  // Clamp the window so active is centred as much as possible
+  const half = Math.floor(DOT_WINDOW / 2);
+  let start = active - half;
+  let end = start + DOT_WINDOW - 1;
+
+  if (start < 0) { start = 0; end = Math.min(DOT_WINDOW - 1, total - 1); }
+  if (end >= total) { end = total - 1; start = Math.max(0, end - DOT_WINDOW + 1); }
+
+  const dots: number[] = [];
+  for (let i = start; i <= end; i++) dots.push(i);
+
+  return (
+    <div className="flex items-center justify-center gap-1.5 py-2 bg-background shrink-0">
+      {dots.map((i) => {
+        const isActive = i === active;
+        // Edge dots (first/last in window when there are more items outside) shrink
+        const isEdge = (i === start && start > 0) || (i === end && end < total - 1);
+        return (
+          <button
+            key={i}
+            onClick={() => onSelect(i)}
+            className={cn(
+              "rounded-full transition-all duration-200",
+              isActive
+                ? "w-4 h-1.5 bg-primary"
+                : isEdge
+                ? "w-1 h-1 bg-muted-foreground/20"
+                : "w-1.5 h-1.5 bg-muted-foreground/30"
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── PostcardViewer ───────────────────────────────────────────────────────────
 
 export function PostcardViewer({
@@ -252,7 +381,6 @@ export function PostcardViewer({
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const lastTapRef = useRef<number>(0);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
   // Fetch fresh like state on open
@@ -320,15 +448,21 @@ export function PostcardViewer({
     }
   }, [liked, postcard.id, eventId, toggleLikeMutation]);
 
-  const handleMediaTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      if (!liked) handleLike();
-      setShowHeart(true);
-      setTimeout(() => setShowHeart(false), 900);
-    }
-    lastTapRef.current = now;
+  const triggerLikeAnimation = useCallback(() => {
+    if (!liked) handleLike();
+    setShowHeart(true);
+    setTimeout(() => setShowHeart(false), 900);
   }, [liked, handleLike]);
+
+  // Double-tap handler for images (photos) — videos handle their own taps
+  const lastImageTapRef = useRef<number>(0);
+  const handleImageTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastImageTapRef.current < 300) {
+      triggerLikeAnimation();
+    }
+    lastImageTapRef.current = now;
+  }, [triggerLikeAnimation]);
 
   const handleShare = async () => {
     const currentMedia = media[activeIndex];
@@ -336,43 +470,50 @@ export function PostcardViewer({
     const text = postcard.caption
       ? `${postcard.caption}\n\n— ${authorLabel} at ${eventName} via NextVibe`
       : `Check out this memory from ${eventName} by ${authorLabel} — NextVibe`;
+    const shareUrl = postcard.id
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/postcard/${postcard.id}`
+      : typeof window !== "undefined" ? window.location.href : "";
 
     if (!navigator.share) {
-      await navigator.clipboard.writeText(text).catch(() => {});
-      toast.success("Caption copied to clipboard");
+      await navigator.clipboard.writeText(`${text}\n\n${shareUrl}`).catch(() => {});
+      toast.success("Link copied to clipboard");
       return;
     }
 
     if (currentMedia?.mediaUrl) {
       setSharing(true);
       try {
-        const res = await fetch(currentMedia.mediaUrl);
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+        const res = await fetch(proxyUrl);
         if (res.ok) {
           const blob = await res.blob();
           const isVideo = currentMedia.mediaType === "VIDEO";
+          const ext = isVideo ? (blob.type.includes("webm") ? "webm" : "mp4") : "jpg";
           const file = new File(
             [blob],
-            `nextvibe-postcard.${isVideo ? "mp4" : "jpg"}`,
-            { type: isVideo ? "video/mp4" : "image/jpeg" }
+            `nextvibe-postcard.${ext}`,
+            { type: blob.type || (isVideo ? "video/mp4" : "image/jpeg") }
           );
-          try {
-            await navigator.share({ files: [file], title: `${eventName} — NextVibe`, text });
-            setSharing(false);
-            return;
-          } catch (e: any) {
-            if (e?.name === "AbortError") { setSharing(false); return; }
+          if (navigator.canShare?.({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: `${eventName} — NextVibe`, text, url: shareUrl });
+              setSharing(false);
+              return;
+            } catch (e: any) {
+              if (e?.name === "AbortError") { setSharing(false); return; }
+            }
           }
         }
-      } catch { /* fall through */ }
+      } catch { /* fall through to text share */ }
       setSharing(false);
     }
 
     try {
-      await navigator.share({ title: `${eventName} — NextVibe`, text });
+      await navigator.share({ title: `${eventName} — NextVibe`, text, url: shareUrl });
     } catch (e: any) {
       if (e?.name !== "AbortError") {
-        await navigator.clipboard.writeText(text).catch(() => {});
-        toast.success("Caption copied to clipboard");
+        await navigator.clipboard.writeText(`${text}\n\n${shareUrl}`).catch(() => {});
+        toast.success("Link copied to clipboard");
       }
     }
   };
@@ -411,21 +552,29 @@ export function PostcardViewer({
           </button>
         </div>
 
-        {/* Carousel */}
-        <div className="relative flex-1 w-full bg-black overflow-hidden" onClick={handleMediaTap}>
+        {/* Carousel — flex-1 so it fills remaining height */}
+        <div className="relative flex-1 min-h-0 w-full bg-black overflow-hidden">
           <Carousel setApi={setCarouselApi} opts={{ loop: false }} className="w-full h-full">
             <CarouselContent className="ml-0 h-full">
               {media.map((m, i) => (
-                <CarouselItem key={m.id ?? i} className="pl-0 h-full">
+                <CarouselItem key={m.id ?? i} className="pl-0 basis-full h-full">
                   {m.mediaType === "VIDEO" ? (
-                    <VideoPlayer src={m.mediaUrl!} active={i === activeIndex} />
-                  ) : (
-                    <ProgressiveImage
+                    <VideoPlayer
                       src={m.mediaUrl!}
-                      alt={postcard.caption ?? "Postcard"}
-                      eager={i === 0}
-                      fullscreen
+                      active={i === activeIndex}
+                      onDoubleTap={triggerLikeAnimation}
+                      // single tap (mute toggle) is handled inside VideoPlayer
                     />
+                  ) : (
+                    // Wrap in a click handler for double-tap-to-like on images
+                    <div className="w-full h-full" onClick={handleImageTap}>
+                      <ProgressiveImage
+                        src={m.mediaUrl!}
+                        alt={postcard.caption ?? "Postcard"}
+                        eager={i === 0}
+                        fullscreen
+                      />
+                    </div>
                   )}
                 </CarouselItem>
               ))}
@@ -433,27 +582,18 @@ export function PostcardViewer({
           </Carousel>
 
           {showHeart && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
               <Heart className="h-24 w-24 fill-[#5B1A57] text-[#5B1A57] opacity-90 animate-ping" />
             </div>
           )}
         </div>
 
-        {/* Dot indicators */}
-        {media.length > 1 && (
-          <div className="flex justify-center gap-1.5 py-2 bg-background shrink-0">
-            {media.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => carouselApi?.scrollTo(i)}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-200",
-                  i === activeIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                )}
-              />
-            ))}
-          </div>
-        )}
+        {/* Dot indicators — windowed, max 5 visible */}
+        <DotIndicator
+          total={media.length}
+          active={activeIndex}
+          onSelect={(i) => carouselApi?.scrollTo(i)}
+        />
 
         {/* Actions */}
         <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">

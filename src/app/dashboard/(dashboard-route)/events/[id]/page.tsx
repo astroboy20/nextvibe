@@ -155,8 +155,11 @@ export default function EventPage({
         await navigator.clipboard.writeText(eventUrl);
         toast.success("Link copied to clipboard");
       }
-    } catch (err) {
-      console.log(err);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        await navigator.clipboard.writeText(eventUrl).catch(() => {});
+        toast.success("Link copied to clipboard");
+      }
     }
   };
 

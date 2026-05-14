@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   Gamepad2, Plus, Play, Trophy, HelpCircle, Puzzle,
-  MessageSquare, Clock, Users, Zap, Coins, StopCircle,
-  Loader2, ChevronDown, ChevronUp,
+  MessageSquare, Clock, Users, Zap, StopCircle,
+  Loader2, ChevronDown, ChevronUp, LockKeyhole,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCreationWizard } from "./game-creation-wizard";
@@ -24,6 +24,7 @@ import {
   useUpdateRoundStatusMutation,
   useGetSessionLeaderboardQuery,
 } from "@/app/provider/api/eventApi";
+import { useInitiateAdditionalGamePaymentMutation } from "@/app/provider/api/organizerPaymentApi";
 import { toast } from "sonner";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
@@ -34,6 +35,7 @@ interface GameProps {
   eventName: string;
   roundId?: string;
   eventStartsAt?: string;
+  eventStatus?: string;
 }
 
 const mapGameType = (t: string): GameType => ({
@@ -127,7 +129,7 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
   );
 }
 
-export function GamificationHubContent({ eventId, eventName, eventStartsAt }: GameProps) {
+export function GamificationHubContent({ eventId, eventName, eventStartsAt, eventStatus }: GameProps) {
   const [activePhase, setActivePhase] = useState<"all" | "pre-event" | "main-event" | "post-event">("all");
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
@@ -139,6 +141,7 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
   const { data: gamesDetails, isLoading, isError } = useGetGamesQuery(eventId);
   const [updateSessionStatus, { isLoading: isUpdatingSession }] = useUpdateGameStatusMutation();
   const [updateRoundStatus, { isLoading: isUpdatingRound }] = useUpdateRoundStatusMutation();
+  const [initiateAdditionalGamePayment, { isLoading: isUnlocking }] = useInitiateAdditionalGamePaymentMutation();
 
   const games = (gamesDetails?.data ?? []).map((game: any) => ({
     ...game,
@@ -166,6 +169,16 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
       toast.success(action === "ACTIVE" ? "Round started — players can now submit!" : "Round ended.");
     } catch {
       toast.error("Failed to update round status.");
+    }
+  };
+
+  const handleUnlockGame = async (gameSessionId: string) => {
+    try {
+      const res = await initiateAdditionalGamePayment({ eventId, gameSessionId }).unwrap();
+      // Redirect to Juicyway checkout — game activates automatically on webhook
+      window.location.href = res.data.checkoutUrl;
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to initiate unlock payment.");
     }
   };
 
@@ -300,17 +313,49 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt }: Ga
 
                 {/* Session-level controls */}
                 <div className="flex items-center gap-1 shrink-0">
-                  {game.mappedStatus === "pending" && (
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
-                      disabled={isUpdatingSession}
-                      onClick={() => handleSessionAction(game.id, "ACTIVE")}
-                    >
-                      {isUpdatingSession ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                      Start
-                    </Button>
-                  )}
+                  {/* Locked PENDING on a published event — needs additional-game payment */}
+                  {game.mappedStatus === "pending" &&
+                    (eventStatus === "PUBLISHED" || eventStatus === "LIVE") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 rounded-full border-amber-500/50 text-amber-600 text-xs"
+                        disabled={isUnlocking}
+                        onClick={() => handleUnlockGame(game.id)}
+                      >
+                        {isUnlocking ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <LockKeyhole className="h-3 w-3" />
+                        )}
+                        Unlock
+                      </Button>
+                    )}
+                  {game.mappedStatus === "pending" &&
+                    eventStatus !== "PUBLISHED" &&
+                    eventStatus !== "LIVE" && (
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                        disabled={isUpdatingSession}
+                        onClick={() => handleSessionAction(game.id, "ACTIVE")}
+                      >
+                        {isUpdatingSession ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                        Start
+                      </Button>
+                    )}
+                  {game.mappedStatus === "pending" &&
+                    !eventStatus && (
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                        disabled={isUpdatingSession}
+                        onClick={() => handleSessionAction(game.id, "ACTIVE")}
+                      >
+                        {isUpdatingSession ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                        Start
+                      </Button>
+                    )}
                   {game.mappedStatus === "live" && (
                     <Button
                       size="sm"

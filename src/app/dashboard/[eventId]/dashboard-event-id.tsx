@@ -128,7 +128,12 @@ export default function OrganizerDashboard({
         await navigator.clipboard.writeText(eventUrl);
         toast.success("Link copied to clipboard");
       }
-    } catch {}
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        await navigator.clipboard.writeText(eventUrl).catch(() => {});
+        toast.success("Link copied to clipboard");
+      }
+    }
   };
 
   const handleStatusUpdate = async (
@@ -438,6 +443,7 @@ export default function OrganizerDashboard({
                 roundId={event?.rounds?.id}
                 eventName={event?.name}
                 eventStartsAt={event?.startsAt}
+                eventStatus={event?.status}
               />
             </EventDashboardCard>
           )}
@@ -491,19 +497,11 @@ export default function OrganizerDashboard({
             >
               <div className="space-y-3">
                 {event?.status === "DRAFT" && (
-                  <div className="rounded-xl border border-border p-4 space-y-3">
+                  <div className="rounded-xl border border-border p-4">
                     <p className="text-sm text-muted-foreground">
-                      Your event is a draft. Publish it to make it visible to
-                      attendees.
+                      Your event is a draft. Use the &quot;Publish Your Event&quot; section
+                      below to choose a plan and publish.
                     </p>
-                    <Button
-                      className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-                      onClick={() => setConfirmStatus("PUBLISHED")}
-                      disabled={isUpdatingStatus}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Publish Event
-                    </Button>
                   </div>
                 )}
 
@@ -591,7 +589,11 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )} */}
 
-          {isLoading ? <DashboardCardSkeleton /> : <PaymentModule />}
+          {isLoading ? (
+            <DashboardCardSkeleton />
+          ) : (
+            <PaymentModule eventId={eventId} eventStatus={event?.status} />
+          )}
 
           {/* {isLoading ? (
             <DashboardCardSkeleton />

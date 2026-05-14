@@ -8,7 +8,7 @@ export const eventsApi = createApi({
 
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games"],
+  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games", "PublishPreview"],
 
   endpoints: (builder) => ({
 
@@ -325,6 +325,7 @@ export const eventsApi = createApi({
       invalidatesTags: (_result, _error, { eventId }) => [
         "Games",
         { type: "Event", id: eventId },
+        { type: "PublishPreview", id: eventId },
       ],
     }),
 
@@ -447,7 +448,10 @@ export const eventsApi = createApi({
           body: formData,
         };
       },
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: `vibetags-${eventId}` }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Gallery", id: `vibetags-${eventId}` },
+        { type: "PublishPreview", id: eventId },
+      ],
     }),
 
     getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
@@ -578,6 +582,16 @@ export const eventsApi = createApi({
       providesTags: (_, __, eventId) => [{ type: "Event", id: `game-status-${eventId}` }],
     }),
 
+    /**
+     * GET /v1/organizer-payments/publish-preview/:eventId
+     * Returns valid plan options + prices before publishing.
+     * Invalidated automatically when games or vibetags are created.
+     */
+    getPublishPreview: builder.query<any, string>({
+      query: (eventId) => `/v1/organizer-payments/publish-preview/${eventId}`,
+      providesTags: (_, __, eventId) => [{ type: "PublishPreview", id: eventId }],
+    }),
+
   }),
 });
 
@@ -638,4 +652,5 @@ export const {
   useCreatePostcardsMutation,
   useGetEventMemoriesCountQuery,
   useGetActiveGameStatusQuery,
+  useGetPublishPreviewQuery,
 } = eventsApi;

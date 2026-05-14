@@ -130,8 +130,21 @@ function PostcardCard({ postcard }: { postcard: PostcardItem }) {
   };
 
   const handleShare = async () => {
+    const shareLink = `${window.location.origin}/postcard/${postcardId}`;
     await recordShare({ targetType: "postcard", targetId: postcardId, platform: "copy" });
-    navigator.clipboard?.writeText(`${window.location.origin}/postcard/${postcardId}`);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Check out this postcard on NextVibe",
+          url: shareLink,
+        });
+        return;
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+      }
+    }
+    navigator.clipboard?.writeText(shareLink);
+    toast.success("Link copied to clipboard");
   };
 
   return (
