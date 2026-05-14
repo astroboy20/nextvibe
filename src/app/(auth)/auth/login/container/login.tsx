@@ -68,7 +68,7 @@ const LoginContent = () => {
     try {
       const res = await loginMutation(body).unwrap();
 
-      const isSuperAdmin = res?.data?.user?.role === "SUPER_ADMIN";
+      const isSuperAdmin = res?.data?.user?.role === "SUPER_ADMIN" || "ADMIN";
       const cookiePrefix = isSuperAdmin ? "admin_" : "";
 
       Cookies.set(`${cookiePrefix}accessToken`, res?.data?.accessToken, {
