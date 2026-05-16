@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -361,6 +362,24 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
 
   const handleActivate = async () => {
     if (!selectedPlan) return;
+    
+    // Check if final amount is zero (100% discount from coupon)
+    if (activePlan && activePlan.finalAmount === 0) {
+      // Free publish - no payment needed
+      try {
+        await updateEventStatus({
+          eventId,
+          status: "PUBLISHED",
+        }).unwrap();
+        toast.success("Event published! It's now live.");
+        refetchPreview();
+      } catch (err: any) {
+        toast.error(err?.data?.message ?? "Failed to publish event.");
+      }
+      return;
+    }
+    
+    // Paid flow - initiate payment and show modal
     try {
       const res = await initiatePlanPayment({
         eventId,
@@ -368,7 +387,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
         ...(appliedCoupon ? { couponCode: appliedCoupon } : {}),
       }).unwrap();
 
-      // Store paymentId so we can verify on return
+      // Store paymentId and show verification modal immediately
       setPendingPaymentId(res.data.paymentId);
 
       // Redirect to Juicyway checkout
@@ -514,25 +533,27 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
           {/* CTA */}
           <Button
             className="w-full rounded-xl bg-gradient-to-r from-[#531342] to-[#7a1d5e] hover:from-[#531342]/90 hover:to-[#7a1d5e]/90 text-white"
-            disabled={!selectedPlan || isInitiating}
+            disabled={!selectedPlan || isInitiating || isPublishing}
             onClick={handleActivate}
           >
-            {isInitiating ? (
+            {isInitiating || isPublishing ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Redirecting to checkout…
+                {activePlan?.finalAmount === 0 ? "Publishing…" : "Redirecting to checkout…"}
               </span>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Pay & Publish Event
+                {activePlan?.finalAmount === 0 ? "Publish Event (Free)" : "Pay & Publish Event"}
               </>
             )}
           </Button>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            You&apos;ll be redirected to Juicyway to complete payment. Your
-            event publishes automatically on success.
+            {activePlan?.finalAmount === 0 
+              ? "Your coupon covers the full cost. Click to publish immediately."
+              : "You'll be redirected to Juicyway to complete payment. Your event publishes automatically on success."
+            }
           </p>
         </CardContent>
       </Card>

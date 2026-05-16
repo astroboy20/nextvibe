@@ -18,13 +18,12 @@ import {
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 
-type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
+type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" ;
 
 const TIMING_META: Record<ActivityTiming, { label: string; phase: string }> = {
   PRE_EVENT: { label: "Pre-Event", phase: "pre-event" },
   DURING_EVENT: { label: "Main Event", phase: "main-event" },
   POST_EVENT: { label: "Post-Event", phase: "post-event" },
-  BOTH: { label: "All Phases", phase: "all" },
 };
 
 interface VibeTag {
@@ -172,7 +171,7 @@ export function EventVibeTagsTab({
 
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
-  const timingTabs: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT", "BOTH"];
+  const timingTabs: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT"];
 
   const resolvedTiming: ActivityTiming = activeTiming;
 
@@ -225,7 +224,7 @@ export function EventVibeTagsTab({
           value={resolvedTiming}
           onValueChange={(v) => setActiveTiming(v as ActivityTiming)}
         >
-          <TabsList className="w-full grid grid-cols-4 h-10">
+          <TabsList className="w-full grid grid-cols-3 h-10">
             {timingTabs.map((timing) => (
               <TabsTrigger key={timing} value={timing} className="text-xs">
                 {TIMING_META[timing].label}

@@ -35,7 +35,6 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
     return () => clearInterval(interval);
   }, []);
 
-  // Notify parent whenever loading state changes
   useEffect(() => {
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
@@ -49,22 +48,36 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
         const res = await googleLogin({
           idToken: credentialResponse.credential as string,
         }).unwrap();
-        Cookies.set("accessToken", res?.data?.accessToken, {
+
+        const isSuperAdmin =
+          res?.data?.user?.role === "SUPER_ADMIN" ||
+          res?.data?.user?.role === "ADMIN";
+        const cookiePrefix = isSuperAdmin ? "admin_" : "";
+
+        Cookies.set(`${cookiePrefix}accessToken`, res?.data?.accessToken, {
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
           path: "/",
           expires: 1 / 96,
         });
-        Cookies.set("refreshToken", res?.data?.refreshToken, {
+        Cookies.set(`${cookiePrefix}refreshToken`, res?.data?.refreshToken, {
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
           path: "/",
           expires: 7,
         });
+
         dispatch(setUser({ ...res.data.user }));
         dispatch(setIsAuthenticated(true));
         toast.success(res.message || successMessage);
-        router.replace(from);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        if (isSuperAdmin) {
+          router.replace("/admin");
+        } else {
+          router.replace(from);
+        }
       }}
       logo_alignment="center"
       size="large"

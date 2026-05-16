@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 type Section = "pre-event" | "during" | "post-event";
 
@@ -34,13 +35,6 @@ interface EventChatTabProps {
   eventId: string;
 }
 
-const WS_BASE = (
-  process.env.NEXT_PUBLIC_WS_URL ?? "wss://nextvibe-nest-backend.onrender.com"
-)
-  .replace(/^http:/, "ws:")
-  .replace(/^https:/, "wss:")
-  .replace(/\/$/, "");
-
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "")
   .trim()
   .replace(/\/$/, "");
@@ -63,17 +57,69 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [wsStatus, setWsStatus] = useState<"connecting" | "open" | "closed">(
-    "closed"
-  );
 
-  const wsRef = useRef<WebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: meData } = useGetUserQuery();
   const myId = meData?.data?.id;
   const token = Cookies.get("accessToken");
+
+  // WebSocket connection using the custom hook
+  const { status: wsStatus, send: wsSend, isConnected } = useWebSocket({
+    url: `/messaging`,
+    onMessage: (data) => {
+      // Handle joined confirmation
+      if (data.event === "joined:event-chat" || data.type === "joined:event-chat") {
+        console.log("Joined event chat room:", data);
+        return;
+      }
+
+      // Handle new messages
+      if (data.event === "new:event-chat" || data.type === "new:event-chat") {
+        const messageData = data.data || data;
+        if (!messageData?.id && !messageData?.body && !messageData?.content) return;
+        
+        // Cast to ChatMessage
+        const chatMessage: ChatMessage = {
+          id: messageData.id || String(Date.now()),
+          body: messageData.body,
+          content: messageData.content,
+          text: messageData.text,
+          sender: messageData.sender,
+          senderId: messageData.senderId,
+          createdAt: messageData.createdAt,
+          isOrganizer: messageData.isOrganizer,
+        };
+        
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (chatMessage.id && prev.some((m) => m.id === chatMessage.id)) return prev;
+          return [...prev, chatMessage];
+        });
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    onOpen: () => {
+      console.log("WebSocket connected, joining", activeSection);
+      // Join the event chat room
+      wsSend({
+        event: "join:event-chat",
+        data: {
+          eventId,
+          section: activeSection,
+        },
+      });
+    },
+    onClose: () => {
+      console.log("WebSocket disconnected from", activeSection);
+    },
+    onError: (error) => {
+      console.error("WebSocket error:", error);
+    },
+    autoReconnect: true,
+    reconnectInterval: 3000,
+    enabled: !!eventId && !!token,
+  });
 
   const fetchHistory = useCallback(
     async (section: Section) => {
@@ -84,9 +130,20 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
           `${API_BASE}/v1/events/${eventId}/chat/${section}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const errorMessage = errorData?.error?.message || errorData?.message || "Failed to load chat history";
+          toast.error(errorMessage);
+          setMessages([]);
+          return;
+        }
+        
         const json = await res.json();
         setMessages(json?.data ?? []);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch chat history:", error);
+        toast.error("Failed to load chat history");
         setMessages([]);
       } finally {
         setIsLoadingHistory(false);
@@ -95,70 +152,13 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     [eventId, token]
   );
 
-  const connectWS = useCallback(
-    (section: Section) => {
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (reconnectTimer.current) {
-        clearTimeout(reconnectTimer.current);
-      }
-
-      if (!eventId || !token) return;
-
-      const url = `${WS_BASE}/events/${eventId}/chat/${section}?token=${token}`;
-      setWsStatus("connecting");
-
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setWsStatus("open");
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (!data?.id && !data?.body && !data?.content) return;
-          setMessages((prev) => {
-            if (data.id && prev.some((m) => m.id === data.id)) return prev;
-            return [...prev, data];
-          });
-          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-        } catch {}
-      };
-
-      ws.onerror = () => {
-        setWsStatus("closed");
-      };
-
-      ws.onclose = () => {
-        setWsStatus("closed");
-        reconnectTimer.current = setTimeout(() => {
-          connectWS(section);
-        }, 3000);
-      };
-    },
-    [eventId, token]
-  );
-
+  // Fetch history when section changes
   useEffect(() => {
     setMessages([]);
     fetchHistory(activeSection);
-    connectWS(activeSection);
+  }, [activeSection, fetchHistory]);
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-    };
-  }, [activeSection, fetchHistory, connectWS]);
-
+  // Auto-scroll when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -167,12 +167,19 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     const text = message.trim();
     if (!text) return;
 
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ body: text }));
+    if (isConnected) {
+      // Send message using the correct event format
+      wsSend({
+        event: "send:event-chat",
+        data: {
+          eventId,
+          section: activeSection,
+          body: text,
+        },
+      });
       setMessage("");
     } else {
       toast.error("Not connected. Reconnecting...");
-      connectWS(activeSection);
     }
   };
 
@@ -299,12 +306,12 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-0"
-          disabled={wsStatus !== "open"}
+          disabled={!isConnected}
         />
         <Button
           size="icon"
           className="rounded-full shrink-0 bg-[#531342] hover:bg-[#531342]/90"
-          disabled={!message.trim() || wsStatus !== "open"}
+          disabled={!message.trim() || !isConnected}
           onClick={handleSend}
         >
           <Send className="h-4 w-4" />
@@ -313,3 +320,4 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     </div>
   );
 }
+
