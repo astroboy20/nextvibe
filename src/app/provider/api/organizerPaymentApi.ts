@@ -41,8 +41,10 @@ export interface InitiatePaymentResponse {
   paymentId: string;
   paymentReference: string;
   quote: PlanQuote;
-  checkoutUrl: string;
   expiresAt: string;
+  status: string;
+  checkoutKey?: string;  // Session key for Juicyway widget
+  checkoutUrl?: string;  // For redirect-based flow (alternative)
 }
 
 export type VerifyStatus =

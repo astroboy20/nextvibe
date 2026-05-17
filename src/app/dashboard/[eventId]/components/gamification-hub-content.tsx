@@ -5,6 +5,7 @@ import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +134,9 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
   const [activePhase, setActivePhase] = useState<"all" | "pre-event" | "main-event" | "post-event">("all");
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [unlockingGameId, setUnlockingGameId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const dispatch = useDispatch();
 
   const openDialog = () => { dispatch(setHideHeader(true)); setIsAddingGame(true); };
@@ -172,14 +176,57 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
     }
   };
 
-  const handleUnlockGame = async (gameSessionId: string) => {
+  const handleUnlockGame = async (gameSessionId: string, withCoupon?: string) => {
     try {
-      const res = await initiateAdditionalGamePayment({ eventId, gameSessionId }).unwrap();
-      // Redirect to Juicyway checkout — game activates automatically on webhook
-      window.location.href = res.data.checkoutUrl;
+      const res = await initiateAdditionalGamePayment({ 
+        eventId, 
+        gameSessionId,
+        ...(withCoupon ? { couponCode: withCoupon } : {})
+      }).unwrap();
+      
+      // Open Juicyway payment widget
+      if (typeof window !== "undefined" && (window as any).Juicyway) {
+        (window as any).Juicyway.PayWithJuice({
+          key: process.env.NEXT_PUBLIC_JUICYWAY_PUBLIC_KEY,
+          reference: res.data.paymentReference,
+          amount: res.data.quote.finalAmount,
+          currency: 'NGN',
+          description: 'Unlock Additional Game Session',
+          order: {
+            identifier: res.data.paymentReference,
+            items: [{
+              name: 'Additional Game Session',
+              type: 'digital',
+              qty: 1,
+              amount: res.data.quote.finalAmount
+            }]
+          },
+          onSuccess: () => {
+            toast.success("Game unlocked! Players can now join.");
+            setShowUnlockDialog(false);
+            setUnlockingGameId(null);
+            setCouponCode("");
+            // Refetch games to update UI
+            window.location.reload();
+          },
+          onError: (err: any) => {
+            toast.error(err?.message ?? "Payment failed. Please try again.");
+          },
+          onClose: () => {
+            toast.info("Payment cancelled.");
+          }
+        });
+      } else {
+        toast.error("Payment system not loaded. Please refresh and try again.");
+      }
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to initiate unlock payment.");
     }
+  };
+
+  const openUnlockDialog = (gameId: string) => {
+    setUnlockingGameId(gameId);
+    setShowUnlockDialog(true);
   };
 
   const formatPrice = (price: string, currency: string) => {
@@ -321,7 +368,7 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
                         variant="outline"
                         className="h-8 gap-1 rounded-full border-amber-500/50 text-amber-600 text-xs"
                         disabled={isUnlocking}
-                        onClick={() => handleUnlockGame(game.id)}
+                        onClick={() => openUnlockDialog(game.id)}
                       >
                         {isUnlocking ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -438,6 +485,67 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
           );
         })}
       </div>
+
+      {/* Unlock Game Dialog */}
+      <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LockKeyhole className="h-5 w-5 text-amber-500" />
+              Unlock Game Session
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This game session is over your plan quota. Pay to unlock it for players.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground">
+                Coupon Code (optional)
+              </label>
+              <Input
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowUnlockDialog(false);
+                  setUnlockingGameId(null);
+                  setCouponCode("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-[#531342] hover:bg-[#531342]/90"
+                disabled={isUnlocking || !unlockingGameId}
+                onClick={() => unlockingGameId && handleUnlockGame(unlockingGameId, couponCode.trim() || undefined)}
+              >
+                {isUnlocking ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  "Pay & Unlock"
+                )}
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Pricing is based on your event tier. Payment opens inline.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
