@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   authors: [
     { name: "Spectroniq", url: "https://www.spectroniq.com/" },
     { name: "Simi Peters" },
-    { name: "Kingsley Ihemelandu", url: "https://github.com/kijuchihe" },
+    { name: "Kingsley Ihemelandu", url: "https://github.com/kingsleydaprime" },
     { name: "Jeremiah Nwosu" },
     { name: "Tolulope Akinkunmi", url: "https://github.com/astroboy20" },
   ],
