@@ -24,7 +24,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/app/provider/api/authApi";
-import Cookies from "js-cookie";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -68,20 +67,18 @@ const LoginContent = () => {
     try {
       const res = await loginMutation(body).unwrap();
 
-      const isSuperAdmin = res?.data?.user?.role === "SUPER_ADMIN" || "ADMIN";
-      const cookiePrefix = isSuperAdmin ? "admin_" : "";
+      const isSuperAdmin =
+        res?.data?.user?.role === "SUPER_ADMIN" ||
+        res?.data?.user?.role === "ADMIN";
 
-      Cookies.set(`${cookiePrefix}accessToken`, res?.data?.accessToken, {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        expires: 7,
-      });
-      Cookies.set(`${cookiePrefix}refreshToken`, res?.data?.refreshToken, {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        expires: 7,
+      await fetch("/api/auth/store-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken: res?.data?.accessToken,
+          refreshToken: res?.data?.refreshToken,
+          isAdmin: isSuperAdmin,
+        }),
       });
 
       dispatch(setIsAuthenticated(true));

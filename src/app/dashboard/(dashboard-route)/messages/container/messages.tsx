@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import {
   Search,
   MessageCircle,
   Users,
-  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,52 +22,8 @@ import {
   type Conversation,
   type Message,
 } from "@/app/provider/api/messagingApi";
+import { useSocket } from "@/hooks/useSocket";
 import { getTokens } from "@/hooks/getToken";
-
-// ─── WebSocket hook ──────────────────────────────────────────────────────────
-
-function useConversationSocket(
-  conversationId: string | null,
-  onMessage: (msg: Message) => void
-) {
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const { accessToken } = getTokens();
-    const wsBase = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:5000";
-    const url = `${wsBase}?token=${accessToken}&conversationId=${conversationId}`;
-
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data as string);
-        // Server emits { type: "message", payload: Message }
-        if (data?.type === "message" && data?.payload) {
-          onMessage(data.payload as Message);
-        }
-      } catch {
-        // ignore malformed frames
-      }
-    };
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-    };
-  }, [conversationId, onMessage]);
-
-  const sendMessage = useCallback((body: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", body }));
-    }
-  }, []);
-
-  return { sendMessage };
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -110,11 +65,25 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
     }
   }, [data]);
 
-  const handleIncoming = useCallback((msg: Message) => {
-    setLocalMessages((prev) => [...prev, msg]);
-  }, []);
+  // Socket.IO connection for real-time DMs
+  const { socketRef, isConnected } = useSocket("messaging");
 
-  const { sendMessage } = useConversationSocket(conversation.id, handleIncoming);
+  useEffect(() => {
+    if (!isConnected) return;
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    socket.emit("join:dm", { conversationId: conversation.id });
+
+    const handleNewDm = (msg: Message) => {
+      setLocalMessages((prev) => [...prev, msg]);
+    };
+
+    socket.on("new:dm", handleNewDm);
+    return () => {
+      socket.off("new:dm", handleNewDm);
+    };
+  }, [isConnected, conversation.id, socketRef]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -122,7 +91,10 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
 
   const handleSend = () => {
     if (!newMessage.trim()) return;
-    sendMessage(newMessage.trim());
+    socketRef.current?.emit("send:dm", {
+      conversationId: conversation.id,
+      body: newMessage.trim(),
+    });
     // Optimistic local message
     const optimistic: Message = {
       id: `opt-${Date.now()}`,

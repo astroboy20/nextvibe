@@ -95,43 +95,20 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         ...(couponCode.trim() ? { couponCode: couponCode.trim() } : {}),
       }).unwrap();
 
-      // Open Juicyway payment widget
-      if (typeof window !== "undefined" && (window as any).Juicyway) {
-        (window as any).Juicyway.PayWithJuice({
-          key: process.env.NEXT_PUBLIC_JUICYWAY_PUBLIC_KEY,
-          reference: res.data.paymentReference,
-          amount: res.data.quote.finalAmount,
-          currency: 'NGN',
-          description: `VibeTags ${bundle ? 'Bundle' : 'Single Phase'}`,
-          order: {
-            identifier: res.data.paymentReference,
-            items: [{
-              name: `VibeTags ${bundle ? 'Bundle' : 'Single Phase'}`,
-              type: 'digital',
-              qty: 1,
-              amount: res.data.quote.finalAmount
-            }]
-          },
-          onSuccess: () => {
-            toast.success("VibeTags unlocked! You can now create VibeTags.");
-            setShowPaymentDialog(false);
-            setCouponCode("");
-            refetchEvent();
-            // Open the creator after successful payment
-            dispatch(setView("start"));
-            dispatch(setTemplate(null));
-            setOpen(true);
-          },
-          onError: (err: any) => {
-            toast.error(err?.message ?? "Payment failed. Please try again.");
-          },
-          onClose: () => {
-            toast.info("Payment cancelled.");
-          }
-        });
-      } else {
-        toast.error("Payment system not loaded. Please refresh and try again.");
+      const { status, checkoutUrl } = res.data;
+
+      if (status === "COMPLETED" || !checkoutUrl) {
+        toast.success("VibeTags unlocked! You can now create VibeTags.");
+        setShowPaymentDialog(false);
+        setCouponCode("");
+        refetchEvent();
+        dispatch(setView("start"));
+        dispatch(setTemplate(null));
+        setOpen(true);
+        return;
       }
+
+      window.location.href = checkoutUrl;
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to initiate VibeTags payment.");
     }

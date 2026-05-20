@@ -283,24 +283,6 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
 
   const handleActivate = async () => {
     if (!selectedPlan) return;
-    
-    // Check if final amount is zero (100% discount from coupon)
-    if (activePlan && activePlan.finalAmount === 0) {
-      // Free publish - no payment needed
-      try {
-        await updateEventStatus({
-          eventId,
-          status: "PUBLISHED",
-        }).unwrap();
-        toast.success("Event published! It's now live.");
-        refetchPreview();
-      } catch (err: any) {
-        toast.error(err?.data?.message ?? "Failed to publish event.");
-      }
-      return;
-    }
-    
-    // Paid flow - initiate payment with Juicyway widget
     try {
       const res = await initiatePlanPayment({
         eventId,
@@ -308,47 +290,17 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
         ...(appliedCoupon ? { couponCode: appliedCoupon } : {}),
       }).unwrap();
 
-      // Open Juicyway payment widget
-      if (typeof window !== "undefined" && (window as any).Juicyway) {
-        (window as any).Juicyway.PayWithJuice({
-          key: process.env.NEXT_PUBLIC_JUICYWAY_PUBLIC_KEY,
-          reference: res.data.paymentReference,
-          amount: res.data.quote.finalAmount,
-          currency: 'NGN',
-          description: `${PLAN_LABELS[selectedPlan]} - Event Publishing`,
-          order: {
-            identifier: res.data.paymentReference,
-            items: [{
-              name: PLAN_LABELS[selectedPlan],
-              type: 'digital',
-              qty: 1,
-              amount: res.data.quote.finalAmount
-            }]
-          },
-          onSuccess: async () => {
-            // Publish event immediately - webhook activates plan in background
-            try {
-              await updateEventStatus({
-                eventId,
-                status: "PUBLISHED",
-              }).unwrap();
-              toast.success("Payment successful! Your event is now live.");
-              refetchPreview();
-            } catch (err: any) {
-              toast.error(err?.data?.message ?? "Event published but status update failed.");
-            }
-          },
-          onError: (err: any) => {
-            toast.error(err?.message ?? "Payment failed. Please try again.");
-          },
-          onClose: () => {
-            // User closed the widget
-            toast.info("Payment cancelled.");
-          }
-        });
-      } else {
-        toast.error("Payment system not loaded. Please refresh and try again.");
+      const { status, checkoutUrl } = res.data;
+
+      // Coupon covered the full cost — backend already activated the plan
+      if (status === "COMPLETED" || !checkoutUrl) {
+        toast.success("Event published! It's now live.");
+        refetchPreview();
+        return;
       }
+
+      // Redirect to Ercaspay-hosted checkout page (full redirect, not iframe)
+      window.location.href = checkoutUrl;
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to initiate payment.");
     }
@@ -496,7 +448,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
             {isInitiating || isPublishing ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {activePlan?.finalAmount === 0 ? "Publishing…" : "Opening payment…"}
+                {activePlan?.finalAmount === 0 ? "Publishing…" : "Redirecting to payment…"}
               </span>
             ) : (
               <>
@@ -507,9 +459,9 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
           </Button>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            {activePlan?.finalAmount === 0 
+            {activePlan?.finalAmount === 0
               ? "Your coupon covers the full cost. Click to publish immediately."
-              : "Juicyway payment widget will open inline. Your event publishes automatically on success."
+              : "You'll be redirected to a secure payment page. Your event publishes automatically on success."
             }
           </p>
         </CardContent>

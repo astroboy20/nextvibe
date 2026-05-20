@@ -41,17 +41,13 @@ export interface InitiatePaymentResponse {
   paymentId: string;
   paymentReference: string;
   quote: PlanQuote;
-  expiresAt: string;
-  status: string;
-  checkoutKey?: string;  // Session key for Juicyway widget
-  checkoutUrl?: string;  // For redirect-based flow (alternative)
+  expiresAt?: string;
+  status: "PENDING" | "COMPLETED";
+  checkoutUrl: string | null;
+  free?: boolean;
 }
 
-export type VerifyStatus =
-  | "completed"
-  | "already_completed"
-  | "pending"
-  | "failed";
+export type VerifyStatus = "completed" | "pending" | "failed";
 
 export interface VerifyPaymentResponse {
   status: VerifyStatus;
@@ -149,8 +145,8 @@ export const organizerPaymentApi = createApi({
 
     /**
      * GET /v1/organizer-payments/verify/:paymentId
-     * Idempotent check after organizer returns from Juicyway checkout.
-     * Poll every 3s while status === "pending".
+     * Idempotent check after organizer returns from Ercaspay checkout.
+     * Poll every 2s while status === "pending".
      */
     verifyOrganizerPayment: builder.query<
       { success: boolean; data: VerifyPaymentResponse },

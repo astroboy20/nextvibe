@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     if (refreshToken) {
       response.cookies.set(`${prefix}refreshToken`, refreshToken, {
-        httpOnly: true, // only read server-side by middleware — never exposed to JS
+        httpOnly: false, // must be readable by JS to send in the refresh POST body
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",

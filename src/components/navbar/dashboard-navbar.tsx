@@ -1,23 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Bell, LogOut, Check, CheckCheck } from "lucide-react";
-import Cookies from "js-cookie";
+import { Bell, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
-import { Button } from "@/components/ui/button";
 import { NewLogo } from "../logo";
 import { RootState } from "@/app/provider/store";
-import { useLogoutMutation } from "@/app/provider/api/authApi";
 import {
   useGetNotificationsQuery,
   useMarkAllReadMutation,
   useMarkOneReadMutation,
   type Notification,
 } from "@/app/provider/api/notificationApi";
+import { useSocket } from "@/hooks/useSocket";
 import {
   Popover,
   PopoverContent,
@@ -112,12 +109,32 @@ function NotifItem({
 // ── notification bell ─────────────────────────────────────────────────────────
 function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const { data, isLoading } = useGetNotificationsQuery();
+  const { data, isLoading, refetch } = useGetNotificationsQuery();
   const [markAllRead] = useMarkAllReadMutation();
   const [markOneRead] = useMarkOneReadMutation();
 
+  // Real-time notifications via Socket.IO
+  const { socketRef, isConnected } = useSocket("notifications");
+  const [realtimeCount, setRealtimeCount] = useState(0);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleNotification = (_: Notification) => {
+      setRealtimeCount((c) => c + 1);
+      refetch();
+    };
+
+    socket.on("notification", handleNotification);
+    return () => {
+      socket.off("notification", handleNotification);
+    };
+  }, [isConnected, socketRef, refetch]);
+
   const notifications: Notification[] = data?.data?.data ?? [];
-  const unreadCount = data?.data?.meta?.unreadCount ?? 0;
+  const unreadCount = (data?.data?.meta?.unreadCount ?? 0) + realtimeCount;
 
   const handleMarkAll = async () => {
     try {
@@ -140,6 +157,7 @@ function NotificationBell() {
       <PopoverTrigger asChild>
         <div
           aria-label="Notifications"
+          className="relative cursor-pointer p-1.5"
         >
           <Bell className="h-7 w-7" />
           {unreadCount > 0 && (

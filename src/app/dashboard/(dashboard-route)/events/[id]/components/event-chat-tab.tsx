@@ -10,9 +10,16 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useSocket } from "@/hooks/useSocket";
 
 type Section = "pre-event" | "during" | "post-event";
+
+// Map UI section keys to the backend enum values
+const SECTION_KEY: Record<Section, string> = {
+  "pre-event": "PRE_EVENT",
+  "during": "DURING_EVENT",
+  "post-event": "POST_EVENT",
+};
 
 interface ChatMessage {
   id: string;
@@ -64,62 +71,32 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const myId = meData?.data?.id;
   const token = Cookies.get("accessToken");
 
-  // WebSocket connection using the custom hook
-  const { status: wsStatus, send: wsSend, isConnected } = useWebSocket({
-    url: `/messaging`,
-    onMessage: (data) => {
-      // Handle joined confirmation
-      if (data.event === "joined:event-chat" || data.type === "joined:event-chat") {
-        console.log("Joined event chat room:", data);
-        return;
-      }
-
-      // Handle new messages
-      if (data.event === "new:event-chat" || data.type === "new:event-chat") {
-        const messageData = data.data || data;
-        if (!messageData?.id && !messageData?.body && !messageData?.content) return;
-        
-        // Cast to ChatMessage
-        const chatMessage: ChatMessage = {
-          id: messageData.id || String(Date.now()),
-          body: messageData.body,
-          content: messageData.content,
-          text: messageData.text,
-          sender: messageData.sender,
-          senderId: messageData.senderId,
-          createdAt: messageData.createdAt,
-          isOrganizer: messageData.isOrganizer,
-        };
-        
-        setMessages((prev) => {
-          // Avoid duplicates
-          if (chatMessage.id && prev.some((m) => m.id === chatMessage.id)) return prev;
-          return [...prev, chatMessage];
-        });
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      }
-    },
-    onOpen: () => {
-      console.log("WebSocket connected, joining", activeSection);
-      // Join the event chat room
-      wsSend({
-        event: "join:event-chat",
-        data: {
-          eventId,
-          section: activeSection,
-        },
-      });
-    },
-    onClose: () => {
-      console.log("WebSocket disconnected from", activeSection);
-    },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-    },
-    autoReconnect: true,
-    reconnectInterval: 3000,
+  const { socketRef, isConnected } = useSocket("messaging", {
     enabled: !!eventId && !!token,
   });
+
+  // Join room and listen for new messages whenever connected or section changes
+  useEffect(() => {
+    if (!isConnected) return;
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const section = SECTION_KEY[activeSection];
+    socket.emit("join:event-chat", { eventId, section });
+
+    const handleNewMessage = (msg: ChatMessage) => {
+      setMessages((prev) => {
+        if (msg.id && prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    socket.on("new:event-chat", handleNewMessage);
+    return () => {
+      socket.off("new:event-chat", handleNewMessage);
+    };
+  }, [isConnected, eventId, activeSection, socketRef]);
 
   const fetchHistory = useCallback(
     async (section: Section) => {
@@ -127,22 +104,20 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       setIsLoadingHistory(true);
       try {
         const res = await fetch(
-          `${API_BASE}/v1/events/${eventId}/chat/${section}`,
+          `${API_BASE}/v1/events/${eventId}/chat/${SECTION_KEY[section]}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
+
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          const errorMessage = errorData?.error?.message || errorData?.message || "Failed to load chat history";
-          toast.error(errorMessage);
+          toast.error(errorData?.message ?? "Failed to load chat history");
           setMessages([]);
           return;
         }
-        
+
         const json = await res.json();
         setMessages(json?.data ?? []);
-      } catch (error) {
-        console.error("Failed to fetch chat history:", error);
+      } catch {
         toast.error("Failed to load chat history");
         setMessages([]);
       } finally {
@@ -152,35 +127,26 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     [eventId, token]
   );
 
-  // Fetch history when section changes
   useEffect(() => {
     setMessages([]);
     fetchHistory(activeSection);
   }, [activeSection, fetchHistory]);
 
-  // Auto-scroll when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   const handleSend = () => {
     const text = message.trim();
-    if (!text) return;
+    if (!text || !isConnected) return;
 
-    if (isConnected) {
-      // Send message using the correct event format
-      wsSend({
-        event: "send:event-chat",
-        data: {
-          eventId,
-          section: activeSection,
-          body: text,
-        },
-      });
-      setMessage("");
-    } else {
-      toast.error("Not connected. Reconnecting...");
-    }
+    const socket = socketRef.current;
+    socket?.emit("send:event-chat", {
+      eventId,
+      section: SECTION_KEY[activeSection],
+      body: text,
+    });
+    setMessage("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -299,9 +265,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
 
       <div className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-background">
         <Input
-          placeholder={
-            wsStatus === "open" ? "Type a message..." : "Connecting..."
-          }
+          placeholder={isConnected ? "Type a message..." : "Connecting..."}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -320,4 +284,3 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     </div>
   );
 }
-

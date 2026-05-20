@@ -74,12 +74,6 @@ export default function RootLayout({
           src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAP_KEY}&libraries=places`}
           strategy="beforeInteractive"
         />
-        <Script
-          src="https://checkout.juicyway.com/pay.js"
-          strategy="beforeInteractive"
-          integrity="sha384-y5bVJyv1FwXWljYXcvh0MGJqJ4jy3Y6/NxMvH+JLi4f0WE1AyrVqSayRSTDqmrJk"
-          crossOrigin="anonymous"
-        />
       </head>
       <body className={`${nunitoSans.variable}  antialiased`}>
         <NetworkStatusBanner />
