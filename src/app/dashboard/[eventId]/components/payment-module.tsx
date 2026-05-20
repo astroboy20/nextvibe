@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ import { toast } from "sonner";
 import {
   useGetQuoteMutation,
   useInitiatePlanPaymentMutation,
-  useLazyVerifyOrganizerPaymentQuery,
   type PlanType,
   type PlanQuote,
 } from "@/app/provider/api/organizerPaymentApi";
@@ -51,83 +50,6 @@ const PLAN_DESCRIPTIONS: Record<PlanType, string> = {
   MEGA_BUNDLE_SINGLE: "Games + VibeTags for one phase",
   MEGA_BUNDLE_FULL: "Games + VibeTags for the full event",
 };
-
-// ─── Verify-after-redirect modal ─────────────────────────────────────────────
-
-interface VerifyModalProps {
-  paymentId: string;
-  onSuccess: () => void;
-  onClose: () => void;
-}
-
-function VerifyModal({ paymentId, onSuccess, onClose }: VerifyModalProps) {
-  const [triggerVerify, { data, isFetching }] =
-    useLazyVerifyOrganizerPaymentQuery();
-  const [pollCount, setPollCount] = useState(0);
-
-  const poll = useCallback(() => {
-    triggerVerify(paymentId);
-    setPollCount((c) => c + 1);
-  }, [paymentId, triggerVerify]);
-
-  // Auto-poll on mount and every 3s while pending
-  useEffect(() => {
-    poll();
-  }, [poll]);
-
-  useEffect(() => {
-    const status = data?.data?.status;
-    if (status === "completed" || status === "already_completed") {
-      onSuccess();
-      return;
-    }
-    if (status === "pending") {
-      const t = setTimeout(poll, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [data, poll, onSuccess]);
-
-  const status = data?.data?.status;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative bg-background rounded-2xl p-6 flex flex-col items-center gap-4 shadow-xl mx-4 w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {(!status || status === "pending" || isFetching) && (
-          <>
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="font-semibold text-foreground">Verifying payment…</p>
-            <p className="text-sm text-muted-foreground text-center">
-              Checking with Juicyway. This usually takes a few seconds.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Check #{pollCount}
-            </p>
-          </>
-        )}
-
-        {status === "failed" && (
-          <>
-            <AlertCircle className="h-10 w-10 text-destructive" />
-            <p className="font-semibold text-foreground">Payment failed</p>
-            <p className="text-sm text-muted-foreground text-center">
-              Juicyway reported a failed payment. You can retry from the
-              dashboard.
-            </p>
-            <Button className="w-full rounded-xl" onClick={onClose}>
-              Close
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Plan card ────────────────────────────────────────────────────────────────
 
@@ -200,7 +122,6 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
   const [appliedCoupon, setAppliedCoupon] = useState<string | undefined>();
   const [quotedPlan, setQuotedPlan] = useState<PlanQuote | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null);
 
   const {
     data: previewData,
@@ -379,7 +300,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
       return;
     }
     
-    // Paid flow - initiate payment and show modal
+    // Paid flow - initiate payment with Juicyway widget
     try {
       const res = await initiatePlanPayment({
         eventId,
@@ -387,11 +308,47 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
         ...(appliedCoupon ? { couponCode: appliedCoupon } : {}),
       }).unwrap();
 
-      // Store paymentId and show verification modal immediately
-      setPendingPaymentId(res.data.paymentId);
-
-      // Redirect to Juicyway checkout
-      window.location.href = res.data.checkoutUrl;
+      // Open Juicyway payment widget
+      if (typeof window !== "undefined" && (window as any).Juicyway) {
+        (window as any).Juicyway.PayWithJuice({
+          key: process.env.NEXT_PUBLIC_JUICYWAY_PUBLIC_KEY,
+          reference: res.data.paymentReference,
+          amount: res.data.quote.finalAmount,
+          currency: 'NGN',
+          description: `${PLAN_LABELS[selectedPlan]} - Event Publishing`,
+          order: {
+            identifier: res.data.paymentReference,
+            items: [{
+              name: PLAN_LABELS[selectedPlan],
+              type: 'digital',
+              qty: 1,
+              amount: res.data.quote.finalAmount
+            }]
+          },
+          onSuccess: async () => {
+            // Publish event immediately - webhook activates plan in background
+            try {
+              await updateEventStatus({
+                eventId,
+                status: "PUBLISHED",
+              }).unwrap();
+              toast.success("Payment successful! Your event is now live.");
+              refetchPreview();
+            } catch (err: any) {
+              toast.error(err?.data?.message ?? "Event published but status update failed.");
+            }
+          },
+          onError: (err: any) => {
+            toast.error(err?.message ?? "Payment failed. Please try again.");
+          },
+          onClose: () => {
+            // User closed the widget
+            toast.info("Payment cancelled.");
+          }
+        });
+      } else {
+        toast.error("Payment system not loaded. Please refresh and try again.");
+      }
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to initiate payment.");
     }
@@ -539,7 +496,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
             {isInitiating || isPublishing ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {activePlan?.finalAmount === 0 ? "Publishing…" : "Redirecting to checkout…"}
+                {activePlan?.finalAmount === 0 ? "Publishing…" : "Opening payment…"}
               </span>
             ) : (
               <>
@@ -552,24 +509,11 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
           <p className="text-center text-[11px] text-muted-foreground">
             {activePlan?.finalAmount === 0 
               ? "Your coupon covers the full cost. Click to publish immediately."
-              : "You'll be redirected to Juicyway to complete payment. Your event publishes automatically on success."
+              : "Juicyway payment widget will open inline. Your event publishes automatically on success."
             }
           </p>
         </CardContent>
       </Card>
-
-      {/* Verify modal — shown when returning from checkout */}
-      {pendingPaymentId && (
-        <VerifyModal
-          paymentId={pendingPaymentId}
-          onSuccess={() => {
-            setPendingPaymentId(null);
-            toast.success("Payment confirmed! Your event is now live.");
-            refetchPreview();
-          }}
-          onClose={() => setPendingPaymentId(null)}
-        />
-      )}
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tag, Loader2, Info } from "lucide-react";
+import { Tag, Loader2, Info, Lock } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -11,10 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import Vibetags from "./vibetag/vibetags";
 import { useGetVibeTagsQuery, useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import { useInitiateVibeTagAddonPaymentMutation } from "@/app/provider/api/organizerPaymentApi";
 import { useDispatch } from "react-redux";
 import { setView, setTemplate } from "@/app/provider/slices/canvas-slice";
+import { toast } from "sonner";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 
@@ -35,11 +38,23 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
   const dispatch = useDispatch();
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
   const [open, setOpen] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
 
   const handleOpenCreate = () => {
-    dispatch(setView("start"));
-    dispatch(setTemplate(null));
-    setOpen(true);
+    // Check if event is published and needs payment
+    const eventStatus = eventDetails?.data?.status;
+    const hasVibeTagsPlan = eventDetails?.data?.eventPlan?.hasVibeTags;
+    
+    if ((eventStatus === "PUBLISHED" || eventStatus === "LIVE") && !hasVibeTagsPlan) {
+      // Need to pay for VibeTags addon
+      setShowPaymentDialog(true);
+    } else {
+      // Free to create (DRAFT event or already has plan)
+      dispatch(setView("start"));
+      dispatch(setTemplate(null));
+      setOpen(true);
+    }
   };
 
   const { data, isLoading, refetch } = useGetVibeTagsQuery(
@@ -47,7 +62,8 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );
 
-  const { refetch: refetchEvent } = useGetEventDetailsQuery(eventId, { skip: !eventId });
+  const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(eventId, { skip: !eventId });
+  const [initiateVibeTagAddon, { isLoading: isInitiatingPayment }] = useInitiateVibeTagAddonPaymentMutation();
 
   const allVibeTags: any[] = (data?.data ?? []).filter(
     (t: any) => t.eventId === eventId
@@ -69,6 +85,56 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
     setOpen(false);
     refetch();
     refetchEvent();
+  };
+
+  const handlePayForVibeTags = async (bundle: boolean) => {
+    try {
+      const res = await initiateVibeTagAddon({
+        eventId,
+        bundle,
+        ...(couponCode.trim() ? { couponCode: couponCode.trim() } : {}),
+      }).unwrap();
+
+      // Open Juicyway payment widget
+      if (typeof window !== "undefined" && (window as any).Juicyway) {
+        (window as any).Juicyway.PayWithJuice({
+          key: process.env.NEXT_PUBLIC_JUICYWAY_PUBLIC_KEY,
+          reference: res.data.paymentReference,
+          amount: res.data.quote.finalAmount,
+          currency: 'NGN',
+          description: `VibeTags ${bundle ? 'Bundle' : 'Single Phase'}`,
+          order: {
+            identifier: res.data.paymentReference,
+            items: [{
+              name: `VibeTags ${bundle ? 'Bundle' : 'Single Phase'}`,
+              type: 'digital',
+              qty: 1,
+              amount: res.data.quote.finalAmount
+            }]
+          },
+          onSuccess: () => {
+            toast.success("VibeTags unlocked! You can now create VibeTags.");
+            setShowPaymentDialog(false);
+            setCouponCode("");
+            refetchEvent();
+            // Open the creator after successful payment
+            dispatch(setView("start"));
+            dispatch(setTemplate(null));
+            setOpen(true);
+          },
+          onError: (err: any) => {
+            toast.error(err?.message ?? "Payment failed. Please try again.");
+          },
+          onClose: () => {
+            toast.info("Payment cancelled.");
+          }
+        });
+      } else {
+        toast.error("Payment system not loaded. Please refresh and try again.");
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to initiate VibeTags payment.");
+    }
   };
 
   return (
@@ -162,6 +228,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         )}
       </div>
 
+      {/* VibeTags Creator Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg h-screen overflow-y-scroll">
           <DialogHeader>
@@ -176,6 +243,83 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
             eventId={eventId}
             eventName={name}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* VibeTags Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-amber-500" />
+              Unlock VibeTags
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Your event is published. To add VibeTags, choose a plan:
+            </p>
+
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto py-3 px-4"
+                onClick={() => handlePayForVibeTags(false)}
+                disabled={isInitiatingPayment}
+              >
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Single Phase</p>
+                  <p className="text-xs text-muted-foreground">
+                    VibeTags for one phase
+                  </p>
+                </div>
+                <p className="font-bold text-primary">
+                  {isInitiatingPayment ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Pay Now"
+                  )}
+                </p>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto py-3 px-4"
+                onClick={() => handlePayForVibeTags(true)}
+                disabled={isInitiatingPayment}
+              >
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Full Bundle</p>
+                  <p className="text-xs text-muted-foreground">
+                    VibeTags for both phases
+                  </p>
+                </div>
+                <p className="font-bold text-primary">
+                  {isInitiatingPayment ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Pay Now"
+                  )}
+                </p>
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground">
+                Coupon Code (optional)
+              </label>
+              <Input
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Pricing is based on your event tier. Payment opens inline.
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     </>
