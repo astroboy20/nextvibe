@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,14 @@ type PollState = "polling" | "success" | "failed" | "timeout" | "missing";
 const REDIRECT_DELAY = 3; // seconds before auto-redirect on success
 
 export default function OrganizerPaymentVerifyPage() {
+  return (
+    <Suspense fallback={<VerifyShell icon="loading" title="Loading…" description="" />}>
+      <VerifyPageInner />
+    </Suspense>
+  );
+}
+
+function VerifyPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const paymentId = searchParams.get("paymentId");
