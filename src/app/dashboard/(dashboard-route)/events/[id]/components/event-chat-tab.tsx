@@ -194,7 +194,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
             </p>
           </div>
         ) : (
-          messages.map((msg, i) => {
+          messages?.map((msg, i) => {
             const isMe = msg.sender?.id === myId || msg.senderId === myId;
             const senderName =
               msg.sender?.displayName ?? msg.sender?.username ?? "User";
