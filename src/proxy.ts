@@ -41,9 +41,10 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-// Clear tokens and redirect to login
+// Clear tokens and redirect to login, preserving the current path as ?from
 function redirectToLogin(req: NextRequest): NextResponse {
-  const res = NextResponse.redirect(new URL("/auth/login", req.url));
+  const from = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
+  const res = NextResponse.redirect(new URL(`/auth/login?from=${from}`, req.url));
   res.cookies.delete("accessToken");
   res.cookies.delete("refreshToken");
   return res;
@@ -51,7 +52,8 @@ function redirectToLogin(req: NextRequest): NextResponse {
 
 // Clear admin tokens and redirect to login
 function redirectAdminToLogin(req: NextRequest): NextResponse {
-  const res = NextResponse.redirect(new URL("/auth/login", req.url));
+  const from = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
+  const res = NextResponse.redirect(new URL(`/auth/login?from=${from}`, req.url));
   res.cookies.delete("admin_accessToken");
   res.cookies.delete("admin_refreshToken");
   return res;
@@ -148,8 +150,13 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const accessToken = req.cookies.get("accessToken")?.value;
-  const refreshToken = req.cookies.get("refreshToken")?.value;
+  // Fall back to admin tokens so admins can visit non-admin pages
+  const accessToken =
+    req.cookies.get("accessToken")?.value ??
+    req.cookies.get("admin_accessToken")?.value;
+  const refreshToken =
+    req.cookies.get("refreshToken")?.value ??
+    req.cookies.get("admin_refreshToken")?.value;
 
   // No tokens at all — send to login
   if (!accessToken && !refreshToken) {

@@ -16,7 +16,7 @@ const rawBaseQuery = fetchBaseQuery({
       window.location.pathname.startsWith("/admin");
     const accessToken = isAdminRoute
       ? (Cookies.get("admin_accessToken") ?? Cookies.get("accessToken"))
-      : Cookies.get("accessToken");
+      : (Cookies.get("accessToken") ?? Cookies.get("admin_accessToken"));
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
@@ -89,9 +89,9 @@ export const baseQueryWithReauth: BaseQueryFn<
   isRefreshing = true;
 
   try {
-    const refreshToken = Cookies.get(
-      isAdminRoute ? "admin_refreshToken" : "refreshToken"
-    );
+    const refreshToken = isAdminRoute
+      ? (Cookies.get("admin_refreshToken") ?? Cookies.get("refreshToken"))
+      : (Cookies.get("refreshToken") ?? Cookies.get("admin_refreshToken"));
 
     const refreshResult = await rawBaseQuery(
       { url: "/v1/auth/refresh", method: "POST", body: { refreshToken } },
