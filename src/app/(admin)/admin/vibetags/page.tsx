@@ -19,19 +19,12 @@ const COLORS = [
   "hsl(330, 70%, 55%)",
   "hsl(280, 60%, 50%)",
   "hsl(316, 50%, 35%)",
-  "hsl(195, 80%, 38%)",
-  "hsl(330, 55%, 48%)",
-  "hsl(280, 45%, 42%)",
-  "hsl(316, 40%, 28%)",
-  "hsl(195, 60%, 35%)",
 ];
 
-// Truncate long names for the Y-axis so they don't overflow
-function truncate(str: string, max = 18) {
+function truncate(str: string, max = 14) {
   return str.length > max ? str.slice(0, max - 1) + "…" : str;
 }
 
-// Custom bar shape so we can colour each bar individually without Cell
 function ColoredBar(props: any) {
   const { x, y, width, height, index } = props;
   return (
@@ -93,8 +86,15 @@ function TableSkeleton() {
   );
 }
 
+// Responsive YAxis width hook
+function useYAxisWidth() {
+  if (typeof window === "undefined") return 110;
+  return window.innerWidth < 640 ? 90 : 130;
+}
+
 export default function VibeTagsPage() {
   const { data, isLoading, isError } = useGetVibeTagStatsQuery();
+  const yAxisWidth = useYAxisWidth();
 
   const vibeTags: IAdminVibeTag[] = data?.vibeTags ?? [];
   const total = data?.total ?? 0;
@@ -102,19 +102,21 @@ export default function VibeTagsPage() {
   const sorted = [...vibeTags].sort(
     (a, b) => (b.postcardCount ?? 0) - (a.postcardCount ?? 0)
   );
-  const top10 = sorted.slice(0, 10);
 
-  const chartData = top10.map((t) => ({
+  // Only top 5
+  const top5 = sorted.slice(0, 5);
+
+  const chartData = top5.map((t) => ({
     name: truncate(t.name ?? "—"),
     fullName: t.name ?? "—",
     postcards: t.postcardCount ?? 0,
   }));
 
-  // Dynamic chart height: 52px per bar, min 200
-  const chartHeight = Math.max(200, chartData.length * 52);
-
   const totalPostcards = sorted.reduce((s, t) => s + (t.postcardCount ?? 0), 0);
   const totalLikes = sorted.reduce((s, t) => s + (t.totalLikesOnPostcards ?? 0), 0);
+
+  // Fixed, predictable chart height for 5 bars
+  const CHART_HEIGHT = 300;
 
   return (
     <div className="space-y-6">
@@ -126,7 +128,7 @@ export default function VibeTagsPage() {
         </p>
       </div>
 
-      {/* Summary stats — single row on all sizes, cards shrink gracefully */}
+      {/* Summary stats */}
       {!isLoading && !isError && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <StatCard
@@ -153,56 +155,65 @@ export default function VibeTagsPage() {
         </div>
       )}
 
-      {/* Chart */}
-      <ChartContainer title="Top Vibe Tags by Postcard Count" loading={isLoading}>
+      {/* Chart — key fixes:
+          1. Outer div has a known height so ResponsiveContainer can resolve it
+          2. overflow-hidden prevents any bar from escaping the card
+          3. yAxisWidth is responsive (smaller on mobile)
+          4. barSize is fixed so bars don't grow absurdly tall with only 5 items
+      */}
+      <ChartContainer title="Top 5 Vibe Tags by Postcard Count" loading={isLoading}>
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={false}
-                stroke="hsl(var(--border))"
-              />
-              <XAxis
-                type="number"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                allowDecimals={false}
-              />
-              <YAxis
-                dataKey="name"
-                type="category"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                width={140}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "0.625rem",
-                  border: "1px solid hsl(var(--border))",
-                  fontSize: 12,
-                }}
-                formatter={(value: any) => [Number(value).toLocaleString(), "Postcards"]}
-                labelFormatter={(label) => {
-                  const item = chartData.find((d) => d.name === label);
-                  return item?.fullName ?? label;
-                }}
-              />
-              <Bar dataKey="postcards" shape={<ColoredBar />} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ width: "100%", height: CHART_HEIGHT }} className="overflow-hidden">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 4, right: 24, bottom: 4, left: 4 }}
+                barSize={28}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={false}
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  width={undefined}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={yAxisWidth}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "0.625rem",
+                    border: "1px solid hsl(var(--border))",
+                    fontSize: 12,
+                  }}
+                  formatter={(value: any) => [Number(value).toLocaleString(), "Postcards"]}
+                  labelFormatter={(label) => {
+                    const item = chartData.find((d) => d.name === label);
+                    return item?.fullName ?? label;
+                  }}
+                />
+                <Bar dataKey="postcards" shape={<ColoredBar />} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         ) : (
           <EmptyState title="No vibe tag data" />
         )}
       </ChartContainer>
 
-      {/* Table — card-based on mobile, full table on sm+ */}
+      {/* Table */}
       <Card>
         <CardHeader>
           <CardTitle>All Vibe Tags</CardTitle>
