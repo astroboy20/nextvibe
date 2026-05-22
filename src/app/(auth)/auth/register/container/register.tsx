@@ -66,7 +66,7 @@ export default function RegisterContent() {
         secure: process.env.NODE_ENV === "production",
       });
       toast.success("Account created successfully");
-      router.replace(`/dashboard/events`);
+      router.replace(`/events`);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Something went wrong");
     }

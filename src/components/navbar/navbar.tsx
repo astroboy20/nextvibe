@@ -60,7 +60,7 @@ export default function Navbar() {
                 className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white transition-colors h-8"
                 asChild
               >
-                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/events">Events</Link>
               </Button>
             ) : (
               <>
@@ -125,7 +125,7 @@ export default function Navbar() {
                     asChild
                   >
                     <Link href="/events" onClick={() => setOpen(false)}>
-                      Dashboard
+                      Events
                     </Link>
                   </Button>
                 ) : (

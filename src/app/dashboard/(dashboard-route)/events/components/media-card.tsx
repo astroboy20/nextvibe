@@ -22,7 +22,7 @@ export interface MediaCardProps {
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
   postcardCount?: number;
-  /** "event" navigates to /dashboard/events/:id, "postcard" to /dashboard/postcards/:id */
+  /** "event" navigates to /events/:id, "postcard" to /postcards/:id */
   variant?: "event" | "postcard";
 }
 
@@ -135,9 +135,9 @@ export function MediaCard({
 
   const handleClick = () => {
     if (variant === "postcard") {
-      router.push(`/dashboard/postcards/${id}`);
+      router.push(`/postcards/${id}`);
     } else {
-      router.replace(`/dashboard/events/${id}`);
+      router.replace(`/events/${id}`);
     }
   };
 

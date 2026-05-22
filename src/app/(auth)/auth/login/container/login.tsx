@@ -40,7 +40,12 @@ const LoginContent = () => {
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
 
-  const from = searchParams.get("from");
+  const rawFrom = searchParams.get("from");
+  // Middleware uses encodeURIComponent so the value may arrive as "%2Fdashboard%2F..."
+  // — decode it so startsWith("/") works correctly.
+  const from = rawFrom
+    ? (() => { try { return decodeURIComponent(rawFrom); } catch { return rawFrom; } })()
+    : null;
   const defaultRole = searchParams.get("DEFAULT_ROLE") || "";
 
   const form = useForm<LoginFormValues>({
@@ -88,7 +93,7 @@ const LoginContent = () => {
       if (isSuperAdmin) {
         router.push(validFrom ? from : "/admin");
       } else {
-        router.push(validFrom ? from : "/dashboard/events");
+        router.push(validFrom ? from : "/events");
       }
 
       router.refresh();

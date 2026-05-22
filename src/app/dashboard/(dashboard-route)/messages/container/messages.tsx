@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft,
   Send,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import BottomNav from "@/components/navbar/bottom-navbar";
 import {
   useGetConversationsQuery,
   useGetMessagesQuery,
@@ -24,6 +23,7 @@ import {
 } from "@/app/provider/api/messagingApi";
 import { useSocket } from "@/hooks/useSocket";
 import { getTokens } from "@/hooks/getToken";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,29 @@ function formatTime(dateStr: string): string {
   return `${days}d`;
 }
 
+/** Synthesise a soft notification ping using Web Audio — no file needed. */
+function playNotifSound() {
+  try {
+    const AudioCtx = window.AudioContext ?? (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx() as AudioContext;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // Browsers may block AudioContext without a user gesture — fail silently.
+  }
+}
+
 // ─── Chat view ───────────────────────────────────────────────────────────────
 
 interface ChatViewProps {
@@ -50,40 +73,96 @@ interface ChatViewProps {
 }
 
 function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
+  const dispatch = useDispatch();
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Maps optimistic message body → its temporary id so we can replace it when
+  // the server echoes the real message back via new:dm (prevents double-bubble).
+  const pendingOptimisticRef = useRef<Map<string, string>>(new Map());
+
+  // Hide the global DashboardNavbar and BottomNav while the chat is open
+  useEffect(() => {
+    dispatch(setHideHeader(true));
+    return () => { dispatch(setHideHeader(false)); };
+  }, [dispatch]);
 
   const { data, isLoading } = useGetMessagesQuery({
     conversationId: conversation.id,
   });
 
+
   // Seed local state from REST response (newest-first → reverse for display)
   useEffect(() => {
     if (data?.data) {
-      setLocalMessages([...data.data].reverse());
+      const msgs = [...data.data.data].reverse();
+      console.log(`[chat] REST loaded ${msgs.length} messages for conv=${conversation.id}`);
+      setLocalMessages(msgs);
     }
-  }, [data]);
+  }, [data, conversation.id]);
 
   // Socket.IO connection for real-time DMs
-  const { socketRef, isConnected } = useSocket("messaging");
+  const { socketRef, isConnected, status } = useSocket("messaging");
 
+  // Log every status change so you can see connect/disconnect in real time
   useEffect(() => {
-    if (!isConnected) return;
-    const socket = socketRef.current;
-    if (!socket) return;
+    console.log(`[chat] socket status → ${status}`);
+  }, [status]);
 
-    socket.emit("join:dm", { conversationId: conversation.id });
+  // Join the DM room and listen for incoming messages.
+  // We attach directly to the socket "connect" event so join:dm is re-emitted
+  // on every (re)connect without depending on React state timing.
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) {
+      console.warn(`[chat] join effect: socket not available yet`);
+      return;
+    }
+
+    const joinRoom = () => {
+      console.log(`[chat] 🔗 join:dm  conv=${conversation.id}  socketId=${socket.id ?? "pending"}`);
+      socket.emit("join:dm", { conversationId: conversation.id });
+    };
 
     const handleNewDm = (msg: Message) => {
+      console.log(`[chat] 📨 new:dm received`, msg);
+
+      // If this is an echo of our own optimistic bubble, replace it with the
+      // real message (correct id + server timestamp) instead of appending a copy.
+      if (msg.senderId === currentUserId) {
+        const optId = pendingOptimisticRef.current.get(msg.body);
+        if (optId) {
+          pendingOptimisticRef.current.delete(msg.body);
+          setLocalMessages((prev) => prev.map((m) => m.id === optId ? msg : m));
+          return;
+        }
+      }
+
+      // Incoming message from the other person — append and ping
+      playNotifSound();
       setLocalMessages((prev) => [...prev, msg]);
     };
 
+    // "connect" fires on initial connect AND every reconnect — guaranteed emit
+    socket.on("connect", joinRoom);
     socket.on("new:dm", handleNewDm);
+
+    // If already connected when the effect runs (socket was ready before React re-rendered),
+    // join immediately since "connect" won't fire again for an already-open socket
+    if (socket.connected) {
+      console.log(`[chat] already connected on mount — joining immediately`);
+      joinRoom();
+    } else {
+      console.log(`[chat] not yet connected (status=${status}) — will join when "connect" fires`);
+    }
+
     return () => {
+      socket.off("connect", joinRoom);
       socket.off("new:dm", handleNewDm);
     };
-  }, [isConnected, conversation.id, socketRef]);
+  // socketRef is a stable ref object; conversation.id re-join when switching convos
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id, socketRef]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -91,15 +170,28 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
 
   const handleSend = () => {
     if (!newMessage.trim()) return;
-    socketRef.current?.emit("send:dm", {
+
+    const body = newMessage.trim();
+
+    if (!isConnected || !socketRef.current) {
+      console.error(`[chat] ❌ cannot send — socket not connected (status=${status})`);
+      // Don't add optimistic bubble if we can't actually send
+      return;
+    }
+
+    console.log(`[chat] 📤 send:dm  conv=${conversation.id}  body="${body}"`);
+    socketRef.current.emit("send:dm", {
       conversationId: conversation.id,
-      body: newMessage.trim(),
+      body,
     });
-    // Optimistic local message
+
+    // Optimistic local message — track it so new:dm echo can replace it
+    const optimisticId = `opt-${Date.now()}`;
+    pendingOptimisticRef.current.set(body, optimisticId);
     const optimistic: Message = {
-      id: `opt-${Date.now()}`,
+      id: optimisticId,
       senderId: currentUserId,
-      body: newMessage.trim(),
+      body,
       createdAt: new Date().toISOString(),
     };
     setLocalMessages((prev) => [...prev, optimistic]);
@@ -107,9 +199,11 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    // fixed inset-0: escape the (app) layout wrapper so the chat fills the full screen
+    // and the input is never hidden behind the bottom nav
+    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+      <div className="border-b border-border bg-background/95 backdrop-blur shrink-0">
         <div className="container flex items-center gap-3 px-4 py-3">
           <button
             onClick={onBack}
@@ -127,67 +221,115 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
             <h1 className="font-semibold text-foreground">
               {conversation.participant.username}
             </h1>
+            {/* Socket status indicator — remove once messaging is stable */}
+            <p className={cn(
+              "text-[10px] font-medium",
+              status === "connected"    && "text-green-500",
+              status === "connecting"   && "text-amber-500",
+              status === "disconnected" && "text-muted-foreground",
+              status === "error"        && "text-red-500",
+            )}>
+              {status}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      {/* Messages — scrollable middle zone */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div className="flex flex-col gap-0.5">
           {isLoading && (
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground py-4">
               Loading messages…
             </p>
           )}
-          {localMessages.map((message) => {
+          {localMessages.map((message, index) => {
             const isMine = message.senderId === currentUserId;
+            const prev = localMessages[index - 1];
+            const next = localMessages[index + 1];
+            const isFirstInGroup = !prev || prev.senderId !== message.senderId;
+            const isLastInGroup  = !next || next.senderId !== message.senderId;
+
             return (
               <div
                 key={message.id}
-                className={cn("flex", isMine ? "justify-end" : "justify-start")}
+                className={cn(
+                  "flex items-end gap-2",
+                  isMine ? "justify-end" : "justify-start",
+                  // Extra breathing room between sender groups
+                  isLastInGroup && index !== localMessages.length - 1 && "mb-2",
+                )}
               >
-                <div
-                  className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2",
-                    isMine
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  )}
-                >
-                  <p className="text-sm">{message.body}</p>
-                  <p
+                {/* Avatar column for received messages — fixed width keeps bubbles aligned */}
+                {!isMine && (
+                  <div className="w-7 shrink-0 self-end">
+                    {isLastInGroup ? (
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={conversation.participant.avatarUrl} />
+                        <AvatarFallback className="text-[10px]">
+                          {conversation.participant.username?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : null}
+                  </div>
+                )}
+
+                <div className={cn("flex flex-col max-w-[75%]", isMine && "items-end")}>
+                  <div
                     className={cn(
-                      "text-xs mt-1",
+                      "px-4 py-2 text-sm leading-relaxed",
                       isMine
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground",
+                      // All corners rounded by default; flatten connecting corners within a group
+                      "rounded-2xl",
+                      isMine  && !isFirstInGroup && "rounded-tr-[6px]",
+                      isMine  && !isLastInGroup  && "rounded-br-[6px]",
+                      !isMine && !isFirstInGroup && "rounded-tl-[6px]",
+                      !isMine && !isLastInGroup  && "rounded-bl-[6px]",
                     )}
                   >
-                    {formatTime(message.createdAt)}
-                  </p>
+                    {message.body}
+                  </div>
+
+                  {/* Timestamp only on the last bubble of each group */}
+                  {isLastInGroup && (
+                    <p className={cn(
+                      "text-[10px] mt-1 px-1",
+                      isMine ? "text-muted-foreground" : "text-muted-foreground",
+                    )}>
+                      {formatTime(message.createdAt)}
+                    </p>
+                  )}
                 </div>
               </div>
             );
           })}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Input */}
-      <div className="border-t border-border bg-background p-4">
+      <div className="border-t border-border bg-background p-4 shrink-0">
+        {!isConnected && (
+          <p className="text-xs text-center text-muted-foreground mb-2">
+            {status === "connecting" ? "Connecting…" : "Reconnecting — messages may be delayed"}
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message…"
+            placeholder={isConnected ? "Type a message…" : "Waiting for connection…"}
             className="flex-1 rounded-full"
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            disabled={!isConnected}
           />
           <Button
             size="icon"
             className="rounded-full"
             onClick={handleSend}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || !isConnected}
           >
             <Send className="h-4 w-4" />
           </Button>
@@ -241,12 +383,12 @@ const Messages = () => {
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
-    router.push(`/dashboard/messages?chat=${conv.id}`);
+    router.push(`/messages?chat=${conv.id}`);
   };
 
   const handleBack = () => {
     setSelectedConversation(null);
-    router.push("/dashboard/messages");
+    router.push("/messages");
   };
 
   if (selectedConversation) {
@@ -326,7 +468,7 @@ const Messages = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Connect with other attendees at events!
             </p>
-            <Button onClick={() => router.push("/dashboard/events")}>
+            <Button onClick={() => router.push("/events")}>
               Discover Events
             </Button>
           </div>
@@ -382,8 +524,6 @@ const Messages = () => {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 };

@@ -150,7 +150,7 @@ function PostcardCard({ postcard }: { postcard: PostcardItem }) {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 p-4 pb-2">
-        <Avatar className="h-10 w-10 cursor-pointer" onClick={() => router.push(`/user/${user?.id}`)}>
+        <Avatar className="h-10 w-10 cursor-pointer" onClick={() => user?.id && router.push(`/users/${user.id}`)}>
           <AvatarImage src={user?.avatar} />
           <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
         </Avatar>
@@ -222,7 +222,7 @@ function PeopleList({ users, isLoading, emptyText, defaultFollowing = false }: {
     const current = followingState[user.id] ?? user.isFollowing ?? defaultFollowing;
     setFollowingState((s) => ({ ...s, [user.id]: !current }));
     try {
-      await toggleFollow(user.id).unwrap();
+      await toggleFollow({ userId: user.id, isFollowing: !!current }).unwrap();
     } catch {
       setFollowingState((s) => ({ ...s, [user.id]: current }));
     }
@@ -234,9 +234,9 @@ function PeopleList({ users, isLoading, emptyText, defaultFollowing = false }: {
       const res = await startConversation({ userId }).unwrap();
       const conversationId = res?.data?.id;
       if (conversationId) {
-        router.push(`/dashboard/messages?conversation=${conversationId}`);
+        router.push(`/messages?conversation=${conversationId}`);
       } else {
-        router.push(`/dashboard/messages?chat=${userId}`);
+        router.push(`/messages?chat=${userId}`);
       }
     } catch (err: any) {
       const message =
@@ -276,7 +276,7 @@ function PeopleList({ users, isLoading, emptyText, defaultFollowing = false }: {
           <Card key={person.id}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 cursor-pointer shrink-0" onClick={() => router.push(`/user/${person.id}`)}>
+                <Avatar className="h-12 w-12 cursor-pointer shrink-0" onClick={() => router.push(`/users/${person.id}`)}>
                   <AvatarImage src={person.avatarUrl} />
                   <AvatarFallback>{name[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -333,10 +333,37 @@ const Social = () => {
     );
   };
 
+  // Build a set of IDs the current user is following — used to:
+  // 1. Mark followers you follow back as isFollowing: true
+  // 2. Derive mutuals client-side (intersection of following ∩ followers)
+  const followingList: SocialUser[] = followingData?.data?.data ?? [];
+  const followersList: SocialUser[] = followersData?.data?.data ?? [];
+
+  const followingIds = new Set(followingList.map((u) => u.id));
+  const followerIds  = new Set(followersList.map((u) => u.id));
+
+  // Force isFollowing: true for everyone in the following list.
+  // The API may return isFollowing: false on these objects (meaning they don't follow YOU back),
+  // but from the button's perspective we ARE following them — that's why they're in this list.
+  const enrichedFollowing = followingList.map((u) => ({ ...u, isFollowing: true }));
+
+  // Enrich followers: mark the ones you follow back
+  const enrichedFollowers = followersList.map((u) => ({
+    ...u,
+    isFollowing: followingIds.has(u.id),
+  }));
+
+  // Derive mutuals client-side (following ∩ followers); use API data if non-empty
+  const apiMutuals: SocialUser[] = mutualsData?.data?.data ?? [];
+  const derivedMutuals: SocialUser[] = followingList
+    .filter((u) => followerIds.has(u.id))
+    .map((u) => ({ ...u, isFollowing: true }));
+  const mutualUsers = apiMutuals.length > 0 ? apiMutuals : derivedMutuals;
+
   const peopleMap = {
-    following: { users: filterUsers(followingData?.data?.data ?? []), isLoading: followingLoading, emptyText: "You're not following anyone yet.", defaultFollowing: true },
-    followers: { users: filterUsers(followersData?.data?.data ?? []), isLoading: followersLoading, emptyText: "No followers yet.",               defaultFollowing: false },
-    mutuals:   { users: filterUsers(mutualsData?.data?.data ?? []),   isLoading: mutualsLoading,   emptyText: "No mutuals yet.",                  defaultFollowing: true },
+    following: { users: filterUsers(enrichedFollowing),     isLoading: followingLoading, emptyText: "You're not following anyone yet.", defaultFollowing: true  },
+    followers: { users: filterUsers(enrichedFollowers),     isLoading: followersLoading, emptyText: "No followers yet.",               defaultFollowing: false },
+    mutuals:   { users: filterUsers(mutualUsers),           isLoading: mutualsLoading,   emptyText: "No mutuals yet.",                  defaultFollowing: true  },
   };
 
   return (
@@ -410,7 +437,8 @@ const Social = () => {
               </TabsList>
             </Tabs>
 
-            <PeopleList {...peopleMap[peopleTab]} />
+            {/* key resets local followingState when switching tabs */}
+            <PeopleList key={peopleTab} {...peopleMap[peopleTab]} />
           </div>
         )}
       </div>

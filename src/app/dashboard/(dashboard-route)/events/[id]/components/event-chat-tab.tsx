@@ -75,14 +75,19 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     enabled: !!eventId && !!token,
   });
 
-  // Join room and listen for new messages whenever connected or section changes
+  // Join room and listen for new messages.
+  // Uses socket "connect" event directly so join:event-chat is re-emitted on every
+  // (re)connect without depending on React state timing.
   useEffect(() => {
-    if (!isConnected) return;
     const socket = socketRef.current;
     if (!socket) return;
 
     const section = SECTION_KEY[activeSection];
-    socket.emit("join:event-chat", { eventId, section });
+
+    const joinRoom = () => {
+      console.log(`[event-chat] 🔗 join:event-chat  event=${eventId}  section=${section}  socketId=${socket.id ?? "pending"}`);
+      socket.emit("join:event-chat", { eventId, section });
+    };
 
     const handleNewMessage = (msg: ChatMessage) => {
       setMessages((prev) => {
@@ -92,11 +97,24 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    // Re-join on every (re)connect
+    socket.on("connect", joinRoom);
     socket.on("new:event-chat", handleNewMessage);
+
+    // If already connected when the effect runs, join immediately
+    if (socket.connected) {
+      console.log(`[event-chat] already connected — joining immediately`);
+      joinRoom();
+    } else {
+      console.log(`[event-chat] not yet connected — will join when "connect" fires`);
+    }
+
     return () => {
+      socket.off("connect", joinRoom);
       socket.off("new:event-chat", handleNewMessage);
     };
-  }, [isConnected, eventId, activeSection, socketRef]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, activeSection, socketRef]);
 
   const fetchHistory = useCallback(
     async (section: Section) => {

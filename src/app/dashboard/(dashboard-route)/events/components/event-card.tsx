@@ -22,7 +22,7 @@ export interface EventCardProps {
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
   postcardCount?: number;
-  /** "event" navigates to /dashboard/events/:id, "postcard" to /dashboard/postcards/:id */
+  /** "event" navigates to /events/:id, "postcard" to /postcards/:id */
   variant?: "event" | "postcard";
 }
 
@@ -135,8 +135,8 @@ export function EventCard({
 
   const href =
     variant === "postcard"
-      ? `/dashboard/postcards/${id}`
-      : `/dashboard/events/${id}`;
+      ? `/postcards/${id}`
+      : `/events/${id}`;
 
   return (
     <div

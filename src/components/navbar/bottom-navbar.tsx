@@ -7,16 +7,16 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/app/provider/store";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/dashboard/events" },
-  { icon: Users, label: "Social", path: "/dashboard/social" },
+  { icon: Home, label: "Home", path: "/events" },
+  { icon: Users, label: "Social", path: "/social" },
   {
     icon: Plus,
     label: "Create",
     path: "/dashboard/event/create/?step=1",
     isMain: true,
   },
-  { icon: MessageCircle, label: "Messages", path: "/dashboard/messages" },
-  { icon: User, label: "Profile", path: "/dashboard/profile" },
+  { icon: MessageCircle, label: "Messages", path: "/messages" },
+  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 const BottomNav = () => {

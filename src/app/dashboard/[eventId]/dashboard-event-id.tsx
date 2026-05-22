@@ -113,7 +113,7 @@ export default function OrganizerDashboard({
 
   const eventUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/events/${eventId}`
+      ? `${window.location.origin}/events/${eventId}`
       : "";
 
   const handleShare = async () => {
@@ -247,7 +247,7 @@ export default function OrganizerDashboard({
                     Share
                   </Button>
                   <Link
-                    href={`/dashboard/events/${eventId}`}
+                    href={`/events/${eventId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="h-8 gap-1.5 rounded-full flex items-center text-sm"

@@ -6,6 +6,23 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true, // Skip type checking during dev
   },
 
+  // Redirect old /dashboard/* paths to new clean paths for back-compat
+  async redirects() {
+    return [
+      { source: "/dashboard/events",              destination: "/events",        permanent: true },
+      { source: "/dashboard/events/:id",           destination: "/events/:id",    permanent: true },
+      { source: "/dashboard/events/:id/postcards", destination: "/events/:id/postcards", permanent: true },
+      { source: "/dashboard/social",               destination: "/social",        permanent: true },
+      { source: "/dashboard/messages",             destination: "/messages",      permanent: true },
+      { source: "/dashboard/notifications",        destination: "/notifications", permanent: true },
+      { source: "/dashboard/profile",              destination: "/profile",       permanent: true },
+      { source: "/dashboard/profile/edit",         destination: "/profile/edit",  permanent: true },
+      { source: "/dashboard/settings",             destination: "/settings",      permanent: true },
+      { source: "/dashboard/postcards/:id",        destination: "/postcards/:id", permanent: true },
+      { source: "/dashboard/user/:id",             destination: "/users/:id",     permanent: true },
+    ];
+  },
+
   images: {
     unoptimized: true, // Skip image optimization for faster builds
     remotePatterns: [

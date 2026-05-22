@@ -13,7 +13,7 @@ interface EventQRTabProps {
 export function EventQRTab({ event }: EventQRTabProps) {
   const [copied, setCopied] = useState(false);
   const domain = typeof window !== "undefined" ? window.location.origin : "";
-  const eventUrl = `${domain}/dashboard/events/${event.id || "1"}`;
+  const eventUrl = `${domain}/events/${event.id || "1"}`;
   const qrRef = useRef<SVGSVGElement | null>(null);
 
   const handleShare = async () => {

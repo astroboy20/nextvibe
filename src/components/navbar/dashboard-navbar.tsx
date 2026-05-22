@@ -5,6 +5,8 @@ import { useSelector } from "react-redux";
 import { Bell, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { NewLogo } from "../logo";
 import { RootState } from "@/app/provider/store";
@@ -20,7 +22,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 // ── notification type → label / color ────────────────────────────────────────
@@ -47,16 +48,27 @@ function notifMeta(type: string) {
 function NotifItem({
   notif,
   onRead,
+  onClose,
 }: {
   notif: Notification;
   onRead: (id: string) => void;
+  onClose: () => void;
 }) {
+  const router = useRouter();
   const meta = notifMeta(notif.type);
   const actor = notif.actor?.displayName ?? notif.actor?.username ?? "Someone";
 
+  const handleClick = () => {
+    if (!notif.isRead) onRead(notif.id);
+    if (notif.actor?.id) {
+      onClose();
+      router.push(`/users/${notif.actor.id}`);
+    }
+  };
+
   return (
     <button
-      onClick={() => !notif.isRead && onRead(notif.id)}
+      onClick={handleClick}
       className={cn(
         "w-full text-left flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/60",
         !notif.isRead && "bg-primary/5"
@@ -114,27 +126,46 @@ function NotificationBell() {
   const [markOneRead] = useMarkOneReadMutation();
 
   // Real-time notifications via Socket.IO
-  const { socketRef, isConnected } = useSocket("notifications");
-  const [realtimeCount, setRealtimeCount] = useState(0);
+  const { socketRef } = useSocket("notifications");
+  // Track IDs of notifs that arrived in real-time but haven't been fetched yet.
+  // We reset this whenever the REST data refreshes so we don't double-count.
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!isConnected) return;
     const socket = socketRef.current;
     if (!socket) return;
 
-    const handleNotification = (_: Notification) => {
-      setRealtimeCount((c) => c + 1);
+    const handleNotification = (notif: Notification) => {
+      // Add this id to pending so the badge shows +1 immediately,
+      // then pull the full updated list from the server.
+      setPendingIds((prev) => new Set([...prev, notif.id ?? `rt-${Date.now()}`]));
       refetch();
     };
 
+    // Register listener directly — socket.io keeps it across reconnects.
+    // No isConnected guard needed; the listener just waits until messages arrive.
     socket.on("notification", handleNotification);
     return () => {
       socket.off("notification", handleNotification);
     };
-  }, [isConnected, socketRef, refetch]);
+  // socketRef is a stable ref — only re-register if refetch identity changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketRef, refetch]);
 
   const notifications: Notification[] = data?.data?.data ?? [];
-  const unreadCount = (data?.data?.meta?.unreadCount ?? 0) + realtimeCount;
+
+  // Once the REST data comes back, clear pendingIds that are now in the list
+  useEffect(() => {
+    if (!data) return;
+    const fetchedIds = new Set(notifications.map((n) => n.id));
+    setPendingIds((prev) => {
+      const stillPending = new Set([...prev].filter((id) => !fetchedIds.has(id)));
+      return stillPending.size === prev.size ? prev : stillPending;
+    });
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const restUnread = data?.data?.meta?.unreadCount ?? 0;
+  const unreadCount = restUnread + pendingIds.size;
 
   const handleMarkAll = async () => {
     try {
@@ -157,7 +188,7 @@ function NotificationBell() {
       <PopoverTrigger asChild>
         <div
           aria-label="Notifications"
-          className="relative cursor-pointer p-1.5  "
+          className="relative cursor-pointer p-1.5"
         >
           <Bell className="h-7 w-7" />
           {unreadCount > 0 && (
@@ -211,14 +242,31 @@ function NotificationBell() {
             </p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[360px]">
+          /* Plain div scroll — more reliable than ScrollArea inside a Popover */
+          <div className="max-h-[360px] overflow-y-auto">
             <div className="divide-y divide-border">
               {notifications.map((n) => (
-                <NotifItem key={n.id} notif={n} onRead={handleMarkOne} />
+                <NotifItem
+                  key={n.id}
+                  notif={n}
+                  onRead={handleMarkOne}
+                  onClose={() => setOpen(false)}
+                />
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
+
+        {/* Footer — view all */}
+        <div className="border-t px-4 py-2.5">
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="block text-center text-xs text-primary font-medium hover:underline"
+          >
+            View all notifications
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );

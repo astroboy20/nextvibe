@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
 import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
-import Cookies from "js-cookie";
 import { Loader2 } from "lucide-react";
 
 interface GoogleLoginButtonProps {
@@ -17,7 +16,15 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
   const dispatch = useDispatch();
   const [googleLogin, { isLoading }] = useGoogleLoginMutation();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/dashboard/events";
+  const rawFrom = searchParams.get("from");
+  // Middleware uses encodeURIComponent, so decode before checking
+  const decodedFrom = rawFrom
+    ? (() => { try { return decodeURIComponent(rawFrom); } catch { return rawFrom; } })()
+    : null;
+  const validFrom =
+    decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth")
+      ? decodedFrom
+      : null;
   const router = useRouter();
   const pathname = usePathname();
   const successMessage =
@@ -52,19 +59,18 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
         const isSuperAdmin =
           res?.data?.user?.role === "SUPER_ADMIN" ||
           res?.data?.user?.role === "ADMIN";
-        const cookiePrefix = isSuperAdmin ? "admin_" : "";
 
-        Cookies.set(`${cookiePrefix}accessToken`, res?.data?.accessToken, {
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          expires: 1 / 96,
-        });
-        Cookies.set(`${cookiePrefix}refreshToken`, res?.data?.refreshToken, {
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          expires: 7,
+        // Use the same store-token API route as regular login so cookies get the
+        // correct 7-day expiry and the "accessToken" name that useSocket expects.
+        // (Direct Cookies.set was using expires: 1/96 = 15 minutes, breaking sockets.)
+        await fetch("/api/auth/store-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: res?.data?.accessToken,
+            refreshToken: res?.data?.refreshToken,
+            isAdmin: isSuperAdmin,
+          }),
         });
 
         dispatch(setUser({ ...res.data.user }));
@@ -74,9 +80,9 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         if (isSuperAdmin) {
-          router.replace("/admin");
+          router.replace(validFrom ?? "/admin");
         } else {
-          router.replace(from);
+          router.replace(validFrom ?? "/events");
         }
       }}
       logo_alignment="center"

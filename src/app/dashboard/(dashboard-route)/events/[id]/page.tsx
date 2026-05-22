@@ -140,7 +140,7 @@ export default function EventPage({
 
   const eventUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/events/${id}`
+      ? `${window.location.origin}/events/${id}`
       : "";
 
   const handleShare = async () => {
@@ -238,7 +238,7 @@ export default function EventPage({
 
   if (isLoading) {
     return (
-      <EventPageSkeleton onBack={() => router.push("/dashboard/events")} />
+      <EventPageSkeleton onBack={() => router.push("/events")} />
     );
   }
 
@@ -278,7 +278,7 @@ export default function EventPage({
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
 
         <button
-          onClick={() => router.push("/dashboard/events")}
+          onClick={() => router.push("/events")}
           className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
         >
           <ArrowLeft className="h-5 w-5" />

@@ -16,12 +16,14 @@ import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { useToggleFollowMutation } from "@/app/provider/api/socialApi";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface EventAboutTabProps {
   event: any;
 }
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
+  const router = useRouter();
   const { data: me, isLoading: isLoadingUser } = useGetUserQuery();
   const isOrganizer =
     me?.data?.id && event?.organizer?.id
@@ -38,7 +40,7 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
     const prev = followed;
     setFollowed(!prev);
     try {
-      await toggleFollow(event.organizer.id).unwrap();
+      await toggleFollow({ userId: event.organizer.id, isFollowing: prev }).unwrap();
       toast.success(prev ? "Unfollowed" : "Following!");
     } catch (err: any) {
       setFollowed(prev);
@@ -109,14 +111,20 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
           <p className="text-xs text-muted-foreground mb-3">Organized by</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
+              <Avatar
+                className="h-12 w-12 cursor-pointer"
+                onClick={() => event?.organizer?.id && router.push(`/users/${event.organizer.id}`)}
+              >
                 <AvatarImage src={event?.organizer?.avatarUrl} />
                 <AvatarFallback>
-                  {event?.organizer?.displayName.charAt(0)}
+                  {event?.organizer?.displayName?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <p className="font-semibold text-foreground">
+              <div
+                className="cursor-pointer"
+                onClick={() => event?.organizer?.id && router.push(`/users/${event.organizer.id}`)}
+              >
+                <p className="font-semibold text-foreground hover:underline">
                   {event?.organizer?.displayName}
                 </p>
                 <p className="text-xs text-muted-foreground">Event Organizer</p>

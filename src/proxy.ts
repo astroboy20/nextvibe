@@ -17,8 +17,8 @@ const PUBLIC_ROUTES = [
   "/faq",
   "/policy",
   "/terms",
-  "/dashboard/events",
-  "/dashboard/postcards",
+  "/events",
+  "/postcards",
 ];
 
 // Admin-only routes — protected by admin_accessToken

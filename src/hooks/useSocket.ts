@@ -19,11 +19,14 @@ export function useSocket(
   useEffect(() => {
     if (!enabled) return;
 
-    const token = Cookies.get("accessToken");
+    // Try both cookie names — regular users use "accessToken", admins use "admin_accessToken"
+    const token = Cookies.get("accessToken") ?? Cookies.get("admin_accessToken");
     if (!token) {
       setStatus("error");
       return;
     }
+
+    console.log(`[socket/${namespace}] connecting to ${SOCKET_BASE}/${namespace}`);
 
     const socket = io(`${SOCKET_BASE}/${namespace}`, {
       auth: { token },
@@ -33,14 +36,24 @@ export function useSocket(
     socketRef.current = socket;
     setStatus("connecting");
 
-    socket.on("connect", () => setStatus("connected"));
+    socket.on("connect", () => {
+      console.log(`[socket/${namespace}] ✅ connected  id=${socket.id}`);
+      setStatus("connected");
+    });
     socket.on("connect_error", (err) => {
-      console.error(`[socket/${namespace}] connect error:`, err.message);
+      console.error(`[socket/${namespace}] ❌ connect_error:`, err.message);
       setStatus("error");
     });
-    socket.on("disconnect", () => setStatus("disconnected"));
+    socket.on("disconnect", (reason) => {
+      console.warn(`[socket/${namespace}] 🔌 disconnected  reason=${reason}`);
+      setStatus("disconnected");
+    });
+    socket.on("reconnect", (attempt) => {
+      console.log(`[socket/${namespace}] 🔄 reconnected after ${attempt} attempt(s)`);
+    });
 
     return () => {
+      console.log(`[socket/${namespace}] cleanup — disconnecting`);
       socket.disconnect();
       socketRef.current = null;
       setStatus("disconnected");

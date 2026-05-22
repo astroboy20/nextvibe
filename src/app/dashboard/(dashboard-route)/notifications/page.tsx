@@ -17,6 +17,7 @@ import {
 } from "@/app/provider/api/notificationApi";
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
+import { useRouter } from "next/navigation";
 
 function notificationIcon(type: string) {
   switch (type) {
@@ -44,20 +45,25 @@ function notificationText(n: Notification): string {
 }
 
 function NotificationItem({ notification }: { notification: Notification }) {
+  const router = useRouter();
   const [markOne, { isLoading }] = useMarkOneReadMutation();
 
-  const handleRead = async () => {
-    if (notification.isRead) return;
-    try {
-      await markOne(notification.id).unwrap();
-    } catch {
-      toast.error("Could not mark as read.");
+  const handleClick = async () => {
+    if (!notification.isRead) {
+      try {
+        await markOne(notification.id).unwrap();
+      } catch {
+        toast.error("Could not mark as read.");
+      }
+    }
+    if (notification.actor?.id) {
+      router.push(`/users/${notification.actor.id}`);
     }
   };
 
   return (
     <button
-      onClick={handleRead}
+      onClick={handleClick}
       className={cn(
         "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50",
         !notification.isRead && "bg-primary/5 border-l-2 border-primary"

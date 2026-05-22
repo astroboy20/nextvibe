@@ -197,7 +197,7 @@ const Profile = () => {
 
               {/* Action Buttons */}
               <div className="mt-6 flex gap-3">
-                <Link href="/dashboard/profile/edit">
+                <Link href="/profile/edit">
                   <Button
                     size="sm"
                     className="gap-2 rounded-full  bg-[#531342]"
@@ -213,7 +213,7 @@ const Profile = () => {
                   <Share2 className="h-4 w-4 text-[#531342]" />
                   Share
                 </Button> */}
-                <Link href="/dashboard/settings">
+                <Link href="/settings">
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Settings className="h-5 w-5 text-primary" />
                   </Button>
@@ -268,7 +268,7 @@ const Profile = () => {
                   ) : activity?.events && activity.events.length > 0 ? (
                     (activity.events as ActivityEvent[]).map((event, index) => (
                       <Link
-                        href={`/dashboard/events/${event.id}`}
+                        href={`/events/${event.id}`}
                         key={event.id}
                       >
                         <div

@@ -108,11 +108,12 @@ export const socialApi = createApi({
       providesTags: ["Feed"],
     }),
 
-    // ── Follow / Unfollow (toggle) ────────────────────────────────────────────
-    toggleFollow: build.mutation<any, string>({
-      query: (userId) => ({
+    // ── Follow / Unfollow ────────────────────────────────────────────────────
+    // Pass { userId, isFollowing: true } to unfollow (DELETE), false to follow (POST)
+    toggleFollow: build.mutation<any, { userId: string; isFollowing: boolean }>({
+      query: ({ userId, isFollowing }) => ({
         url: `/v1/users/${userId}/follow`,
-        method: "POST",
+        method: isFollowing ? "DELETE" : "POST",
       }),
       invalidatesTags: ["People", "Feed"],
     }),
