@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useResendverificationEmailMutation } from "@/app/provider/api/authApi";
+import { errorHandler } from "@/utils/errorHandler";
 
 const COOLDOWN_SECONDS = 60;
 
@@ -36,8 +37,7 @@ export default function CheckVerification() {
       toast.success("A new verification link has been sent to your inbox.");
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
-      toast.error("Something went wrong. Please try again.");
-      console.log(err);
+      toast.error(errorHandler(err));
     }
   };
 

@@ -65,34 +65,25 @@ export const eventsApi = createApi({
     }),
 
     //event api
-    createEvent: builder.mutation({
-      query: (eventData) => {
-        const formData = new FormData();
 
-        Object.entries(eventData).forEach(([key, value]) => {
-          if (value === undefined || value === null) return;
+    // Step A of presigned upload flow: get a short-lived upload URL + final CDN URL
+    uploadIntent: builder.mutation<
+      { success: boolean; data: { uploadUrl: string; fileUrl: string } },
+      { filename: string; contentType: string; folder: string }
+    >({
+      query: (body) => ({
+        url: "/v1/events/upload-intent",
+        method: "POST",
+        body,
+      }),
+    }),
 
-          // File handling
-          if (value instanceof File) {
-            formData.append(key, value);
-          }
-          // Objects (location, tags, etc.)
-          else if (typeof value === "object") {
-            formData.append(key, JSON.stringify(value));
-          }
-          // Primitives
-          else {
-            formData.append(key, String(value));
-          }
-        });
-
-        return {
-          url: "/v1/events",
-          method: "POST",
-          // headers: { "Content-Type": "multipart/form-data" },
-          body: formData,
-        };
-      },
+    createEvent: builder.mutation<any, Record<string, any>>({
+      query: (eventData) => ({
+        url: "/v1/events",
+        method: "POST",
+        body: eventData, // plain JSON — files were already streamed to MinIO
+      }),
       invalidatesTags: ["Events"],
     }),
 
@@ -138,30 +129,6 @@ export const eventsApi = createApi({
     }),
 
 
-
-    updateMedia: builder.mutation<
-      any,
-      {
-        eventId: string;
-        flier: File;
-        promotionalVideo: File;
-        backdrop?: File;
-      }
-    >({
-      query: ({ eventId, flier, promotionalVideo, backdrop }) => {
-        const formData = new FormData();
-        formData.append("flier", flier);
-        formData.append("promotionalVideo", promotionalVideo);
-        if (backdrop) formData.append("backdrop", backdrop);
-
-        return {
-          url: `/events/${eventId}/media`,
-          method: "PUT",
-          body: formData,
-        };
-      },
-      invalidatesTags: ["Event"],
-    }),
 
 
     toggleLikeEvent: builder.mutation<any, string>({
@@ -653,4 +620,5 @@ export const {
   useGetEventMemoriesCountQuery,
   useGetActiveGameStatusQuery,
   useGetPublishPreviewQuery,
+  useUploadIntentMutation,
 } = eventsApi;

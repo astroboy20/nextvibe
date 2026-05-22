@@ -405,35 +405,51 @@ export function GameCreationWizard({
 
         if (gameType === "two-truths") {
           const options: string[] = q.options ?? [];
-          const lieAnswer: string =
-            q.correctAnswer ?? q.answer ?? options[0] ?? "";
-          const lieIndex = options.findIndex(
-            (o) => o.toLowerCase().trim() === lieAnswer.toLowerCase().trim()
-          );
+          // Backend now returns correctAnswerIndex directly (references the lie)
+          const lieIndex =
+            q.correctAnswerIndex ??
+            options.findIndex(
+              (o) =>
+                o.toLowerCase().trim() ===
+                (q.correctAnswer ?? q.answer ?? "").toLowerCase().trim()
+            );
+          const resolvedLieIndex = lieIndex >= 0 ? lieIndex : 0;
           return {
             ...base,
             question: q.text ?? q.question ?? "",
             options,
-            correctIndex: lieIndex >= 0 ? lieIndex : 0,
-            correctAnswer: lieAnswer,
+            correctIndex: resolvedLieIndex,
+            correctAnswer: options[resolvedLieIndex] ?? q.correctAnswer ?? "",
           };
         }
 
-        // TRIVIA / THIS_OR_THAT
-        // correctAnswer is a string — find its index in options
+        // THIS_OR_THAT — opinion poll, no correct answer
+        if (gameType === "this-or-that") {
+          return {
+            ...base,
+            question: q.text ?? q.question ?? "",
+            options: q.options ?? [],
+            correctIndex: undefined,
+            correctAnswer: undefined,
+          };
+        }
+
+        // TRIVIA — backend now returns correctAnswerIndex (0–3) directly
         const options: string[] = q.options ?? [];
-        const correctAnswerStr: string = q.correctAnswer ?? "";
-        const correctIdx = options.findIndex(
-          (o) =>
-            o.toLowerCase().trim() === correctAnswerStr.toLowerCase().trim()
-        );
+        const correctAnswerIndex =
+          q.correctAnswerIndex ??
+          options.findIndex(
+            (o) =>
+              o.toLowerCase().trim() ===
+              (q.correctAnswer ?? "").toLowerCase().trim()
+          );
+        const correctIdx = correctAnswerIndex >= 0 ? correctAnswerIndex : 0;
         return {
           ...base,
           question: q.text ?? q.question ?? "",
           options,
-          correctIndex: correctIdx >= 0 ? correctIdx : q.correctIndex ?? 0,
-          correctAnswer:
-            correctAnswerStr || (options[q.correctIndex ?? 0] ?? ""),
+          correctIndex: correctIdx,
+          correctAnswer: options[correctIdx] ?? q.correctAnswer ?? "",
         };
       });
       setRoundQuestions(roundIdx, generated);
@@ -475,8 +491,13 @@ export function GameCreationWizard({
                 ...q,
                 question:
                   replacement?.question ?? replacement?.text ?? q.question,
+                clue: replacement?.clue ?? replacement?.text ?? q.clue,
+                correctAnswer: replacement?.correctAnswer ?? q.correctAnswer,
                 options: replacement?.options ?? q.options,
-                correctIndex: replacement?.correctIndex ?? q.correctIndex,
+                correctIndex:
+                  replacement?.correctAnswerIndex ??
+                  replacement?.correctIndex ??
+                  q.correctIndex,
                 timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
               }
             : q

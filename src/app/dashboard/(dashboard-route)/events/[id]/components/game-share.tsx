@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { errorHandler } from "@/utils/errorHandler";
 
 interface GameScoreShareProps {
   gameName: string;
@@ -93,6 +94,7 @@ export function GameScoreShare({
         });
       } catch (err: any) {
         console.log("Share failed:", err);
+        errorHandler(err)
         // User cancelled or error
       }
     }

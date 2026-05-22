@@ -40,7 +40,7 @@ const LoginContent = () => {
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
 
-  const from = searchParams.get("from") || "/events";
+  const from = searchParams.get("from");
   const defaultRole = searchParams.get("DEFAULT_ROLE") || "";
 
   const form = useForm<LoginFormValues>({
@@ -52,7 +52,7 @@ const LoginContent = () => {
   });
 
   const queryParams = new URLSearchParams();
-  if (searchParams.get("from")) queryParams.set("from", from);
+  if (from) queryParams.set("from", from);
   if (searchParams.get("DEFAULT_ROLE"))
     queryParams.set("DEFAULT_ROLE", defaultRole);
 
@@ -84,10 +84,11 @@ const LoginContent = () => {
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
 
+      const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
       if (isSuperAdmin) {
-        router.push("/admin");
+        router.push(validFrom ? from : "/admin");
       } else {
-        router.push(from.startsWith("/") ? from : "/dashboard/events");
+        router.push(validFrom ? from : "/dashboard/events");
       }
 
       router.refresh();

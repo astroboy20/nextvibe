@@ -20,7 +20,7 @@ const DynamicHeadline = () => {
   }, [eventTypes.length]);
 
   return (
-    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+    <div className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
       <span className="inline-block">Your </span>
       <AnimatePresence mode="wait">
         <motion.span
@@ -35,7 +35,7 @@ const DynamicHeadline = () => {
         </motion.span>
       </AnimatePresence>{" "}
       <span className="inline-block">Digital Memory Bank.</span>
-    </h1>
+    </div>
   );
 };
 

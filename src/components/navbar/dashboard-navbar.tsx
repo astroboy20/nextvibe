@@ -171,7 +171,7 @@ function NotificationBell() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 p-0 rounded-xl shadow-[var(--shadow-elevated)] overflow-hidden"
+        className="w-80 p-0 rounded-xl shadow-[var(--shadow-elevated)] overflow-hidden z-[1000001]"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">

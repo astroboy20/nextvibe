@@ -93,6 +93,12 @@ export const baseQueryWithReauth: BaseQueryFn<
       ? (Cookies.get("admin_refreshToken") ?? Cookies.get("refreshToken"))
       : (Cookies.get("refreshToken") ?? Cookies.get("admin_refreshToken"));
 
+    if (!refreshToken) {
+      flushQueue(false);
+      clearSessionAndRedirect(isAdminRoute);
+      return result;
+    }
+
     const refreshResult = await rawBaseQuery(
       { url: "/v1/auth/refresh", method: "POST", body: { refreshToken } },
       api,

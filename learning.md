@@ -1476,4 +1476,666 @@ const refreshToken = Cookies.get("refreshToken");
 
 ---
 
+## 22. Presigned Upload URLs — Streaming Files Directly to Storage
+
+### The problem with the old approach
+
+The original event creation sent files through the NestJS server as `multipart/form-data`:
+
+```
+Browser ──── POST (FormData, 200MB video) ──→ NestJS ──→ MinIO
+```
+
+Every byte of the file occupied NestJS process memory. A 350MB video would:
+- Exhaust server memory on concurrent uploads (OOM kills)
+- Hit Nginx/NestJS payload size limits
+- Block the event loop for seconds
+
+### The presigned URL architecture
+
+The backend generates a short-lived signed URL that authorises the browser to write directly to MinIO:
+
+```
+Browser ─── POST /upload-intent ──→ NestJS (tiny JSON, fast)
+Browser ←── { uploadUrl, fileUrl } ── NestJS
+Browser ─────── PUT (binary) ──────→ MinIO  (NestJS never sees the file)
+Browser ─── POST /v1/events (JSON) → NestJS  (fileUrl is now a plain string)
+```
+
+### Step A — request the presigned URL
+
+```ts
+// eventApi.ts
+uploadIntent: builder.mutation<
+  { success: boolean; data: { uploadUrl: string; fileUrl: string } },
+  { filename: string; contentType: string; folder: string }
+>({
+  query: (body) => ({
+    url: "/v1/events/upload-intent",
+    method: "POST",
+    body,
+  }),
+}),
+```
+
+```ts
+const intent = await uploadIntent({
+  filename: file.name,
+  contentType: file.type,  // e.g. "video/mp4"
+  folder: "events",
+}).unwrap();
+
+// intent.data.uploadUrl — sign PUT to MinIO
+// intent.data.fileUrl   — the final CDN URL to store in the database
+```
+
+### Step B — stream the binary directly to storage
+
+`fetch` cannot report upload progress. Use `XMLHttpRequest`:
+
+```ts
+const uploadFile = (
+  file: File,
+  uploadUrl: string,
+  onProgress?: (pct: number) => void
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type); // must match contentType from Step A
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable)
+          onProgress(Math.round((e.loaded * 100) / e.total));
+      };
+    }
+
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed: ${xhr.status}`));
+    xhr.onerror = () => reject(new Error("Upload network error"));
+    xhr.send(file);
+  });
+```
+
+> **Why XHR and not fetch?** `fetch` only has `response.body` (a readable stream for downloads). `XMLHttpRequest.upload` exposes progress events for uploads. There is no native upload progress API in the Fetch standard as of 2026.
+
+### Step C — submit plain JSON
+
+Once both uploads resolve, the event body is clean text:
+
+```ts
+const body = {
+  name: "Tech Summit 2026",
+  mode: "ONSITE",
+  flierUrl: "https://cdn.nextvibe.com/events/17164-flier.jpg",    // from Step A
+  promoVideoUrl: "https://cdn.nextvibe.com/events/17164-promo.mp4",
+};
+
+await createEvent(body).unwrap();
+```
+
+The backend no longer needs `FileFieldsInterceptor` — it just receives a JSON object.
+
+### Showing upload progress in the UI
+
+```tsx
+const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+// In onSubmit:
+setUploadProgress(0);
+await uploadFile(file, intent.data.uploadUrl, setUploadProgress);
+setUploadProgress(null);
+
+// In JSX:
+{uploadProgress !== null && (
+  <div className="space-y-1">
+    <div className="flex justify-between text-xs text-muted-foreground">
+      <span>Uploading video…</span>
+      <span>{uploadProgress}%</span>
+    </div>
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-full bg-primary transition-all duration-150"
+        style={{ width: `${uploadProgress}%` }}
+      />
+    </div>
+  </div>
+)}
+```
+
+The submit button should be `disabled={isLoading || uploadProgress !== null}` so the user can't double-submit while the upload is in progress.
+
+### Full onSubmit flow
+
+```ts
+const onSubmit = async (values: FormValues) => {
+  try {
+    let flierUrl: string | undefined;
+    let promoVideoUrl: string | undefined;
+
+    if (values.flier) {
+      const intent = await uploadIntent({
+        filename: values.flier.name,
+        contentType: values.flier.type,
+        folder: "events",
+      }).unwrap();
+      await uploadFile(values.flier, intent.data.uploadUrl);
+      flierUrl = intent.data.fileUrl;
+    }
+
+    if (values.promoVideo) {
+      setUploadProgress(0);
+      const intent = await uploadIntent({
+        filename: values.promoVideo.name,
+        contentType: values.promoVideo.type,
+        folder: "events",
+      }).unwrap();
+      await uploadFile(values.promoVideo, intent.data.uploadUrl, setUploadProgress);
+      promoVideoUrl = intent.data.fileUrl;
+      setUploadProgress(null);
+    }
+
+    await createEvent({
+      name: values.name,
+      mode: values.eventMode,
+      ...(flierUrl && { flierUrl }),
+      ...(promoVideoUrl && { promoVideoUrl }),
+    }).unwrap();
+
+  } catch (err: any) {
+    setUploadProgress(null);
+    toast.error(err?.data?.message ?? err?.message ?? "Failed to create event");
+  }
+};
+```
+
+---
+
+## 23. Next.js Middleware — How It Really Works
+
+### The actual file convention
+
+Section 20 described middleware as a concept not used here. That was wrong — this project has middleware at `src/proxy.ts`. Here is how Next.js picks it up.
+
+Next.js recognises middleware in two ways:
+1. A file named `middleware.ts` at `src/` or project root that exports `middleware` (the standard)
+2. **Any file** that exports `export const config = { matcher: [...] }` — Turbopack treats the file that has this shape as the middleware module regardless of its name
+
+In this project, `src/proxy.ts` exports:
+
+```ts
+export async function proxy(req: NextRequest) { ... }  // function can be named anything
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
+```
+
+Next.js/Turbopack compiles `proxy.ts` as the middleware entry point because of the `config` export. The function name (`proxy`) is just a convention documented by Next.js — it does not have to be `middleware`.
+
+### What middleware can do
+
+Middleware runs on the **Edge Runtime** — a lightweight V8 environment, not full Node.js. It executes **before** a request is matched to a page or API route. This makes it perfect for:
+
+- **Auth guards** — redirect before the page renders (server-side, not client-side)
+- **Token refresh** — check expiry, refresh silently, set new cookie, continue
+- **Geo-routing** — redirect based on country header
+
+### What middleware cannot do
+
+- No Node.js APIs (no `fs`, no `Buffer`, no `crypto` from Node)
+- No `import` of large npm packages (Edge runtime has a strict size limit)
+- No `console.log` visible in browser devtools (logs appear in the server terminal)
+
+### The `config.matcher` pattern
+
+```ts
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+This regex matches every path **except** Next.js static files, optimised images, and favicon. Without this, middleware would run on every asset request — including JS bundles.
+
+### Reading and setting cookies in middleware
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+
+export async function proxy(req: NextRequest) {
+  // Read
+  const token = req.cookies.get("accessToken")?.value;
+
+  // Redirect
+  if (!token) {
+    const from = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(new URL(`/auth/login?from=${from}`, req.url));
+  }
+
+  // Set cookie on the continuing response
+  const response = NextResponse.next();
+  response.cookies.set("newCookie", "value", {
+    httpOnly: true,
+    maxAge: 3600,
+  });
+  return response;
+}
+```
+
+> **Important**: `req.cookies` is read-only. To set cookies you must return a `NextResponse` and call `.cookies.set()` on it.
+
+### Server-side token refresh in middleware
+
+When an access token is expired at page-load time, middleware can refresh it before the page even starts rendering:
+
+```ts
+const refreshRes = await fetch(`${API_URL}/v1/auth/refresh`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    cookie: req.headers.get("cookie") ?? "",  // forward the browser's cookies
+  },
+});
+
+if (refreshRes.ok) {
+  const { data } = await refreshRes.json();
+  const response = NextResponse.next();
+  response.cookies.set("accessToken", data.accessToken, { ... });
+  return response;
+}
+```
+
+This is more efficient than the client-side queue pattern — the page receives a fresh token in its very first request and never gets a 401 at all.
+
+### The `?from=` requirement
+
+Every redirect to `/auth/login` must include the current path so the user lands back where they were after logging in:
+
+```ts
+// ❌ Bad — user loses context
+return NextResponse.redirect(new URL("/auth/login", req.url));
+
+// ✅ Good
+const from = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
+return NextResponse.redirect(new URL(`/auth/login?from=${from}`, req.url));
+```
+
+The login page reads `searchParams.get("from")` and calls `router.push(from)` after a successful login.
+
+---
+
+## 24. Multi-Role Auth Token Strategy
+
+### The problem
+
+This project has two user roles that need separate permissions: regular users and admins. The naive approach of one token caused a critical bug: **admins could not visit non-admin pages**.
+
+### Why it broke
+
+When an admin logged in, `store-token` prefixed the cookies with `admin_`:
+
+```ts
+// Before the fix — BAD
+const prefix = isAdmin ? "admin_" : "";
+response.cookies.set(`${prefix}accessToken`, accessToken);
+// Admin gets: admin_accessToken
+// Non-admin routes check: accessToken  ← undefined for admins → 401
+```
+
+Every API call on a non-admin page (`/dashboard`, `/profile`, etc.) had no token and immediately 401'd.
+
+### The three-layer fix
+
+The fix must be consistent across all three places that check for tokens:
+
+#### Layer 1 — `store-token` route (cookie writing)
+
+Write **both** the plain and the prefixed cookie whenever an admin logs in:
+
+```ts
+// Always write the unprefixed cookie
+response.cookies.set("accessToken", accessToken, { ... });
+if (refreshToken) response.cookies.set("refreshToken", refreshToken, { ... });
+
+// Additionally write the admin-prefixed cookies
+if (isAdmin) {
+  response.cookies.set("admin_accessToken", accessToken, { ... });
+  response.cookies.set("admin_refreshToken", refreshToken, { ... });
+}
+```
+
+Non-admin pages find `accessToken`. Admin pages prefer `admin_accessToken` but fall back to `accessToken`.
+
+#### Layer 2 — middleware (server-side page guard)
+
+Fall back to admin tokens when checking non-admin routes:
+
+```ts
+const accessToken =
+  req.cookies.get("accessToken")?.value ??
+  req.cookies.get("admin_accessToken")?.value;  // fallback for admin users
+
+const refreshToken =
+  req.cookies.get("refreshToken")?.value ??
+  req.cookies.get("admin_refreshToken")?.value;
+```
+
+This allows existing admin sessions (that only have `admin_accessToken`) to access non-admin pages without requiring a re-login.
+
+#### Layer 3 — `baseQuery` (client-side API calls)
+
+Same fallback pattern in `prepareHeaders` and the refresh token lookup:
+
+```ts
+// prepareHeaders
+const accessToken = isAdminRoute
+  ? (Cookies.get("admin_accessToken") ?? Cookies.get("accessToken"))
+  : (Cookies.get("accessToken") ?? Cookies.get("admin_accessToken")); // ← fallback added
+
+// refresh token lookup
+const refreshToken = isAdminRoute
+  ? (Cookies.get("admin_refreshToken") ?? Cookies.get("refreshToken"))
+  : (Cookies.get("refreshToken") ?? Cookies.get("admin_refreshToken")); // ← fallback added
+```
+
+### Why all three layers matter
+
+| Layer | Catches what |
+|---|---|
+| `store-token` | New logins — sets cookies correctly from day one |
+| Middleware | Server-side redirect before page renders |
+| `baseQuery` | Client-side API calls after page loads |
+
+If only middleware is fixed, the page renders but every API call 401s. If only `baseQuery` is fixed, the middleware blocks the page before it renders. You need all three consistent.
+
+### Token priority table
+
+| Route | Access token used | Refresh token used |
+|---|---|---|
+| `/admin/*` | `admin_accessToken` → `accessToken` | `admin_refreshToken` → `refreshToken` |
+| Everything else | `accessToken` → `admin_accessToken` | `refreshToken` → `admin_refreshToken` |
+
+---
+
+## 25. `useSearchParams()` and the Suspense Requirement
+
+### The build error
+
+```
+useSearchParams() should be wrapped in a suspense boundary at page "/organizer/payment/verify"
+```
+
+This is a Next.js hard requirement, not a warning. Any page that uses `useSearchParams()` must have a `<Suspense>` boundary wrapping the component that calls it, or the build will fail with `exit code 1`.
+
+### Why Next.js requires this
+
+During static site generation (SSG), Next.js pre-renders pages at build time. `useSearchParams()` reads from the URL — but there is no URL at build time. Next.js needs a `<Suspense>` boundary so it can render the fallback statically while deferring the actual content (which needs the URL) to the client.
+
+### The fix pattern
+
+Split the page into a thin shell (exported default, no hooks) and the real component (does the work):
+
+```tsx
+// page.tsx
+"use client";
+import { Suspense } from "react";
+
+// ✅ Default export — no useSearchParams here
+export default function PaymentVerifyPage() {
+  return (
+    <Suspense fallback={<LoadingShell />}>
+      <VerifyPageInner />
+    </Suspense>
+  );
+}
+
+// The real component — useSearchParams is safe here because it's inside Suspense
+function VerifyPageInner() {
+  const searchParams = useSearchParams();
+  const paymentId = searchParams.get("paymentId");
+  // ... rest of the component
+}
+```
+
+### This also applies to
+
+- `usePathname()` — same requirement in some configurations
+- Any component that reads query params at mount time
+
+### The pattern generalises to any "loading" state
+
+`<Suspense>` + a fallback is the correct way to handle async boundaries in the App Router:
+
+```tsx
+// For Server Components that fetch data:
+<Suspense fallback={<EventListSkeleton />}>
+  <EventList />  {/* async component — can await inside */}
+</Suspense>
+
+// For client components that need URL params:
+<Suspense fallback={<Spinner />}>
+  <ComponentThatUsesSearchParams />
+</Suspense>
+```
+
+---
+
+## 26. Discriminated AI Responses — Handling Type-Specific Shapes
+
+### The problem with a single schema
+
+The AI game generator returns different shapes depending on the game type. The old code used a single mapping and tried to find the correct answer by string-matching:
+
+```ts
+// Old approach — fragile
+const correctIdx = options.findIndex(
+  (o) => o.toLowerCase().trim() === correctAnswerStr.toLowerCase().trim()
+);
+```
+
+If the AI phrased the answer slightly differently from the option text, the match failed silently and `correctIdx` defaulted to `0` — wrong answer selected.
+
+### The new backend — per-type schemas
+
+The backend now returns clean, type-specific shapes:
+
+| Game type | `options` | `correctAnswerIndex` | `clue` | `correctAnswer` |
+|---|---|---|---|---|
+| `TRIVIA` | 4 items | 0–3 (the right answer) | — | — |
+| `TWO_TRUTHS_ONE_LIE` | 3 items | index of the **lie** | — | — |
+| `WORD_PUZZLE` | absent | absent | hint string | exact answer string |
+| `THIS_OR_THAT` | 2 items | absent (opinion poll) | — | — |
+
+### The correct mapping pattern — branch per type
+
+```ts
+if (gameType === "word-puzzle") {
+  return {
+    ...base,
+    question: q.clue ?? q.text ?? "",
+    clue: q.clue ?? q.text ?? "",
+    correctAnswer: q.correctAnswer ?? q.answer ?? "",
+    options: undefined,
+    correctIndex: undefined,
+  };
+}
+
+if (gameType === "two-truths") {
+  const options: string[] = q.options ?? [];
+  // Backend tells us exactly which index is the lie
+  const lieIndex = q.correctAnswerIndex ??
+    options.findIndex(o => o.toLowerCase() === (q.correctAnswer ?? "").toLowerCase());
+  return {
+    ...base,
+    question: q.text ?? q.question ?? "",
+    options,
+    correctIndex: lieIndex >= 0 ? lieIndex : 0,
+    correctAnswer: options[lieIndex >= 0 ? lieIndex : 0] ?? "",
+  };
+}
+
+if (gameType === "this-or-that") {
+  // Opinion poll — there is no correct answer
+  return {
+    ...base,
+    question: q.text ?? q.question ?? "",
+    options: q.options ?? [],
+    correctIndex: undefined,
+    correctAnswer: undefined,
+  };
+}
+
+// TRIVIA — correctAnswerIndex is definitive
+const options: string[] = q.options ?? [];
+const correctIdx = q.correctAnswerIndex >= 0 ? q.correctAnswerIndex : 0;
+return {
+  ...base,
+  question: q.text ?? q.question ?? "",
+  options,
+  correctIndex: correctIdx,
+  correctAnswer: options[correctIdx] ?? "",
+};
+```
+
+### Key lesson: prefer index over string matching
+
+When a backend returns a numeric index (`correctAnswerIndex: 2`), use it directly. String matching is a fragile fallback — keep it only for backwards compatibility with old response shapes, and always prefer the index:
+
+```ts
+const correctIdx =
+  q.correctAnswerIndex ??           // new backend: use directly
+  options.findIndex(o => ...);      // old backend: fall back to string match
+```
+
+---
+
+## 27. Debugging Real-World Production Issues
+
+These are patterns that came up during active development of this project. Each one is a category of bug you will encounter.
+
+### Dead code that looks live
+
+`src/proxy.ts` exports `export const config = { matcher: [...] }`. This is a Next.js/Turbopack convention — the file was compiled as middleware because of this export shape, even though it's not named `middleware.ts`. The bugs inside it (no `?from=`, admin cookie not checked) were real and silent.
+
+**Lesson**: When debugging redirect issues, always search for ALL places that call `redirect`, `router.push`, and `window.location.href`. Don't assume a file isn't running just because it has an unusual name.
+
+### Wrong API endpoint buried in a query
+
+The notification bell wasn't showing any notifications. The actual API call was:
+
+```ts
+// Wrong — this is a cron/admin trigger endpoint, not the user's notification list
+query: () => "/v1/notifications/trigger-reminders",
+
+// Right
+query: () => "/v1/notifications",
+```
+
+The UI showed "All caught up!" correctly (empty state rendered properly) so no error appeared. The bug was invisible until you compared the endpoint against the API spec.
+
+**Lesson**: When a feature shows empty state but you expect data, check the actual network request in devtools before assuming the UI is broken.
+
+### Absolute-positioned badge with no relative parent
+
+The notification count badge:
+
+```tsx
+// ❌ — badge floats away from the bell icon
+<div aria-label="Notifications">
+  <Bell />
+  <span className="absolute top-1 right-1 ...">3</span>
+</div>
+
+// ✅ — relative creates the positioning context
+<div aria-label="Notifications" className="relative cursor-pointer p-1.5">
+  <Bell />
+  <span className="absolute top-1 right-1 ...">3</span>
+</div>
+```
+
+`absolute` positions an element relative to its **nearest ancestor with `position` set** (`relative`, `absolute`, `fixed`, `sticky`). Without `relative` on the parent, the badge positions relative to the page or a far-off ancestor.
+
+**Lesson**: When an absolutely positioned element is in the wrong place, check its parent chain for `position: relative`.
+
+### FormData vs JSON — silent backend mismatch
+
+After the backend removed `FileFieldsInterceptor`, it expected `Content-Type: application/json` for event creation. The frontend was still sending `multipart/form-data` (FormData). The backend may have returned a 400 or silently ignored file fields. No explicit error was thrown on the frontend.
+
+**Lesson**: When a backend changes its expected content type, the frontend must change too. Check the `Content-Type` header in devtools whenever a create/update flow breaks.
+
+### Stale `useEffect` not re-triggering
+
+```tsx
+// ❌ "Check again" resets state but the effect doesn't re-run
+const [pollState, setPollState] = useState("polling");
+useEffect(() => { poll(); }, [paymentId]);  // paymentId never changes
+
+// ✅ Add a retryKey to force the effect to re-run
+const [retryKey, setRetryKey] = useState(0);
+useEffect(() => { poll(); }, [paymentId, retryKey]);
+
+// "Check again" button:
+onClick={() => {
+  attemptRef.current = 0;
+  setPollState("polling");
+  setRetryKey(k => k + 1);  // dependency changes → effect fires again
+}}
+```
+
+**Lesson**: If a `useEffect` isn't re-running when you expect it to, the issue is almost always its dependency array. Add a counter state (`retryKey`, `refreshKey`, `key`) to its deps when you need to force a re-run without changing the actual data.
+
+---
+
+## Updated Quick Reference
+
+### Presigned upload flow
+
+```ts
+// 1. Get permission
+const intent = await uploadIntent({ filename, contentType, folder }).unwrap();
+
+// 2. Stream to storage (with progress)
+await new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("PUT", intent.data.uploadUrl);
+  xhr.setRequestHeader("Content-Type", file.type);
+  xhr.upload.onprogress = (e) => setProgress(Math.round(e.loaded * 100 / e.total));
+  xhr.onload = () => resolve();
+  xhr.onerror = () => reject();
+  xhr.send(file);
+});
+
+// 3. Submit JSON
+await createEvent({ flierUrl: intent.data.fileUrl, ... }).unwrap();
+```
+
+### Middleware redirect with `?from=`
+
+```ts
+const from = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
+return NextResponse.redirect(new URL(`/auth/login?from=${from}`, req.url));
+```
+
+### `useSearchParams()` page wrapper
+
+```tsx
+export default function Page() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <PageInner />  {/* useSearchParams() lives here */}
+    </Suspense>
+  );
+}
+```
+
+### Admin token fallback (both middleware and baseQuery)
+
+```ts
+const accessToken =
+  Cookies.get("accessToken") ??
+  Cookies.get("admin_accessToken");  // admin users can visit non-admin pages
+```
+
+---
+
 *This guide covers the NextVibe frontend as of May 2026. Update it when significant architectural changes are made.*

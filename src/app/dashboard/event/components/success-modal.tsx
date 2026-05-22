@@ -57,7 +57,7 @@ const SuccessModal = ({ eventId, onClose }: SuccessModalProps) => {
         {/* Actions */}
         <div className="px-6 py-6 flex flex-col gap-3">
           <Button
-            onClick={() => router.push(`/dashboard/events`)}
+            onClick={() => router.push(`/dashboard/${eventId}`)}
             className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-xl font-medium transition-colors flex items-center gap-2"
           >
             <LayoutDashboard className="w-4 h-4" />

@@ -3,14 +3,13 @@
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-// import { useAuthStore } from "@/shared/stores/auth.store";
+import { useState, useEffect } from "react";
+import Cookies from "js-cookie";
 
 import { NewLogo } from "../logo";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
-// import { cn } from "@/lib/utils";
 
 const links = [
   { name: "Home", href: "/" },
@@ -24,8 +23,12 @@ const links = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const currentPath = usePathname();
-  const [isAuthenticated] = useState(false);
-  //   const { isAuthenticated } = useAuthStore();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = Cookies.get("accessToken") ?? Cookies.get("admin_accessToken");
+    setIsAuthenticated(!!token);
+  }, []);
 
   return (
     <div className=" fixed top-0 left-0 right-0 z-50  backdrop-blur-lg glass">
@@ -57,7 +60,7 @@ export default function Navbar() {
                 className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white transition-colors h-8"
                 asChild
               >
-                <Link href="/events">Dashboard</Link>
+                <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : (
               <>
