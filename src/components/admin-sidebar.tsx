@@ -37,15 +37,7 @@ export function Sidebar() {
     <aside className="hidden md:flex w-64 flex-col bg-card border-r border-border">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-(image:--vibe-gradient) flex items-center justify-center shrink-0">
-          <Zap className="w-4 h-4 text-white" />
-        </div>
-        <div>
-          <NewLogo />
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Admin Console
-          </p>
-        </div>
+        <NewLogo />
       </div>
 
       {/* Nav */}
