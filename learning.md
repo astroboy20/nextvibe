@@ -48,6 +48,8 @@ Written for someone who has never touched Next.js but wants to understand it fro
 39. [Chat UI — Grouped Bubbles, Avatars, and Full-Screen Escape](#39-chat-ui--grouped-bubbles-avatars-and-full-screen-escape)
 40. [Synthesised Notification Sounds — Web Audio API](#40-synthesised-notification-sounds--web-audio-api)
 41. [Real-Time Notification Badge — pendingIds vs Counter](#41-real-time-notification-badge--pendingids-vs-counter)
+42. [WebSockets from First Principles — ws, wss, and Socket.IO](#42-websockets-from-first-principles--ws-wss-and-socketio)
+43. [Google Login Redirect — The `?from=` Encoding Bug](#43-google-login-redirect--the-from-encoding-bug)
 
 ---
 
