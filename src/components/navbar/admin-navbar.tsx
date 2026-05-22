@@ -19,6 +19,7 @@ import {
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NewLogo } from "../logo";
 
 const adminRoutes = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
@@ -41,11 +42,7 @@ export function Header() {
     <header className="md:hidden sticky top-0 z-40 bg-card border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-(image:--vibe-gradient) flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="text-base font-bold text-foreground">NextVibe</span>
-          <span className="text-xs text-muted-foreground hidden sm:block">Admin</span>
+          <NewLogo />
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -61,8 +58,12 @@ export function Header() {
                 <Zap className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-sm font-bold text-foreground leading-none">NextVibe</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Admin Console</p>
+                <p className="text-sm font-bold text-foreground leading-none">
+                  NextVibe
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Admin Console
+                </p>
               </div>
             </div>
 
@@ -74,7 +75,8 @@ export function Header() {
                 const Icon = route.icon;
                 const isActive = route.exact
                   ? pathname === route.href
-                  : pathname === route.href || pathname.startsWith(route.href + "/");
+                  : pathname === route.href ||
+                    pathname.startsWith(route.href + "/");
 
                 return (
                   <Link

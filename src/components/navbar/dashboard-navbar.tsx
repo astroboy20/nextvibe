@@ -157,11 +157,11 @@ function NotificationBell() {
       <PopoverTrigger asChild>
         <div
           aria-label="Notifications"
-          className="relative cursor-pointer p-1.5"
+          className="relative cursor-pointer p-1.5  "
         >
           <Bell className="h-7 w-7" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
+            <span className="absolute top-1 right-1 min-w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
