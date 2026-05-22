@@ -28,6 +28,20 @@ Written for someone who has never touched Next.js but wants to understand it fro
 19. [Scaling Patterns](#19-scaling-patterns)
 20. [Concepts Not Used Here (But You Should Know)](#20-concepts-not-used-here-but-you-should-know)
 21. [Common Mistakes and How to Avoid Them](#21-common-mistakes-and-how-to-avoid-them)
+22. [Presigned Upload URLs](#22-presigned-upload-urls--streaming-files-directly-to-storage)
+23. [Next.js Middleware — How It Really Works](#23-nextjs-middleware--how-it-really-works)
+24. [Multi-Role Auth Token Strategy](#24-multi-role-auth-token-strategy)
+25. [useSearchParams() and the Suspense Requirement](#25-usesearchparams-and-the-suspense-requirement)
+26. [Discriminated AI Responses](#26-discriminated-ai-responses--handling-type-specific-shapes)
+27. [Debugging Real-World Production Issues](#27-debugging-real-world-production-issues)
+28. [Universal Error Handler — Full Implementation](#28-universal-error-handler--full-implementation)
+29. [Network Status Detection — Online / Offline](#29-network-status-detection--online--offline)
+30. [Error Logging — Fire-and-Forget Pattern](#30-error-logging--fire-and-forget-pattern)
+31. [Immediate Upload on File Selection — UX State Machine](#31-immediate-upload-on-file-selection--ux-state-machine)
+32. [Auth State on Public Pages — Cookies vs Redux](#32-auth-state-on-public-pages--cookies-vs-redux)
+33. [Login Redirect — Role-Specific Defaults and the ?from= Bug](#33-login-redirect--role-specific-defaults-and-the-from-bug)
+34. [Next.js Routing Syntax — Complete Reference](#34-nextjs-routing-syntax--complete-reference)
+35. [Suspense — Deep Dive](#35-suspense--deep-dive)
 
 ---
 
@@ -578,12 +592,20 @@ const from = encodeURIComponent(window.location.pathname + window.location.searc
 window.location.href = `/auth/login?from=${from}`;
 ```
 
-The login page reads this and redirects after successful login:
+The login page reads this and redirects after successful login, using role-specific fallbacks when `?from=` is absent:
 
 ```ts
-const from = searchParams.get("from") || "/dashboard/events";
-router.push(from.startsWith("/") ? from : "/dashboard/events");
+const from = searchParams.get("from");  // null when not present — never default here
+const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
+
+if (isSuperAdmin) {
+  router.push(validFrom ? from : "/admin");           // admin default
+} else {
+  router.push(validFrom ? from : "/dashboard/events"); // user default
+}
 ```
+
+The `!from.startsWith("/auth")` guard prevents redirect loops — if someone was redirected from an auth page itself, they get the role default instead.
 
 ### Logout flow
 
@@ -1242,7 +1264,7 @@ export const config = {
 };
 ```
 
-This project has no middleware — auth is handled client-side. Middleware would be faster and more secure (the redirect happens before the page renders).
+This project **does** have middleware at `src/proxy.ts` — see section 23 for how it works. Auth guards run server-side before any page renders.
 
 ### Server Components with direct data fetching
 
@@ -2135,6 +2157,1087 @@ const accessToken =
   Cookies.get("accessToken") ??
   Cookies.get("admin_accessToken");  // admin users can visit non-admin pages
 ```
+
+---
+
+---
+
+## 28. Universal Error Handler — Full Implementation
+
+A single function that accepts any `unknown` error and returns a human-readable string. Used everywhere a `catch` block needs to show a message.
+
+### Why one central handler?
+
+Without it, every `catch` block has its own ad-hoc logic:
+```ts
+// Scattered everywhere — inconsistent, hard to maintain
+toast.error(err?.data?.message ?? err?.message ?? "Something went wrong");
+```
+
+A central handler means: fix the logic in one place, every caller benefits.
+
+### Full implementation (`src/utils/errorHandler.ts`)
+
+```ts
+import axios, { AxiosError } from "axios";
+import { ZodError } from "zod";
+
+// HTTP status codes → user-friendly messages
+const HTTP_STATUS_MESSAGES: Record<number, string> = {
+  400: "Bad request. Please check your input.",
+  401: "You are not authenticated. Please log in.",
+  403: "You do not have permission to perform this action.",
+  404: "The requested resource was not found.",
+  405: "This action is not allowed.",
+  408: "The request timed out. Please try again.",
+  409: "A conflict occurred. The resource may already exist.",
+  410: "This resource no longer exists.",
+  422: "Validation failed. Please check your input.",
+  429: "Too many requests. Please slow down and try again.",
+  500: "An internal server error occurred. Please try again later.",
+  502: "Bad gateway. The server is temporarily unavailable.",
+  503: "Service unavailable. Please try again later.",
+  504: "Gateway timeout. The server took too long to respond.",
+};
+
+// Walks common API response shapes to find a human-readable message.
+function extractMessage(data: unknown): string | null {
+  if (typeof data === "string" && data) return data;
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, any>;
+
+  if (typeof d.message === "string" && d.message) return d.message;
+  if (typeof d.error === "string" && d.error) return d.error;
+  // { error: { message } } — RTK Query / this project's backend shape
+  if (d.error && typeof d.error === "object") {
+    const nested = d.error as Record<string, any>;
+    if (typeof nested.message === "string" && nested.message) return nested.message;
+  }
+  // { errors: [] } — validation arrays
+  if (Array.isArray(d.errors) && d.errors.length > 0) {
+    const first = d.errors[0];
+    if (typeof first === "string") return first;
+    if (typeof first?.message === "string") return first.message;
+    if (typeof first?.msg === "string") return first.msg;
+  }
+  if (typeof d.detail === "string" && d.detail) return d.detail;       // FastAPI / DRF
+  if (typeof d.details === "string" && d.details) return d.details;
+  if (typeof d.err === "string" && d.err) return d.err;
+  if (typeof d.statusMessage === "string" && d.statusMessage) return d.statusMessage; // Nuxt/H3
+  return null;
+}
+
+// Fire-and-forget log to /api/log-error. Never throws, never blocks.
+function fireLog(message: string, error: unknown): void {
+  if (typeof fetch === "undefined") return;
+  fetch("/api/log-error", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      context: error instanceof Error
+        ? { name: error.name, stack: error.stack }
+        : undefined,
+    }),
+  }).catch(() => {});
+}
+
+// Inner detection — pure sync, all branches return a string.
+function detectMessage(error: unknown): string {
+  try {
+    // ── RTK Query: { status, data } ─────────────────────────────────────────
+    if (error !== null && typeof error === "object" && "status" in error && "data" in error) {
+      const e = error as { status: number | string; data: unknown; error?: string };
+      const extracted = extractMessage(e.data);
+      if (extracted) return extracted;
+      const status = typeof e.status === "number" ? e.status : null;
+      if (status && HTTP_STATUS_MESSAGES[status]) return HTTP_STATUS_MESSAGES[status];
+      if (typeof e.error === "string" && e.error) return e.error; // FETCH_ERROR
+      if (e.status === "PARSING_ERROR") return "Failed to parse server response.";
+      if (e.status === "TIMEOUT_ERROR") return "Request timed out. Please try again.";
+      return "Request failed. Please try again.";
+    }
+
+    // ── Axios ────────────────────────────────────────────────────────────────
+    if (axios.isAxiosError(error)) {
+      const e = error as AxiosError<unknown>;
+      if (e.response) {
+        const extracted = extractMessage(e.response.data);
+        if (extracted) return extracted;
+        return HTTP_STATUS_MESSAGES[e.response.status] ?? `Request failed with status ${e.response.status}.`;
+      }
+      if (e.code === "ECONNABORTED" || e.message.toLowerCase().includes("timeout"))
+        return "Request timed out. Please try again.";
+      if (e.code === "ERR_NETWORK") return "Network error. Please check your connection.";
+      if (e.code === "ERR_CANCELED") return "Request was cancelled.";
+      if (e.request) return "No response from the server. Please check your connection.";
+      return e.message || "An unknown network error occurred.";
+    }
+
+    // ── Zod ──────────────────────────────────────────────────────────────────
+    if (error instanceof ZodError) {
+      const first = error.issues?.[0];
+      if (first?.message) return first.message;
+      return "Validation failed. Please check your input.";
+    }
+
+    // ── DOM exceptions (AbortError, QuotaExceededError, etc.) ────────────────
+    if (error instanceof DOMException) {
+      if (error.name === "AbortError") return "Request was cancelled.";
+      if (error.name === "QuotaExceededError") return "Storage quota exceeded.";
+      if (error.name === "NotAllowedError") return "Permission denied.";
+      return error.message || "A browser error occurred.";
+    }
+
+    // ── TypeError (fetch failures, network errors) ───────────────────────────
+    if (error instanceof TypeError) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes("failed to fetch") || msg.includes("fetch"))
+        return "A network error occurred. Please check your connection.";
+      if (msg.includes("networkerror")) return "Network error. Please try again.";
+      if (msg.includes("load")) return "Failed to load the resource. Please try again.";
+    }
+
+    // ── Generic Error ────────────────────────────────────────────────────────
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes("timeout")) return "Request timed out. Please retry.";
+      if (msg.includes("json") || msg.includes("parse")) return "Failed to parse the server response.";
+      if (msg.includes("unauthorized") || msg.includes("unauthenticated"))
+        return "You are not authenticated. Please log in.";
+      if (msg.includes("forbidden")) return "You do not have permission to perform this action.";
+      return error.message || "An unexpected error occurred.";
+    }
+
+    // ── Custom error-like objects ─────────────────────────────────────────────
+    if (typeof error === "object" && error !== null) {
+      const extracted = extractMessage(error);
+      if (extracted) return extracted;
+    }
+
+    if (typeof error === "string" && error) return error;
+
+    return "Something went wrong. Please try again later.";
+  } catch {
+    return "An unexpected error occurred while handling another error.";
+  }
+}
+
+// Public API — checks offline first, then detects, then logs.
+export function errorHandler(error: unknown): string {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return "You are offline. Please check your internet connection.";
+  }
+  const message = detectMessage(error);
+  fireLog(message, error);
+  return message;
+}
+```
+
+### Usage
+
+```ts
+} catch (err) {
+  toast.error(errorHandler(err));
+}
+```
+
+### What each branch covers
+
+| Branch | Catches |
+|---|---|
+| `navigator.onLine` | Any error while the device is offline |
+| RTK Query `{ status, data }` | All RTK Query errors including `FETCH_ERROR`, `PARSING_ERROR` |
+| Axios | `AxiosError` with response, timeout, network, cancellation |
+| Zod | Validation errors from form schemas |
+| `DOMException` | `AbortError` (cancelled fetch/XHR), storage quota, permissions |
+| `TypeError` | Native `fetch` network failures |
+| `Error` | Any thrown `new Error(...)` |
+| Plain object | Custom API errors thrown as objects |
+| String | Errors thrown as plain strings |
+
+---
+
+## 29. Network Status Detection — Online / Offline
+
+### How browsers know the connection status
+
+The browser tracks network interface availability and exposes it in two ways:
+
+```ts
+navigator.onLine  // boolean — true if any network interface is up
+```
+
+And two window events:
+```ts
+window.addEventListener("online", handler);   // fires when connection is restored
+window.addEventListener("offline", handler);  // fires when connection is lost
+```
+
+### Important limitation
+
+`navigator.onLine: true` only means a network interface exists — **not** that the internet is reachable. A device connected to a WiFi router that has no upstream internet will still show `onLine: true`. The only way to confirm real connectivity is to ping a known endpoint.
+
+### The hook — `src/hooks/useNetworkStatus.ts`
+
+```ts
+"use client";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+export const useNetworkStatus = () => {
+  const [isOnline, setIsOnline] = useState(
+    typeof window !== "undefined" ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("Connection restored", { description: "You're back online" });
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error("No internet connection", {
+        description: "Please check your network",
+        duration: Infinity,  // stays until they come back online
+      });
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  return { isOnline };
+};
+```
+
+### The banner — `src/components/network-status-banner.tsx`
+
+```tsx
+"use client";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { WifiOff } from "lucide-react";
+
+export const NetworkStatusBanner = () => {
+  const { isOnline } = useNetworkStatus();
+  if (isOnline) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+      <WifiOff className="w-4 h-4" />
+      <span>No internet connection. Some features may not work.</span>
+    </div>
+  );
+};
+```
+
+The banner renders at the very top of the screen (`fixed top-0 z-50`) and disappears automatically when the `online` event fires.
+
+### How this ties into errorHandler
+
+`errorHandler` checks `navigator.onLine` as its very first step. Any error thrown while the device is offline returns "You are offline…" regardless of the actual error shape — the root cause is obvious and the message is the most useful one.
+
+### Extending to real connectivity checks (ping pattern)
+
+```ts
+async function checkRealConnectivity(): Promise<boolean> {
+  try {
+    await fetch("/api/healthz", { method: "HEAD", cache: "no-store" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+Use this when you need to distinguish "no interface" from "interface up, internet down".
+
+---
+
+## 30. Error Logging — Fire-and-Forget Pattern
+
+### The problem
+
+`console.log` errors disappear when devtools is closed. In production, you have no visibility into what errors users are seeing.
+
+### The pattern
+
+**Fire-and-forget** means: start an async operation but don't `await` it. The operation runs in the background and the calling code continues immediately.
+
+```ts
+// Fire-and-forget — returns void, never blocks
+function fireLog(message: string, error: unknown): void {
+  fetch("/api/log-error", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  }).catch(() => {}); // swallow log failures — never let logging crash the app
+  // ↑ No await — execution continues immediately
+}
+```
+
+The `.catch(() => {})` at the end is critical. Without it, a failed log write would become an unhandled promise rejection.
+
+### The API route — `src/app/api/log-error/route.ts`
+
+```ts
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { join } from "path";
+import { NextRequest, NextResponse } from "next/server";
+
+const LOG_DIR = join(process.cwd(), "logs");
+const LOG_FILE = join(LOG_DIR, "errors.log");
+
+// GET /api/log-error — view all logged errors in the browser
+export async function GET() {
+  try {
+    if (!existsSync(LOG_FILE)) return NextResponse.json({ entries: [] });
+    const raw = readFileSync(LOG_FILE, "utf8");
+    const entries = raw
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try { return JSON.parse(line); }
+        catch { return { raw: line }; }
+      });
+    return NextResponse.json({ total: entries.length, entries });
+  } catch {
+    return NextResponse.json({ error: "Could not read log file." }, { status: 500 });
+  }
+}
+
+// POST /api/log-error — write a new log entry
+export async function POST(req: NextRequest) {
+  try {
+    const { message, context } = await req.json();
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      message,
+      ...(context && { context }),
+    });
+    mkdirSync(LOG_DIR, { recursive: true });
+    appendFileSync(LOG_FILE, line + "\n", "utf8"); // sync — fast for a single append
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ ok: false });
+  }
+}
+```
+
+### Log format
+
+Each entry is newline-delimited JSON (NDJSON):
+```
+{"ts":"2026-05-22T10:23:01.123Z","message":"You are not authenticated.","context":{"name":"Error","stack":"Error: ..."}}
+{"ts":"2026-05-22T10:24:15.456Z","message":"Request timed out. Please try again."}
+```
+
+Visit `/api/log-error` in the browser while the dev server is running to see all entries.
+
+### Why `appendFileSync` and not `appendFile` (async)?
+
+For a single log line append, the synchronous version is:
+- Fast enough (microseconds for one line)
+- Simpler — no `await`, no promise
+- Safe — the response is only sent after the write completes, so the line is guaranteed to be written
+
+For high-throughput production logging, use a proper log sink (Logtail, Sentry, Datadog) instead of the filesystem.
+
+### Production caveat
+
+Platforms like Vercel use **ephemeral filesystems** — writes to `logs/` don't survive function restarts. On such platforms, swap `appendFileSync` for a database insert or an external logging service. The `fireLog` function in `errorHandler.ts` doesn't need to change at all.
+
+---
+
+## 31. Immediate Upload on File Selection — UX State Machine
+
+### The old UX (bad)
+
+1. User picks a file → nothing visible happens
+2. User fills in all other fields
+3. User clicks "Create Event"
+4. Only now does the upload start
+5. Button shows a spinner for 30+ seconds on a large video
+6. User has no idea if the upload is working
+
+### The new UX (good)
+
+1. User picks a file → upload starts immediately
+2. Progress bar overlaid on the preview — user can see 23%... 47%... 91%... ✓
+3. User fills in other fields **while upload runs in the background**
+4. Submit button becomes active once upload finishes
+5. Clicking Create Event is instant — URLs are already stored
+
+### The state machine
+
+Each file field has its own `UploadState`:
+
+```ts
+interface UploadState {
+  status: "idle" | "uploading" | "done" | "error";
+  progress: number;    // 0–100
+  url: string | null;  // the CDN URL returned by the backend
+}
+
+const IDLE: UploadState = { status: "idle", progress: 0, url: null };
+```
+
+State transitions:
+```
+idle ──(file selected)──→ uploading ──(XHR done)──→ done
+                                    ──(XHR error)──→ error ──(retry)──→ uploading
+idle ←──────────────────────────────────────(remove)──────────────────────────
+```
+
+### The handler — called directly from onChange
+
+```ts
+const handleFlierChange = async (file: File) => {
+  // 1. Set in form (for validation + preview)
+  setValue("flier", file, { shouldValidate: true });
+
+  // 2. Transition to uploading
+  setFlierUpload({ status: "uploading", progress: 0, url: null });
+
+  try {
+    // 3. Get presigned URL from backend
+    const intent = await uploadIntent({
+      filename: file.name,
+      contentType: file.type,
+      folder: "events",
+    }).unwrap();
+
+    // 4. Stream to storage with live progress
+    await uploadFile(file, intent.data.uploadUrl, (pct) =>
+      setFlierUpload((prev) => ({ ...prev, progress: pct }))
+    );
+
+    // 5. Transition to done — store the final CDN URL
+    setFlierUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+
+  } catch {
+    setFlierUpload({ status: "error", progress: 0, url: null });
+    toast.error("Flyer upload failed. You can retry.");
+  }
+};
+```
+
+Note: the handler is called directly from `onChange` — not inside a `useEffect`. This is intentional. User action triggers upload; reactive effects would cause double-uploads when the component re-renders.
+
+### Inline progress overlay
+
+The file preview shows a dark overlay with spinner + progress bar while uploading:
+
+```tsx
+{flierUpload.status === "uploading" && (
+  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 p-6">
+    <Loader2 className="h-7 w-7 text-white animate-spin" />
+    <div className="w-4/5 space-y-1.5">
+      <div className="flex justify-between text-white text-xs font-medium">
+        <span>Uploading…</span>
+        <span>{flierUpload.progress}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/30 overflow-hidden">
+        <div
+          className="h-full bg-white transition-all duration-150"
+          style={{ width: `${flierUpload.progress}%` }}
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+{flierUpload.status === "done" && (
+  <div className="absolute top-2 right-2 bg-green-500/90 backdrop-blur-sm rounded-full p-1">
+    <CheckCircle2 className="h-4 w-4 text-white" />
+  </div>
+)}
+
+{flierUpload.status === "error" && (
+  <div className="absolute inset-0 bg-red-900/60 flex flex-col items-center justify-center gap-3">
+    <AlertCircle className="h-7 w-7 text-white" />
+    <p className="text-white text-sm font-medium">Upload failed</p>
+    <Button type="button" size="sm" variant="secondary"
+      onClick={() => handleFlierChange(flier)}>  {/* retry with same file */}
+      Retry
+    </Button>
+  </div>
+)}
+```
+
+### Submit uses stored URLs — no re-upload
+
+```ts
+const onSubmit = async (values: BasicInfoFormValues) => {
+  // Guard: don't submit while uploading
+  if (flierUpload.status === "uploading" || videoUpload.status === "uploading") {
+    toast.warning("Please wait for uploads to finish.");
+    return;
+  }
+  // Guard: don't submit if upload failed
+  if ((values.flier && flierUpload.status === "error") ||
+      (values.promoVideo && videoUpload.status === "error")) {
+    toast.error("Some uploads failed. Please retry before submitting.");
+    return;
+  }
+
+  const body = {
+    name: values.name,
+    // ...other fields
+    ...(flierUpload.url && { flierUrl: flierUpload.url }),       // already uploaded
+    ...(videoUpload.url && { promoVideoUrl: videoUpload.url }),  // already uploaded
+  };
+
+  await createEventMutation(body).unwrap(); // instant — just JSON
+};
+```
+
+### Button state
+
+```tsx
+<Button
+  type="submit"
+  disabled={isLoading || anyUploading}
+>
+  {isLoading ? "Creating event…"
+   : anyUploading ? "Uploading files…"
+   : "Create Event"}
+</Button>
+```
+
+---
+
+## 32. Auth State on Public Pages — Cookies vs Redux
+
+### The two layers of auth state
+
+| Layer | Where | Survives page refresh? | When populated |
+|---|---|---|---|
+| Cookies (`accessToken`) | Browser storage | Yes — until expiry (7 days) | After login, via `store-token` route |
+| Redux (`isAuthenticated`) | JavaScript memory | No — reset on every mount | After login, via `dispatch(setIsAuthenticated(true))` |
+
+### The bug this caused
+
+The home page navbar had:
+```ts
+const [isAuthenticated] = useState(false); // hardcoded false
+```
+
+This meant logged-in users always saw "Login / Sign Up" on the home page instead of a "Dashboard" button.
+
+Attempting to fix it with Redux:
+```ts
+const { isAuthenticated } = useSelector((state: RootState) => state.auth.isAuthenticated);
+```
+…would fix it immediately after login, but break again after any page refresh — because Redux resets to `initialState: { isAuthenticated: false }` on every cold mount and there is no rehydration mechanism.
+
+### The correct fix — read the cookie
+
+```ts
+"use client";
+import Cookies from "js-cookie";
+import { useState, useEffect } from "react";
+
+export default function Navbar() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Cookies survive page refreshes — this is the source of truth
+    const token = Cookies.get("accessToken") ?? Cookies.get("admin_accessToken");
+    setIsAuthenticated(!!token);
+  }, []);
+
+  // ...
+}
+```
+
+Why `useEffect` instead of reading directly?
+
+- `Cookies.get()` is a browser API — it doesn't exist on the server
+- The component starts server-rendered with `false`, then hydrates with the real value
+- This avoids hydration mismatches between server HTML and client HTML
+
+### When to use Redux vs cookies for auth state
+
+| Use case | Use |
+|---|---|
+| Rendering user's name, avatar, role | Redux `user` slice (populated after login, or after a `getMe` call) |
+| Showing/hiding Login button | Cookie check — survives refreshes |
+| API auth headers | Cookie directly via `js-cookie` in `baseQuery` |
+| Route guards | Middleware reads cookie server-side |
+
+---
+
+## 33. Login Redirect — Role-Specific Defaults and the `?from=` Bug
+
+### The full redirect lifecycle
+
+```
+1. User visits /dashboard without being logged in
+2. Middleware redirects: /auth/login?from=%2Fdashboard
+3. User logs in
+4. Login page reads ?from= and redirects back to /dashboard
+```
+
+### The bug
+
+```ts
+// ❌ Bug: defaulting to "/events" for everyone
+const from = searchParams.get("from") || "/events";
+
+if (isSuperAdmin) {
+  router.push(from.startsWith("/") && !from.startsWith("/auth") ? from : "/admin");
+}
+```
+
+When an admin visits the login page **directly** (no `?from=`), `from` defaults to `"/events"`. The condition `"/events".startsWith("/")` is `true`, so the admin gets sent to `/events` instead of `/admin`.
+
+### The fix
+
+```ts
+// ✅ Read as nullable — no default here
+const from = searchParams.get("from");  // null when absent
+
+// Validate: must be an internal path and not another auth page
+const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
+
+// Role-specific fallbacks
+if (isSuperAdmin) {
+  router.push(validFrom ? from : "/admin");          // admin's home
+} else {
+  router.push(validFrom ? from : "/dashboard/events"); // user's home
+}
+```
+
+### The `!from.startsWith("/auth")` guard
+
+Prevents infinite redirect loops. Without it:
+1. User is on `/auth/login`
+2. Middleware redirects to `/auth/login?from=%2Fauth%2Flogin`
+3. After login, pushed back to `/auth/login`
+4. Middleware redirects again... forever
+
+### Also fix the register link
+
+The register URL on the login page forwards `?from=` to the register page so that after registering, the user also lands in the right place:
+
+```ts
+const queryParams = new URLSearchParams();
+if (from) queryParams.set("from", from);  // from is null-safe now
+const registerUrl = `/auth/register${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+```
+
+---
+
+## 34. Next.js Routing Syntax — Complete Reference
+
+Next.js uses folder and file names as a routing DSL. Here is every piece of syntax:
+
+### `[param]` — Dynamic segment
+
+Matches any single path segment. The matched value is available as a prop.
+
+```
+src/app/dashboard/[eventId]/page.tsx  →  /dashboard/abc123
+src/app/users/[id]/page.tsx           →  /users/42
+```
+
+```tsx
+// page.tsx
+export default function Page({ params }: { params: { eventId: string } }) {
+  return <div>Event: {params.eventId}</div>;
+}
+```
+
+In client components, use `useParams()`:
+```ts
+import { useParams } from "next/navigation";
+const { eventId } = useParams();
+```
+
+### `[...slug]` — Catch-all segment (required)
+
+Matches **one or more** path segments. The value is an array.
+
+```
+src/app/docs/[...slug]/page.tsx  →  /docs/a
+                                 →  /docs/a/b
+                                 →  /docs/a/b/c
+                                 ✗  /docs  (does NOT match — needs at least one segment)
+```
+
+```tsx
+export default function Page({ params }: { params: { slug: string[] } }) {
+  // /docs/next/routing → slug = ["next", "routing"]
+  return <div>{params.slug.join(" / ")}</div>;
+}
+```
+
+**In this project**: `src/app/dashboard/[eventId]/` uses a single `[eventId]` — catch-all would be overkill.
+
+### `[[...slug]]` — Optional catch-all
+
+Same as `[...slug]` but also matches the parent path (zero segments).
+
+```
+src/app/shop/[[...filters]]/page.tsx  →  /shop           (filters = undefined)
+                                      →  /shop/shoes      (filters = ["shoes"])
+                                      →  /shop/shoes/red  (filters = ["shoes", "red"])
+```
+
+```tsx
+export default function ShopPage({ params }: { params: { filters?: string[] } }) {
+  const filters = params.filters ?? [];
+  // /shop          → filters = []        → show everything
+  // /shop/shoes    → filters = ["shoes"] → filter by shoes
+  // /shop/shoes/red → filters = ["shoes","red"] → filter by shoes + red
+
+  return (
+    <div>
+      <h1>Shop</h1>
+      {filters.length > 0 && (
+        <p>Filtering by: {filters.join(" → ")}</p>
+      )}
+    </div>
+  );
+}
+```
+
+Used for pages like filter UIs, documentation trees, or any route where the number of path segments is variable and zero is a valid state.
+
+### `(group)` — Route group
+
+Parentheses create a folder that is **invisible in the URL**. Used purely for organisation and shared layouts.
+
+```
+src/app/(auth)/auth/login/page.tsx   →  /auth/login   ← "(auth)" not in URL
+src/app/(admin)/admin/page.tsx       →  /admin
+src/app/dashboard/(dashboard-route)/events/page.tsx  →  /dashboard/events
+```
+
+Each route group can have its own `layout.tsx` that only applies to routes inside that group.
+
+**In this project:**
+| Group | Purpose |
+|---|---|
+| `(auth)` | Centred login/register layout, no navbar |
+| `(admin)` | Admin panel layout |
+| `(dashboard-route)` | Main app with `DashboardNavbar` + `BottomNav` |
+
+### `_private` — Private folder (not a route)
+
+Prefixing a folder with `_` opts it out of routing entirely. Useful for co-locating utilities and components with a route without accidentally exposing them.
+
+```
+src/app/dashboard/_components/event-card.tsx  →  not a route, just a component
+src/app/dashboard/_utils/format-date.ts       →  not a route, just a utility
+src/app/dashboard/_hooks/use-event.ts         →  not a route, just a hook
+```
+
+Without `_`, a folder named `components` inside `app/` would technically be part of the route tree (though only `page.tsx` files create actual routes — so the risk is low, but `_` makes the intent explicit).
+
+### `@slot` — Parallel routes
+
+Render multiple independent pages in the same layout simultaneously. Each `@slot` folder becomes a prop on the parent `layout.tsx`.
+
+```
+src/app/dashboard/
+├── @feed/page.tsx      → rendered as "feed" prop
+├── @sidebar/page.tsx   → rendered as "sidebar" prop
+└── layout.tsx          → receives { feed, sidebar, children }
+```
+
+```tsx
+// layout.tsx
+export default function Layout({ feed, sidebar }: { feed: React.ReactNode; sidebar: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[1fr_300px]">
+      <main>{feed}</main>
+      <aside>{sidebar}</aside>
+    </div>
+  );
+}
+```
+
+Each slot can have its own loading and error states. Useful for dashboards with independently loading panels.
+
+### `(.)` Intercepting routes — the modal URL trick
+
+This is exactly what you described. The URL changes in the browser, but instead of navigating to a full new page, a modal opens over the current page. If you paste that same URL in a new tab, you get the real full page — not the modal.
+
+**Instagram does this.** Click a photo → URL becomes `/photos/123`, modal opens. Open `/photos/123` in a new tab → full photo page renders.
+
+The way Next.js implements it: you create two `page.tsx` files for the same route. One is the real full page. The other, inside a `(.)` folder, is the modal version shown during client navigation.
+
+```
+src/app/
+├── photos/
+│   ├── page.tsx              ← /photos — the grid
+│   └── [id]/
+│       └── page.tsx          ← /photos/123 — FULL page (opened in new tab or refresh)
+│
+└── photos/                   ← same "photos" folder name
+    └── (.)photos/            ← (.) means "intercept the sibling photos route"
+        └── [id]/
+            └── page.tsx      ← /photos/123 — MODAL (during client navigation from /photos)
+```
+
+How to build it:
+
+```tsx
+// src/app/photos/[id]/page.tsx — the full page
+export default function PhotoPage({ params }: { params: { id: string } }) {
+  return (
+    <div>
+      <h1>Photo {params.id}</h1>
+      <img src={`/img/${params.id}.jpg`} alt="" className="w-full" />
+      <p>Full page — all the details, comments, etc.</p>
+    </div>
+  );
+}
+```
+
+```tsx
+// src/app/(.)photos/[id]/page.tsx — the modal intercept
+"use client";
+import { useRouter } from "next/navigation";
+
+export default function PhotoModal({ params }: { params: { id: string } }) {
+  const router = useRouter();
+
+  return (
+    // Dark backdrop
+    <div
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+      onClick={() => router.back()}  // clicking backdrop goes back
+    >
+      <div
+        className="bg-white rounded-2xl p-6 max-w-lg w-full"
+        onClick={(e) => e.stopPropagation()}  // don't close when clicking content
+      >
+        <img src={`/img/${params.id}.jpg`} alt="" className="w-full rounded-xl" />
+        <button onClick={() => router.back()} className="mt-4 text-sm text-gray-500">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+The modal is rendered **in the layout of the current page** — the grid stays visible behind the backdrop. The URL changes to `/photos/123` but the grid doesn't unmount.
+
+**The intercept levels:**
+
+| Syntax | What it intercepts | Example |
+|---|---|---|
+| `(.)segment` | Route at the **same** folder level | `/photos` intercepting `/photos/[id]` |
+| `(..)segment` | Route **one level up** | `/dashboard/(.)events/[id]` intercepting `/events/[id]` |
+| `(..)(..)segment` | Route **two levels up** | Rare |
+| `(...)segment` | Route from the **root** | Anywhere in the app intercepting a root route |
+
+**When to use this pattern:**
+- Photo / media galleries (click → modal, share URL → full page)
+- Event detail previews from a list
+- User profile cards (hover or click on a username → profile modal)
+- Any "quick look" UI where you want shareable URLs without full navigation
+
+**Gotcha — refresh shows the modal version:**
+If you're inside the modal and refresh the page, Next.js serves the real `[id]/page.tsx`, not the intercepted version. This is the desired behaviour — the URL is the source of truth.
+
+**Gotcha — parallel routes required for the backdrop:**
+The grid staying visible behind the modal requires `@slot` (parallel routes) so both the grid and the modal render at the same time. Without it, the current page unmounts when the modal route activates.
+
+### Summary table
+
+| Syntax | What it matches | Example |
+|---|---|---|
+| `page.tsx` | Exact path | `/about` |
+| `[param]` | Any single segment | `/users/42` |
+| `[...slug]` | One or more segments | `/docs/a/b/c` |
+| `[[...slug]]` | Zero or more segments | `/shop` or `/shop/red` |
+| `(group)` | Nothing — org only | Invisible in URL |
+| `@slot` | Parallel render | Layout prop |
+| `_private` | Nothing — excluded | Never a route |
+| `(.)path` | Intercepted modal | Same-level route |
+
+---
+
+## 35. Suspense — Deep Dive
+
+### What Suspense is
+
+`<Suspense>` is a React boundary that catches components that are "not ready yet" and shows a fallback while they load. When the component finishes loading, the real content replaces the fallback.
+
+```tsx
+<Suspense fallback={<Spinner />}>
+  <SlowComponent />
+</Suspense>
+```
+
+### The three use cases
+
+#### 1. Async Server Components (App Router)
+
+Server Components can `await` directly. `<Suspense>` lets the page stream — the shell renders immediately and the slow parts fill in when their data arrives.
+
+```tsx
+// No useEffect needed — just await
+async function EventList() {
+  const events = await fetch("https://api.nextvibe.com/v1/events").then(r => r.json());
+  return <ul>{events.data.map(e => <EventCard key={e.id} event={e} />)}</ul>;
+}
+
+// In the page:
+export default function Page() {
+  return (
+    <div>
+      <h1>Events</h1>
+      <Suspense fallback={<EventListSkeleton />}>
+        <EventList />  {/* streams in when data arrives */}
+      </Suspense>
+    </div>
+  );
+}
+```
+
+The user sees the heading instantly. The list appears once the fetch resolves. No blank screen.
+
+#### 2. `useSearchParams()` (Next.js requirement)
+
+As covered in section 25 — any component using `useSearchParams()` must be wrapped in `<Suspense>` or the build fails.
+
+```tsx
+export default function Page() {
+  return (
+    <Suspense fallback={<LoadingShell />}>
+      <PageInner />  {/* useSearchParams() lives here */}
+    </Suspense>
+  );
+}
+```
+
+#### 3. Dynamic imports / code splitting
+
+`React.lazy` + `<Suspense>` defers loading a heavy component until it's needed:
+
+```tsx
+import dynamic from "next/dynamic";
+
+// The fabric.js canvas is large — don't include it in the initial bundle
+const PostcardEditor = dynamic(() => import("./PostcardEditor"), {
+  ssr: false,                                    // canvas needs browser APIs
+  loading: () => <Skeleton className="h-96" />, // Suspense fallback
+});
+
+export default function Page() {
+  return <PostcardEditor />;  // loaded only when this page is visited
+}
+```
+
+### Nested Suspense — granular loading states
+
+Multiple `<Suspense>` boundaries give independent loading states. Each resolves independently.
+
+```tsx
+export default function Dashboard() {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <Suspense fallback={<CardSkeleton />}>
+        <RevenueCard />     {/* loads independently */}
+      </Suspense>
+      <Suspense fallback={<CardSkeleton />}>
+        <AttendeeCount />   {/* loads independently */}
+      </Suspense>
+      <Suspense fallback={<ChartSkeleton />}>
+        <SalesChart />      {/* loads independently */}
+      </Suspense>
+    </div>
+  );
+}
+```
+
+Without nested boundaries, the slowest component blocks all three from showing.
+
+### Suspense vs Error Boundary — they are different
+
+| | `<Suspense>` | `<ErrorBoundary>` |
+|---|---|---|
+| Catches | Components that are loading | Components that threw an error |
+| Fallback prop | `fallback` | `fallback` or `FallbackComponent` |
+| When it shows | While loading | After an error |
+| Auto-recovers | Yes — when loading finishes | No — must reset manually |
+| Next.js built-in | `loading.tsx` | `error.tsx` |
+
+In the App Router, `loading.tsx` is a file-based `<Suspense>` wrapper for the whole route. `error.tsx` is a file-based `<ErrorBoundary>`.
+
+```
+src/app/dashboard/events/
+├── page.tsx        ← the page
+├── loading.tsx     ← shown while page.tsx is streaming (Suspense)
+└── error.tsx       ← shown if page.tsx throws (ErrorBoundary)
+```
+
+### The `loading.tsx` shortcut
+
+Instead of wrapping every page in `<Suspense>` manually, create `loading.tsx`:
+
+```tsx
+// src/app/dashboard/events/loading.tsx
+export default function Loading() {
+  return <EventListSkeleton />;
+}
+```
+
+Next.js automatically wraps `page.tsx` with this as the `<Suspense>` fallback.
+
+### Common mistakes
+
+```tsx
+// ❌ useSearchParams() outside Suspense — build error
+export default function Page() {
+  const params = useSearchParams(); // ← throws at build time
+  return <div>{params.get("tab")}</div>;
+}
+
+// ✅ useSearchParams() inside Suspense
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <Inner />
+    </Suspense>
+  );
+}
+function Inner() {
+  const params = useSearchParams(); // ← safe here
+  return <div>{params.get("tab")}</div>;
+}
+```
+
+```tsx
+// ❌ Suspense with no fallback — blank flash
+<Suspense>
+  <SlowComponent />
+</Suspense>
+
+// ✅ Always provide a meaningful fallback
+<Suspense fallback={<Skeleton className="h-32 w-full rounded-xl" />}>
+  <SlowComponent />
+</Suspense>
+```
+
+### When NOT to use Suspense
+
+- Around synchronous components (no benefit — they never suspend)
+- Instead of loading state in RTK Query (use `isLoading` from the hook)
+- Around mutations (`useCreateEventMutation` — mutations don't suspend)
+
+Suspense is for **reading** async data, not for tracking pending writes.
 
 ---
 
