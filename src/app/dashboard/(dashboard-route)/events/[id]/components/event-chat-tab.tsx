@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
 import { useSocket } from "@/hooks/useSocket";
+import { errorHandler } from "@/utils/errorHandler";
 
 type Section = "pre-event" | "during" | "post-event";
 
@@ -134,9 +135,9 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
         }
 
         const json = await res.json();
-        setMessages(json?.data ?? []);
-      } catch {
-        toast.error("Failed to load chat history");
+        setMessages(json?.data?.data ?? []);
+      } catch (err){
+        toast.error(errorHandler(err));
         setMessages([]);
       } finally {
         setIsLoadingHistory(false);

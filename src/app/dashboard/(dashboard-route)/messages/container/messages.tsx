@@ -87,9 +87,12 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
     return () => { dispatch(setHideHeader(false)); };
   }, [dispatch]);
 
-  const { data, isLoading } = useGetMessagesQuery({
-    conversationId: conversation.id,
-  });
+  // refetchOnMountOrArgChange: true → always fetch fresh messages when opening
+  // a chat (prevents stale cached data showing old messages after returning)
+  const { data, isLoading } = useGetMessagesQuery(
+    { conversationId: conversation.id },
+    { refetchOnMountOrArgChange: true }
+  );
 
 
   // Seed local state from REST response (newest-first → reverse for display)
@@ -349,6 +352,9 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
+  // Per-conversation unread counts tracked locally so the badge shows
+  // instantly on socket events (before refetch lands from the server).
+  const [localUnread, setLocalUnread] = useState<Record<string, number>>({});
 
   // Derive current user id from token (stored in cookie as JWT)
   // We pass it down so ChatView can distinguish sent vs received messages.
@@ -369,6 +375,69 @@ const Messages = () => {
   const { data, isLoading, isError, refetch } = useGetConversationsQuery();
   const conversations = data?.data ?? [];
 
+  // ── Real-time list updates ────────────────────────────────────────────────
+  // Connect a socket ONLY while the list is visible (disabled when ChatView is
+  // open so it doesn't clash with ChatView's own socket connection).
+  const { socketRef: listSocketRef } = useSocket("messaging", {
+    enabled: !selectedConversation,
+  });
+
+  useEffect(() => {
+    if (selectedConversation) return;           // ChatView handles its own socket
+    const socket = listSocketRef.current;
+    if (!socket) return;
+
+    // Join every conversation room so the server sends new:dm for any of them.
+    const joinAll = () => {
+      conversations.forEach((c) => {
+        socket.emit("join:dm", { conversationId: c.id });
+      });
+    };
+
+    // When a new message arrives, refetch for server-accurate counts AND
+    // immediately bump the local badge so the UI reacts before the round-trip.
+    // The server may include conversationId in the payload; use it if present.
+    const handleNewDm = (msg: any) => {
+      refetch();
+      const convId: string | undefined = msg?.conversationId;
+      if (convId) {
+        setLocalUnread((prev) => ({
+          ...prev,
+          [convId]: (prev[convId] ?? 0) + 1,
+        }));
+      }
+    };
+
+    socket.on("connect", joinAll);
+    socket.on("new:dm", handleNewDm);
+    if (socket.connected) joinAll();            // already connected on mount
+
+    return () => {
+      socket.off("connect", joinAll);
+      socket.off("new:dm", handleNewDm);
+    };
+  // Re-run when conversations load (so newly-appeared rooms get joined) or
+  // when selectedConversation toggles (enables/disables this socket).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversation, listSocketRef, conversations, refetch]);
+
+  // Once the server-side unreadCount is confirmed (refetch returned), drop the
+  // local entry so we don't double-count. If the server returns 0 we keep the
+  // local count as a fallback (backend may not track reads perfectly).
+  useEffect(() => {
+    if (!conversations.length) return;
+    setLocalUnread((prev) => {
+      const changed = conversations.some((c) => c.unreadCount > 0 && prev[c.id]);
+      if (!changed) return prev;
+      const next = { ...prev };
+      conversations.forEach((c) => {
+        if (c.unreadCount > 0) delete next[c.id];
+      });
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations]);
+
   // Auto-select conversation from URL param
   useEffect(() => {
     if (chatId && conversations.length > 0) {
@@ -382,6 +451,13 @@ const Messages = () => {
   );
 
   const handleSelectConversation = (conv: Conversation) => {
+    // Clear local unread badge as soon as the user opens the chat
+    setLocalUnread((prev) => {
+      if (!prev[conv.id]) return prev;
+      const next = { ...prev };
+      delete next[conv.id];
+      return next;
+    });
     setSelectedConversation(conv);
     router.push(`/messages?chat=${conv.id}`);
   };
@@ -476,51 +552,89 @@ const Messages = () => {
 
         {!isLoading && !isError && filteredConversations.length > 0 && (
           <div className="space-y-2">
-            {filteredConversations.map((conversation) => (
-              <Card
-                key={conversation.id}
-                className={cn(
-                  "cursor-pointer transition-all hover:bg-muted/50",
-                  conversation.unreadCount > 0 && "border-primary/30 bg-primary/5"
-                )}
-                onClick={() => handleSelectConversation(conversation)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
+            {filteredConversations.map((conversation) => {
+              // Merge server count + local optimistic count.
+              // Once server confirms (unreadCount > 0) we drop the local entry
+              // to avoid double-counting (see the effect above).
+              const unread =
+                (conversation.unreadCount ?? 0) +
+                (localUnread[conversation.id] ?? 0);
+
+              return (
+                <Card
+                  key={conversation.id}
+                  className={cn(
+                    "cursor-pointer transition-all hover:bg-muted/50",
+                    unread > 0 && "border-primary/30 bg-primary/5"
+                  )}
+                  onClick={() => handleSelectConversation(conversation)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      {/* Avatar — no badge here; the count lives on the right */}
+                      <Avatar className="h-12 w-12 shrink-0">
                         <AvatarImage src={conversation.participant.avatarUrl} />
                         <AvatarFallback>
                           {conversation.participant.username?.[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {conversation.unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                          {conversation.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-foreground truncate">
-                          {conversation.participant.username}
-                        </h3>
-                        {conversation.lastMessage && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatTime(conversation.lastMessage.createdAt)}
-                          </span>
-                        )}
+
+                      {/* Text */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3
+                            className={cn(
+                              "truncate text-foreground",
+                              unread > 0 ? "font-bold" : "font-semibold"
+                            )}
+                          >
+                            {conversation.participant.username}
+                          </h3>
+                          {conversation.lastMessage && (
+                            <span
+                              className={cn(
+                                "text-xs shrink-0",
+                                unread > 0
+                                  ? "text-primary font-semibold"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {formatTime(conversation.lastMessage.createdAt)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          {conversation.lastMessage ? (
+                            <p
+                              className={cn(
+                                "text-sm truncate",
+                                unread > 0
+                                  ? "text-foreground font-medium"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {conversation.lastMessage.body}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground truncate">
+                              No messages yet
+                            </p>
+                          )}
+
+                          {/* Unread badge — right-aligned, pill style */}
+                          {unread > 0 && (
+                            <span className="shrink-0 min-w-5 h-5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
+                              {unread > 99 ? "99+" : unread}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {conversation.lastMessage && (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.lastMessage.body}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
