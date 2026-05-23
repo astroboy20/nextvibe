@@ -66,7 +66,9 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // Maps optimistic message body → temp id so we can replace it when the
+  // server echoes the real message back (prevents double-bubble).
+  const pendingOptimisticRef = useRef<Map<string, string>>(new Map());
 
   const { data: meData } = useGetUserQuery();
   const myId = meData?.data?.id;
@@ -92,10 +94,24 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
 
     const handleNewMessage = (msg: ChatMessage) => {
       setMessages((prev) => {
+        // Exact duplicate guard (server may echo to the sender too)
         if (msg.id && prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
+
+        // If this is an echo of our own optimistic bubble, replace it with the
+        // real message (correct id + server timestamp) instead of prepending a copy.
+        const isOwn = msg.sender?.id === myId || msg.senderId === myId;
+        if (isOwn) {
+          const text = msgText(msg);
+          const optId = pendingOptimisticRef.current.get(text);
+          if (optId) {
+            pendingOptimisticRef.current.delete(text);
+            return prev.map((m) => (m.id === optId ? msg : m));
+          }
+        }
+
+        // Prepend — newest message goes to the top, matching server order
+        return [msg, ...prev];
       });
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     // Re-join on every (re)connect
@@ -135,7 +151,9 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
         }
 
         const json = await res.json();
-        setMessages(json?.data?.data ?? []);
+        // Server returns newest-first — keep that order as-is.
+        const history: ChatMessage[] = json?.data?.data ?? [];
+        setMessages(history);
       } catch (err){
         toast.error(errorHandler(err));
         setMessages([]);
@@ -148,12 +166,11 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
 
   useEffect(() => {
     setMessages([]);
+    pendingOptimisticRef.current.clear(); // discard any pending optimistics from old section
     fetchHistory(activeSection);
   }, [activeSection, fetchHistory]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  // No auto-scroll needed — newest messages appear at the top naturally.
 
   const handleSend = () => {
     const text = message.trim();
@@ -165,6 +182,26 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       section: SECTION_KEY[activeSection],
       body: text,
     });
+
+    // Add an optimistic bubble immediately so the sender sees their message
+    // right away. When the server echoes it back via new:event-chat the
+    // handleNewMessage handler will replace this with the real message.
+    const optimisticId = `opt-${Date.now()}`;
+    pendingOptimisticRef.current.set(text, optimisticId);
+    const me = meData?.data as any;
+    const optimistic: ChatMessage = {
+      id: optimisticId,
+      body: text,
+      senderId: myId,
+      sender: {
+        id: myId,
+        displayName: me?.displayName,
+        username: me?.username,
+        avatarUrl: me?.avatarUrl,
+      },
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [optimistic, ...prev]);
     setMessage("");
   };
 
@@ -279,7 +316,6 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
             );
           })
         )}
-        <div ref={bottomRef} />
       </div>
 
       <div className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-background">
