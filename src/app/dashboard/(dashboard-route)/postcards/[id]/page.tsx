@@ -29,7 +29,7 @@ function GridTile({ postcard, onClick }: { postcard: PostcardData; onClick: () =
   const src = primaryMedia.mediaUrl;
   const isVideo = primaryMedia.mediaType === "VIDEO";
   const hasMultiple = (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
-
+console.log(src,"src")
   return (
     <div onClick={onClick} className="relative mb-1 break-inside-avoid overflow-hidden rounded-lg cursor-pointer bg-muted">
       {isVideo ? (
@@ -38,7 +38,6 @@ function GridTile({ postcard, onClick }: { postcard: PostcardData; onClick: () =
             src={src}
             muted
             playsInline
-            preload="none"
             className="w-full object-cover rounded-lg min-h-30"
           />
           <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
