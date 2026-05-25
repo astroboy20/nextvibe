@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  ArrowLeft,
-  Send,
-  Search,
-  MessageCircle,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Send, Search, MessageCircle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -84,7 +78,9 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
   // Hide the global DashboardNavbar and BottomNav while the chat is open
   useEffect(() => {
     dispatch(setHideHeader(true));
-    return () => { dispatch(setHideHeader(false)); };
+    return () => {
+      dispatch(setHideHeader(false));
+    };
   }, [dispatch]);
 
   // refetchOnMountOrArgChange: true → always fetch fresh messages when opening
@@ -94,12 +90,13 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
     { refetchOnMountOrArgChange: true }
   );
 
-
   // Seed local state from REST response (newest-first → reverse for display)
   useEffect(() => {
     if (data?.data) {
       const msgs = [...data.data.data].reverse();
-      console.log(`[chat] REST loaded ${msgs.length} messages for conv=${conversation.id}`);
+      console.log(
+        `[chat] REST loaded ${msgs.length} messages for conv=${conversation.id}`
+      );
       setLocalMessages(msgs);
     }
   }, [data, conversation.id]);
@@ -123,7 +120,11 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
     }
 
     const joinRoom = () => {
-      console.log(`[chat] 🔗 join:dm  conv=${conversation.id}  socketId=${socket.id ?? "pending"}`);
+      console.log(
+        `[chat] 🔗 join:dm  conv=${conversation.id}  socketId=${
+          socket.id ?? "pending"
+        }`
+      );
       socket.emit("join:dm", { conversationId: conversation.id });
     };
 
@@ -136,7 +137,9 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
         const optId = pendingOptimisticRef.current.get(msg.body);
         if (optId) {
           pendingOptimisticRef.current.delete(msg.body);
-          setLocalMessages((prev) => prev.map((m) => m.id === optId ? msg : m));
+          setLocalMessages((prev) =>
+            prev.map((m) => (m.id === optId ? msg : m))
+          );
           return;
         }
       }
@@ -156,15 +159,17 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
       console.log(`[chat] already connected on mount — joining immediately`);
       joinRoom();
     } else {
-      console.log(`[chat] not yet connected (status=${status}) — will join when "connect" fires`);
+      console.log(
+        `[chat] not yet connected (status=${status}) — will join when "connect" fires`
+      );
     }
 
     return () => {
       socket.off("connect", joinRoom);
       socket.off("new:dm", handleNewDm);
     };
-  // socketRef is a stable ref object; conversation.id re-join when switching convos
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // socketRef is a stable ref object; conversation.id re-join when switching convos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id, socketRef]);
 
   useEffect(() => {
@@ -177,7 +182,9 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
     const body = newMessage.trim();
 
     if (!isConnected || !socketRef.current) {
-      console.error(`[chat] ❌ cannot send — socket not connected (status=${status})`);
+      console.error(
+        `[chat] ❌ cannot send — socket not connected (status=${status})`
+      );
       // Don't add optimistic bubble if we can't actually send
       return;
     }
@@ -204,7 +211,7 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
   return (
     // fixed inset-0: escape the (app) layout wrapper so the chat fills the full screen
     // and the input is never hidden behind the bottom nav
-    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
+    <div className="fixed inset-0 z-9999 bg-background flex flex-col">
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur shrink-0">
         <div className="container flex items-center gap-3 px-4 py-3">
@@ -225,13 +232,15 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
               {conversation.participant.username}
             </h1>
             {/* Socket status indicator — remove once messaging is stable */}
-            <p className={cn(
-              "text-[10px] font-medium",
-              status === "connected"    && "text-green-500",
-              status === "connecting"   && "text-amber-500",
-              status === "disconnected" && "text-muted-foreground",
-              status === "error"        && "text-red-500",
-            )}>
+            <p
+              className={cn(
+                "text-[10px] font-medium",
+                status === "connected" && "text-green-500",
+                status === "connecting" && "text-amber-500",
+                status === "disconnected" && "text-muted-foreground",
+                status === "error" && "text-red-500"
+              )}
+            >
               {status}
             </p>
           </div>
@@ -243,7 +252,7 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
         <div className="flex flex-col gap-0.5">
           {isLoading && (
             <p className="text-center text-sm text-muted-foreground py-4">
-              Loading messages…
+              Loading messages… new
             </p>
           )}
           {localMessages.map((message, index) => {
@@ -251,7 +260,7 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
             const prev = localMessages[index - 1];
             const next = localMessages[index + 1];
             const isFirstInGroup = !prev || prev.senderId !== message.senderId;
-            const isLastInGroup  = !next || next.senderId !== message.senderId;
+            const isLastInGroup = !next || next.senderId !== message.senderId;
 
             return (
               <div
@@ -260,7 +269,7 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
                   "flex items-end gap-2",
                   isMine ? "justify-end" : "justify-start",
                   // Extra breathing room between sender groups
-                  isLastInGroup && index !== localMessages.length - 1 && "mb-2",
+                  isLastInGroup && index !== localMessages.length - 1 && "mb-2"
                 )}
               >
                 {/* Avatar column for received messages — fixed width keeps bubbles aligned */}
@@ -268,7 +277,9 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
                   <div className="w-7 shrink-0 self-end">
                     {isLastInGroup ? (
                       <Avatar className="h-7 w-7">
-                        <AvatarImage src={conversation.participant.avatarUrl} />
+                        <AvatarImage
+                          src={conversation?.participant?.avatarUrl}
+                        />
                         <AvatarFallback className="text-[10px]">
                           {conversation.participant.username?.[0]?.toUpperCase()}
                         </AvatarFallback>
@@ -277,7 +288,12 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
                   </div>
                 )}
 
-                <div className={cn("flex flex-col max-w-[75%]", isMine && "items-end")}>
+                <div
+                  className={cn(
+                    "flex flex-col max-w-[75%]",
+                    isMine && "items-end"
+                  )}
+                >
                   <div
                     className={cn(
                       "px-4 py-2 text-sm leading-relaxed",
@@ -286,10 +302,10 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
                         : "bg-muted text-foreground",
                       // All corners rounded by default; flatten connecting corners within a group
                       "rounded-2xl",
-                      isMine  && !isFirstInGroup && "rounded-tr-[6px]",
-                      isMine  && !isLastInGroup  && "rounded-br-[6px]",
+                      isMine && !isFirstInGroup && "rounded-tr-[6px]",
+                      isMine && !isLastInGroup && "rounded-br-[6px]",
                       !isMine && !isFirstInGroup && "rounded-tl-[6px]",
-                      !isMine && !isLastInGroup  && "rounded-bl-[6px]",
+                      !isMine && !isLastInGroup && "rounded-bl-[6px]"
                     )}
                   >
                     {message.body}
@@ -297,10 +313,14 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
 
                   {/* Timestamp only on the last bubble of each group */}
                   {isLastInGroup && (
-                    <p className={cn(
-                      "text-[10px] mt-1 px-1",
-                      isMine ? "text-muted-foreground" : "text-muted-foreground",
-                    )}>
+                    <p
+                      className={cn(
+                        "text-[10px] mt-1 px-1",
+                        isMine
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
                       {formatTime(message.createdAt)}
                     </p>
                   )}
@@ -316,14 +336,18 @@ function ChatView({ conversation, currentUserId, onBack }: ChatViewProps) {
       <div className="border-t border-border bg-background p-4 shrink-0">
         {!isConnected && (
           <p className="text-xs text-center text-muted-foreground mb-2">
-            {status === "connecting" ? "Connecting…" : "Reconnecting — messages may be delayed"}
+            {status === "connecting"
+              ? "Connecting…"
+              : "Reconnecting — messages may be delayed"}
           </p>
         )}
         <div className="flex items-center gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isConnected ? "Type a message…" : "Waiting for connection…"}
+            placeholder={
+              isConnected ? "Type a message…" : "Waiting for connection…"
+            }
             className="flex-1 rounded-full"
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             disabled={!isConnected}
@@ -383,7 +407,7 @@ const Messages = () => {
   });
 
   useEffect(() => {
-    if (selectedConversation) return;           // ChatView handles its own socket
+    if (selectedConversation) return; // ChatView handles its own socket
     const socket = listSocketRef.current;
     if (!socket) return;
 
@@ -410,15 +434,15 @@ const Messages = () => {
 
     socket.on("connect", joinAll);
     socket.on("new:dm", handleNewDm);
-    if (socket.connected) joinAll();            // already connected on mount
+    if (socket.connected) joinAll(); // already connected on mount
 
     return () => {
       socket.off("connect", joinAll);
       socket.off("new:dm", handleNewDm);
     };
-  // Re-run when conversations load (so newly-appeared rooms get joined) or
-  // when selectedConversation toggles (enables/disables this socket).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Re-run when conversations load (so newly-appeared rooms get joined) or
+    // when selectedConversation toggles (enables/disables this socket).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation, listSocketRef, conversations, refetch]);
 
   // Once the server-side unreadCount is confirmed (refetch returned), drop the
@@ -427,7 +451,9 @@ const Messages = () => {
   useEffect(() => {
     if (!conversations.length) return;
     setLocalUnread((prev) => {
-      const changed = conversations.some((c) => c.unreadCount > 0 && prev[c.id]);
+      const changed = conversations.some(
+        (c) => c.unreadCount > 0 && prev[c.id]
+      );
       if (!changed) return prev;
       const next = { ...prev };
       conversations.forEach((c) => {
@@ -435,7 +461,7 @@ const Messages = () => {
       });
       return next;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversations]);
 
   // Auto-select conversation from URL param
@@ -516,10 +542,7 @@ const Messages = () => {
         {isLoading && (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-muted animate-pulse"
-              />
+              <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
             ))}
           </div>
         )}
@@ -573,7 +596,9 @@ const Messages = () => {
                     <div className="flex items-center gap-3">
                       {/* Avatar — no badge here; the count lives on the right */}
                       <Avatar className="h-12 w-12 shrink-0">
-                        <AvatarImage src={conversation.participant.avatarUrl} />
+                        <AvatarImage
+                          src={conversation?.participant?.avatarUrl}
+                        />
                         <AvatarFallback>
                           {conversation.participant.username?.[0]?.toUpperCase()}
                         </AvatarFallback>

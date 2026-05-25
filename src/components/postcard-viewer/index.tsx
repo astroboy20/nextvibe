@@ -26,6 +26,7 @@ import {
   Volume2,
   VolumeX,
   ImageOff,
+  ChevronLeft,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -190,7 +191,7 @@ export function VideoPlayer({
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    if (active) vid.play().catch(() => { });
+    if (active) vid.play().catch(() => {});
     else {
       vid.pause();
       vid.currentTime = 0;
@@ -217,7 +218,7 @@ export function VideoPlayer({
         // Single tap: toggle mute
         const vid = videoRef.current;
         if (!vid) return;
-        if (vid.paused) vid.play().catch(() => { });
+        if (vid.paused) vid.play().catch(() => {});
         const next = !muted;
         vid.muted = next;
         setMuted(next);
@@ -429,8 +430,8 @@ function DotIndicator({
               isActive
                 ? "w-4 h-1.5 bg-primary"
                 : isEdge
-                  ? "w-1 h-1 bg-muted-foreground/20"
-                  : "w-1.5 h-1.5 bg-muted-foreground/30"
+                ? "w-1 h-1 bg-muted-foreground/20"
+                : "w-1.5 h-1.5 bg-muted-foreground/30"
             )}
           />
         );
@@ -466,7 +467,7 @@ export function PostcardViewer({
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
   // Fetch fresh like state + full author on open
-  const { data: freshPostcard } = useGetPostcardQuery(postcard.id!, {
+  const { data: freshPostcard, isLoading } = useGetPostcardQuery(postcard.id!, {
     skip: !postcard.id,
   });
 
@@ -510,7 +511,8 @@ export function PostcardViewer({
   }, [carouselApi]);
 
   const media = (postcard.media ?? []).filter((m) => !!m.mediaUrl);
-  const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "User";
+  const displayName =
+    resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "User";
   const username = resolvedAuthor?.username;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
@@ -566,21 +568,23 @@ export function PostcardViewer({
 
   const handleShare = async () => {
     const currentMedia = media[activeIndex];
-    const authorLabel = postcard.author?.displayName ?? postcard.author?.username ?? "User";
+    const authorLabel =
+      postcard.author?.displayName ?? postcard.author?.username ?? "User";
     const text = postcard.caption
       ? `${postcard.caption}\n\n— ${authorLabel} at ${resolvedEventName} via NextVibe`
       : `Check out this memory from ${resolvedEventName} by ${authorLabel} — NextVibe`;
     const shareUrl = postcard.id
-      ? `${typeof window !== "undefined" ? window.location.origin : ""
-      }/postcard/${postcard.id}`
+      ? `${
+          typeof window !== "undefined" ? window.location.origin : ""
+        }/postcard/${postcard.id}`
       : typeof window !== "undefined"
-        ? window.location.href
-        : "";
+      ? window.location.href
+      : "";
 
     if (!navigator.share) {
       await navigator.clipboard
         .writeText(`${text}\n\n${shareUrl}`)
-        .catch(() => { });
+        .catch(() => {});
       toast.success("Link copied to clipboard");
       return;
     }
@@ -637,7 +641,7 @@ export function PostcardViewer({
       if (e?.name !== "AbortError") {
         await navigator.clipboard
           .writeText(`${text}\n\n${shareUrl}`)
-          .catch(() => { });
+          .catch(() => {});
         toast.success("Link copied to clipboard");
       }
     }
@@ -654,8 +658,43 @@ export function PostcardViewer({
         className="fixed inset-0 flex flex-col bg-background overflow-hidden"
         style={{ zIndex }}
       >
+        <div className="flex items-center gap-2 p-4  bg-background shrink-0">
+          <button
+            onClick={onClose}
+            className=" z-30 flex h-9 w-9 items-center justify-center rounded-full text-black"
+            aria-label="Close"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
 
+          <div>
+            {isLoading ? (
+              <Skeleton className="rounded-full w-10 h-q0" />
+            ) : resolvedAuthor?.avatarUrl ? (
+              <Image
+                src={resolvedAuthor.avatarUrl}
+                alt={displayName}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                {displayName?.[0]?.toUpperCase() ?? "?"}
+              </div>
+            )}
+          </div>
 
+          {isLoading ? (
+            <Skeleton className="h-4 w-1/4" />
+          ) : (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-tight truncate">
+                {displayName}
+              </p>
+            </div>
+          )}
+        </div>
         {/* Carousel — flex-1 so it fills remaining height */}
         <div className="relative flex-1 min-h-0 w-full bg-black overflow-hidden">
           <Carousel
@@ -665,7 +704,10 @@ export function PostcardViewer({
           >
             <CarouselContent className="ml-0 h-full">
               {media.map((m, i) => (
-                <CarouselItem key={m.id ?? i} className="pl-0 basis-full h-full">
+                <CarouselItem
+                  key={m.id ?? i}
+                  className="pl-0 basis-full h-full"
+                >
                   {m.mediaType === "VIDEO" ? (
                     <VideoPlayer
                       src={m.mediaUrl!}
@@ -686,13 +728,6 @@ export function PostcardViewer({
               ))}
             </CarouselContent>
           </Carousel>
-          <button
-            onClick={onClose}
-            className="absolute top-4 left-4 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white transition-colors hover:bg-black/70"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
 
           {showHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
@@ -710,8 +745,11 @@ export function PostcardViewer({
 
         <>
           {/* Author row — top, with close button */}
+
           <div className="flex items-center gap-3 px-4 pt-3  bg-background shrink-0">
-            {resolvedAuthor?.avatarUrl ? (
+            {isLoading ? (
+              <Skeleton className="rounded-full w-10 h-q0" />
+            ) : resolvedAuthor?.avatarUrl ? (
               <Image
                 src={resolvedAuthor.avatarUrl}
                 alt={displayName}
@@ -724,14 +762,20 @@ export function PostcardViewer({
                 {displayName?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {username ? `@${username}` : ""}
-                {username && timeAgo ? ` · ${timeAgo}` : timeAgo}
-              </p>
-            </div>
 
+            {isLoading ? (
+              <Skeleton className="h-4 w-1/4" />
+            ) : (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-tight truncate">
+                  {displayName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {username ? `@${username}` : ""}
+                  {username && timeAgo ? ` · ${timeAgo}` : timeAgo}
+                </p>
+              </div>
+            )}
           </div>
           {/* Actions */}
           <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
@@ -742,27 +786,37 @@ export function PostcardViewer({
               <Heart
                 className={cn(
                   "h-6 w-6 transition-all duration-150",
-                  liked ? "fill-[#5B1A57] text-[#5B1A57] scale-110" : "text-foreground"
+                  liked
+                    ? "fill-[#5B1A57] text-[#5B1A57] scale-110"
+                    : "text-foreground"
                 )}
               />
-              <span className="text-sm font-medium text-foreground">{likeCount}</span>
+              <span className="text-sm font-medium text-foreground">
+                {likeCount}
+              </span>
             </button>
-            <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowComments(true)}
+              className="flex items-center gap-1.5"
+            >
               <MessageCircle className="h-6 w-6 text-foreground" />
-              <span className="text-sm font-medium text-foreground">{commentCount}</span>
+              <span className="text-sm font-medium text-foreground">
+                {commentCount}
+              </span>
             </button>
             <button
               onClick={handleShare}
               disabled={sharing}
-              className="flex items-center gap-1.5 ml-auto disabled:opacity-50"
+              className="flex items-center gap-1.5 disabled:opacity-50"
             >
-              {sharing
-                ? <Loader2 className="h-6 w-6 animate-spin text-foreground" />
-                : <Send className="h-6 w-6 text-foreground" />}
+              {sharing ? (
+                <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+              ) : (
+                <Send className="h-6 w-6 text-foreground" />
+              )}
             </button>
           </div>
         </>
-
 
         {/* {postcard.caption && (
           <div className="px-4 pb-4 pt-1 bg-background shrink-0">
@@ -773,7 +827,10 @@ export function PostcardViewer({
       </div>
 
       {showComments && postcard.id && (
-        <CommentSheet postcardId={postcard.id} onClose={() => setShowComments(false)} />
+        <CommentSheet
+          postcardId={postcard.id}
+          onClose={() => setShowComments(false)}
+        />
       )}
     </>
   );

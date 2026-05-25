@@ -21,23 +21,34 @@ const VALID_PHASES: Phase[] = ["all", "pre-event", "main-event", "post-event"];
 
 // ─── Grid tile ────────────────────────────────────────────────────────────────
 
-function GridTile({ postcard, onClick }: { postcard: PostcardData; onClick: () => void }) {
+function GridTile({
+  postcard,
+  onClick,
+}: {
+  postcard: PostcardData;
+  onClick: () => void;
+}) {
   const primaryMedia = (postcard.media ?? []).find((m) => !!m.mediaUrl);
 
   if (!primaryMedia?.mediaUrl) return null;
 
   const src = primaryMedia.mediaUrl;
   const isVideo = primaryMedia.mediaType === "VIDEO";
-  const hasMultiple = (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
-console.log(src,"src")
+  const hasMultiple =
+    (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
+  console.log(src, "src");
   return (
-    <div onClick={onClick} className="relative mb-1 break-inside-avoid overflow-hidden rounded-lg cursor-pointer bg-muted">
+    <div
+      onClick={onClick}
+      className="relative mb-1 break-inside-avoid overflow-hidden rounded-lg cursor-pointer bg-muted"
+    >
       {isVideo ? (
         <div className="relative">
           <video
             src={src}
             muted
             playsInline
+            preload="auto"
             className="w-full object-cover rounded-lg min-h-30"
           />
           <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
@@ -55,7 +66,11 @@ console.log(src,"src")
       )}
       {hasMultiple && (
         <div className="absolute top-1.5 right-1.5">
-          <svg className="h-4 w-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="h-4 w-4 text-white drop-shadow"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
           </svg>
         </div>
@@ -66,7 +81,11 @@ console.log(src,"src")
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function EventPostcardsPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EventPostcardsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,23 +95,33 @@ export default function EventPostcardsPage({ params }: { params: Promise<{ id: s
     return VALID_PHASES.includes(p) ? p : "all";
   };
 
-  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(null);
+  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(
+    null
+  );
   const [page, setPage] = useState(1);
   const [phase, setPhase] = useState<Phase>(initialPhase);
   const LIMIT = 40;
 
   const { data: eventDetails } = useGetEventDetailsQuery(id);
   const { data: postcardsData, isLoading } = useGetEventPostcardsQuery({
-    eventId: id, page, limit: LIMIT,
+    eventId: id,
+    page,
+    limit: LIMIT,
     ...(phase !== "all" ? { phase } : {}),
   });
 
-  const gridItems: PostcardData[] = (postcardsData?.data?.data ?? postcardsData?.data ?? [])
-    .filter((p: PostcardData) => (p.media ?? []).some((m) => !!m.mediaUrl));
+  const gridItems: PostcardData[] = (
+    postcardsData?.data?.data ??
+    postcardsData?.data ??
+    []
+  ).filter((p: PostcardData) => (p.media ?? []).some((m) => !!m.mediaUrl));
   const meta = postcardsData?.data?.meta ?? postcardsData?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";
 
-  const handlePhaseChange = (value: string) => { setPhase(value as Phase); setPage(1); };
+  const handlePhaseChange = (value: string) => {
+    setPhase(value as Phase);
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -105,17 +134,29 @@ export default function EventPostcardsPage({ params }: { params: Promise<{ id: s
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <h1 className="font-semibold text-base leading-tight truncate">Postcards</h1>
-            <p className="text-xs text-muted-foreground truncate">{eventName}</p>
+            <h1 className="font-semibold text-base leading-tight truncate">
+              Postcards
+            </h1>
+            <p className="text-xs text-muted-foreground truncate">
+              {eventName}
+            </p>
           </div>
         </div>
         <div className="px-4 pb-3">
           <Tabs value={phase} onValueChange={handlePhaseChange}>
             <TabsList className="w-full grid grid-cols-4 h-9">
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-              <TabsTrigger value="pre-event" className="text-xs">Pre</TabsTrigger>
-              <TabsTrigger value="main-event" className="text-xs">Main</TabsTrigger>
-              <TabsTrigger value="post-event" className="text-xs">Post</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="pre-event" className="text-xs">
+                Pre
+              </TabsTrigger>
+              <TabsTrigger value="main-event" className="text-xs">
+                Main
+              </TabsTrigger>
+              <TabsTrigger value="post-event" className="text-xs">
+                Post
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -126,7 +167,10 @@ export default function EventPostcardsPage({ params }: { params: Promise<{ id: s
           <div className="columns-2 gap-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="mb-1 break-inside-avoid">
-                <Skeleton className="w-full rounded-lg" style={{ height: `${160 + (i % 3) * 60}px` }} />
+                <Skeleton
+                  className="w-full rounded-lg"
+                  style={{ height: `${160 + (i % 3) * 60}px` }}
+                />
               </div>
             ))}
           </div>
