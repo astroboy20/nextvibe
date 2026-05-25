@@ -18,7 +18,7 @@ type Section = "pre-event" | "during" | "post-event";
 // Map UI section keys to the backend enum values
 const SECTION_KEY: Record<Section, string> = {
   "pre-event": "PRE_EVENT",
-  "during": "DURING_EVENT",
+  during: "DURING_EVENT",
   "post-event": "POST_EVENT",
 };
 
@@ -88,7 +88,11 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
     const section = SECTION_KEY[activeSection];
 
     const joinRoom = () => {
-      console.log(`[event-chat] 🔗 join:event-chat  event=${eventId}  section=${section}  socketId=${socket.id ?? "pending"}`);
+      console.log(
+        `[event-chat] 🔗 join:event-chat  event=${eventId}  section=${section}  socketId=${
+          socket.id ?? "pending"
+        }`
+      );
       socket.emit("join:event-chat", { eventId, section });
     };
 
@@ -123,14 +127,16 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       console.log(`[event-chat] already connected — joining immediately`);
       joinRoom();
     } else {
-      console.log(`[event-chat] not yet connected — will join when "connect" fires`);
+      console.log(
+        `[event-chat] not yet connected — will join when "connect" fires`
+      );
     }
 
     return () => {
       socket.off("connect", joinRoom);
       socket.off("new:event-chat", handleNewMessage);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, activeSection, socketRef]);
 
   const fetchHistory = useCallback(
@@ -145,7 +151,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          toast.error(errorData?.message ?? "Failed to load chat history");
+          toast.error(errorData?.error?.message);
           setMessages([]);
           return;
         }
@@ -154,7 +160,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
         // Server returns newest-first — keep that order as-is.
         const history: ChatMessage[] = json?.data?.data ?? [];
         setMessages(history);
-      } catch (err){
+      } catch (err) {
         toast.error(errorHandler(err));
         setMessages([]);
       } finally {
