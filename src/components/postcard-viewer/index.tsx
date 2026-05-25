@@ -125,7 +125,7 @@ export function ProgressiveImage({
             onLoad={() => setLoaded(true)}
             onError={() => setError(true)}
             className={cn(
-              "max-w-full max-h-full object-contain transition-opacity duration-300",
+              "max-w-full max-h-full h-full transition-opacity duration-300",
               loaded ? "opacity-100" : "opacity-0",
               className
             )}
@@ -136,7 +136,7 @@ export function ProgressiveImage({
   }
 
   return (
-    <div className="relative w-full min-h-30">
+    <div className="relative w-full min-h-30 ">
       {!loaded && !error && (
         <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
       )}
@@ -157,7 +157,7 @@ export function ProgressiveImage({
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
           className={cn(
-            "w-full h-full block transition-opacity duration-300",
+            "w-full h-auto block transition-opacity duration-300 ",
             loaded ? "opacity-100" : "opacity-0",
             className
           )}
@@ -655,7 +655,7 @@ export function PostcardViewer({
   return (
     <>
       <div
-        className="fixed inset-0 flex flex-col bg-background overflow-hidden"
+        className="fixed inset-0 flex flex-col bg-background overflow-y-scroll no-scrollbar"
         style={{ zIndex }}
       >
         <div className="flex items-center gap-2 p-4  bg-background shrink-0">
@@ -696,7 +696,7 @@ export function PostcardViewer({
           )}
         </div>
         {/* Carousel — flex-1 so it fills remaining height */}
-        <div className="relative flex-1 min-h-0 w-full bg-black overflow-hidden">
+        <div className="relative  h-full w-full bg-black ">
           <Carousel
             setApi={setCarouselApi}
             opts={{ loop: false }}
