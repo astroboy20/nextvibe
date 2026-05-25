@@ -136,7 +136,7 @@ export function ProgressiveImage({
   }
 
   return (
-    <div className="relative w-full min-h-[120px]">
+    <div className="relative w-full min-h-30">
       {!loaded && !error && (
         <div className="absolute inset-0 bg-muted animate-pulse rounded-inherit" />
       )}
@@ -157,7 +157,7 @@ export function ProgressiveImage({
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
           className={cn(
-            "w-full h-auto block transition-opacity duration-300",
+            "w-full h-full block transition-opacity duration-300",
             loaded ? "opacity-100" : "opacity-0",
             className
           )}
@@ -746,7 +746,7 @@ export function PostcardViewer({
         <>
           {/* Author row — top, with close button */}
 
-          <div className="flex items-center gap-3 px-4 pt-3  bg-background shrink-0">
+          <div className="flex items-center gap-3 px-4 pt-5  bg-background shrink-0">
             {isLoading ? (
               <Skeleton className="rounded-full w-10 h-q0" />
             ) : resolvedAuthor?.avatarUrl ? (

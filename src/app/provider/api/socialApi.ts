@@ -6,12 +6,14 @@ export interface PostcardUser {
   name: string;
   avatar: string;
   username?: string;
+  avatarUrl?: string;
 }
 
 export interface PostcardGalleryItem {
   url: string;
   type: string;
   _id: string;
+  mediaUrl?: string;
 }
 
 export interface PostcardItem {
@@ -33,6 +35,8 @@ export interface PostcardItem {
   commentsCount?: number;
   isLiked?: boolean;
   tags?: string[];
+  avatarUrl?: string;
+  likeCount?: number;
 }
 
 export interface PostcardsMeta {
