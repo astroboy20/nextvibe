@@ -589,7 +589,7 @@ export function PostcardViewer({
     const shareUrl = postcard.id
       ? `${
           typeof window !== "undefined" ? window.location.origin : ""
-        }/postcard/${postcard.id}`
+        }/postcards/${postcard.id}`
       : typeof window !== "undefined"
       ? window.location.href
       : "";
