@@ -202,7 +202,7 @@ function NotificationBell() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 p-0 rounded-xl shadow-[var(--shadow-elevated)] overflow-hidden z-[1000001]"
+        className="w-80 p-0 rounded-xl shadow-(--shadow-elevated) overflow-hidden z-1000001"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -243,7 +243,7 @@ function NotificationBell() {
           </div>
         ) : (
           /* Plain div scroll — more reliable than ScrollArea inside a Popover */
-          <div className="max-h-[360px] overflow-y-auto">
+          <div className="max-h-90 overflow-y-auto">
             <div className="divide-y divide-border">
               {notifications.map((n) => (
                 <NotifItem
@@ -285,7 +285,7 @@ const DashboardNavbar = ({ title }: HeaderProps) => {
   if (hideHeader) return null;
 
   return (
-    <header className="sticky top-0 z-[1000000] border-b w-full bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-1000000 border-b w-full bg-white/95 backdrop-blur-sm">
       <div className="container flex h-24 px-4 items-center justify-between lg:max-w-7xl mx-auto">
         {/* Left — logo + optional title */}
         <div className="flex items-center gap-3">

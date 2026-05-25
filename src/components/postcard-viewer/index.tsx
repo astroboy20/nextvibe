@@ -490,6 +490,19 @@ export function PostcardViewer({
   const commentCount =
     liveComments.length > 0 ? liveComments.length : postcard.commentCount ?? 0;
 
+  const [expandedCaption, setExpandedCaption] = useState(false);
+
+  const MAX_CAPTION_LENGTH = 120;
+
+  const caption = postcard.caption ?? "";
+
+  const isLongCaption = caption.length > MAX_CAPTION_LENGTH;
+
+  const displayedCaption =
+    expandedCaption || !isLongCaption
+      ? caption
+      : `${caption.slice(0, MAX_CAPTION_LENGTH)}...`;
+
   // Lock scroll + hide header
   useEffect(() => {
     dispatch(setHideHeader(true));
@@ -743,11 +756,51 @@ export function PostcardViewer({
           onSelect={(i) => carouselApi?.scrollTo(i)}
         />
 
+        {/* Actions */}
+        <div className="flex items-center gap-4 px-4 pt-5 bg-background shrink-0">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-1.5 transition-transform active:scale-90"
+          >
+            <Heart
+              className={cn(
+                "h-6 w-6 transition-all duration-150",
+                liked
+                  ? "fill-[#5B1A57] text-[#5B1A57] scale-110"
+                  : "text-foreground"
+              )}
+            />
+            <span className="text-sm font-medium text-foreground">
+              {likeCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setShowComments(true)}
+            className="flex items-center gap-1.5"
+          >
+            <MessageCircle className="h-6 w-6 text-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {commentCount}
+            </span>
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            className="flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {sharing ? (
+              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+            ) : (
+              <Send className="h-6 w-6 text-foreground" />
+            )}
+          </button>
+        </div>
+
         <>
           {/* Author row — top, with close button */}
 
-          <div className="flex items-center gap-3 px-4 pt-5  bg-background shrink-0">
-            {isLoading ? (
+          <div className="flex items-center gap-3 px-4 py-5  bg-background shrink-0">
+            {/* {isLoading ? (
               <Skeleton className="rounded-full w-10 h-q0" />
             ) : resolvedAuthor?.avatarUrl ? (
               <Image
@@ -761,60 +814,36 @@ export function PostcardViewer({
               <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
                 {displayName?.[0]?.toUpperCase() ?? "?"}
               </div>
-            )}
+            )} */}
 
             {isLoading ? (
               <Skeleton className="h-4 w-1/4" />
             ) : (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-tight truncate">
-                  {displayName}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {username ? `@${username}` : ""}
-                  {username && timeAgo ? ` · ${timeAgo}` : timeAgo}
+                <div className="text-base">
+                  <div className="flex items-start gap-1 flex-wrap">
+                    <p className="font-semibold leading-tight">{displayName}</p>
+
+                    <p className="wrap-break-word">
+                      {displayedCaption}
+
+                      {isLongCaption && (
+                        <button
+                          onClick={() => setExpandedCaption((prev) => !prev)}
+                          className="ml-1 text-primary font-medium hover:underline"
+                        >
+                          {expandedCaption ? "Read less" : "Read more"}
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground truncate">
+                  {timeAgo ? `${timeAgo}` : timeAgo}
                 </p>
               </div>
             )}
-          </div>
-          {/* Actions */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-background shrink-0">
-            <button
-              onClick={handleLike}
-              className="flex items-center gap-1.5 transition-transform active:scale-90"
-            >
-              <Heart
-                className={cn(
-                  "h-6 w-6 transition-all duration-150",
-                  liked
-                    ? "fill-[#5B1A57] text-[#5B1A57] scale-110"
-                    : "text-foreground"
-                )}
-              />
-              <span className="text-sm font-medium text-foreground">
-                {likeCount}
-              </span>
-            </button>
-            <button
-              onClick={() => setShowComments(true)}
-              className="flex items-center gap-1.5"
-            >
-              <MessageCircle className="h-6 w-6 text-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {commentCount}
-              </span>
-            </button>
-            <button
-              onClick={handleShare}
-              disabled={sharing}
-              className="flex items-center gap-1.5 disabled:opacity-50"
-            >
-              {sharing ? (
-                <Loader2 className="h-6 w-6 animate-spin text-foreground" />
-              ) : (
-                <Send className="h-6 w-6 text-foreground" />
-              )}
-            </button>
           </div>
         </>
 

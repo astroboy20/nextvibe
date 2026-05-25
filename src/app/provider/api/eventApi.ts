@@ -459,12 +459,12 @@ export const eventsApi = createApi({
     // Step 2: create postcards with the returned fileKeys
     createPostcards: builder.mutation<
       any,
-      { eventId: string; vibeTagId?: string; media: { fileKey: string; mediaType: string; mediaUrl?: string }[] }
+      { eventId: string; caption?: string; vibeTagId?: string; media: { fileKey: string; mediaType: string; mediaUrl?: string }[] }
     >({
-      query: ({ eventId, vibeTagId, media }) => ({
+      query: ({ eventId, vibeTagId, media, caption }) => ({
         url: "/v1/postcards",
         method: "POST",
-        body: { eventId, vibeTagId, media },
+        body: { eventId, vibeTagId, media, caption },
       }),
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),

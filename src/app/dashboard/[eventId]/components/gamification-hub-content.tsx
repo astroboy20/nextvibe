@@ -465,7 +465,7 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
 
       {/* Unlock Game Dialog */}
       <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95%]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <LockKeyhole className="h-5 w-5 text-amber-500" />
