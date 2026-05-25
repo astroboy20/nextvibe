@@ -36,7 +36,6 @@ function GridTile({
   const isVideo = primaryMedia.mediaType === "VIDEO";
   const hasMultiple =
     (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
-  console.log(src, "src");
   return (
     <div
       onClick={onClick}

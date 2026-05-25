@@ -12,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
 import { useSocket } from "@/hooks/useSocket";
 import { errorHandler } from "@/utils/errorHandler";
+import { useRouter } from "next/navigation";
 
 type Section = "pre-event" | "during" | "post-event";
 
@@ -61,6 +62,7 @@ function msgText(msg: ChatMessage) {
 }
 
 export function EventChatTab({ eventId }: EventChatTabProps) {
+  const router = useRouter()
   const [activeSection, setActiveSection] = useState<Section>("pre-event");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -260,6 +262,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
             const isMe = msg.sender?.id === myId || msg.senderId === myId;
             const senderName =
               msg.sender?.displayName ?? msg.sender?.username ?? "User";
+            const senderId = msg.sender?.id;
             const avatarUrl = msg.sender?.avatarUrl ?? "";
             const isOrganizer =
               msg.sender?.role === "ORGANIZER" || msg.isOrganizer;
@@ -285,7 +288,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
                 >
                   {!isMe && (
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-xs text-foreground">
+                      <span className="font-semibold text-xs text-foreground" onClick={() => senderId && router.push(`/users/${senderId}`)}>
                         {senderName}
                       </span>
                       {isOrganizer && (

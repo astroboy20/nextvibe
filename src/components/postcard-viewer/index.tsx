@@ -524,8 +524,7 @@ export function PostcardViewer({
   }, [carouselApi]);
 
   const media = (postcard.media ?? []).filter((m) => !!m.mediaUrl);
-  const displayName =
-    resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "User";
+  const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username;
   const username = resolvedAuthor?.username;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
@@ -581,24 +580,24 @@ export function PostcardViewer({
 
   const handleShare = async () => {
     const currentMedia = media[activeIndex];
-    const authorLabel =
-      postcard.author?.displayName ?? postcard.author?.username ?? "User";
+
+    const authorLabel = resolvedAuthor?.displayName;
     const text = postcard.caption
       ? `${postcard.caption}\n\n— ${authorLabel} at ${resolvedEventName} via NextVibe`
       : `Check out this memory from ${resolvedEventName} by ${authorLabel} — NextVibe`;
     const shareUrl = postcard.id
       ? `${
           typeof window !== "undefined" ? window.location.origin : ""
-        }/postcards/${postcard.id}`
+        }/postcard/${postcard.id}`
       : typeof window !== "undefined"
       ? window.location.href
       : "";
-
     if (!navigator.share) {
       await navigator.clipboard
         .writeText(`${text}\n\n${shareUrl}`)
         .catch(() => {});
       toast.success("Link copied to clipboard");
+
       return;
     }
 
