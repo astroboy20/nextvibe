@@ -99,8 +99,8 @@ function NotifItem({
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm leading-snug">
-          <span className="font-semibold">{actor}</span>{" "}
+        <p className="text-sm leading-snug flex items-center gap-1">
+          <span className="font-semibold truncate">{actor}</span>{" "}
           <span className="text-muted-foreground truncate">
             { meta.label === "FOLLOW" ? "started following you" : meta.label }
           </span>
