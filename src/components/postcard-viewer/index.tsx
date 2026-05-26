@@ -19,7 +19,6 @@ import {
 import {
   Heart,
   MessageCircle,
-  Share2,
   X,
   Send,
   Loader2,
@@ -27,6 +26,7 @@ import {
   VolumeX,
   ImageOff,
   ChevronLeft,
+  View,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -35,6 +35,8 @@ import {
   useGetPostcardQuery,
 } from "@/app/provider/api/eventApi";
 import { usePostcardViewTracker } from "@/hooks/use-views";
+import { useGetUserQuery } from "@/app/provider/api/authApi";
+import { getGuestSessionId } from "@/hooks/get-guest-sessionId";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -472,10 +474,12 @@ export function PostcardViewer({
     skip: !postcard.id,
   });
 
+  const { data: userData } = useGetUserQuery();
+
   //views
   const cardRef = usePostcardViewTracker({
     postId: postcard?.id ?? "",
-    sessionId: "",
+    sessionId: userData?.data?.id || getGuestSessionId(),
   });
 
   const freshData = freshPostcard?.data ?? freshPostcard;
@@ -800,11 +804,14 @@ export function PostcardViewer({
               <Send className="h-6 w-6 text-foreground" />
             )}
           </button>
+          <div className="flex items-center gap-1.5 px-4 py-2 text-sm text-foreground shrink-0 ml-auto">
+            <View /> {freshData?.viewCount} 
+          </div>
         </div>
 
         <>
           {/* Author row — top, with close button */}
-
+         
           <div className="flex items-center gap-3 px-4 py-5  bg-background shrink-0">
             {/* {isLoading ? (
               <Skeleton className="rounded-full w-10 h-q0" />
