@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
   "/terms",
   "/events",
   "/postcards",
+  "/postcard",
 ];
 
 // Admin-only routes — protected by admin_accessToken

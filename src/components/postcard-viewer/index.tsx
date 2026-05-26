@@ -34,6 +34,7 @@ import {
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
 } from "@/app/provider/api/eventApi";
+import { usePostcardViewTracker } from "@/hooks/use-views";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -471,6 +472,12 @@ export function PostcardViewer({
     skip: !postcard.id,
   });
 
+  //views
+  const cardRef = usePostcardViewTracker({
+    postId: postcard?.id ?? "",
+    sessionId: "",
+  });
+
   const freshData = freshPostcard?.data ?? freshPostcard;
 
   // Merge fresh author data over the prop — list queries may return partial author
@@ -525,7 +532,6 @@ export function PostcardViewer({
 
   const media = (postcard.media ?? []).filter((m) => !!m.mediaUrl);
   const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username;
-  const username = resolvedAuthor?.username;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
   const timeAgo = postcard.createdAt
@@ -669,6 +675,7 @@ export function PostcardViewer({
       <div
         className="fixed inset-0 flex flex-col bg-background overflow-y-scroll no-scrollbar"
         style={{ zIndex }}
+        ref={cardRef}
       >
         <div className="flex items-center gap-2 p-4  bg-background shrink-0">
           <button
@@ -820,7 +827,7 @@ export function PostcardViewer({
             ) : (
               <div className="flex-1 min-w-0">
                 <div className="text-base">
-                  <div className="flex items-start gap-1 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap">
                     <p className="font-semibold leading-tight">{displayName}</p>
 
                     <p className="wrap-break-word">

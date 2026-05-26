@@ -7,6 +7,7 @@ import { baseQueryWithReauth } from "./baseQuery";
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: baseQueryWithReauth,
+    tagTypes: ["User"],
     endpoints: (build) => ({
 
         login: build.mutation({
@@ -70,7 +71,8 @@ export const authApi = createApi({
                     url: "/v1/users/me",
                     method: "GET",
                 }
-            }
+            },
+            providesTags: ["User"],
         }),
         getMe: build.query<any, void>({
             query() {
@@ -104,6 +106,48 @@ export const authApi = createApi({
                 }
             }
         }),
+        updateUser: build.mutation<
+            any,
+            {
+                displayName?: string;
+                username?: string;
+                bio?: string | null;
+                avatarUrl?: string | null;
+            }
+        >({
+            query(body) {
+                return {
+                    url: "/v1/users/me",
+                    method: "PATCH",
+                    body,
+                };
+            },
+
+            invalidatesTags: ["User"],
+        }),
+        // authApi.ts
+
+        getPresignedUrl: build.mutation<
+            {
+                [x: string]: any;
+                uploadUrl: string;
+                objectUrl: string;
+                expiresIn: number;
+            },
+            {
+                filename: string;
+                mimeType: string;
+                context: string;
+            }
+        >({
+            query(body) {
+                return {
+                    url: "/v1/storage/presigned-url",
+                    method: "POST",
+                    body,
+                };
+            },
+        }),
         logout: build.mutation<void, void>({
             query() {
                 return {
@@ -118,4 +162,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useLogoutMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useLogoutMutation, useUpdateUserMutation, useGetPresignedUrlMutation } = authApi
