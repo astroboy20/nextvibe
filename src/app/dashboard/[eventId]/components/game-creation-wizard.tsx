@@ -62,6 +62,14 @@ export interface Question {
   correctAnswer?: string; // derived from options[correctIndex] on submit
   // WORD_PUZZLE
   clue?: string; // the hint shown to players
+  // Word puzzle grid metadata (from new API shape)
+  wordPuzzleMeta?: {
+    word: string;
+    grid: string[][];
+    startCell: [number, number] | null;
+    endCell: [number, number] | null;
+    direction: string | null;
+  };
   // shared
   points?: number;
   timeLimitSecs: number;
@@ -155,21 +163,19 @@ export function GameCreationWizard({
   const totalSteps = 6;
   const [createGame] = useCreateGameMutation();
 
-  const gameEndsAt = eventStartsAt
-    ? new Date(new Date(eventStartsAt).getTime() - 60 * 1000)
-        .toISOString()
-        .slice(0, 16)
-    : "";
-  const maxStartsAt = gameEndsAt;
-
   const [step, setStep] = useState<number>(1);
   const [gameName, setGameName] = useState<string>("");
   const [numberOfRounds, setNumberOfRounds] = useState<number>(1);
   const [phase, setPhase] = useState<EventPhase>("main-event");
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("concurrent");
   const [startsAt, setStartsAt] = useState<string>("");
-  const [gameDuration, setGameDuration] = useState<number>(30);
+  // For pre-event / both: auto-locked to 1 min before event start.
+  // End date is always set freely by the organizer — never auto-locked.
+  const [manualGameEndsAt, setManualGameEndsAt] = useState<string>("");
+  const gameEndsAt = manualGameEndsAt;
+  const maxStartsAt = "";
   const [repetitions, setRepetitions] = useState<number>(1);
+  const [gameDuration, setGameDuration] = useState<number>(30);
   const [maxWinners, setMaxWinners] = useState<number>(3);
   const [priceCurrency] = useState("NGN");
   const [activeRoundIdx, setActiveRoundIdx] = useState<number>(0);
@@ -270,8 +276,7 @@ export function GameCreationWizard({
         return "";
       case 2:
         if (!startsAt) return "Please set a start date and time.";
-        if (gameEndsAt && new Date(startsAt) >= new Date(gameEndsAt))
-          return "Game must start before the event begins.";
+        if (!manualGameEndsAt) return "Please set an end date and time for the game.";
         if (gameDuration <= 0) return "Please select a game duration.";
         if (maxWinners <= 0) return "Please set the number of winners.";
         return "";
@@ -373,18 +378,36 @@ export function GameCreationWizard({
       if (!response.ok)
         throw new Error(data?.message || "AI generation failed");
 
-      // Actual response shape:
-      // { success, data: { success, data: { suggestedTitle, suggestedDescription, rounds: [{ title, questions: [...] }] } } }
+      // Response shape:
+      // { success, data: { success, data: { suggestedTitle, rounds: [{ title, questions: [{ grid, hiddenWords, points }, ...] }] } } }
       const inner = data?.data?.data ?? data?.data ?? data;
 
-      // Questions can be at inner.questions (flat) or inner.rounds[roundIdx].questions (nested)
-      const rawQuestions: any[] =
-        inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
+      const gameType = roundsData[roundIdx]?.gameType ?? "trivia";
+      let rawQuestions: any[] = [];
+
+      if (gameType === "word-puzzle") {
+        // Each element of rounds[0].questions is one puzzle:
+        // { grid: string[][], hiddenWords: [{ word, clue, startCell, endCell, direction }], points: number }
+        // We flatten: one Question per hiddenWord, carrying its parent grid along.
+        const puzzleItems: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
+        rawQuestions = puzzleItems.flatMap((puzzle: any) => {
+          const grid: string[][] = puzzle.grid ?? [];
+          const pointsPerWord: number = puzzle.points ?? 10;
+          const hiddenWords: any[] = puzzle.hiddenWords ?? [];
+          return hiddenWords.map((hw: any) => ({
+            ...hw,
+            _grid: grid,
+            points: hw.points ?? pointsPerWord,
+            timeLimitSecs: puzzle.timeLimitSecs ?? 15,
+          }));
+        });
+      } else {
+        rawQuestions =
+          inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
+      }
 
       if (!rawQuestions.length)
         throw new Error("AI returned no questions. Try a different topic.");
-
-      const gameType = roundsData[roundIdx]?.gameType ?? "trivia";
 
       const generated: Question[] = rawQuestions.map((q: any, i: number) => {
         const base = {
@@ -394,11 +417,19 @@ export function GameCreationWizard({
         };
 
         if (gameType === "word-puzzle") {
+          // q is a hiddenWord entry: { word, clue, startCell, endCell, direction, _grid, points }
           return {
             ...base,
-            question: q.clue ?? q.text ?? q.question ?? "",
-            clue: q.clue ?? q.text ?? q.question ?? "",
-            correctAnswer: q.correctAnswer ?? q.answer ?? "",
+            question: q.clue ?? "",
+            clue: q.clue ?? "",
+            correctAnswer: q.word ?? "",
+            wordPuzzleMeta: {
+              word: q.word ?? "",
+              grid: q._grid ?? [],
+              startCell: q.startCell ?? null,
+              endCell: q.endCell ?? null,
+              direction: q.direction ?? null,
+            },
             options: undefined,
           };
         }
@@ -479,29 +510,66 @@ export function GameCreationWizard({
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message);
       const inner = data?.data?.data ?? data?.data ?? data;
-      const rawQuestions: any[] =
-        inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
-      const replacement = rawQuestions[0];
+      const gameType = currentRound?.gameType ?? "trivia";
+
+      let replacement: any = null;
+
+      if (gameType === "word-puzzle") {
+        // Same shape as bulk generation: rounds[0].questions is an array of puzzle objects,
+        // each with { grid, hiddenWords, points }. Take the first hiddenWord of the first puzzle.
+        const puzzleItems: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
+        const firstPuzzle = puzzleItems[0];
+        if (firstPuzzle) {
+          const hw = firstPuzzle.hiddenWords?.[0];
+          if (hw) {
+            replacement = {
+              ...hw,
+              _grid: firstPuzzle.grid ?? [],
+              points: hw.points ?? firstPuzzle.points ?? 10,
+              timeLimitSecs: firstPuzzle.timeLimitSecs ?? 15,
+            };
+          }
+        }
+      } else {
+        const rawQuestions: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
+        replacement = rawQuestions[0];
+      }
+
       if (!replacement) throw new Error("No replacement question returned.");
+
       setRoundQuestions(
         activeRoundIdx,
-        currentRound!.questions.map((q) =>
-          q.id === id
-            ? {
-                ...q,
-                question:
-                  replacement?.question ?? replacement?.text ?? q.question,
-                clue: replacement?.clue ?? replacement?.text ?? q.clue,
-                correctAnswer: replacement?.correctAnswer ?? q.correctAnswer,
-                options: replacement?.options ?? q.options,
-                correctIndex:
-                  replacement?.correctAnswerIndex ??
-                  replacement?.correctIndex ??
-                  q.correctIndex,
-                timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
-              }
-            : q
-        )
+        currentRound!.questions.map((q) => {
+          if (q.id !== id) return q;
+          if (gameType === "word-puzzle") {
+            return {
+              ...q,
+              question: replacement.clue ?? q.question,
+              clue: replacement.clue ?? q.clue,
+              correctAnswer: replacement.word ?? q.correctAnswer,
+              wordPuzzleMeta: {
+                word: replacement.word ?? "",
+                grid: replacement._grid ?? [],
+                startCell: replacement.startCell ?? null,
+                endCell: replacement.endCell ?? null,
+                direction: replacement.direction ?? null,
+              },
+              timeLimitSecs: replacement.timeLimitSecs ?? q.timeLimitSecs,
+            };
+          }
+          return {
+            ...q,
+            question: replacement?.question ?? replacement?.text ?? q.question,
+            clue: replacement?.clue ?? replacement?.text ?? q.clue,
+            correctAnswer: replacement?.correctAnswer ?? q.correctAnswer,
+            options: replacement?.options ?? q.options,
+            correctIndex:
+              replacement?.correctAnswerIndex ??
+              replacement?.correctIndex ??
+              q.correctIndex,
+            timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
+          };
+        })
       );
     } catch {
       toast.error("Could not regenerate question. Please edit it manually.");
@@ -630,6 +698,13 @@ export function GameCreationWizard({
                 correctAnswer: q.correctAnswer ?? "",
                 points: q.points ?? 10,
                 timeLimitSecs: q.timeLimitSecs,
+                // Include grid coordinates if available (from AI generation)
+                ...(q.wordPuzzleMeta && {
+                  word: q.wordPuzzleMeta.word,
+                  startCell: q.wordPuzzleMeta.startCell,
+                  endCell: q.wordPuzzleMeta.endCell,
+                  direction: q.wordPuzzleMeta.direction,
+                }),
               };
             }
             // TRIVIA / TWO_TRUTHS_ONE_LIE / THIS_OR_THAT
@@ -815,6 +890,7 @@ export function GameCreationWizard({
           setStartsAt={setStartsAt}
           maxStartsAt={maxStartsAt}
           gameEndsAt={gameEndsAt}
+          setGameEndsAt={setManualGameEndsAt}
           repetitions={repetitions}
           setRepetitions={setRepetitions}
           gameDuration={gameDuration}

@@ -27,6 +27,7 @@ import {
   ImageOff,
   ChevronLeft,
   View,
+  Play,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -804,14 +805,15 @@ export function PostcardViewer({
               <Send className="h-6 w-6 text-foreground" />
             )}
           </button>
-          <div className="flex items-center gap-1.5 px-4 py-2 text-sm text-foreground shrink-0 ml-auto">
-            <View /> {freshData?.viewCount} 
+          <div className="flex items-center gap-1.5  py-2 text-sm text-foreground shrink-0 ">
+            <Play className="h-6 w-6 text-foreground" />{" "}
+            {freshData?.viewCount ?? 0}
           </div>
         </div>
 
         <>
           {/* Author row — top, with close button */}
-         
+
           <div className="flex items-center gap-3 px-4 py-5  bg-background shrink-0">
             {/* {isLoading ? (
               <Skeleton className="rounded-full w-10 h-q0" />

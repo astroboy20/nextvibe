@@ -187,11 +187,13 @@ export function GamificationHubContent({ eventId, eventName, eventStartsAt, even
       const { status, checkoutUrl } = res.data;
 
       if (status === "COMPLETED" || !checkoutUrl) {
-        toast.success("Game unlocked! Players can now join.");
+        toast.success("Game unlocked! Activating session…");
         setShowUnlockDialog(false);
+        const unlockedId = unlockingGameId;
         setUnlockingGameId(null);
         setCouponCode("");
-        window.location.reload();
+        // Automatically set the session to ACTIVE now that it's unlocked
+        if (unlockedId) await handleSessionAction(unlockedId, "ACTIVE");
         return;
       }
 

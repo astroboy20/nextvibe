@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,18 +44,375 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
 };
 
 const mapType = (t: string): GameType =>
-  (({
-    TRIVIA: "trivia",
-    WORD_PUZZLE: "word-puzzle",
-    TWO_TRUTHS: "two-truths",
-    THIS_OR_THAT: "this-or-that",
-  }[t] ?? "trivia") as GameType);
+(({
+  TRIVIA: "trivia",
+  WORD_PUZZLE: "word-puzzle",
+  TWO_TRUTHS: "two-truths",
+  THIS_OR_THAT: "this-or-that",
+}[t] ?? "trivia") as GameType);
 
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
-  (({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as
-    | "pending"
-    | "live"
-    | "ended");
+(({ PENDING: "pending", ACTIVE: "live", ENDED: "ended" }[s] ?? "pending") as
+  | "pending"
+  | "live"
+  | "ended");
+
+// ─── Word Puzzle Grid Player ──────────────────────────────────────────────────
+
+type CellState = "idle" | "hovered" | "selected" | "correct" | "wrong-flash";
+
+interface HiddenWord {
+  word: string;
+  clue: string;
+  startCell: [number, number];
+  endCell: [number, number];
+  direction: string;
+}
+
+interface WordPuzzleQuestion {
+  grid: string[][];
+  hiddenWords: HiddenWord[];
+  points: number;
+  text?: string; // clue shown above grid
+  correctAnswer?: string; // the word (for single-word puzzles)
+  // flat fields when stored directly on question
+  word?: string;
+  clue?: string;
+  startCell?: [number, number];
+  endCell?: [number, number];
+  direction?: string;
+}
+
+function WordPuzzleGrid({
+  question,
+  onWordFound,
+  foundWords,
+}: {
+  question: WordPuzzleQuestion;
+  onWordFound: (word: string) => void;
+  foundWords: Set<string>;
+}) {
+  // Normalise: support both { grid, hiddenWords } and flat single-word shape
+  const grid: string[][] = question.grid ?? [];
+  const hiddenWords: HiddenWord[] = question.hiddenWords?.length
+    ? question.hiddenWords
+    : question.word
+      ? [
+        {
+          word: question.word,
+          clue: question.clue ?? question.text ?? "",
+          startCell: question.startCell ?? [0, 0],
+          endCell: question.endCell ?? [0, 0],
+          direction: question.direction ?? "HORIZONTAL",
+        },
+      ]
+      : [];
+
+  const rows = grid.length;
+  const cols = grid[0]?.length ?? 0;
+
+  // Cell visual states
+  const [cellStates, setCellStates] = useState<CellState[][]>(
+    () => Array.from({ length: rows }, () => Array(cols).fill("idle"))
+  );
+
+  // Drag state
+  const isDrawing = useRef(false);
+  const startCell = useRef<[number, number] | null>(null);
+  const currentCell = useRef<[number, number] | null>(null);
+
+  // Reset cell states when question changes
+  useEffect(() => {
+    setCellStates(Array.from({ length: rows }, () => Array(cols).fill("idle")));
+    isDrawing.current = false;
+    startCell.current = null;
+    currentCell.current = null;
+  }, [rows, cols]);
+
+  // Re-apply "correct" highlights for already-found words
+  useEffect(() => {
+    setCellStates((prev) => {
+      const next = prev.map((row) => row.map((c) => (c === "correct" ? "correct" : "idle")));
+      for (const hw of hiddenWords) {
+        if (foundWords.has(hw.word.toUpperCase())) {
+          highlightRange(next, hw.startCell, hw.endCell, "correct");
+        }
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foundWords]);
+
+  function highlightRange(
+    states: CellState[][],
+    start: [number, number],
+    end: [number, number],
+    state: CellState
+  ) {
+    const [r1, c1] = start;
+    const [r2, c2] = end;
+    const dr = Math.sign(r2 - r1);
+    const dc = Math.sign(c2 - c1);
+    let r = r1, c = c1;
+    while (true) {
+      if (r >= 0 && r < states.length && c >= 0 && c < (states[0]?.length ?? 0)) {
+        states[r][c] = state;
+      }
+      if (r === r2 && c === c2) break;
+      r += dr;
+      c += dc;
+    }
+  }
+
+  const applyDragHighlight = useCallback(
+    (start: [number, number], end: [number, number]) => {
+      setCellStates((prev) => {
+        const next = prev.map((row) =>
+          row.map((c) => (c === "correct" ? "correct" : "idle"))
+        );
+        highlightRange(next, start, end, "hovered");
+        return next;
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const handlePointerDown = (row: number, col: number) => {
+    isDrawing.current = true;
+    startCell.current = [row, col];
+    currentCell.current = [row, col];
+    applyDragHighlight([row, col], [row, col]);
+  };
+
+  const handlePointerEnter = (row: number, col: number) => {
+    if (!isDrawing.current || !startCell.current) return;
+    currentCell.current = [row, col];
+    applyDragHighlight(startCell.current, [row, col]);
+  };
+
+  const handlePointerUp = (row: number, col: number) => {
+    if (!isDrawing.current || !startCell.current) return;
+    isDrawing.current = false;
+    const end: [number, number] = [row, col];
+    handleSelectionComplete(startCell.current, end);
+    startCell.current = null;
+    currentCell.current = null;
+  };
+
+  const handleSelectionComplete = (
+    selStart: [number, number],
+    selEnd: [number, number]
+  ) => {
+    const matched = hiddenWords.find(
+      (hw) =>
+        !foundWords.has(hw.word.toUpperCase()) &&
+        ((hw.startCell[0] === selStart[0] &&
+          hw.startCell[1] === selStart[1] &&
+          hw.endCell[0] === selEnd[0] &&
+          hw.endCell[1] === selEnd[1]) ||
+          // allow reverse selection
+          (hw.startCell[0] === selEnd[0] &&
+            hw.startCell[1] === selEnd[1] &&
+            hw.endCell[0] === selStart[0] &&
+            hw.endCell[1] === selStart[1]))
+    );
+
+    if (matched) {
+      // Permanently highlight the found word
+      setCellStates((prev) => {
+        const next = prev.map((row) => [...row]);
+        highlightRange(next, matched.startCell, matched.endCell, "correct");
+        return next;
+      });
+      onWordFound(matched.word.toUpperCase());
+    } else {
+      // Flash wrong then clear
+      setCellStates((prev) => {
+        const next = prev.map((row) =>
+          row.map((c) => (c === "correct" ? "correct" : "idle"))
+        );
+        highlightRange(next, selStart, selEnd, "wrong-flash");
+        return next;
+      });
+      setTimeout(() => {
+        setCellStates((prev) =>
+          prev.map((row) =>
+            row.map((c) => (c === "wrong-flash" ? "idle" : c))
+          )
+        );
+      }, 500);
+    }
+  };
+
+  if (!grid.length) {
+    return (
+      <p className="text-xs text-muted-foreground text-center py-4">
+        No grid data for this puzzle.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3 select-none">
+      {/* Grid */}
+      <div
+        className="inline-grid gap-0.5 mx-auto"
+        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+        onPointerLeave={() => {
+          if (isDrawing.current && startCell.current && currentCell.current) {
+            handlePointerUp(currentCell.current[0], currentCell.current[1]);
+          }
+        }}
+      >
+        {grid.map((row, rIdx) =>
+          row.map((letter, cIdx) => {
+            const state = cellStates[rIdx]?.[cIdx] ?? "idle";
+            return (
+              <div
+                key={`${rIdx}-${cIdx}`}
+                onPointerDown={() => handlePointerDown(rIdx, cIdx)}
+                onPointerEnter={() => handlePointerEnter(rIdx, cIdx)}
+                onPointerUp={() => handlePointerUp(rIdx, cIdx)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-md text-sm font-bold cursor-pointer transition-colors touch-none",
+                  state === "idle" && "bg-muted text-foreground hover:bg-muted/70",
+                  state === "hovered" && "bg-[#531342]/30 text-[#531342]",
+                  state === "selected" && "bg-[#531342]/50 text-white",
+                  state === "correct" && "bg-green-500 text-white",
+                  state === "wrong-flash" && "bg-red-400 text-white animate-shake"
+                )}
+              >
+                {letter}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Words to find sidebar */}
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Words to Find
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {hiddenWords.map((hw) => {
+            const found = foundWords.has(hw.word.toUpperCase());
+            return (
+              <div
+                key={hw.word}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all",
+                  found
+                    ? "border-green-500/40 bg-green-500/10 text-green-700 line-through"
+                    : "border-border bg-muted text-muted-foreground"
+                )}
+              >
+                {found && <CheckCircle2 className="h-3 w-3 shrink-0" />}
+                {hw.clue || hw.word}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Word Puzzle Round Player ─────────────────────────────────────────────────
+// Each question in a word-puzzle round is one puzzle (grid + hiddenWords).
+// The player works through them one at a time, finding all words in each puzzle.
+
+function WordPuzzleRoundPlayer({
+  questions,
+  onAllComplete,
+}: {
+  questions: any[];
+  onAllComplete: (answers: string[]) => void;
+}) {
+  const [currentQ, setCurrentQ] = useState(0);
+  // answers[i] = comma-joined found words for puzzle i
+  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
+  const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
+
+  const q = questions[currentQ];
+  const isLast = currentQ === questions.length - 1;
+
+  // Normalise hiddenWords for this question
+  const hiddenWords: HiddenWord[] = q?.hiddenWords?.length
+    ? q.hiddenWords
+    : q?.word
+      ? [{ word: q.word, clue: q.clue ?? q.text ?? "", startCell: q.startCell ?? [0, 0], endCell: q.endCell ?? [0, 0], direction: q.direction ?? "HORIZONTAL" }]
+      : [];
+
+  const allFound = hiddenWords.length > 0 && hiddenWords.every((hw) => foundWords.has(hw.word.toUpperCase()));
+
+  const handleWordFound = (word: string) => {
+    setFoundWords((prev) => new Set([...prev, word]));
+  };
+
+  const handleNext = () => {
+    const newAnswers = [...answers];
+    newAnswers[currentQ] = [...foundWords].join(",");
+    setAnswers(newAnswers);
+
+    if (isLast) {
+      onAllComplete(newAnswers);
+    } else {
+      setCurrentQ((c) => c + 1);
+      setFoundWords(new Set());
+    }
+  };
+
+  if (!q) return null;
+
+  const progress = questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Progress */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Puzzle {currentQ + 1} of {questions.length}</span>
+          <span>{foundWords.size}/{hiddenWords.length} found</span>
+        </div>
+        <Progress value={progress} className="h-1.5" />
+      </div>
+
+      {/* Clue */}
+      {(q.text || q.clue) && (
+        <p className="font-semibold text-foreground text-sm">
+          {q.text || q.clue}
+        </p>
+      )}
+
+      <WordPuzzleGrid
+        question={q}
+        onWordFound={handleWordFound}
+        foundWords={foundWords}
+      />
+
+      <Button
+        className={cn(
+          "w-full rounded-xl text-white",
+          allFound
+            ? "bg-green-600 hover:bg-green-700"
+            : "bg-[#531342] hover:bg-[#531342]/90"
+        )}
+        onClick={handleNext}
+        disabled={!allFound && hiddenWords.length > 0}
+      >
+        {allFound
+          ? isLast
+            ? "Submit All Answers"
+            : "Next Puzzle →"
+          : `Find ${hiddenWords.length - foundWords.size} more word${hiddenWords.length - foundWords.size !== 1 ? "s" : ""}…`}
+      </Button>
+    </div>
+  );
+}
+
+
 
 function SessionLeaderboard({ sessionId }: { sessionId: string }) {
   const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
@@ -209,6 +566,34 @@ function RoundPlayer({
     questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
   const isLast = currentQ === questions.length - 1;
 
+  // ── Word Puzzle: delegate entirely to the grid player ──────────────────────
+  if (gameType === "word-puzzle") {
+    if (finalScore !== null) {
+      // fall through to score screen below
+    } else if (!waitingForResult) {
+      return (
+        <WordPuzzleRoundPlayer
+          questions={questions}
+          onAllComplete={async (wordAnswers) => {
+            setWaitingForResult(true);
+            const result = await onSubmit(
+              round.id,
+              wordAnswers,
+              Date.now() - totalStartTime
+            );
+            if (result.ok) {
+              await refetchLeaderboard();
+              setFinalScore(result.score ?? 0);
+              onComplete?.();
+            } else {
+              setWaitingForResult(false);
+            }
+          }}
+        />
+      );
+    }
+  }
+
   const advance = async (
     selectedAnswer: number | string,
     allAnswers: (number | string)[]
@@ -275,12 +660,11 @@ function RoundPlayer({
     const myRank = myEntry?.rank || _rankFromIndex || 1;
     const shareToken: string | undefined = session?.shareToken;
     const shareUrl = shareToken
-      ? `${
-          typeof window !== "undefined" ? window.location.origin : ""
-        }/game/${shareToken}`
+      ? `${typeof window !== "undefined" ? window.location.origin : ""
+      }/game/${shareToken}`
       : typeof window !== "undefined"
-      ? window.location.href
-      : "";
+        ? window.location.href
+        : "";
 
     if (showShare) {
       return (
@@ -321,10 +705,10 @@ function RoundPlayer({
             {myRank === 1
               ? "🥇"
               : myRank === 2
-              ? "🥈"
-              : myRank === 3
-              ? "🥉"
-              : "🏆"}{" "}
+                ? "🥈"
+                : myRank === 3
+                  ? "🥉"
+                  : "🏆"}{" "}
             Rank #{myRank} of {entries.length || 1}
           </Badge>
         )}
@@ -347,12 +731,10 @@ function RoundPlayer({
             if (shareToken && navigator.share) {
               navigator
                 .share({
-                  title: `I scored ${finalScore} in ${
-                    session?.title ?? round.title
-                  }!`,
-                  text: `I played in ${
-                    eventName ?? session?.title
-                  }'s game, I scored ${finalScore}. Play and see if you can beat mine.`,
+                  title: `I scored ${finalScore} in ${session?.title ?? round.title
+                    }!`,
+                  text: `I played in ${eventName ?? session?.title
+                    }'s game, I scored ${finalScore}. Play and see if you can beat mine.`,
                   url: shareUrl,
                 })
                 .catch(() => setShowShare(true));
@@ -423,15 +805,15 @@ function RoundPlayer({
                   "w-full rounded-xl border-2 p-3 text-left text-sm transition-all duration-150",
                   !flash && "border-border hover:border-primary/50",
                   flash &&
-                    isCorrectOpt &&
-                    "border-green-500 bg-green-500/15 text-green-700",
+                  isCorrectOpt &&
+                  "border-green-500 bg-green-500/15 text-green-700",
                   flash &&
-                    isWrongSelected &&
-                    "border-red-500 bg-red-500/15 text-red-700",
+                  isWrongSelected &&
+                  "border-red-500 bg-red-500/15 text-red-700",
                   flash &&
-                    !isSelected &&
-                    !isCorrectOpt &&
-                    "border-border opacity-40"
+                  !isSelected &&
+                  !isCorrectOpt &&
+                  "border-border opacity-40"
                 )}
               >
                 <span className="mr-2 font-bold text-muted-foreground">
@@ -450,25 +832,7 @@ function RoundPlayer({
         </div>
       )}
 
-      {gameType === "word-puzzle" && !q.options?.length && (
-        <div className="space-y-2">
-          <input
-            className="w-full rounded-xl border-2 border-border p-3 text-sm focus:border-primary outline-none"
-            placeholder="Type your answer..."
-            value={wordInput}
-            onChange={(e) => setWordInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleWordSubmit()}
-            disabled={!!flash}
-          />
-          <Button
-            className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-            disabled={!wordInput.trim() || !!flash}
-            onClick={handleWordSubmit}
-          >
-            Submit Answer
-          </Button>
-        </div>
-      )}
+      {gameType === "word-puzzle" && !q.options?.length && null}
     </div>
   );
 }
@@ -651,8 +1015,8 @@ function SessionCard({
                           alreadyPlayed
                             ? "border-primary/20 bg-primary/5"
                             : isRoundLive
-                            ? "border-[#531342]/30 bg-[#531342]/5"
-                            : "border-border bg-muted/30"
+                              ? "border-[#531342]/30 bg-[#531342]/5"
+                              : "border-border bg-muted/30"
                         )}
                       >
                         <div className="min-w-0">
@@ -747,12 +1111,12 @@ const PHASE_TABS: { value: PhaseTab; label: string }[] = [
 ];
 
 const mapPhase = (t: string): PhaseTab =>
-  (({
-    PRE_EVENT: "pre-event",
-    DURING_EVENT: "main-event",
-    POST_EVENT: "post-event",
-    BOTH: "both",
-  }[t] ?? "main-event") as PhaseTab);
+(({
+  PRE_EVENT: "pre-event",
+  DURING_EVENT: "main-event",
+  POST_EVENT: "post-event",
+  BOTH: "both",
+}[t] ?? "main-event") as PhaseTab);
 
 /**
  * Fetches GET /v1/game-sessions/:id for a single session and reports the
@@ -834,7 +1198,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const markSessionJoined = (sessionId: string) => {
     setJoinedSessions((prev) => {
       const next = new Set(prev).add(sessionId);
-      try { localStorage.setItem(`joinedSessions:${eventProp?.id}`, JSON.stringify([...next])); } catch {}
+      try { localStorage.setItem(`joinedSessions:${eventProp?.id}`, JSON.stringify([...next])); } catch { }
       return next;
     });
   };
@@ -855,7 +1219,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
   const markRoundPlayed = (roundId: string) => {
     setPlayedRounds((prev) => {
       const next = new Set(prev).add(roundId);
-      try { localStorage.setItem(playedRoundsKey, JSON.stringify([...next])); } catch {}
+      try { localStorage.setItem(playedRoundsKey, JSON.stringify([...next])); } catch { }
       return next;
     });
   };
@@ -912,8 +1276,8 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     } catch (err: any) {
       toast.error(
         err?.data?.error?.message ??
-          err?.data?.message ??
-          "Could not join session."
+        err?.data?.message ??
+        "Could not join session."
       );
     }
   };

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag, Loader2, Info, Lock } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,19 +13,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import Vibetags from "./vibetag/vibetags";
-import { useGetVibeTagsQuery, useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import {
+  useGetVibeTagsQuery,
+  useGetEventDetailsQuery,
+} from "@/app/provider/api/eventApi";
 import { useInitiateVibeTagAddonPaymentMutation } from "@/app/provider/api/organizerPaymentApi";
 import { useDispatch } from "react-redux";
 import { setView, setTemplate } from "@/app/provider/slices/canvas-slice";
 import { toast } from "sonner";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 
 const TIMING_TABS: { value: ActivityTiming; label: string }[] = [
-  { value: "PRE_EVENT",    label: "Pre-Event"  },
+  { value: "PRE_EVENT", label: "Pre-Event" },
   { value: "DURING_EVENT", label: "Main Event" },
-  { value: "POST_EVENT",   label: "Post-Event" },
-  { value: "BOTH",         label: "Both"       },
+  { value: "POST_EVENT", label: "Post-Event" },
+  { value: "BOTH", label: "Both" },
 ];
 
 interface VibeTagStudioContentProps {
@@ -45,8 +49,11 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
     // Check if event is published and needs payment
     const eventStatus = eventDetails?.data?.status;
     const hasVibeTagsPlan = eventDetails?.data?.eventPlan?.hasVibeTags;
-    
-    if ((eventStatus === "PUBLISHED" || eventStatus === "LIVE") && !hasVibeTagsPlan) {
+
+    if (
+      (eventStatus === "PUBLISHED" || eventStatus === "LIVE") &&
+      !hasVibeTagsPlan
+    ) {
       // Need to pay for VibeTags addon
       setShowPaymentDialog(true);
     } else {
@@ -62,24 +69,29 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );
 
-  const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(eventId, { skip: !eventId });
-  const [initiateVibeTagAddon, { isLoading: isInitiatingPayment }] = useInitiateVibeTagAddonPaymentMutation();
+  const { data: eventDetails, refetch: refetchEvent } = useGetEventDetailsQuery(
+    eventId,
+    { skip: !eventId }
+  );
+  const [initiateVibeTagAddon, { isLoading: isInitiatingPayment }] =
+    useInitiateVibeTagAddonPaymentMutation();
 
   const allVibeTags: any[] = (data?.data ?? []).filter(
     (t: any) => t.eventId === eventId
   );
 
-  const hasPreEvent    = allVibeTags.some((t) => t.activityTiming === "PRE_EVENT");
-  const hasDuringEvent = allVibeTags.some((t) => t.activityTiming === "DURING_EVENT");
+  const hasPreEvent = allVibeTags.some((t) => t.activityTiming === "PRE_EVENT");
+  const hasDuringEvent = allVibeTags.some(
+    (t) => t.activityTiming === "DURING_EVENT"
+  );
 
   // "Both" covers PRE_EVENT + DURING_EVENT — if the user already has both
   // individual tags, creating a BOTH tag is redundant, so disable it.
   const isBothDisabled = hasPreEvent && hasDuringEvent;
 
   // Find the tag that matches the currently active timing exactly
-  const existingTag = allVibeTags.find(
-    (t: any) => t.activityTiming === activeTiming
-  ) ?? null;
+  const existingTag =
+    allVibeTags.find((t: any) => t.activityTiming === activeTiming) ?? null;
 
   const handleCreated = () => {
     setOpen(false);
@@ -113,6 +125,12 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
       toast.error(err?.data?.message ?? "Failed to initiate VibeTags payment.");
     }
   };
+  useEffect(() => {
+    dispatch(setHideHeader(open));
+    return () => {
+      dispatch(setHideHeader(!open));
+    };
+  }, [dispatch, open]);
 
   return (
     <>
@@ -124,11 +142,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
       >
         <TabsList className="w-full grid grid-cols-4 h-9">
           {TIMING_TABS.map((t) => (
-            <TabsTrigger
-              key={t.value}
-              value={t.value}
-              className="text-[11px]"
-            >
+            <TabsTrigger key={t.value} value={t.value} className="text-[11px]">
               {t.label}
             </TabsTrigger>
           ))}
@@ -140,7 +154,9 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         <div className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 mb-3">
           <Info className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
-            You already have Pre-Event &amp; Main Event VibeTags — those cover both phases, so a separate <span className="font-medium">Both</span> tag isn&apos;t needed.
+            You already have Pre-Event &amp; Main Event VibeTags — those cover
+            both phases, so a separate <span className="font-medium">Both</span>{" "}
+            tag isn&apos;t needed.
           </p>
         </div>
       )}
@@ -163,7 +179,9 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-medium text-sm truncate">{existingTag.name}</h4>
+                <h4 className="font-medium text-sm truncate">
+                  {existingTag.name}
+                </h4>
                 <Badge
                   variant="outline"
                   className="border-[#531342]/50 text-[#531342] text-[10px]"
@@ -304,4 +322,3 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
 };
 
 export default VibeTagStudioContent;
-
