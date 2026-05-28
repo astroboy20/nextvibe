@@ -170,10 +170,18 @@ export function GameCreationWizard({
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("concurrent");
   const [startsAt, setStartsAt] = useState<string>("");
   // For pre-event / both: auto-locked to 1 min before event start.
-  // End date is always set freely by the organizer — never auto-locked.
+  // End date rules:
+  // - pre-event: locked, auto-set to 10 mins before event starts
+  // - main-event / post-event / both: organizer sets freely
+  const preEventEndsAt = eventStartsAt
+    ? new Date(new Date(eventStartsAt).getTime() - 10 * 60 * 1000)
+        .toISOString()
+        .slice(0, 16)
+    : "";
   const [manualGameEndsAt, setManualGameEndsAt] = useState<string>("");
-  const gameEndsAt = manualGameEndsAt;
-  const maxStartsAt = "";
+  const gameEndsAt = phase === "pre-event" ? preEventEndsAt : manualGameEndsAt;
+  // Starts-at max only applies for pre-event (must start before the auto end)
+  const maxStartsAt = phase === "pre-event" ? preEventEndsAt : "";
   const [repetitions, setRepetitions] = useState<number>(1);
   const [gameDuration, setGameDuration] = useState<number>(30);
   const [maxWinners, setMaxWinners] = useState<number>(3);
@@ -276,7 +284,10 @@ export function GameCreationWizard({
         return "";
       case 2:
         if (!startsAt) return "Please set a start date and time.";
-        if (!manualGameEndsAt) return "Please set an end date and time for the game.";
+        if (phase === "pre-event" && gameEndsAt && new Date(startsAt) >= new Date(gameEndsAt))
+          return "Game must start before the event begins.";
+        if (phase !== "pre-event" && !manualGameEndsAt)
+          return "Please set an end date and time for the game.";
         if (gameDuration <= 0) return "Please select a game duration.";
         if (maxWinners <= 0) return "Please set the number of winners.";
         return "";

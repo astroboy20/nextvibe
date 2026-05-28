@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import { Lock, Clock, Users, CalendarClock, RefreshCw } from "lucide-react";
 import { EventPhase, ScheduleMode } from "../game-creation-wizard";
 
-// End date is never locked — organizer always sets it freely regardless of phase.
-const isEndDateLocked = (_phase: EventPhase) => false;
+// End date is locked ONLY for pre-event — auto-set to 10 mins before event start.
+// main-event, post-event, and both are always free.
+const isEndDateLocked = (phase: EventPhase) => phase === "pre-event";
 
 interface StepTwoProps {
   phase: EventPhase;
@@ -109,7 +110,7 @@ const StepTwo = ({
             />
             <p className="text-[11px] text-muted-foreground">
               {endLocked
-                ? "Auto-set: 1 min before event"
+                ? "Auto-set: 10 mins before event starts"
                 : "Set when this game session ends"}
             </p>
           </div>

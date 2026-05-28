@@ -1,10 +1,14 @@
+"use client";
+
 import BottomNav from "@/components/navbar/bottom-navbar";
 import DashboardNavbar from "@/components/navbar/dashboard-navbar";
 import { MobileOnlyGate } from "@/components/mobile-only-gate";
 
-export default function AppLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+/**
+ * Shared shell used by all dashboard pages.
+ * Applies the mobile-only gate without touching any inner page UI.
+ */
+export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <MobileOnlyGate>
       <main className="min-h-screen bg-white flex flex-col border-none!">
