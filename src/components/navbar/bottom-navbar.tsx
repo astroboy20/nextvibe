@@ -10,8 +10,8 @@ import { useGetConversationsQuery } from "@/app/provider/api/messagingApi";
 import { useSocket } from "@/hooks/useSocket";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/events" },
-  { icon: Users, label: "Social", path: "/social" },
+  { icon: Home, label: "Home", path: "/dashboard/events" },
+  { icon: Users, label: "Social", path: "/dashboard/social" },
   {
     icon: Plus,
     label: "Create",
