@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,45 +69,80 @@ interface HiddenWord {
   direction: string;
 }
 
-interface WordPuzzleQuestion {
-  grid: string[][];
-  hiddenWords: HiddenWord[];
-  points: number;
-  text?: string; // clue shown above grid
-  correctAnswer?: string; // the word (for single-word puzzles)
-  // flat fields when stored directly on question
-  word?: string;
-  clue?: string;
-  startCell?: [number, number];
-  endCell?: [number, number];
-  direction?: string;
+/**
+ * Build a 2-D letter grid from a list of flat question objects.
+ * Each question has: word, startCell [row, col], endCell [row, col], direction.
+ * We place each word's letters at the correct coordinates, then fill empty
+ * cells with random uppercase letters so the grid looks like a real word-search.
+ */
+function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWords: HiddenWord[] } {
+  // Determine grid dimensions from the max row/col used across all words
+  let maxRow = 0;
+  let maxCol = 0;
+
+  const hiddenWords: HiddenWord[] = questions
+    .filter((q) => q.word && q.startCell && q.endCell)
+    .map((q) => {
+      const start: [number, number] = [q.startCell[0], q.startCell[1]];
+      const end: [number, number] = [q.endCell[0], q.endCell[1]];
+      maxRow = Math.max(maxRow, start[0], end[0]);
+      maxCol = Math.max(maxCol, start[1], end[1]);
+      return {
+        word: (q.word as string).toUpperCase(),
+        clue: q.text ?? q.clue ?? q.word,
+        startCell: start,
+        endCell: end,
+        direction: q.direction ?? "HORIZONTAL",
+      };
+    });
+
+  const rows = maxRow + 1;
+  const cols = maxCol + 1;
+
+  // Initialise grid with empty strings
+  const grid: string[][] = Array.from({ length: rows }, () => Array(cols).fill(""));
+
+  // Place each word's letters
+  for (const hw of hiddenWords) {
+    const [r1, c1] = hw.startCell;
+    const [r2, c2] = hw.endCell;
+    const dr = Math.sign(r2 - r1);
+    const dc = Math.sign(c2 - c1);
+    let r = r1, c = c1;
+    for (let i = 0; i < hw.word.length; i++) {
+      if (r >= 0 && r < rows && c >= 0 && c < cols) {
+        grid[r][c] = hw.word[i];
+      }
+      if (r === r2 && c === c2) break;
+      r += dr;
+      c += dc;
+    }
+  }
+
+  // Fill remaining empty cells with random letters
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!grid[r][c]) {
+        grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
+      }
+    }
+  }
+
+  return { grid, hiddenWords };
 }
 
 function WordPuzzleGrid({
-  question,
+  grid,
+  hiddenWords,
   onWordFound,
   foundWords,
 }: {
-  question: WordPuzzleQuestion;
+  grid: string[][];
+  hiddenWords: HiddenWord[];
   onWordFound: (word: string) => void;
   foundWords: Set<string>;
 }) {
-  // Normalise: support both { grid, hiddenWords } and flat single-word shape
-  const grid: string[][] = question.grid ?? [];
-  const hiddenWords: HiddenWord[] = question.hiddenWords?.length
-    ? question.hiddenWords
-    : question.word
-      ? [
-        {
-          word: question.word,
-          clue: question.clue ?? question.text ?? "",
-          startCell: question.startCell ?? [0, 0],
-          endCell: question.endCell ?? [0, 0],
-          direction: question.direction ?? "HORIZONTAL",
-        },
-      ]
-      : [];
-
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
 
@@ -121,7 +156,7 @@ function WordPuzzleGrid({
   const startCell = useRef<[number, number] | null>(null);
   const currentCell = useRef<[number, number] | null>(null);
 
-  // Reset cell states when question changes
+  // Reset cell states when grid dimensions change
   useEffect(() => {
     setCellStates(Array.from({ length: rows }, () => Array(cols).fill("idle")));
     isDrawing.current = false;
@@ -219,7 +254,6 @@ function WordPuzzleGrid({
     );
 
     if (matched) {
-      // Permanently highlight the found word
       setCellStates((prev) => {
         const next = prev.map((row) => [...row]);
         highlightRange(next, matched.startCell, matched.endCell, "correct");
@@ -227,7 +261,6 @@ function WordPuzzleGrid({
       });
       onWordFound(matched.word.toUpperCase());
     } else {
-      // Flash wrong then clear
       setCellStates((prev) => {
         const next = prev.map((row) =>
           row.map((c) => (c === "correct" ? "correct" : "idle"))
@@ -253,44 +286,50 @@ function WordPuzzleGrid({
     );
   }
 
+  // Clamp cell size so large grids still fit on mobile
+  const cellSize = cols > 12 ? "h-7 w-7 text-xs" : cols > 8 ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm";
+
   return (
     <div className="space-y-3 select-none">
-      {/* Grid */}
-      <div
-        className="inline-grid gap-0.5 mx-auto"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-        onPointerLeave={() => {
-          if (isDrawing.current && startCell.current && currentCell.current) {
-            handlePointerUp(currentCell.current[0], currentCell.current[1]);
-          }
-        }}
-      >
-        {grid.map((row, rIdx) =>
-          row.map((letter, cIdx) => {
-            const state = cellStates[rIdx]?.[cIdx] ?? "idle";
-            return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                onPointerDown={() => handlePointerDown(rIdx, cIdx)}
-                onPointerEnter={() => handlePointerEnter(rIdx, cIdx)}
-                onPointerUp={() => handlePointerUp(rIdx, cIdx)}
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-md text-sm font-bold cursor-pointer transition-colors touch-none",
-                  state === "idle" && "bg-muted text-foreground hover:bg-muted/70",
-                  state === "hovered" && "bg-[#531342]/30 text-[#531342]",
-                  state === "selected" && "bg-[#531342]/50 text-white",
-                  state === "correct" && "bg-green-500 text-white",
-                  state === "wrong-flash" && "bg-red-400 text-white animate-shake"
-                )}
-              >
-                {letter}
-              </div>
-            );
-          })
-        )}
+      {/* Grid — scrollable horizontally on small screens */}
+      <div className="overflow-x-auto">
+        <div
+          className="inline-grid gap-0.5 mx-auto"
+          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          onPointerLeave={() => {
+            if (isDrawing.current && startCell.current && currentCell.current) {
+              handlePointerUp(currentCell.current[0], currentCell.current[1]);
+            }
+          }}
+        >
+          {grid.map((row, rIdx) =>
+            row.map((letter, cIdx) => {
+              const state = cellStates[rIdx]?.[cIdx] ?? "idle";
+              return (
+                <div
+                  key={`${rIdx}-${cIdx}`}
+                  onPointerDown={() => handlePointerDown(rIdx, cIdx)}
+                  onPointerEnter={() => handlePointerEnter(rIdx, cIdx)}
+                  onPointerUp={() => handlePointerUp(rIdx, cIdx)}
+                  className={cn(
+                    "flex items-center justify-center rounded-md font-bold cursor-pointer transition-colors touch-none",
+                    cellSize,
+                    state === "idle" && "bg-muted text-foreground hover:bg-muted/70",
+                    state === "hovered" && "bg-[#531342]/30 text-[#531342]",
+                    state === "selected" && "bg-[#531342]/50 text-white",
+                    state === "correct" && "bg-green-500 text-white",
+                    state === "wrong-flash" && "bg-red-400 text-white animate-shake"
+                  )}
+                >
+                  {letter}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
-      {/* Words to find sidebar */}
+      {/* Words to find list */}
       <div className="space-y-1">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           Words to Find
@@ -320,8 +359,9 @@ function WordPuzzleGrid({
 }
 
 // ─── Word Puzzle Round Player ─────────────────────────────────────────────────
-// Each question in a word-puzzle round is one puzzle (grid + hiddenWords).
-// The player works through them one at a time, finding all words in each puzzle.
+// All questions in a word-puzzle round are treated as a single word-search:
+// we build one shared grid from all the flat question objects, then the player
+// finds every hidden word on that grid before submitting.
 
 function WordPuzzleRoundPlayer({
   questions,
@@ -330,64 +370,59 @@ function WordPuzzleRoundPlayer({
   questions: any[];
   onAllComplete: (answers: string[]) => void;
 }) {
-  const [currentQ, setCurrentQ] = useState(0);
-  // answers[i] = comma-joined found words for puzzle i
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
+  // Build the grid once from all questions (stable across re-renders via useMemo)
+  const { grid, hiddenWords } = useMemo(
+    () => buildGridFromQuestions(questions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [questions.length]
+  );
+
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
 
-  const q = questions[currentQ];
-  const isLast = currentQ === questions.length - 1;
-
-  // Normalise hiddenWords for this question
-  const hiddenWords: HiddenWord[] = q?.hiddenWords?.length
-    ? q.hiddenWords
-    : q?.word
-      ? [{ word: q.word, clue: q.clue ?? q.text ?? "", startCell: q.startCell ?? [0, 0], endCell: q.endCell ?? [0, 0], direction: q.direction ?? "HORIZONTAL" }]
-      : [];
-
-  const allFound = hiddenWords.length > 0 && hiddenWords.every((hw) => foundWords.has(hw.word.toUpperCase()));
+  const allFound = hiddenWords.length > 0 && hiddenWords.every((hw) => foundWords.has(hw.word));
 
   const handleWordFound = (word: string) => {
     setFoundWords((prev) => new Set([...prev, word]));
   };
 
-  const handleNext = () => {
-    const newAnswers = [...answers];
-    newAnswers[currentQ] = [...foundWords].join(",");
-    setAnswers(newAnswers);
-
-    if (isLast) {
-      onAllComplete(newAnswers);
-    } else {
-      setCurrentQ((c) => c + 1);
-      setFoundWords(new Set());
-    }
+  const handleSubmit = () => {
+    // One answer per original question: the found word if it was found, else empty string
+    const answers = questions.map((q) => {
+      const w = (q.word as string | undefined)?.toUpperCase() ?? "";
+      return foundWords.has(w) ? w : "";
+    });
+    onAllComplete(answers);
   };
 
-  if (!q) return null;
+  if (!grid.length) {
+    return (
+      <p className="text-xs text-muted-foreground text-center py-4">
+        No grid data for this puzzle.
+      </p>
+    );
+  }
 
-  const progress = questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
+  const remaining = hiddenWords.length - foundWords.size;
 
   return (
     <div className="space-y-4">
       {/* Progress */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Puzzle {currentQ + 1} of {questions.length}</span>
-          <span>{foundWords.size}/{hiddenWords.length} found</span>
+          <span>{foundWords.size} / {hiddenWords.length} words found</span>
+          {allFound && (
+            <span className="text-green-600 font-semibold">All found! 🎉</span>
+          )}
         </div>
-        <Progress value={progress} className="h-1.5" />
+        <Progress
+          value={hiddenWords.length > 0 ? (foundWords.size / hiddenWords.length) * 100 : 0}
+          className="h-1.5"
+        />
       </div>
 
-      {/* Clue */}
-      {(q.text || q.clue) && (
-        <p className="font-semibold text-foreground text-sm">
-          {q.text || q.clue}
-        </p>
-      )}
-
       <WordPuzzleGrid
-        question={q}
+        grid={grid}
+        hiddenWords={hiddenWords}
         onWordFound={handleWordFound}
         foundWords={foundWords}
       />
@@ -399,14 +434,12 @@ function WordPuzzleRoundPlayer({
             ? "bg-green-600 hover:bg-green-700"
             : "bg-[#531342] hover:bg-[#531342]/90"
         )}
-        onClick={handleNext}
+        onClick={handleSubmit}
         disabled={!allFound && hiddenWords.length > 0}
       >
         {allFound
-          ? isLast
-            ? "Submit All Answers"
-            : "Next Puzzle →"
-          : `Find ${hiddenWords.length - foundWords.size} more word${hiddenWords.length - foundWords.size !== 1 ? "s" : ""}…`}
+          ? "Submit Answers"
+          : `Find ${remaining} more word${remaining !== 1 ? "s" : ""}…`}
       </Button>
     </div>
   );
