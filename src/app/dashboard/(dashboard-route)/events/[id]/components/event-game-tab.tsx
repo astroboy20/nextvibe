@@ -151,10 +151,18 @@ function WordPuzzleGrid({
     () => Array.from({ length: rows }, () => Array(cols).fill("idle"))
   );
 
-  // Drag state
+  // Drag state — all stored in refs to avoid stale closures in pointer handlers
   const isDrawing = useRef(false);
   const startCell = useRef<[number, number] | null>(null);
   const currentCell = useRef<[number, number] | null>(null);
+  // Ref to the grid container so we can read cell positions during pointermove
+  const gridRef = useRef<HTMLDivElement>(null);
+  // Stable ref to hiddenWords so pointer handlers always see the latest value
+  const hiddenWordsRef = useRef(hiddenWords);
+  hiddenWordsRef.current = hiddenWords;
+  // Stable ref to foundWords
+  const foundWordsRef = useRef(foundWords);
+  foundWordsRef.current = foundWords;
 
   // Reset cell states when grid dimensions change
   useEffect(() => {
@@ -199,6 +207,22 @@ function WordPuzzleGrid({
     }
   }
 
+  /**
+   * Given a clientX/clientY, find which grid cell [row, col] is under the pointer.
+   * Uses elementFromPoint so it works correctly on touch devices where
+   * onPointerEnter on child elements never fires during a drag.
+   */
+  const cellFromPoint = useCallback((clientX: number, clientY: number): [number, number] | null => {
+    // Temporarily hide pointer-events on the grid so elementFromPoint can
+    // pierce through to the cell divs (they have touch-none so this is safe)
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    if (!el) return null;
+    const rStr = el.dataset.row;
+    const cStr = el.dataset.col;
+    if (rStr === undefined || cStr === undefined) return null;
+    return [parseInt(rStr, 10), parseInt(cStr, 10)];
+  }, []);
+
   const applyDragHighlight = useCallback(
     (start: [number, number], end: [number, number]) => {
       setCellStates((prev) => {
@@ -213,70 +237,97 @@ function WordPuzzleGrid({
     []
   );
 
-  const handlePointerDown = (row: number, col: number) => {
-    isDrawing.current = true;
-    startCell.current = [row, col];
-    currentCell.current = [row, col];
-    applyDragHighlight([row, col], [row, col]);
-  };
+  const handleSelectionComplete = useCallback(
+    (selStart: [number, number], selEnd: [number, number]) => {
+      const hw = hiddenWordsRef.current;
+      const fw = foundWordsRef.current;
+      const matched = hw.find(
+        (h) =>
+          !fw.has(h.word.toUpperCase()) &&
+          ((h.startCell[0] === selStart[0] &&
+            h.startCell[1] === selStart[1] &&
+            h.endCell[0] === selEnd[0] &&
+            h.endCell[1] === selEnd[1]) ||
+            (h.startCell[0] === selEnd[0] &&
+              h.startCell[1] === selEnd[1] &&
+              h.endCell[0] === selStart[0] &&
+              h.endCell[1] === selStart[1]))
+      );
 
-  const handlePointerEnter = (row: number, col: number) => {
-    if (!isDrawing.current || !startCell.current) return;
-    currentCell.current = [row, col];
-    applyDragHighlight(startCell.current, [row, col]);
-  };
+      if (matched) {
+        setCellStates((prev) => {
+          const next = prev.map((row) => [...row]);
+          highlightRange(next, matched.startCell, matched.endCell, "correct");
+          return next;
+        });
+        onWordFound(matched.word.toUpperCase());
+      } else {
+        setCellStates((prev) => {
+          const next = prev.map((row) =>
+            row.map((c) => (c === "correct" ? "correct" : "idle"))
+          );
+          highlightRange(next, selStart, selEnd, "wrong-flash");
+          return next;
+        });
+        setTimeout(() => {
+          setCellStates((prev) =>
+            prev.map((row) => row.map((c) => (c === "wrong-flash" ? "idle" : c)))
+          );
+        }, 500);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onWordFound]
+  );
 
-  const handlePointerUp = (row: number, col: number) => {
-    if (!isDrawing.current || !startCell.current) return;
-    isDrawing.current = false;
-    const end: [number, number] = [row, col];
-    handleSelectionComplete(startCell.current, end);
-    startCell.current = null;
-    currentCell.current = null;
-  };
+  // ── Container-level pointer handlers ──────────────────────────────────────
+  // All three are attached to the grid wrapper, not individual cells.
+  // This is the only reliable way to track drags on touch devices.
 
-  const handleSelectionComplete = (
-    selStart: [number, number],
-    selEnd: [number, number]
-  ) => {
-    const matched = hiddenWords.find(
-      (hw) =>
-        !foundWords.has(hw.word.toUpperCase()) &&
-        ((hw.startCell[0] === selStart[0] &&
-          hw.startCell[1] === selStart[1] &&
-          hw.endCell[0] === selEnd[0] &&
-          hw.endCell[1] === selEnd[1]) ||
-          // allow reverse selection
-          (hw.startCell[0] === selEnd[0] &&
-            hw.startCell[1] === selEnd[1] &&
-            hw.endCell[0] === selStart[0] &&
-            hw.endCell[1] === selStart[1]))
-    );
+  const onGridPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      if (!cell) return;
+      // Capture the pointer so pointermove keeps firing even outside the element
+      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      isDrawing.current = true;
+      startCell.current = cell;
+      currentCell.current = cell;
+      applyDragHighlight(cell, cell);
+    },
+    [cellFromPoint, applyDragHighlight]
+  );
 
-    if (matched) {
-      setCellStates((prev) => {
-        const next = prev.map((row) => [...row]);
-        highlightRange(next, matched.startCell, matched.endCell, "correct");
-        return next;
-      });
-      onWordFound(matched.word.toUpperCase());
-    } else {
-      setCellStates((prev) => {
-        const next = prev.map((row) =>
-          row.map((c) => (c === "correct" ? "correct" : "idle"))
-        );
-        highlightRange(next, selStart, selEnd, "wrong-flash");
-        return next;
-      });
-      setTimeout(() => {
-        setCellStates((prev) =>
-          prev.map((row) =>
-            row.map((c) => (c === "wrong-flash" ? "idle" : c))
-          )
-        );
-      }, 500);
-    }
-  };
+  const onGridPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDrawing.current || !startCell.current) return;
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      if (!cell) return;
+      // Only re-render if the cell actually changed
+      if (
+        currentCell.current &&
+        currentCell.current[0] === cell[0] &&
+        currentCell.current[1] === cell[1]
+      )
+        return;
+      currentCell.current = cell;
+      applyDragHighlight(startCell.current, cell);
+    },
+    [cellFromPoint, applyDragHighlight]
+  );
+
+  const onGridPointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDrawing.current || !startCell.current) return;
+      isDrawing.current = false;
+      const cell = cellFromPoint(e.clientX, e.clientY) ?? currentCell.current;
+      const end = cell ?? startCell.current;
+      handleSelectionComplete(startCell.current, end);
+      startCell.current = null;
+      currentCell.current = null;
+    },
+    [cellFromPoint, handleSelectionComplete]
+  );
 
   if (!grid.length) {
     return (
@@ -291,14 +342,23 @@ function WordPuzzleGrid({
 
   return (
     <div className="space-y-3 select-none">
-      {/* Grid — scrollable horizontally on small screens */}
+      {/* Grid — all pointer events handled on the container */}
       <div className="overflow-x-auto">
         <div
-          className="inline-grid gap-0.5 mx-auto"
+          ref={gridRef}
+          className="inline-grid gap-0.5 mx-auto cursor-crosshair"
           style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-          onPointerLeave={() => {
-            if (isDrawing.current && startCell.current && currentCell.current) {
-              handlePointerUp(currentCell.current[0], currentCell.current[1]);
+          onPointerDown={onGridPointerDown}
+          onPointerMove={onGridPointerMove}
+          onPointerUp={onGridPointerUp}
+          // If pointer leaves the grid entirely, commit whatever was selected
+          onPointerLeave={(e) => {
+            if (isDrawing.current && startCell.current) {
+              isDrawing.current = false;
+              const end = currentCell.current ?? startCell.current;
+              handleSelectionComplete(startCell.current, end);
+              startCell.current = null;
+              currentCell.current = null;
             }
           }}
         >
@@ -308,13 +368,13 @@ function WordPuzzleGrid({
               return (
                 <div
                   key={`${rIdx}-${cIdx}`}
-                  onPointerDown={() => handlePointerDown(rIdx, cIdx)}
-                  onPointerEnter={() => handlePointerEnter(rIdx, cIdx)}
-                  onPointerUp={() => handlePointerUp(rIdx, cIdx)}
+                  // data attributes let cellFromPoint identify the cell via elementFromPoint
+                  data-row={rIdx}
+                  data-col={cIdx}
                   className={cn(
-                    "flex items-center justify-center rounded-md font-bold cursor-pointer transition-colors touch-none",
+                    "flex items-center justify-center rounded-md font-bold transition-colors touch-none pointer-events-none",
                     cellSize,
-                    state === "idle" && "bg-muted text-foreground hover:bg-muted/70",
+                    state === "idle" && "bg-muted text-foreground",
                     state === "hovered" && "bg-[#531342]/30 text-[#531342]",
                     state === "selected" && "bg-[#531342]/50 text-white",
                     state === "correct" && "bg-green-500 text-white",
