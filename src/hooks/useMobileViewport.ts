@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 // Largest standard mobile viewport width (iPhone Pro Max landscape = 932px,
 // but we gate on portrait width — 430px is the widest portrait mobile screen).
 // Anything wider than this is considered a non-mobile screen.
-export const MOBILE_MAX_WIDTH = 430;
+export const MOBILE_MAX_WIDTH = 768;
 
 export type ViewportState = "mobile" | "desktop" | "unknown";
 
