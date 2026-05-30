@@ -43,12 +43,21 @@ interface HiddenWord {
   direction: string;
 }
 
-function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWords: HiddenWord[] } {
+function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWords: HiddenWord[]; timeLimitSecs: number } {
   let maxRow = 0;
   let maxCol = 0;
 
+  // Deduplicate by word to avoid duplicate React keys and grid conflicts
+  const seenWords = new Set<string>();
+
   const hiddenWords: HiddenWord[] = questions
-    .filter((q) => q.word && q.startCell && q.endCell)
+    .filter((q) => {
+      if (!q.word || !q.startCell || !q.endCell) return false;
+      const key = (q.word as string).toUpperCase();
+      if (seenWords.has(key)) return false;
+      seenWords.add(key);
+      return true;
+    })
     .map((q) => {
       const start: [number, number] = [q.startCell[0], q.startCell[1]];
       const end: [number, number] = [q.endCell[0], q.endCell[1]];
@@ -62,6 +71,11 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
         direction: q.direction ?? "HORIZONTAL",
       };
     });
+
+  // Use the max timeLimitSecs across all questions, defaulting to 60s
+  const timeLimitSecs = questions.reduce((acc: number, q: any) => {
+    return q.timeLimitSecs && q.timeLimitSecs > 0 ? Math.max(acc, q.timeLimitSecs) : acc;
+  }, 60);
 
   const rows = maxRow + 1;
   const cols = maxCol + 1;
@@ -85,7 +99,7 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
     for (let c = 0; c < cols; c++)
       if (!grid[r][c]) grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
 
-  return { grid, hiddenWords };
+  return { grid, hiddenWords, timeLimitSecs };
 }
 
 function WordPuzzleGrid({
@@ -277,11 +291,11 @@ function WordPuzzleGrid({
       <div className="space-y-1">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Words to Find</p>
         <div className="flex flex-wrap gap-1.5">
-          {hiddenWords.map((hw) => {
+          {hiddenWords.map((hw, idx) => {
             const found = foundWords.has(hw.word.toUpperCase());
             return (
               <div
-                key={hw.word}
+                key={`${hw.word}-${idx}`}
                 className={cn(
                   "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all",
                   found
@@ -307,11 +321,39 @@ function PublicWordPuzzlePlayer({
   questions: any[];
   onAllComplete: (answers: string[]) => void;
 }) {
-  const { grid, hiddenWords } = useMemo(() => buildGridFromQuestions(questions), [questions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { grid, hiddenWords, timeLimitSecs } = useMemo(() => buildGridFromQuestions(questions), [questions.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
+  const [timeLeft, setTimeLeft] = useState(timeLimitSecs);
+  const [expired, setExpired] = useState(false);
+  const startTimeRef = useRef(Date.now());
 
   const allFound = hiddenWords.length > 0 && hiddenWords.every((hw) => foundWords.has(hw.word));
   const remaining = hiddenWords.length - foundWords.size;
+
+  // Countdown timer — auto-submit when it hits 0
+  useEffect(() => {
+    if (allFound || expired) return;
+    setTimeLeft(timeLimitSecs);
+    startTimeRef.current = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const left = timeLimitSecs - elapsed;
+      if (left <= 0) {
+        setTimeLeft(0);
+        setExpired(true);
+        clearInterval(interval);
+        const answers = questions.map((q) => {
+          const w = (q.word as string | undefined)?.toUpperCase() ?? "";
+          return foundWords.has(w) ? w : "";
+        });
+        onAllComplete(answers);
+      } else {
+        setTimeLeft(left);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLimitSecs, allFound]);
 
   const handleWordFound = (word: string) => setFoundWords((prev) => new Set([...prev, word]));
 
@@ -325,24 +367,35 @@ function PublicWordPuzzlePlayer({
 
   if (!grid.length) return <p className="text-xs text-muted-foreground text-center py-4">No grid data for this puzzle.</p>;
 
+  const timerPct = (timeLeft / timeLimitSecs) * 100;
+  const timerUrgent = timeLeft <= 10;
+
   return (
     <div className="space-y-4">
+      {/* Timer + progress */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{foundWords.size} / {hiddenWords.length} words found</span>
-          {allFound && <span className="text-green-600 font-semibold">All found! 🎉</span>}
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-muted-foreground">{foundWords.size} / {hiddenWords.length} words found</span>
+          <span className={cn(
+            "flex items-center gap-1 font-mono font-bold",
+            timerUrgent ? "text-red-500 animate-pulse" : "text-foreground"
+          )}>
+            <Timer className="h-3 w-3" />
+            {timeLeft}s
+          </span>
         </div>
-        <Progress value={hiddenWords.length > 0 ? (foundWords.size / hiddenWords.length) * 100 : 0} className="h-1.5" />
+        <Progress value={timerPct} className={cn("h-1.5", timerUrgent && "[&>div]:bg-red-500")} />
       </div>
+
+      {allFound && <p className="text-center text-xs text-green-600 font-semibold">All found! 🎉</p>}
 
       <WordPuzzleGrid grid={grid} hiddenWords={hiddenWords} onWordFound={handleWordFound} foundWords={foundWords} />
 
       <Button
         className={cn("w-full rounded-xl text-white", allFound ? "bg-green-600 hover:bg-green-700" : "bg-[#531342] hover:bg-[#531342]/90")}
         onClick={handleSubmit}
-        disabled={!allFound && hiddenWords.length > 0}
       >
-        {allFound ? "Submit Answers" : `Find ${remaining} more word${remaining !== 1 ? "s" : ""}…`}
+        {allFound ? "Submit Answers" : `Submit (${remaining} word${remaining !== 1 ? "s" : ""} remaining)`}
       </Button>
     </div>
   );
