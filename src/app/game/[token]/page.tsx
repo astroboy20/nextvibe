@@ -589,26 +589,7 @@ function PublicRoundPlayer({
         </div>
       )}
 
-      {/* Word puzzle */}
-      {gameType === "word-puzzle" && !q.options?.length && (
-        <div className="space-y-2">
-          <input
-            className="w-full rounded-xl border-2 border-border p-3 text-sm focus:border-primary outline-none"
-            placeholder="Type your answer..."
-            value={wordInput}
-            onChange={(e) => setWordInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleWordSubmit()}
-            disabled={!!flash}
-          />
-          <Button
-            className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-            disabled={!wordInput.trim() || !!flash}
-            onClick={handleWordSubmit}
-          >
-            Submit Answer
-          </Button>
-        </div>
-      )}
+      {/* Word puzzle — handled above via early return, nothing to render here */}
     </div>
   );
 }
