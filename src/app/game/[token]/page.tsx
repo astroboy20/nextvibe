@@ -251,7 +251,7 @@ function WordPuzzleGrid({
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
-          onPointerLeave={(e) => {
+          onPointerLeave={() => {
             if (isDrawing.current && startCell.current) {
               isDrawing.current = false;
               const end = currentCell.current ?? startCell.current;
@@ -288,23 +288,28 @@ function WordPuzzleGrid({
       </div>
 
       {/* Words to find */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Words to Find</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {hiddenWords.map((hw, idx) => {
             const found = foundWords.has(hw.word.toUpperCase());
             return (
               <div
                 key={`${hw.word}-${idx}`}
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all",
+                  "flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs border transition-all",
                   found
-                    ? "border-green-500/40 bg-green-500/10 text-green-700 line-through"
-                    : "border-border bg-muted text-muted-foreground"
+                    ? "border-green-500/40 bg-green-500/10 text-green-700"
+                    : "border-border bg-muted/50 text-foreground"
                 )}
               >
-                {found && <CheckCircle2 className="h-3 w-3 shrink-0" />}
-                {hw.word}
+                {found
+                  ? <CheckCircle2 className="h-3 w-3 shrink-0 text-green-600" />
+                  : <span className="block h-3 w-3 shrink-0 rounded-full border border-current opacity-40" />
+                }
+                <p className={cn("font-bold leading-tight", found && "line-through")}>
+                  {hw.word}
+                </p>
               </div>
             );
           })}
@@ -418,7 +423,6 @@ function PublicRoundPlayer({
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<(number | string)[]>([]);
-  const [wordInput, setWordInput] = useState("");
   const [totalStartTime] = useState(Date.now());
   const [qStartTime, setQStartTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -453,12 +457,11 @@ function PublicRoundPlayer({
   const progress = questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
   const isLast = currentQ === questions.length - 1;
 
-  const advance = async (selectedAnswer: number | string, allAnswers: (number | string)[]) => {
+  const advance = async (_selectedAnswer: number | string, allAnswers: (number | string)[]) => {
     if (!isLast) {
       setCurrentQ((c) => c + 1);
       setQStartTime(Date.now());
       setFlash(null);
-      setWordInput("");
     } else {
       setFlash(null);
       const result = await onSubmit(round.id, allAnswers, Date.now() - totalStartTime);
@@ -480,16 +483,6 @@ function PublicRoundPlayer({
     setTimeout(() => advance(idx, newAnswers), 800);
   };
 
-  const handleWordSubmit = () => {
-    if (flash || !wordInput.trim()) return;
-    const correctIdx: number | string = q?.correctAnswer ?? q?.correct ?? q?.answer ?? "";
-    const isCorrect = wordInput.trim().toLowerCase() === String(correctIdx).trim().toLowerCase();
-    const newAnswers = [...answers];
-    newAnswers[currentQ] = wordInput;
-    setAnswers(newAnswers);
-    setFlash({ selected: wordInput, correct: correctIdx, isCorrect });
-    setTimeout(() => advance(wordInput, newAnswers), 800);
-  };
 
   // ── Word Puzzle: delegate to grid player ─────────────────────────────────
   if (gameType === "word-puzzle" && finalScore === null) {

@@ -374,7 +374,7 @@ function WordPuzzleGrid({
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
           // If pointer leaves the grid entirely, commit whatever was selected
-          onPointerLeave={(e) => {
+          onPointerLeave={() => {
             if (isDrawing.current && startCell.current) {
               isDrawing.current = false;
               const end = currentCell.current ?? startCell.current;
@@ -412,25 +412,30 @@ function WordPuzzleGrid({
       </div>
 
       {/* Words to find list */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           Words to Find
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {hiddenWords.map((hw, idx) => {
             const found = foundWords.has(hw.word.toUpperCase());
             return (
               <div
                 key={`${hw.word}-${idx}`}
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all",
+                  "flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs border transition-all",
                   found
-                    ? "border-green-500/40 bg-green-500/10 text-green-700 line-through"
-                    : "border-border bg-muted text-muted-foreground"
+                    ? "border-green-500/40 bg-green-500/10 text-green-700"
+                    : "border-border bg-muted/50 text-foreground"
                 )}
               >
-                {found && <CheckCircle2 className="h-3 w-3 shrink-0" />}
-                {hw.word}
+                {found
+                  ? <CheckCircle2 className="h-3 w-3 shrink-0 text-green-600" />
+                  : <span className="block h-3 w-3 shrink-0 rounded-full border border-current opacity-40" />
+                }
+                <p className={cn("font-bold leading-tight", found && "line-through")}>
+                  {hw.word}
+                </p>
               </div>
             );
           })}
@@ -685,7 +690,6 @@ function RoundPlayer({
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<(number | string)[]>([]);
-  const [wordInput, setWordInput] = useState("");
 
   const [totalStartTime] = useState(Date.now());
   const [qStartTime, setQStartTime] = useState(Date.now());
@@ -748,14 +752,13 @@ function RoundPlayer({
   }
 
   const advance = async (
-    selectedAnswer: number | string,
+    _selectedAnswer: number | string,
     allAnswers: (number | string)[]
   ) => {
     if (!isLast) {
       setCurrentQ((c) => c + 1);
       setQStartTime(Date.now());
       setFlash(null);
-      setWordInput("");
     } else {
       setFlash(null);
       setWaitingForResult(true);
@@ -789,21 +792,6 @@ function RoundPlayer({
     setTimeout(() => advance(idx, newAnswers), 800);
   };
 
-  const handleWordSubmit = () => {
-    if (flash || !wordInput.trim()) return;
-    // correctAnswer is the string stored in config.questions for word-puzzle
-    const correctAnswer: string = q?.correctAnswer ?? q?.answer ?? "";
-    const isCorrect =
-      wordInput.trim().toLowerCase() ===
-      correctAnswer.trim().toLowerCase();
-
-    const newAnswers = [...answers];
-    newAnswers[currentQ] = wordInput;
-    setAnswers(newAnswers);
-    setFlash({ selected: wordInput, correct: correctAnswer, isCorrect });
-
-    setTimeout(() => advance(wordInput, newAnswers), 800);
-  };
 
   if (finalScore !== null) {
     const entries: any[] = leaderboardData?.data?.entries ?? [];
@@ -1029,15 +1017,6 @@ function SessionCard({
   );
   const submittedRounds = new Set<string>([...apiPlayedRounds, ...playedRounds]);
 
-  // Leaderboard — only fetched when the leaderboard section is visible
-  const { data: lbData } = useGetSessionLeaderboardQuery(session.id, {
-    refetchOnMountOrArgChange: true,
-  });
-
-  const lbPayload = lbData?.data ?? lbData;
-  const entries: any[] = lbPayload?.entries ?? lbPayload?.data?.entries ?? [];
-  const myEntry: any = lbPayload?.myEntry ?? lbPayload?.data?.myEntry ?? null;
-
   return (
     <Card
       className={cn(
@@ -1134,7 +1113,7 @@ function SessionCard({
                   ? "bg-green-600/60 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700"
               )}
-              onClick={async () => { await onJoin(); }}
+              onClick={() => { onJoin(); }}
               disabled={isJoined || isJoining}
             >
               {isJoining ? (
@@ -1318,7 +1297,6 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     refetchOnMountOrArgChange: true,
   });
 
-  const hasActiveGame: boolean = gameStatusData?.data?.hasActiveGame ?? false;
   // isJoined from the status endpoint — true once the user has called /join
   const isJoinedFromStatus: boolean = gameStatusData?.data?.isJoined ?? false;
   // The active session id from the status response — use to pre-select the session
