@@ -48,7 +48,7 @@ const StepFour = ({
       ...prev,
       isWordPuzzle
         ? { id: newId, question: "", clue: "", correctAnswer: "", timeLimitSecs: 15, points: 10 }
-        : { id: newId, question: "", options: Array(optionCount).fill(""), correctIndex: 0, correctAnswer: "", timeLimitSecs: 15, points: 10 },
+        : { id: newId, question: "", options: Array(optionCount).fill(""), correctAnswerIndex: 0, correctAnswer: "", timeLimitSecs: 15, points: 10 },
     ]);
     setEditingQuestion(newId);
   };
@@ -163,17 +163,17 @@ const StepFour = ({
                             <div key={optIdx} className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleQuestionEdit(q.id, "correctIndex", optIdx)}
+                                onClick={() => handleQuestionEdit(q.id, "correctAnswerIndex", optIdx)}
                                 className={cn(
                                   "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors",
-                                  q.correctIndex === optIdx
+                                  q.correctAnswerIndex === optIdx
                                     ? gameType === "two-truths"
                                       ? "bg-red-500 text-white"
                                       : "bg-emerald-500 text-white"
                                     : "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
                                 )}
                               >
-                                {q.correctIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
+                                {q.correctAnswerIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
                               </button>
                               <Input
                                 value={opt}
@@ -230,7 +230,7 @@ const StepFour = ({
                             key={optIdx}
                             className={cn(
                               "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs",
-                              q.correctIndex === optIdx
+                              q.correctAnswerIndex === optIdx
                                 ? gameType === "two-truths"
                                   ? "bg-red-100 text-red-700 font-medium"
                                   : "bg-emerald-100 text-emerald-700 font-medium"
@@ -238,7 +238,7 @@ const StepFour = ({
                             )}
                           >
                             {opt || `Option ${String.fromCharCode(65 + optIdx)}`}
-                            {q.correctIndex === optIdx && (gameType === "two-truths" ? " 🤥" : " ✓")}
+                            {q.correctAnswerIndex === optIdx && (gameType === "two-truths" ? " 🤥" : " ✓")}
                           </span>
                         ))}
                       </div>

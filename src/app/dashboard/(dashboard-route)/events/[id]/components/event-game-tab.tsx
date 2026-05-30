@@ -800,8 +800,8 @@ function RoundPlayer({
 
   const handleSelectOption = (idx: number) => {
     if (flash) return;
-    // correctIndex is the numeric index stored in config.questions
-    const correctIdx: number = q?.correctIndex ?? 0;
+    // correctAnswerIndex is the numeric index stored in config.questions
+    const correctIdx: number = q?.correctAnswerIndex ?? 0;
     const isCorrect = idx === correctIdx;
 
     const newAnswers = [...answers];

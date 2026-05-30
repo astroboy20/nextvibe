@@ -58,8 +58,8 @@ export interface Question {
   // TRIVIA / TWO_TRUTHS / THIS_OR_THAT
   question: string;
   options?: string[];
-  correctIndex?: number; // TRIVIA: index of correct option; TWO_TRUTHS: index of the lie
-  correctAnswer?: string; // derived from options[correctIndex] on submit
+  correctAnswerIndex?: number; // TRIVIA: index of correct option; TWO_TRUTHS: index of the lie
+  correctAnswer?: string; // derived from options[correctAnswerIndex] on submit
   // WORD_PUZZLE
   clue?: string; // the hint shown to players
   // Word puzzle grid metadata (from new API shape)
@@ -460,7 +460,7 @@ export function GameCreationWizard({
             ...base,
             question: q.text ?? q.question ?? "",
             options,
-            correctIndex: resolvedLieIndex,
+            correctAnswerIndex: resolvedLieIndex,
             correctAnswer: options[resolvedLieIndex] ?? q.correctAnswer ?? "",
           };
         }
@@ -471,7 +471,7 @@ export function GameCreationWizard({
             ...base,
             question: q.text ?? q.question ?? "",
             options: q.options ?? [],
-            correctIndex: undefined,
+            correctAnswerIndex: undefined,
             correctAnswer: undefined,
           };
         }
@@ -490,7 +490,7 @@ export function GameCreationWizard({
           ...base,
           question: q.text ?? q.question ?? "",
           options,
-          correctIndex: correctIdx,
+          correctAnswerIndex: correctIdx,
           correctAnswer: options[correctIdx] ?? q.correctAnswer ?? "",
         };
       });
@@ -574,10 +574,10 @@ export function GameCreationWizard({
             clue: replacement?.clue ?? replacement?.text ?? q.clue,
             correctAnswer: replacement?.correctAnswer ?? q.correctAnswer,
             options: replacement?.options ?? q.options,
-            correctIndex:
+            correctAnswerIndex:
               replacement?.correctAnswerIndex ??
-              replacement?.correctIndex ??
-              q.correctIndex,
+              replacement?.correctAnswerIndex ??
+              q.correctAnswerIndex,
             timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
           };
         })
@@ -605,11 +605,11 @@ export function GameCreationWizard({
             return { ...q, clue: value as string, question: value as string };
           if (field === "correctAnswer")
             return { ...q, correctAnswer: value as string };
-          if (field === "correctIndex") {
+          if (field === "correctAnswerIndex") {
             // Keep correctAnswer in sync with the selected option
             const newIdx = value as number;
             const newAnswer = q.options?.[newIdx] ?? "";
-            return { ...q, correctIndex: newIdx, correctAnswer: newAnswer };
+            return { ...q, correctAnswerIndex: newIdx, correctAnswer: newAnswer };
           }
           if (field === "timeLimitSecs")
             return { ...q, timeLimitSecs: value as number };
@@ -637,7 +637,7 @@ export function GameCreationWizard({
           newOptions[optionIndex] = value;
           // Keep correctAnswer in sync if the correct option text changed
           const newCorrectAnswer =
-            newOptions[q.correctIndex ?? 0] ?? q.correctAnswer;
+            newOptions[q.correctAnswerIndex ?? 0] ?? q.correctAnswer;
           return { ...q, options: newOptions, correctAnswer: newCorrectAnswer };
         }),
       };
@@ -719,11 +719,11 @@ export function GameCreationWizard({
               };
             }
             // TRIVIA / TWO_TRUTHS_ONE_LIE / THIS_OR_THAT
-            // Backend uses correctIndex (number) for index-based scoring
+            // Backend uses correctAnswerIndex (number) for index-based scoring
             const options: string[] = q.options ?? [];
-            const correctIndex =
-              q.correctIndex !== undefined
-                ? q.correctIndex
+            const correctAnswerIndex =
+              q.correctAnswerIndex !== undefined
+                ? q.correctAnswerIndex
                 : options.findIndex(
                     (o) =>
                       o.toLowerCase().trim() ===
@@ -732,7 +732,7 @@ export function GameCreationWizard({
             return {
               text: q.question,
               options,
-              correctIndex: correctIndex >= 0 ? correctIndex : 0,
+              correctAnswerIndex: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
               points: q.points ?? 10,
               timeLimitSecs: q.timeLimitSecs,
             };
