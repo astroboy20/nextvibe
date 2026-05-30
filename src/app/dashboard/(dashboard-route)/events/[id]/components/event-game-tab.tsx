@@ -341,6 +341,8 @@ function WordPuzzleGrid({
   const onGridPointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDrawing.current || !startCell.current) return;
+      // Release capture explicitly — iOS Safari doesn't always auto-release on pointerup
+      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
       isDrawing.current = false;
       const cell = cellFromPoint(e.clientX, e.clientY) ?? currentCell.current;
       const end = cell ?? startCell.current;
@@ -349,6 +351,23 @@ function WordPuzzleGrid({
       currentCell.current = null;
     },
     [cellFromPoint, handleSelectionComplete]
+  );
+
+  // OS interrupted the gesture (scroll start, notification, etc.) — reset state
+  // so the next drag starts clean instead of seeing stale isDrawing/startCell.
+  const onGridPointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDrawing.current) return;
+      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+      isDrawing.current = false;
+      startCell.current = null;
+      currentCell.current = null;
+      // Reset hover highlights — leave correct cells intact
+      setCellStates((prev) =>
+        prev.map((row) => row.map((c) => (c === "correct" ? "correct" : "idle")))
+      );
+    },
+    []
   );
 
   if (!grid.length) {
@@ -368,14 +387,16 @@ function WordPuzzleGrid({
       <div className="overflow-x-auto">
         <div
           ref={gridRef}
-          className="inline-grid gap-0.5 mx-auto cursor-crosshair"
+          className="inline-grid gap-0.5 mx-auto cursor-crosshair touch-none"
           style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
+          onPointerCancel={onGridPointerCancel}
           // If pointer leaves the grid entirely, commit whatever was selected
-          onPointerLeave={() => {
+          onPointerLeave={(e) => {
             if (isDrawing.current && startCell.current) {
+              (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
               isDrawing.current = false;
               const end = currentCell.current ?? startCell.current;
               handleSelectionComplete(startCell.current, end);

@@ -229,6 +229,7 @@ function WordPuzzleGrid({
 
   const onGridPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDrawing.current || !startCell.current) return;
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
     isDrawing.current = false;
     const cell = cellFromPoint(e.clientX, e.clientY) ?? currentCell.current;
     const end = cell ?? startCell.current;
@@ -236,6 +237,17 @@ function WordPuzzleGrid({
     startCell.current = null;
     currentCell.current = null;
   }, [cellFromPoint, handleSelectionComplete]);
+
+  const onGridPointerCancel = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDrawing.current) return;
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    isDrawing.current = false;
+    startCell.current = null;
+    currentCell.current = null;
+    setCellStates((prev) =>
+      prev.map((row) => row.map((c) => (c === "correct" ? "correct" : "idle")))
+    );
+  }, []);
 
   if (!grid.length) return <p className="text-xs text-muted-foreground text-center py-4">No grid data for this puzzle.</p>;
 
@@ -246,13 +258,15 @@ function WordPuzzleGrid({
       <div className="overflow-x-auto">
         <div
           ref={gridRef}
-          className="inline-grid gap-0.5 mx-auto cursor-crosshair"
+          className="inline-grid gap-0.5 mx-auto cursor-crosshair touch-none"
           style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
-          onPointerLeave={() => {
+          onPointerCancel={onGridPointerCancel}
+          onPointerLeave={(e) => {
             if (isDrawing.current && startCell.current) {
+              (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
               isDrawing.current = false;
               const end = currentCell.current ?? startCell.current;
               handleSelectionComplete(startCell.current, end);
