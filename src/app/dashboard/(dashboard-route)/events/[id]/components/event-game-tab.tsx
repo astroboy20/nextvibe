@@ -372,7 +372,7 @@ function WordPuzzleGrid({
                   data-row={rIdx}
                   data-col={cIdx}
                   className={cn(
-                    "flex items-center justify-center rounded-md font-bold transition-colors touch-none pointer-events-none",
+                    "flex items-center justify-center rounded-md font-bold transition-colors touch-none",
                     cellSize,
                     state === "idle" && "bg-muted text-foreground",
                     state === "hovered" && "bg-[#531342]/30 text-[#531342]",
@@ -408,7 +408,7 @@ function WordPuzzleGrid({
                 )}
               >
                 {found && <CheckCircle2 className="h-3 w-3 shrink-0" />}
-                {hw.clue || hw.word}
+                {hw.word}
               </div>
             );
           })}

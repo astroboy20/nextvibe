@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   View,
   Play,
+  Eye,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -806,7 +807,7 @@ export function PostcardViewer({
             )}
           </button>
           <div className="flex items-center gap-1.5  py-2 text-sm text-foreground shrink-0 ">
-            <Play className="h-6 w-6 text-foreground" />{" "}
+            <Eye className="h-6 w-6 text-foreground" />{" "}
             {freshData?.viewCount ?? 0}
           </div>
         </div>
