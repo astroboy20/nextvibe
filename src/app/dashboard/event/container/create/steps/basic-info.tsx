@@ -71,6 +71,9 @@ const basicInfoSchema = z.object({
   description: z.string().min(2, "Event description is required").optional(),
   isPublic: z.boolean({ error: "Event mode is required" }),
   tags: z.array(z.string()).min(1, "Select at least one event category"),
+  tier: z.enum(["MICRO", "SMALL", "MEDIUM", "LARGE", "ENTERPRISE"], {
+    error: "Event tier is required",
+  }),
   locationName: z.string().optional(),
   startsAt: z.date().nullable().optional(),
   eventMode: z.enum(["ONSITE", "HYBRID", "VIRTUAL"], {
@@ -175,8 +178,11 @@ const BasicInfo = () => {
       await uploadFile(file, intent.data.uploadUrl, (pct) =>
         setFlierUpload((prev) => ({ ...prev, progress: pct }))
       );
-      setFlierUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
-
+      setFlierUpload({
+        status: "done",
+        progress: 100,
+        url: intent.data.fileUrl,
+      });
     } catch {
       setFlierUpload({ status: "error", progress: 0, url: null });
       toast.error(errorHandler("Flyer upload failed. You can retry."));
@@ -199,8 +205,11 @@ const BasicInfo = () => {
       await uploadFile(file, intent.data.uploadUrl, (pct) =>
         setVideoUpload((prev) => ({ ...prev, progress: pct }))
       );
-      setVideoUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
-
+      setVideoUpload({
+        status: "done",
+        progress: 100,
+        url: intent.data.fileUrl,
+      });
     } catch {
       setVideoUpload({ status: "error", progress: 0, url: null });
       toast.error("Video upload failed. You can retry.");
@@ -256,6 +265,7 @@ const BasicInfo = () => {
         isPublic: values.isPublic,
         mode: values.eventMode,
         startsAt: values.startsAt?.toISOString(),
+        tier: values.tier,
         ...(flierUpload.url && { flierUrl: flierUpload.url }),
         ...(videoUpload.url && { promoVideoUrl: videoUpload.url }),
       };
@@ -268,10 +278,7 @@ const BasicInfo = () => {
         setCreatedEventId(eventId);
       }
     } catch (err: any) {
-      toast.error(
-        errorHandler(err)
-
-      );
+      toast.error(errorHandler(err));
     }
   };
 
@@ -340,6 +347,39 @@ const BasicInfo = () => {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label>Event Tier</Label>
+              <Select
+                onValueChange={(value) =>
+                  setValue(
+                    "tier",
+                    value as
+                      | "MICRO"
+                      | "SMALL"
+                      | "MEDIUM"
+                      | "LARGE"
+                      | "ENTERPRISE",
+                    { shouldValidate: true, shouldDirty: true }
+                  )
+                }
+              >
+                <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
+                  <SelectValue placeholder="Select event tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MICRO">Micro — 50 Attendees</SelectItem>
+                  <SelectItem value="SMALL">Small — 200 Attendees</SelectItem>
+                  <SelectItem value="MEDIUM">Medium — 500 Attendees</SelectItem>
+                  <SelectItem value="LARGE">Large — 2,000 Attendees</SelectItem>
+                  <SelectItem value="ENTERPRISE">
+                    Enterprise — Unlimited
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.tier && (
+                <p className="text-xs text-red-500">{errors.tier.message}</p>
+              )}
+            </div>
             {/* Event Type (public/private) */}
             <div className="space-y-2">
               <Label>Event Type</Label>
@@ -452,11 +492,8 @@ const BasicInfo = () => {
                   className="h-11 rounded-lg border-gray-300 focus-visible:ring-[#5B1A57]"
                   onChange={(e) => {
                     const time =
-                      (
-                        document.getElementById(
-                          "eventTime"
-                        ) as HTMLInputElement
-                      )?.value ?? "";
+                      (document.getElementById("eventTime") as HTMLInputElement)
+                        ?.value ?? "";
                     handleDateTimeChange(e.target.value, time);
                   }}
                 />
@@ -469,11 +506,8 @@ const BasicInfo = () => {
                   className="h-11 rounded-lg border-gray-300 focus-visible:ring-[#5B1A57]"
                   onChange={(e) => {
                     const date =
-                      (
-                        document.getElementById(
-                          "eventDate"
-                        ) as HTMLInputElement
-                      )?.value ?? "";
+                      (document.getElementById("eventDate") as HTMLInputElement)
+                        ?.value ?? "";
                     handleDateTimeChange(date, e.target.value);
                   }}
                 />
@@ -653,10 +687,7 @@ const BasicInfo = () => {
                           </div>
                         </div>
                         <p className="text-white/70 text-xs">
-                          {(
-                            promotionalVideo.size /
-                            (1024 * 1024)
-                          ).toFixed(1)}{" "}
+                          {(promotionalVideo.size / (1024 * 1024)).toFixed(1)}{" "}
                           MB
                         </p>
                       </div>
@@ -680,9 +711,7 @@ const BasicInfo = () => {
                           type="button"
                           size="sm"
                           variant="secondary"
-                          onClick={() =>
-                            handleVideoChange(promotionalVideo)
-                          }
+                          onClick={() => handleVideoChange(promotionalVideo)}
                         >
                           Retry
                         </Button>
