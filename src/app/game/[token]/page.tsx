@@ -44,59 +44,108 @@ interface HiddenWord {
 }
 
 function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWords: HiddenWord[]; timeLimitSecs: number } {
-  let maxRow = 0;
-  let maxCol = 0;
-
-  // Deduplicate by word to avoid duplicate React keys and grid conflicts
-  const seenWords = new Set<string>();
-
-  const hiddenWords: HiddenWord[] = questions
-    .filter((q) => {
-      if (!q.word || !q.startCell || !q.endCell) return false;
-      const key = (q.word as string).toUpperCase();
-      if (seenWords.has(key)) return false;
-      seenWords.add(key);
-      return true;
-    })
-    .map((q) => {
-      const start: [number, number] = [q.startCell[0], q.startCell[1]];
-      const end: [number, number] = [q.endCell[0], q.endCell[1]];
-      maxRow = Math.max(maxRow, start[0], end[0]);
-      maxCol = Math.max(maxCol, start[1], end[1]);
-      return {
-        word: (q.word as string).toUpperCase(),
-        clue: q.text ?? q.clue ?? q.word,
-        startCell: start,
-        endCell: end,
-        direction: q.direction ?? "HORIZONTAL",
-      };
-    });
-
-  // Use the max timeLimitSecs across all questions, defaulting to 60s
   const timeLimitSecs = questions.reduce((acc: number, q: any) => {
     return q.timeLimitSecs && q.timeLimitSecs > 0 ? Math.max(acc, q.timeLimitSecs) : acc;
   }, 60);
 
-  const rows = maxRow + 1;
-  const cols = maxCol + 1;
-  const grid: string[][] = Array.from({ length: rows }, () => Array(cols).fill(""));
+  // Extract canonical word from whichever field the API provides
+  const extractWord = (q: any): string =>
+    ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
 
-  for (const hw of hiddenWords) {
-    const [r1, c1] = hw.startCell;
-    const [r2, c2] = hw.endCell;
-    const dr = Math.sign(r2 - r1);
-    const dc = Math.sign(c2 - c1);
-    let r = r1, c = c1;
-    for (let i = 0; i < hw.word.length; i++) {
-      if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = hw.word[i];
-      if (r === r2 && c === c2) break;
-      r += dr; c += dc;
+  // Deduplicate
+  const seenWords = new Set<string>();
+  const rawWords: { word: string; clue: string; q: any }[] = questions
+    .map((q) => ({ word: extractWord(q), clue: q.text ?? q.clue ?? q.word ?? q.correctAnswer ?? "", q }))
+    .filter(({ word }) => {
+      if (!word) return false;
+      if (seenWords.has(word)) return false;
+      seenWords.add(word);
+      return true;
+    });
+
+  // ── Case 1: backend provided coordinates ─────────────────────────────────
+  const hasCoords = rawWords.every(({ q }) => q.startCell && q.endCell);
+  if (hasCoords) {
+    let maxRow = 0, maxCol = 0;
+    const hiddenWords: HiddenWord[] = rawWords.map(({ word, clue, q }) => {
+      const start: [number, number] = [q.startCell[0], q.startCell[1]];
+      const end: [number, number] = [q.endCell[0], q.endCell[1]];
+      maxRow = Math.max(maxRow, start[0], end[0]);
+      maxCol = Math.max(maxCol, start[1], end[1]);
+      return { word, clue, startCell: start, endCell: end, direction: q.direction ?? "HORIZONTAL" };
+    });
+    const rows = maxRow + 1, cols = maxCol + 1;
+    const grid: string[][] = Array.from({ length: rows }, () => Array(cols).fill(""));
+    for (const hw of hiddenWords) {
+      const [r1, c1] = hw.startCell, [r2, c2] = hw.endCell;
+      const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1);
+      let r = r1, c = c1;
+      for (let i = 0; i < hw.word.length; i++) {
+        if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = hw.word[i];
+        if (r === r2 && c === c2) break;
+        r += dr; c += dc;
+      }
+    }
+    const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (!grid[r][c]) grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
+    return { grid, hiddenWords, timeLimitSecs };
+  }
+
+  // ── Case 2: auto-place words in a generated grid ─────────────────────────
+  const longestWord = rawWords.reduce((max, { word }) => Math.max(max, word.length), 0);
+  const wordCount = rawWords.length;
+  const SIZE = Math.max(longestWord + 2, Math.ceil(Math.sqrt(wordCount * longestWord * 2.5)) + 2, 8);
+
+  const grid: string[][] = Array.from({ length: SIZE }, () => Array(SIZE).fill(""));
+  const hiddenWords: HiddenWord[] = [];
+
+  const DIRECTIONS: Array<{ dr: number; dc: number; name: string }> = [
+    { dr: 0, dc: 1, name: "HORIZONTAL" },
+    { dr: 1, dc: 0, name: "VERTICAL" },
+  ];
+
+  const canPlace = (word: string, r: number, c: number, dr: number, dc: number): boolean => {
+    for (let i = 0; i < word.length; i++) {
+      const nr = r + dr * i, nc = c + dc * i;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) return false;
+      if (grid[nr][nc] !== "" && grid[nr][nc] !== word[i]) return false;
+    }
+    return true;
+  };
+
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const out = [...arr];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+
+  for (const { word, clue } of rawWords) {
+    let placed = false;
+    const dirs = shuffle(DIRECTIONS);
+    for (const { dr, dc, name } of dirs) {
+      const positions = shuffle(
+        Array.from({ length: SIZE * SIZE }, (_, idx) => [Math.floor(idx / SIZE), idx % SIZE] as [number, number])
+      );
+      for (const [r, c] of positions) {
+        if (canPlace(word, r, c, dr, dc)) {
+          for (let i = 0; i < word.length; i++) grid[r + dr * i][c + dc * i] = word[i];
+          hiddenWords.push({ word, clue, startCell: [r, c], endCell: [r + dr * (word.length - 1), c + dc * (word.length - 1)], direction: name });
+          placed = true;
+          break;
+        }
+      }
+      if (placed) break;
     }
   }
 
   const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++)
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++)
       if (!grid[r][c]) grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
 
   return { grid, hiddenWords, timeLimitSecs };
@@ -136,6 +185,8 @@ function WordPuzzleGrid({
     currentCell.current = null;
   }, [rows, cols]);
 
+  // Re-apply "correct" highlights for already-found words
+  const foundWordsKey = [...foundWords].sort().join(",");
   useEffect(() => {
     setCellStates((prev) => {
       const next = prev.map((row) => row.map((c) => (c === "correct" ? "correct" : "idle")));
@@ -145,18 +196,29 @@ function WordPuzzleGrid({
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foundWords]);
+  }, [foundWordsKey]);
 
   function highlightRange(states: CellState[][], start: [number, number], end: [number, number], state: CellState) {
     const [r1, c1] = start;
     const [r2, c2] = end;
     const dr = Math.sign(r2 - r1);
     const dc = Math.sign(c2 - c1);
+    // Guard: start === end — just mark that one cell
+    if (dr === 0 && dc === 0) {
+      if (r1 >= 0 && r1 < states.length && c1 >= 0 && c1 < (states[0]?.length ?? 0)) {
+        states[r1][c1] = state;
+      }
+      return;
+    }
     let r = r1, c = c1;
-    while (true) {
+    // Cap iterations to prevent infinite loops when swipe direction doesn't align with word
+    const maxSteps = Math.max(states.length, states[0]?.length ?? 0) + 1;
+    let steps = 0;
+    while (steps <= maxSteps) {
       if (r >= 0 && r < states.length && c >= 0 && c < (states[0]?.length ?? 0)) states[r][c] = state;
       if (r === r2 && c === c2) break;
       r += dr; c += dc;
+      steps++;
     }
   }
 
@@ -284,7 +346,7 @@ function WordPuzzleGrid({
                   data-row={rIdx}
                   data-col={cIdx}
                   className={cn(
-                    "flex items-center justify-center rounded-md font-bold transition-colors touch-none",
+                    "flex items-center justify-center rounded-md font-bold touch-none",
                     cellSize,
                     state === "idle" && "bg-muted text-foreground",
                     state === "hovered" && "bg-[#531342]/30 text-[#531342]",
@@ -362,7 +424,7 @@ function PublicWordPuzzlePlayer({
         setExpired(true);
         clearInterval(interval);
         const answers = questions.map((q) => {
-          const w = (q.word as string | undefined)?.toUpperCase() ?? "";
+          const w = ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
           return foundWords.has(w) ? w : "";
         });
         onAllComplete(answers);
@@ -378,7 +440,7 @@ function PublicWordPuzzlePlayer({
 
   const handleSubmit = () => {
     const answers = questions.map((q) => {
-      const w = (q.word as string | undefined)?.toUpperCase() ?? "";
+      const w = ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
       return foundWords.has(w) ? w : "";
     });
     onAllComplete(answers);

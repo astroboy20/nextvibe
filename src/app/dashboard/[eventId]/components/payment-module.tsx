@@ -114,9 +114,11 @@ function PlanCard({ plan, selected, onSelect }: PlanCardProps) {
 interface PaymentModuleProps {
   eventId: string;
   eventStatus?: string;
+  /** Called after a successful free-publish or coupon-covered payment so the parent can refetch event data */
+  onPublished?: () => void;
 }
 
-export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
+export function PaymentModule({ eventId, eventStatus, onPublished }: PaymentModuleProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | undefined>();
@@ -215,6 +217,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
                   status: "PUBLISHED",
                 }).unwrap();
                 toast.success("Event published! It's now live.");
+                onPublished?.();
               } catch (err: any) {
                 toast.error(
                   err?.data?.message ?? "Failed to publish event."
@@ -296,6 +299,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
       if (status === "COMPLETED" || !checkoutUrl) {
         toast.success("Event published! It's now live.");
         refetchPreview();
+        onPublished?.();
         return;
       }
 
@@ -308,7 +312,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
 
   return (
     <>
-      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
+      <Card className="border-primary/30 bg-linear-to-br from-primary/5 to-accent/5 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -441,7 +445,7 @@ export function PaymentModule({ eventId, eventStatus }: PaymentModuleProps) {
 
           {/* CTA */}
           <Button
-            className="w-full rounded-xl bg-gradient-to-r from-[#531342] to-[#7a1d5e] hover:from-[#531342]/90 hover:to-[#7a1d5e]/90 text-white"
+            className="w-full rounded-xl bg-[#531342]  hover:to-[#7a1d5e]/90 text-white"
             disabled={!selectedPlan || isInitiating || isPublishing}
             onClick={handleActivate}
           >

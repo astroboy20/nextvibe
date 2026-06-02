@@ -86,7 +86,7 @@ interface OrganizerDashboardProps {
 export default function OrganizerDashboard({
   eventId,
 }: OrganizerDashboardProps) {
-  const { data: eventDetails, isLoading } = useGetEventDetailsQuery(eventId);
+  const { data: eventDetails, isLoading, refetch: refetchEvent } = useGetEventDetailsQuery(eventId);
   const { data: gamesData } = useGetGamesQuery(eventId);
   const [updateEventStatus, { isLoading: isUpdatingStatus }] =
     useUpdateEventStatusMutation();
@@ -592,7 +592,7 @@ export default function OrganizerDashboard({
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
-            <PaymentModule eventId={eventId} eventStatus={event?.status} />
+            <PaymentModule eventId={eventId} eventStatus={event?.status} onPublished={refetchEvent} />
           )}
 
           {/* {isLoading ? (
