@@ -444,6 +444,7 @@ export default function OrganizerDashboard({
                 eventName={event?.name}
                 eventStartsAt={event?.startsAt}
                 eventStatus={event?.status}
+                eventPlan={event?.eventPlan ?? null}
               />
             </EventDashboardCard>
           )}
@@ -467,6 +468,7 @@ export default function OrganizerDashboard({
                 eventId={eventId}
                 name={event?.name}
                 vibeTag={event?.vibeTag ?? null}
+                eventPlan={event?.eventPlan ?? null}
               />
             </EventDashboardCard>
           )}

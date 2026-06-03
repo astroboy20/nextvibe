@@ -9,7 +9,7 @@ import Editor from "./studio/editor";
 import { Start } from "./studio/start";
 
 interface DesignTemplateProps {
-  onSaveVibeTag?: (file: File) => void;
+  onSaveVibeTag?: (file: File, meta?: { paymentRequired: boolean; vibeTagId?: string }) => void;
   activityTiming?: string;
   eventId?: string;
   eventName?: string;

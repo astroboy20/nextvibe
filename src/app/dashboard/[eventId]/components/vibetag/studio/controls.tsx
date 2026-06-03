@@ -55,7 +55,7 @@ const controlActions: ControlItem[] = [
 ];
 
 interface ControlsProps {
-  onSaveVibeTag?: (file: File) => void;
+  onSaveVibeTag?: (file: File, meta?: { paymentRequired: boolean; vibeTagId?: string }) => void;
   activityTiming?: string;
   eventId?: string;
   eventName?: string;
@@ -169,9 +169,17 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
       }).unwrap();
 
       dispatch(setBackdropFile(file));
-      toast.success("VibeTag created successfully! 🎉");
+
+      const paymentRequired = request?.data?.paymentRequired ?? false;
+
+      if (paymentRequired) {
+        toast.info("VibeTag saved! Unlock it to make it active.");
+      } else {
+        toast.success("VibeTag created successfully! 🎉");
+      }
+
       setHasEdits(false);
-      if (onSaveVibeTag) onSaveVibeTag(file);
+      if (onSaveVibeTag) onSaveVibeTag(file, { paymentRequired, vibeTagId: request?.data?.id });
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to create VibeTag. Please try again.");
     }

@@ -36,32 +36,56 @@ interface VibeTagStudioContentProps {
   eventId: string;
   name?: string;
   vibeTag?: any;
+  eventPlan?: {
+    vibetagsEnabled: boolean;
+    vibetagPhases: string[];
+    isQuotaExhausted: boolean;
+  } | null;
 }
 
-const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
+const VibeTagStudioContent = ({ eventId, name, eventPlan }: VibeTagStudioContentProps) => {
   const dispatch = useDispatch();
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
   const [open, setOpen] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [couponCode, setCouponCode] = useState("");
+  const [pendingUnlockVibeTagId, setPendingUnlockVibeTagId] = useState<string | null>(null);
 
   const handleOpenCreate = () => {
-    // Check if event is published and needs payment
     const eventStatus = eventDetails?.data?.status;
-    const hasVibeTagsPlan = eventDetails?.data?.eventPlan?.hasVibeTags;
+    const isPublished = eventStatus === "PUBLISHED" || eventStatus === "LIVE";
 
-    if (
-      (eventStatus === "PUBLISHED" || eventStatus === "LIVE") &&
-      !hasVibeTagsPlan
-    ) {
-      // Need to pay for VibeTags addon
-      setShowPaymentDialog(true);
-    } else {
-      // Free to create (DRAFT event or already has plan)
+    // Use eventPlan from the parent (most up-to-date) if available,
+    // otherwise fall back to the event details query.
+    const plan = eventPlan ?? eventDetails?.data?.eventPlan ?? null;
+
+    // On a DRAFT event: always free, payment happens at publish time.
+    if (!isPublished) {
       dispatch(setView("start"));
       dispatch(setTemplate(null));
       setOpen(true);
+      return;
     }
+
+    // On a PUBLISHED/LIVE event:
+    // - No plan at all → need to buy addon
+    // - Plan exists but vibetagsEnabled is false → need to buy addon
+    // - Plan covers this phase (vibetagPhases includes activeTiming) → free to create
+    // - Plan exists but phase not covered → need to buy addon for this phase
+    const phaseEnabled =
+      plan?.vibetagsEnabled &&
+      (plan.vibetagPhases?.includes(activeTiming) ||
+        plan.vibetagPhases?.includes("BOTH"));
+
+    if (!phaseEnabled) {
+      setShowPaymentDialog(true);
+      return;
+    }
+
+    // Phase is covered — open creator directly
+    dispatch(setView("start"));
+    dispatch(setTemplate(null));
+    setOpen(true);
   };
 
   const { data, isLoading, refetch } = useGetVibeTagsQuery(
@@ -93,10 +117,14 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
   const existingTag =
     allVibeTags.find((t: any) => t.activityTiming === activeTiming) ?? null;
 
-  const handleCreated = () => {
+  const handleCreated = (meta?: { paymentRequired: boolean; vibeTagId?: string }) => {
     setOpen(false);
     refetch();
     refetchEvent();
+    if (meta?.paymentRequired) {
+      setPendingUnlockVibeTagId(meta.vibeTagId ?? null);
+      setShowPaymentDialog(true);
+    }
   };
 
   const handlePayForVibeTags = async (bundle: boolean) => {
@@ -105,6 +133,7 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         eventId,
         bundle,
         ...(couponCode.trim() ? { couponCode: couponCode.trim() } : {}),
+        ...(pendingUnlockVibeTagId ? { vibeTagId: pendingUnlockVibeTagId } : {}),
       }).unwrap();
 
       const { status, checkoutUrl } = res.data;
@@ -113,10 +142,15 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
         toast.success("VibeTags unlocked! You can now create VibeTags.");
         setShowPaymentDialog(false);
         setCouponCode("");
+        setPendingUnlockVibeTagId(null);
         refetchEvent();
-        dispatch(setView("start"));
-        dispatch(setTemplate(null));
-        setOpen(true);
+        // Only open the creator if this was triggered from the "no plan yet" gate,
+        // not from a post-creation unlock (where the tag already exists).
+        if (!pendingUnlockVibeTagId) {
+          dispatch(setView("start"));
+          dispatch(setTemplate(null));
+          setOpen(true);
+        }
         return;
       }
 
@@ -128,7 +162,8 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
   useEffect(() => {
     dispatch(setHideHeader(open));
     return () => {
-      dispatch(setHideHeader(!open));
+      // Always restore header on unmount regardless of open state
+      dispatch(setHideHeader(false));
     };
   }, [dispatch, open]);
 
@@ -160,6 +195,26 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
           </p>
         </div>
       )}
+
+      {/* Plan quota banner — shown when this phase isn't covered by the plan */}
+      {(() => {
+        const plan = eventPlan ?? eventDetails?.data?.eventPlan ?? null;
+        const eventStatus = eventDetails?.data?.status;
+        const isPublished = eventStatus === "PUBLISHED" || eventStatus === "LIVE";
+        if (!isPublished || !plan) return null;
+        const phaseEnabled =
+          plan.vibetagsEnabled &&
+          (plan.vibetagPhases?.includes(activeTiming) || plan.vibetagPhases?.includes("BOTH"));
+        if (phaseEnabled) return null;
+        return (
+          <div className="flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 mb-3">
+            <Lock className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
+              VibeTags for <span className="font-medium">{TIMING_TABS.find(t => t.value === activeTiming)?.label}</span> aren&apos;t included in your plan. Creating one will prompt a payment to unlock it.
+            </p>
+          </div>
+        );
+      })()}
 
       <div className="space-y-3">
         {isLoading ? (
@@ -242,17 +297,22 @@ const VibeTagStudioContent = ({ eventId, name }: VibeTagStudioContentProps) => {
       </Dialog>
 
       {/* VibeTags Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+      <Dialog open={showPaymentDialog} onOpenChange={(v) => {
+          setShowPaymentDialog(v);
+          if (!v) { setCouponCode(""); setPendingUnlockVibeTagId(null); }
+        }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-amber-500" />
-              Unlock VibeTags
+              {pendingUnlockVibeTagId ? "Unlock This VibeTag" : "Unlock VibeTags"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Your event is published. To add VibeTags, choose a plan:
+              {pendingUnlockVibeTagId
+                ? "This VibeTag is over your plan quota. Pay to unlock it for attendees."
+                : "Your event is published. To add VibeTags, choose a plan:"}
             </p>
 
             <div className="space-y-2">

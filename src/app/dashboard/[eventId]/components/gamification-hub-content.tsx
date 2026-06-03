@@ -49,6 +49,14 @@ interface GameProps {
   roundId?: string;
   eventStartsAt?: string;
   eventStatus?: string;
+  eventPlan?: {
+    gamesIncluded: number;
+    gamesUsed: number;
+    vibetagsEnabled: boolean;
+    vibetagPhases: string[];
+    slotsRemaining: number;
+    isQuotaExhausted: boolean;
+  } | null;
 }
 
 const mapGameType = (t: string): GameType =>
@@ -186,6 +194,7 @@ export function GamificationHubContent({
   eventName,
   eventStartsAt,
   eventStatus,
+  eventPlan,
 }: GameProps) {
   const [activePhase, setActivePhase] = useState<
     "all" | "pre-event" | "main-event" | "post-event"
@@ -214,11 +223,17 @@ export function GamificationHubContent({
   const [initiateAdditionalGamePayment, { isLoading: isUnlocking }] =
     useInitiateAdditionalGamePaymentMutation();
 
-  const games = (gamesDetails?.data ?? []).map((game: any) => ({
+  const games = (gamesDetails?.data ?? []).map((game: any, index: number) => ({
     ...game,
     mappedType: mapGameType(game.rounds?.[0]?.gameType ?? "TRIVIA"),
     mappedPhase: mapPhase(game.activityTiming),
     mappedStatus: mapStatus(game.status),
+    // A game is locked when the event has a plan and this game's position
+    // exceeds the included quota. Games are ordered by creation (index).
+    isLocked:
+      eventPlan != null &&
+      index >= (eventPlan.gamesIncluded ?? Infinity) &&
+      game.status === "PENDING",
   }));
 
   const filteredGames =
@@ -350,6 +365,36 @@ export function GamificationHubContent({
         </Dialog>
       </div>
 
+      {/* Plan quota info */}
+      {eventPlan != null && (
+        <div className={cn(
+          "flex items-center gap-2 rounded-xl border px-3 py-2 mb-4 text-xs flex-wrap",
+          eventPlan.isQuotaExhausted
+            ? "border-amber-500/40 bg-amber-500/5 text-amber-700"
+            : "border-border bg-muted/40 text-muted-foreground"
+        )}>
+          <Gamepad2 className="h-3 w-3 shrink-0" />
+          <span>
+            Plan:{" "}
+            <span className="font-semibold text-foreground">
+              {eventPlan.gamesUsed}/{eventPlan.gamesIncluded}
+            </span>{" "}
+            game slots used
+          </span>
+          <span className="text-border">·</span>
+          {eventPlan.isQuotaExhausted ? (
+            <span className="flex items-center gap-1 font-medium">
+              <LockKeyhole className="h-3 w-3 shrink-0" />
+              Quota full — new sessions need payment
+            </span>
+          ) : (
+            <span className="font-medium text-green-600">
+              {eventPlan.slotsRemaining} slot{eventPlan.slotsRemaining !== 1 ? "s" : ""} remaining
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Phase filter */}
       <Tabs
         value={activePhase}
@@ -431,6 +476,12 @@ export function GamificationHubContent({
                       {game.title}
                     </h4>
                     <StatusBadge status={game.mappedStatus} />
+                    {game.isLocked && (
+                      <Badge variant="outline" className="border-amber-500/50 text-amber-600 gap-1 text-[10px]">
+                        <LockKeyhole className="h-2.5 w-2.5" />
+                        Locked
+                      </Badge>
+                    )}
                   </div>
                   <PhaseBadge phase={game.mappedPhase} />
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
@@ -457,55 +508,41 @@ export function GamificationHubContent({
 
                 {/* Session-level controls */}
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Locked PENDING on a published event — needs additional-game payment */}
-                  {game.mappedStatus === "pending" &&
-                    (eventStatus === "PUBLISHED" || eventStatus === "LIVE") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1 rounded-full border-amber-500/50 text-amber-600 text-xs"
-                        disabled={isUnlocking}
-                        onClick={() => openUnlockDialog(game.id)}
-                      >
-                        {isUnlocking ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <LockKeyhole className="h-3 w-3" />
-                        )}
-                        Unlock
-                      </Button>
-                    )}
-                  {game.mappedStatus === "pending" &&
-                    eventStatus !== "PUBLISHED" &&
-                    eventStatus !== "LIVE" && (
-                      <Button
-                        size="sm"
-                        className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
-                        disabled={isUpdatingSession}
-                        onClick={() => handleSessionAction(game.id, "ACTIVE")}
-                      >
-                        {isUpdatingSession ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Play className="h-3 w-3" />
-                        )}
-                        Start
-                      </Button>
-                    )}
-                  {game.mappedStatus === "pending" && !eventStatus && (
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
-                      disabled={isUpdatingSession}
-                      onClick={() => handleSessionAction(game.id, "ACTIVE")}
-                    >
-                      {isUpdatingSession ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                  {game.mappedStatus === "pending" && (
+                    <>
+                      {/* Over-quota — needs additional-game payment to unlock */}
+                      {game.isLocked ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1 rounded-full border-amber-500/50 text-amber-600 text-xs"
+                          disabled={isUnlocking}
+                          onClick={() => openUnlockDialog(game.id)}
+                        >
+                          {isUnlocking ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <LockKeyhole className="h-3 w-3" />
+                          )}
+                          Unlock
+                        </Button>
                       ) : (
-                        <Play className="h-3 w-3" />
+                        /* Within quota — organizer just needs to start it */
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                          disabled={isUpdatingSession}
+                          onClick={() => handleSessionAction(game.id, "ACTIVE")}
+                        >
+                          {isUpdatingSession ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Play className="h-3 w-3" />
+                          )}
+                          Start
+                        </Button>
                       )}
-                      Start
-                    </Button>
+                    </>
                   )}
                   {game.mappedStatus === "live" && (
                     <Button

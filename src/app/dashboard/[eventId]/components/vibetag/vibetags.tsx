@@ -3,15 +3,15 @@
 import DesignTemplate from "./design-templates";
 
 interface VibetagsProps {
-  onClose: () => void;
+  onClose: (meta?: { paymentRequired: boolean; vibeTagId?: string }) => void;
   activityTiming: string;
   eventId: string;
   eventName?: string;
 }
 
 const Vibetags = ({ onClose, activityTiming, eventId, eventName }: VibetagsProps) => {
-  const handleSaveVibeTag = (file: File) => {
-    onClose();
+  const handleSaveVibeTag = (_file: File, meta?: { paymentRequired: boolean; vibeTagId?: string }) => {
+    onClose(meta);
   };
 
   return (

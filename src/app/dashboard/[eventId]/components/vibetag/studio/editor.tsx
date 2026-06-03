@@ -4,7 +4,7 @@ import Controls from "./controls";
 import Scene from "./scene";
 
 interface EditorProps {
-  onSaveVibeTag?: (file: File) => void;
+  onSaveVibeTag?: (file: File, meta?: { paymentRequired: boolean; vibeTagId?: string }) => void;
   activityTiming?: string;
   eventId?: string;
   eventName?: string;
