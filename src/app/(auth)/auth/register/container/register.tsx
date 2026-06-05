@@ -22,12 +22,16 @@ import { useRegisterMutation } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
 import PasswordField from "../component/password-field";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
   username: z.string().min(2, "Username must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  acceptedTerms: z.boolean().refine((v) => v === true, {
+    message: "You must accept the Privacy Policy and Terms of Service.",
+  }),
 });
 
 type FormValues = z.infer<typeof registerSchema>;
@@ -47,6 +51,7 @@ export default function RegisterContent() {
       password: "",
       displayName: "",
       username: "",
+      acceptedTerms: false,
     },
     mode: "onChange",
   });
@@ -152,10 +157,49 @@ export default function RegisterContent() {
               control={form.control}
             />
 
+            <FormField
+              control={form.control}
+              name="acceptedTerms"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-start gap-3">
+                    <FormControl>
+                      <Checkbox
+                        id="acceptedTerms"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-0.5 shrink-0 border-gray-300 data-[state=checked]:bg-[#5B1A57] data-[state=checked]:border-[#5B1A57]"
+                      />
+                    </FormControl>
+                    <p className="text-sm text-gray-600 leading-snug">
+                      I have read and agree to the{" "}
+                      <Link
+                        href="/privacy-policy"
+                        target="_blank"
+                        className="font-semibold text-[#5B1A57] underline underline-offset-2 hover:text-[#4a1446]"
+                      >
+                        Privacy Policy
+                      </Link>
+                      {" "}and{" "}
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        className="font-semibold text-[#5B1A57] underline underline-offset-2 hover:text-[#4a1446]"
+                      >
+                        Terms of Service
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                  <FormMessage className="ml-7" />
+                </FormItem>
+              )}
+            />
+
             <Button
               type="submit"
-              disabled={isLoading || googleLoading}
-              className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium"
+              disabled={isLoading || googleLoading || !form.watch("acceptedTerms")}
+              className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

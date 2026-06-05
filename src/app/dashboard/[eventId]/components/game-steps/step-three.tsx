@@ -182,19 +182,6 @@ const StepThree = ({
                 className="h-10"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Difficulty <span className="text-destructive">*</span></Label>
-              <Select value={aiPrompt.difficulty} onValueChange={(v) => updateField("difficulty", v)}>
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent className="z-[99999999]">
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Tip: Be specific — "Lagos street food" beats "food".

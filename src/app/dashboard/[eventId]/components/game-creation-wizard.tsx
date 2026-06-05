@@ -199,7 +199,7 @@ export function GameCreationWizard({
     topic: "",
     count: null,
     gameType: "TRIVIA",
-    difficulty: "",
+    difficulty: "easy",
     activityTiming: "",
     eventName,
   });
@@ -298,7 +298,6 @@ export function GameCreationWizard({
           if (!aiPrompt.count || aiPrompt.count <= 0)
             return "Please enter a valid question count.";
           if (!aiPrompt.gameType) return "Please select a game type.";
-          if (!aiPrompt.difficulty) return "Please select a difficulty level.";
           // activityTiming is always derived from phase — no need to validate it here
         }
         return "";
@@ -363,8 +362,6 @@ export function GameCreationWizard({
       validationErrors.push("Please enter a valid question count.");
     if (!promptToSend.gameType)
       validationErrors.push("Please select a game type.");
-    if (!promptToSend.difficulty)
-      validationErrors.push("Please select a difficulty level.");
     if (validationErrors.length) {
       const err = validationErrors[0];
       toast.error(err);
@@ -826,7 +823,7 @@ export function GameCreationWizard({
           gameType: GAMETYPE_TO_API[nextType],
           topic: "",
           count: null,
-          difficulty: "",
+          difficulty: "easy",
         }));
         setStep(3);
         return;
