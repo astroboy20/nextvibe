@@ -17,6 +17,7 @@ import {
   Heart,
   Eye,
   LayoutDashboard,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -26,6 +27,10 @@ import {
   useGetUserBasicQuery,
   useGetUserActivityQuery,
 } from "@/app/provider/api/authApi";
+import {
+  PostcardViewer,
+  type PostcardData,
+} from "@/components/postcard-viewer";
 
 // Type definitions — matched to real API response shapes
 interface ActivityEvent {
@@ -41,10 +46,21 @@ interface ActivityEvent {
 
 interface Postcard {
   id: string;
-  image: string;
-  likes?: number;
-  views?: number;
-  engagementRate?: number;
+  caption?: string | null;
+  likeCount?: number;
+  commentCount?: number;
+  eventId?: string;
+  createdAt?: string;
+  author?: {
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string | null;
+  };
+  media?: Array<{
+    id?: string;
+    mediaUrl?: string | null;
+    mediaType?: string | null;
+  }>;
 }
 
 interface ActivityTicket {
@@ -79,6 +95,7 @@ const tabList = [
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("events");
+  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(null);
   const { data: currentUser, isLoading: isLoadingUser } = useGetUserQuery();
   const userId = currentUser?.data?.id;
 
@@ -332,58 +349,78 @@ const Profile = () => {
 
               {/* Postcards Tab */}
               <TabsContent value="postcards" className="mt-6">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="columns-2 gap-1">
                   {isLoadingActivity ? (
-                    <p className="col-span-2 text-center text-muted-foreground">
-                      Loading postcards...
-                    </p>
+                    <>
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="mb-1 break-inside-avoid">
+                          <Skeleton
+                            className="w-full rounded-xl"
+                            style={{ height: `${160 + (i % 3) * 50}px` }}
+                          />
+                        </div>
+                      ))}
+                    </>
                   ) : activity?.postcards && activity.postcards.length > 0 ? (
-                    (activity.postcards as Postcard[]).map(
-                      (postcard, index) => (
+                    (activity.postcards as Postcard[]).map((postcard, index) => {
+                      const primaryMedia = (postcard.media ?? []).find((m) => !!m.mediaUrl);
+                      if (!primaryMedia?.mediaUrl) return null;
+                      const isVideo = primaryMedia.mediaType === "VIDEO";
+                      const hasMultiple = (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
+
+                      return (
                         <div
                           key={postcard.id}
-                          className="group relative aspect-3/4 overflow-hidden rounded-2xl animate-fade-in"
-                          style={{ animationDelay: `${index * 50}ms` }}
+                          className="mb-1 break-inside-avoid relative overflow-hidden rounded-xl cursor-pointer bg-muted animate-fade-in"
+                          style={{ animationDelay: `${index * 40}ms` }}
+                          onClick={() => setSelectedPostcard(postcard as PostcardData)}
                         >
-                          <img
-                            src={
-                              postcard.image ||
-                              "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&h=400&fit=crop"
-                            }
-                            alt=""
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                          <div className="absolute bottom-3 left-3 right-3">
-                            <div className="flex items-center justify-between text-white">
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1">
-                                  <Heart className="h-4 w-4 fill-current" />
-                                  <span className="text-sm font-medium">
-                                    {postcard.likes || 0}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Eye className="h-4 w-4" />
-                                  <span className="text-sm">
-                                    {postcard.views || 0}
-                                  </span>
+                          {isVideo ? (
+                            <div className="relative">
+                              <video
+                                src={primaryMedia.mediaUrl}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                className="w-full object-cover rounded-xl min-h-30"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                                  <Play className="h-4 w-4 text-white fill-white" />
                                 </div>
                               </div>
-                              {postcard.engagementRate && (
-                                <Badge className="bg-white/20 text-white text-xs">
-                                  {postcard.engagementRate}%
-                                </Badge>
-                              )}
+                            </div>
+                          ) : (
+                            <img
+                              src={primaryMedia.mediaUrl}
+                              alt={postcard.caption ?? "Postcard"}
+                              className="w-full object-cover rounded-xl min-h-30"
+                            />
+                          )}
+                          {/* Overlay: likes */}
+                          <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/60 to-transparent px-2 py-2 rounded-b-xl">
+                            <div className="flex items-center gap-2 text-white text-xs">
+                              <div className="flex items-center gap-0.5">
+                                <Heart className="h-3 w-3 fill-current" />
+                                <span>{postcard.likeCount ?? 0}</span>
+                              </div>
                             </div>
                           </div>
+                          {hasMultiple && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <svg className="h-4 w-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
-                      )
-                    )
+                      );
+                    })
                   ) : (
-                    <p className="col-span-2 text-center text-muted-foreground py-8">
-                      No postcards yet
-                    </p>
+                    <div className="col-span-2 flex flex-col items-center justify-center py-16 gap-3 text-center">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">No postcards yet</p>
+                    </div>
                   )}
                 </div>
               </TabsContent>
@@ -457,6 +494,15 @@ const Profile = () => {
         )}
       </main>
       <BottomNav />
+      {selectedPostcard && (
+        <PostcardViewer
+          postcard={selectedPostcard}
+          eventId={selectedPostcard.eventId ?? ""}
+          eventName=""
+          onClose={() => setSelectedPostcard(null)}
+          zIndex={60}
+        />
+      )}
     </>
   );
 };

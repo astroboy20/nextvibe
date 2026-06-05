@@ -471,9 +471,16 @@ export function PostcardViewer({
   const [sharing, setSharing] = useState(false);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
-  // Fetch fresh like state + full author on open
+  // Fetch fresh data in the background — isLoading is only true on the very
+  // first fetch when there is no cached data at all. Since the parent already
+  // passes full postcard data as a prop, we use that immediately and let RTK
+  // Query silently update once the fresh response arrives.
+  // Poll every 5 s while the viewer is open so viewCount (and likes) stay
+  // real-time for all viewers — not just the one who triggered the view.
   const { data: freshPostcard, isLoading } = useGetPostcardQuery(postcard.id!, {
     skip: !postcard.id,
+    pollingInterval: 5_000,
+    refetchOnMountOrArgChange: true,
   });
 
   const { data: userData } = useGetUserQuery();
@@ -693,8 +700,8 @@ export function PostcardViewer({
           </button>
 
           <div>
-            {isLoading ? (
-              <Skeleton className="rounded-full w-10 h-q0" />
+            {isLoading && !resolvedAuthor ? (
+              <Skeleton className="rounded-full w-10 h-10" />
             ) : resolvedAuthor?.avatarUrl ? (
               <Image
                 src={resolvedAuthor.avatarUrl}
@@ -710,15 +717,15 @@ export function PostcardViewer({
             )}
           </div>
 
-          {isLoading ? (
-            <Skeleton className="h-4 w-1/4" />
-          ) : (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">
-                {displayName}
-              </p>
-            </div>
-          )}
+          {isLoading && !resolvedAuthor ? (
+              <Skeleton className="h-4 w-1/4" />
+            ) : (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-tight truncate">
+                  {displayName}
+                </p>
+              </div>
+            )}
         </div>
         {/* Carousel — flex-1 so it fills remaining height */}
         <div className="relative  h-full w-full bg-black ">
@@ -832,7 +839,7 @@ export function PostcardViewer({
               </div>
             )} */}
 
-            {isLoading ? (
+            {isLoading && !resolvedAuthor ? (
               <Skeleton className="h-4 w-1/4" />
             ) : (
               <div className="flex-1 min-w-0">

@@ -15,7 +15,7 @@ const PUBLIC_ROUTES = [
   "/check-verification",
   "/game",
   "/faq",
-  "/policy",
+  "/privacy",
   "/terms",
   "/events",
   "/postcards",

@@ -174,7 +174,7 @@ export default function RegisterContent() {
                     <p className="text-sm text-gray-600 leading-snug">
                       I have read and agree to the{" "}
                       <Link
-                        href="/privacy-policy"
+                        href="/privacy"
                         target="_blank"
                         className="font-semibold text-[#5B1A57] underline underline-offset-2 hover:text-[#4a1446]"
                       >

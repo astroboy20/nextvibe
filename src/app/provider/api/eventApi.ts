@@ -419,9 +419,7 @@ export const eventsApi = createApi({
         { type: "Gallery", id: `vibetags-${eventId}` },
         { type: "PublishPreview", id: eventId },
       ],
-    }),
-
-    getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
+    }),    getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
       query: ({ eventId }) => `/v1/vibe-tags?eventId=${eventId}`,
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: `vibetags-${eventId}` }],
     }),
@@ -467,6 +465,18 @@ export const eventsApi = createApi({
         body: { eventId, vibeTagId, media, caption },
       }),
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    /** POST /v1/postcards/:id/view — fire-and-forget view tracking */
+    trackPostcardView: builder.mutation<
+      void,
+      { postcardId: string; sessionId?: string | null }
+    >({
+      query: ({ postcardId, sessionId }) => ({
+        url: `/v1/postcards/${postcardId}/view`,
+        method: "POST",
+        body: { sessionId: sessionId ?? null },
+      }),
     }),
 
     /** POST /v1/postcards/:id/like — toggle like, returns { liked, currentLikes } */
@@ -621,4 +631,5 @@ export const {
   useGetActiveGameStatusQuery,
   useGetPublishPreviewQuery,
   useUploadIntentMutation,
+  useTrackPostcardViewMutation,
 } = eventsApi;

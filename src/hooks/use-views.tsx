@@ -1,44 +1,46 @@
 "use client";
 
-import axios from "axios";
 import { useEffect, useRef } from "react";
+import { useTrackPostcardViewMutation } from "@/app/provider/api/eventApi";
 
 interface UsePostcardTrackerProps {
   postId: string;
   sessionId?: string;
+  /** Called once when a view is successfully tracked */
+  onViewed?: () => void;
 }
 
 export const usePostcardViewTracker = ({
   postId,
   sessionId,
+  onViewed,
 }: UsePostcardTrackerProps) => {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const firedRef = useRef(false); // only track once per mount
+  const [trackView] = useTrackPostcardViewMutation();
 
   useEffect(() => {
     const currentElement = elementRef.current;
-    if (!currentElement) return;
+    if (!currentElement || !postId) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // User is focusing on this card. Wait 1.5 seconds to ensure it's an actual view.
+          if (entry.isIntersecting && !firedRef.current) {
+            // Wait 1.5 s dwell threshold before counting as a view
             timerRef.current = setTimeout(async () => {
+              if (firedRef.current) return;
+              firedRef.current = true;
               try {
-                // Fire and forget view tracking request
-                await axios.post(
-                  `${process.env.NEXT_PUBLIC_API_URL}/v1/postcards/${postId}/view`,
-                  {
-                    sessionId: sessionId || null, // Fallback tracking for guest sessions
-                  }
-                );
-              } catch (error) {
-                console.error("Failed to log postcard view:", error);
+                await trackView({ postcardId: postId, sessionId: sessionId ?? null }).unwrap();
+                onViewed?.();
+              } catch {
+                // fire-and-forget — silently ignore errors
               }
-            }, 1500); // 1.5 seconds dwell threshold
+            }, 1500);
           } else {
-            // User scrolled away before 1.5s — cancel the pending execution loop
+            // Scrolled away before threshold — cancel
             if (timerRef.current) {
               clearTimeout(timerRef.current);
               timerRef.current = null;
@@ -46,19 +48,16 @@ export const usePostcardViewTracker = ({
           }
         });
       },
-      {
-        threshold: 0.5, // Requires at least 50% of the item to be on-screen
-      }
+      { threshold: 0.5 }
     );
-    // Start monitoring the element
+
     observer.observe(currentElement);
 
-    // Clean up connections when component unmounts or postcard changes
     return () => {
       observer.unobserve(currentElement);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [postId, sessionId]);
+  }, [postId, sessionId, trackView, onViewed]);
 
   return elementRef;
 };
