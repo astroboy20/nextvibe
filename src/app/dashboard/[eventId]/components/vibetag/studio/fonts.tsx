@@ -40,29 +40,18 @@ export default function Fonts({ canvas }: FontsProps) {
     canvas.centerObject(text);
     canvas.requestRenderAll();
 
-    dispatch(setIsFontsOpen(false));
+    // Focus the proxy input BEFORE closing the dialog so the keyboard
+    // stays open through the dialog transition on mobile.
+    const enterTextEditing = (canvasStore as any).enterTextEditing;
+    if (enterTextEditing) {
+      enterTextEditing(text);
+    } else {
+      canvas.setActiveObject(text);
+      text.enterEditing();
+      canvas.requestRenderAll();
+    }
 
-    // ✅ Use the shared enterTextEditing helper from Scene.tsx via canvasStore.
-    // This is the ONLY reliable way in Fabric v6 — it focuses the hidden textarea
-    // that Fabric uses for keyboard input. Without this, text editing breaks
-    // after deselection because the browser focus lands on the wrong element.
-    setTimeout(() => {
-      const enterTextEditing = (canvasStore as any).enterTextEditing;
-      if (enterTextEditing) {
-        enterTextEditing(text);
-      } else {
-        // Fallback in case the helper isn't ready yet
-        canvas.setActiveObject(text);
-        text.enterEditing();
-        // Focus the hidden textarea — do NOT call .select() on mobile
-        if (text.hiddenTextarea) {
-          text.hiddenTextarea.focus();
-          text.hiddenTextarea.click();
-        }
-        canvas.requestRenderAll();
-      }
-    }, 100);
-  };
+    dispatch(setIsFontsOpen(false));  };
 
   return (
     <Dialog
