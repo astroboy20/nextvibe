@@ -58,9 +58,6 @@ const Scene = () => {
         fabricCanvas.setActiveObject(textbox);
         fabricCanvas.requestRenderAll();
         textbox.enterEditing();
-        // Focus the hidden textarea that Fabric v6 uses for input.
-        // Do NOT call .select() — on mobile it can immediately steal/drop
-        // the focus, preventing the keyboard from appearing.
         if (textbox.hiddenTextarea) {
           textbox.hiddenTextarea.focus();
           textbox.hiddenTextarea.click();
@@ -68,7 +65,7 @@ const Scene = () => {
         fabricCanvas.requestRenderAll();
       };
 
-      // ✅ Handle double click to re-edit existing textboxes
+      // Double-click to enter/re-enter edit mode
       fabricCanvas.on("mouse:dblclick", (e: any) => {
         const target = e.target;
         if (target && target.type === "textbox") {
@@ -76,7 +73,7 @@ const Scene = () => {
         }
       });
 
-      // Enter edit mode when a textbox is selected (first tap / selection:created)
+      // Single tap: enter edit mode the first time a textbox is selected
       fabricCanvas.on("selection:created", (e: any) => {
         const target = e.selected?.[0];
         if (target && target.type === "textbox" && !target.isEditing) {
@@ -84,26 +81,11 @@ const Scene = () => {
         }
       });
 
-      // Re-enter edit mode when the same textbox is tapped again after
-      // being deselected — Fabric fires selection:updated in this case,
-      // not selection:created.
+      // Re-enter edit mode when switching to a textbox that was previously
+      // deselected (Fabric fires selection:updated, not selection:created here)
       fabricCanvas.on("selection:updated", (e: any) => {
         const target = e.selected?.[0];
         if (target && target.type === "textbox" && !target.isEditing) {
-          setTimeout(() => enterTextEditing(target), 50);
-        }
-      });
-
-      // Also handle mouse:down as a fallback for iOS Safari which sometimes
-      // skips dblclick entirely.
-      fabricCanvas.on("mouse:down", (e: any) => {
-        const target = e.target;
-        if (
-          target &&
-          target.type === "textbox" &&
-          fabricCanvas.getActiveObject() === target &&
-          !target.isEditing
-        ) {
           setTimeout(() => enterTextEditing(target), 50);
         }
       });
