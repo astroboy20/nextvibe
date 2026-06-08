@@ -51,21 +51,49 @@ const Scene = () => {
         transparentCorners: false,
       };
 
-      // ✅ The ONLY reliable way to handle text editing in Fabric v6
-      // Fabric v6 uses a hidden textarea for keyboard input.
-      // We must focus that textarea — NOT the canvas element.
+      // ── Core text editing entry point ─────────────────────────────────────
+      // Must be called synchronously inside a trusted user-gesture handler
+      // (touchstart/touchend/click) for mobile keyboards to appear.
       const enterTextEditing = (textbox: any) => {
+        if (textbox.isEditing) return; // already editing — don't interrupt
         fabricCanvas.setActiveObject(textbox);
-        fabricCanvas.requestRenderAll();
         textbox.enterEditing();
+        fabricCanvas.requestRenderAll();
         if (textbox.hiddenTextarea) {
           textbox.hiddenTextarea.focus();
           textbox.hiddenTextarea.click();
         }
-        fabricCanvas.requestRenderAll();
       };
 
-      // Double-click to enter/re-enter edit mode
+      // ── Expose for Fonts.tsx ──────────────────────────────────────────────
+      (canvasStore as any).enterTextEditing = enterTextEditing;
+
+      // ── Touch handler on the raw DOM canvas ──────────────────────────────
+      // This fires synchronously in the browser's trusted gesture context,
+      // so focus() on the hidden textarea will actually open the keyboard
+      // on iOS/Android. Fabric's own event chain runs on touchend, which
+      // is already too late for some mobile browsers.
+      const upperCanvas = fabricCanvas.upperCanvasEl ?? domCanvasRef.current;
+      const handleTouchEnd = (e: TouchEvent) => {
+        const touch = e.changedTouches[0];
+        if (!touch) return;
+
+        // Get canvas-relative coordinates
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = (touch.clientX - rect.left) / (fabricCanvas.getZoom() ?? 1);
+        const y = (touch.clientY - rect.top) / (fabricCanvas.getZoom() ?? 1);
+
+        // Find the topmost object at the touch point
+        const target = fabricCanvas.findTarget({ clientX: touch.clientX, clientY: touch.clientY } as any);
+        if (target && (target as any).type === "textbox") {
+          // Synchronously focus — this IS inside a trusted gesture handler
+          enterTextEditing(target as any);
+        }
+      };
+
+      upperCanvas?.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+      // ── Mouse double-click (desktop fallback) ─────────────────────────────
       fabricCanvas.on("mouse:dblclick", (e: any) => {
         const target = e.target;
         if (target && target.type === "textbox") {
@@ -73,26 +101,23 @@ const Scene = () => {
         }
       });
 
-      // Single tap: enter edit mode the first time a textbox is selected
+      // ── selection:created — first time a textbox is tapped (desktop) ──────
       fabricCanvas.on("selection:created", (e: any) => {
         const target = e.selected?.[0];
         if (target && target.type === "textbox" && !target.isEditing) {
-          setTimeout(() => enterTextEditing(target), 50);
+          enterTextEditing(target);
         }
       });
 
-      // Re-enter edit mode when switching to a textbox that was previously
-      // deselected (Fabric fires selection:updated, not selection:created here)
+      // ── selection:updated — re-tapping a previously deselected textbox ────
       fabricCanvas.on("selection:updated", (e: any) => {
         const target = e.selected?.[0];
         if (target && target.type === "textbox" && !target.isEditing) {
-          setTimeout(() => enterTextEditing(target), 50);
+          enterTextEditing(target);
         }
       });
 
-      // ✅ Expose helper on store so Fonts.tsx can call it too
-      (canvasStore as any).enterTextEditing = enterTextEditing;
-
+      // ── Persistence ───────────────────────────────────────────────────────
       const saveCanvas = () => {
         try {
           const json = fabricCanvas.toJSON();
@@ -131,6 +156,13 @@ const Scene = () => {
       };
 
       await loadTemplateAndRestore();
+
+      // Cleanup touch listener with the canvas
+      const originalDispose = fabricCanvas.dispose.bind(fabricCanvas);
+      fabricCanvas.dispose = () => {
+        upperCanvas?.removeEventListener("touchend", handleTouchEnd);
+        return originalDispose();
+      };
     };
 
     initFabric();
