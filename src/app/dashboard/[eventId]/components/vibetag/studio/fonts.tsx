@@ -54,7 +54,7 @@ export default function Fonts({ canvas }: FontsProps) {
         // Fallback in case the helper isn't ready yet
         canvas.setActiveObject(text);
         text.enterEditing();
-        // Force focus on the hidden textarea
+        // Focus the hidden textarea — do NOT call .select() on mobile
         if (text.hiddenTextarea) {
           text.hiddenTextarea.focus();
           text.hiddenTextarea.click();
