@@ -100,12 +100,8 @@ export async function proxy(req: NextRequest) {
     try {
       const refreshRes = await fetch(`${API_URL}/v1/auth/refresh`, {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          // Send the admin refresh token as the cookie header
-          cookie: `refreshToken=${adminRefreshToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: adminRefreshToken }),
       });
 
       if (!refreshRes.ok) {
@@ -177,11 +173,8 @@ export async function proxy(req: NextRequest) {
   try {
     const refreshRes = await fetch(`${API_URL}/v1/auth/refresh`, {
       method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        cookie: req.headers.get("cookie") ?? "",
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
     });
 
     if (!refreshRes.ok) {
