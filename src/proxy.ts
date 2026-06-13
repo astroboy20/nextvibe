@@ -18,6 +18,7 @@ const PUBLIC_ROUTES = [
   "/privacy",
   "/terms",
   "/events",
+  "/dashboard/events",
   "/postcards",
   "/postcard",
 ];

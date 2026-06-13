@@ -143,12 +143,54 @@ export default function EventPage({
       ? `${window.location.origin}/events/${id}`
       : "";
 
+  const [isSharing, setIsSharing] = useState(false);
+
   const handleShare = async () => {
+    const shareText = `Check out this event: ${eventDetails?.data?.name ?? "Event"}`;
+
+    // Try to share with the flier image attached
+    if (navigator.share && eventDetails?.data?.flierUrl) {
+      setIsSharing(true);
+      try {
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(eventDetails.data.flierUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+          const file = new File([blob], `${eventDetails?.data?.name ?? "event"}-flier.${ext}`, {
+            type: blob.type || "image/jpeg",
+          });
+          if (navigator.canShare?.({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: eventDetails?.data?.name ?? "Event",
+                text: shareText,
+                url: eventUrl,
+              });
+              setIsSharing(false);
+              return;
+            } catch (e: any) {
+              if (e?.name === "AbortError") {
+                setIsSharing(false);
+                return;
+              }
+              // fall through to URL-only share
+            }
+          }
+        }
+      } catch {
+        // fall through to URL-only share
+      }
+      setIsSharing(false);
+    }
+
+    // Fallback: share URL only
     try {
       if (navigator.share) {
         await navigator.share({
           title: eventDetails?.data?.name ?? "Event",
-          text: "Check out this event",
+          text: shareText,
           url: eventUrl,
         });
       } else {
@@ -295,9 +337,14 @@ export default function EventPage({
           </button>
           <button
             onClick={handleShare}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white"
+            disabled={isSharing}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white disabled:opacity-70"
           >
-            <Share2 className="h-5 w-5" />
+            {isSharing ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Share2 className="h-5 w-5" />
+            )}
           </button>
         </div>
 

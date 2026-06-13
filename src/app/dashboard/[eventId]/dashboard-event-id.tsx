@@ -121,12 +121,54 @@ export default function OrganizerDashboard({
       ? `${window.location.origin}/events/${eventId}`
       : "";
 
+  const [isSharing, setIsSharing] = useState(false);
+
   const handleShare = async () => {
+    const shareText = `Check out this event: ${event?.name ?? "Event"}`;
+
+    // Try to share with the flier image attached
+    if (navigator.share && event?.flierUrl) {
+      setIsSharing(true);
+      try {
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(event.flierUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+          const file = new File([blob], `${event?.name ?? "event"}-flier.${ext}`, {
+            type: blob.type || "image/jpeg",
+          });
+          if (navigator.canShare?.({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: event?.name ?? "Event",
+                text: shareText,
+                url: eventUrl,
+              });
+              setIsSharing(false);
+              return;
+            } catch (e: any) {
+              if (e?.name === "AbortError") {
+                setIsSharing(false);
+                return;
+              }
+              // fall through to URL-only share
+            }
+          }
+        }
+      } catch {
+        // fall through to URL-only share
+      }
+      setIsSharing(false);
+    }
+
+    // Fallback: share URL only
     try {
       if (navigator.share) {
         await navigator.share({
           title: event?.name ?? "Event",
-          text: "Check out this event",
+          text: shareText,
           url: eventUrl,
         });
       } else {
@@ -247,8 +289,13 @@ export default function OrganizerDashboard({
                     size="sm"
                     className="h-8 gap-1.5 rounded-full border border-[#531342] text-[#531342] hover:bg-[#531342]/10"
                     onClick={handleShare}
+                    disabled={isSharing}
                   >
-                    <Share2 className="h-3.5 w-3.5" />
+                    {isSharing ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#531342] border-t-transparent" />
+                    ) : (
+                      <Share2 className="h-3.5 w-3.5" />
+                    )}
                     Share
                   </Button>
                   <Link
