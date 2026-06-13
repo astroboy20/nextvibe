@@ -13,25 +13,30 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ message: "Tokens stored successfully" }, { status: 200 });
 
-    const cookieBase = {
+    const accessCookieBase = {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as const,
       path: "/",
     };
 
-    // Always set the unprefixed cookie so non-admin routes can find the token
-    response.cookies.set("accessToken", accessToken, { ...cookieBase, maxAge: ACCESS_TOKEN_MAX_AGE });
+    const refreshCookieBase = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax" as const,
+      path: "/",
+    };
+
+    response.cookies.set("accessToken", accessToken, { ...accessCookieBase, maxAge: ACCESS_TOKEN_MAX_AGE });
 
     if (refreshToken) {
-      response.cookies.set("refreshToken", refreshToken, { ...cookieBase, maxAge: REFRESH_TOKEN_MAX_AGE });
+      response.cookies.set("refreshToken", refreshToken, { ...refreshCookieBase, maxAge: REFRESH_TOKEN_MAX_AGE });
     }
 
-    // Additionally set the admin-prefixed cookies for the admin panel
     if (isAdmin) {
-      response.cookies.set("admin_accessToken", accessToken, { ...cookieBase, maxAge: ACCESS_TOKEN_MAX_AGE });
+      response.cookies.set("admin_accessToken", accessToken, { ...accessCookieBase, maxAge: ACCESS_TOKEN_MAX_AGE });
       if (refreshToken) {
-        response.cookies.set("admin_refreshToken", refreshToken, { ...cookieBase, maxAge: REFRESH_TOKEN_MAX_AGE });
+        response.cookies.set("admin_refreshToken", refreshToken, { ...refreshCookieBase, maxAge: REFRESH_TOKEN_MAX_AGE });
       }
     }
 

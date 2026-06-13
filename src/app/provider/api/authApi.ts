@@ -149,12 +149,18 @@ export const authApi = createApi({
             },
         }),
         logout: build.mutation<void, void>({
-            query() {
-                return {
-                    url: "/v1/auth/logout",
-                    method: "POST",
+            queryFn: async () => {
+                try {
+                    const res = await fetch("/api/auth/logout", { method: "POST" });
+                    if (!res.ok) {
+                        const data = await res.json();
+                        return { error: { status: res.status, data } as any };
+                    }
+                    return { data: undefined };
+                } catch (e) {
+                    return { error: { status: "FETCH_ERROR", error: String(e) } as any };
                 }
-            }
+            },
         }),
 
 

@@ -90,49 +90,20 @@ export const baseQueryWithReauth: BaseQueryFn<
   isRefreshing = true;
 
   try {
-    const refreshToken = isAdminRoute
-      ? (Cookies.get("admin_refreshToken") ?? Cookies.get("refreshToken"))
-      : (Cookies.get("refreshToken") ?? Cookies.get("admin_refreshToken"));
-
-    if (!refreshToken) {
-      flushQueue(false);
-      clearSessionAndRedirect(isAdminRoute);
-      return result;
-    }
-
-    const refreshResult = await rawBaseQuery(
-      { url: "/v1/auth/refresh", method: "POST", body: { refreshToken } },
-      api,
-      extraOptions
+    // Refresh token is httpOnly — call the Next.js proxy route which reads it
+    // server-side, calls the backend, and sets the new cookies in one step.
+    const refreshRes = await fetch(
+      `/api/auth/refresh${isAdminRoute ? "?isAdmin=true" : ""}`,
+      { method: "POST" }
     );
 
-    if (refreshResult.data) {
-      const data = refreshResult.data as {
-        accessToken?: string;
-        refreshToken?: string;
-        data?: { accessToken?: string; refreshToken?: string };
-      };
-      const newAccessToken = data.accessToken ?? data.data?.accessToken;
-      const newRefreshToken = data.refreshToken ?? data.data?.refreshToken;
-
-      if (newAccessToken) {
-        await fetch("/api/auth/store-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-            isAdmin: isAdminRoute,
-          }),
-        });
-
-        flushQueue(true);
-        // prepareHeaders will pick up the new cookie on retry
-        return rawBaseQuery(args, api, extraOptions);
-      }
+    if (refreshRes.ok) {
+      flushQueue(true);
+      // prepareHeaders will pick up the new accessToken cookie on retry
+      return rawBaseQuery(args, api, extraOptions);
     }
 
-    // Refresh call failed or returned no token
+    // Refresh failed — clear session
     flushQueue(false);
     clearSessionAndRedirect(isAdminRoute);
     return result;
