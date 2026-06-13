@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, AlertTriangle } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,14 @@ export function Start() {
   return (
     <div>
       <div className="flex flex-col gap-8 mb-12">
+        {/* Warning note */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-400/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+            <span className="font-semibold">Once created, a VibeTag cannot be edited or deleted.</span>{" "}
+            Please review your design carefully before saving. Any mistakes will remain as-is.
+          </p>
+        </div>
         {/* Design with Templates */}
         <Card
           onClick={handleWithTemplate}

@@ -40,8 +40,7 @@ export default function Fonts({ canvas }: FontsProps) {
     canvas.centerObject(text);
     canvas.requestRenderAll();
 
-    // Focus the proxy input BEFORE closing the dialog so the keyboard
-    // stays open through the dialog transition on mobile.
+    // enterTextEditing will clear the placeholder and open the keyboard
     const enterTextEditing = (canvasStore as any).enterTextEditing;
     if (enterTextEditing) {
       enterTextEditing(text);

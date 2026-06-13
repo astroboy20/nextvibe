@@ -128,9 +128,18 @@ const Scene = () => {
       }
 
       // ── Core enter-editing function ───────────────────────────────────────
+      const PLACEHOLDER = "Click to edit";
+
       const enterTextEditing = (textbox: any) => {
         fabricCanvas.setActiveObject(textbox);
         fabricCanvas.requestRenderAll();
+
+        // Clear placeholder text on first edit
+        if (textbox.text === PLACEHOLDER) {
+          textbox.set("text", "");
+          fabricCanvas.requestRenderAll();
+        }
+
         // Enter Fabric's editing mode so cursor renders
         if (!textbox.isEditing) {
           textbox.enterEditing();
@@ -166,7 +175,14 @@ const Scene = () => {
         if (e.target?.type === "textbox") enterTextEditing(e.target);
       });
 
-      // ── Desktop: single click selects textbox → enter edit ────────────────
+      // ── Desktop/mobile: single click — covers both new selections and
+      //    clicks on an already-selected textbox (which don't fire
+      //    selection:created / selection:updated again) ───────────────────────
+      fabricCanvas.on("mouse:down", (e: any) => {
+        if (e.target?.type === "textbox") enterTextEditing(e.target);
+      });
+
+      // ── selection events (kept for completeness / fast path) ─────────────
       fabricCanvas.on("selection:created", (e: any) => {
         const t = e.selected?.[0];
         if (t?.type === "textbox") enterTextEditing(t);

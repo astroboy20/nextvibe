@@ -17,6 +17,7 @@ import {
   XCircle,
   StopCircle,
   ChevronDown,
+  Bell,
 } from "lucide-react";
 import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
@@ -24,6 +25,7 @@ import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
 // import { RecentPurchasesContent } from "./components/recent-purchases-content";
 import { GamificationHubContent } from "./components/gamification-hub-content";
 import { PaymentModule } from "./components/payment-module";
+import EventRemindersContent from "./components/event-reminders-content";
 import Image from "next/image";
 // import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
@@ -33,6 +35,7 @@ import {
   useGetGamesQuery,
   useUpdateEventStatusMutation,
 } from "@/app/provider/api/eventApi";
+import { useGetRemindersQuery } from "@/app/provider/api/reminderApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,6 +91,8 @@ export default function OrganizerDashboard({
 }: OrganizerDashboardProps) {
   const { data: eventDetails, isLoading, refetch: refetchEvent } = useGetEventDetailsQuery(eventId);
   const { data: gamesData } = useGetGamesQuery(eventId);
+  const { data: remindersData = [] } = useGetRemindersQuery(eventId);
+  const templates = remindersData;
   const [updateEventStatus, { isLoading: isUpdatingStatus }] =
     useUpdateEventStatusMutation();
   const [showQR, setShowQR] = useState(false);
@@ -130,7 +135,7 @@ export default function OrganizerDashboard({
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        await navigator.clipboard.writeText(eventUrl).catch(() => {});
+        await navigator.clipboard.writeText(eventUrl).catch(() => { });
         toast.success("Link copied to clipboard");
       }
     }
@@ -145,8 +150,8 @@ export default function OrganizerDashboard({
         status === "PUBLISHED"
           ? "Event published! It's now live."
           : status === "ENDED"
-          ? "Event marked as ended."
-          : "Event cancelled."
+            ? "Event marked as ended."
+            : "Event cancelled."
       );
       setConfirmStatus(null);
     } catch (err: any) {
@@ -318,16 +323,16 @@ export default function OrganizerDashboard({
                   {confirmStatus === "ENDED"
                     ? "End Event?"
                     : confirmStatus === "CANCELLED"
-                    ? "Cancel Event?"
-                    : "Publish Event?"}
+                      ? "Cancel Event?"
+                      : "Publish Event?"}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground">
                 {confirmStatus === "ENDED"
                   ? "This will mark the event as ended. This action cannot be undone."
                   : confirmStatus === "CANCELLED"
-                  ? "This will cancel the event. Attendees will be notified. This action cannot be undone."
-                  : "This will publish your event and make it visible to attendees."}
+                    ? "This will cancel the event. Attendees will be notified. This action cannot be undone."
+                    : "This will publish your event and make it visible to attendees."}
               </p>
               <div className="flex gap-3">
                 <Button
@@ -339,13 +344,12 @@ export default function OrganizerDashboard({
                   Go Back
                 </Button>
                 <Button
-                  className={`flex-1 rounded-xl text-white ${
-                    confirmStatus === "ENDED"
+                  className={`flex-1 rounded-xl text-white ${confirmStatus === "ENDED"
                       ? "bg-red-500 hover:bg-red-600"
                       : confirmStatus === "CANCELLED"
-                      ? "bg-gray-500 hover:bg-gray-600"
-                      : "bg-[#531342] hover:bg-[#531342]/90"
-                  }`}
+                        ? "bg-gray-500 hover:bg-gray-600"
+                        : "bg-[#531342] hover:bg-[#531342]/90"
+                    }`}
                   onClick={() =>
                     confirmStatus && handleStatusUpdate(confirmStatus)
                   }
@@ -387,6 +391,29 @@ export default function OrganizerDashboard({
               defaultOpen={true}
             >
               <RSVPTrackerContent eventId={eventId} />
+            </EventDashboardCard>
+          )}
+
+                  {isLoading ? (
+            <DashboardCardSkeleton />
+          ) : (
+            <EventDashboardCard
+              title="Event Reminders"
+              icon={<Bell className="h-4 w-4" />}
+              badge={
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+                >
+                  {templates.filter((t: any) => t.enabled).length} Active
+                </Badge>
+              }
+            >
+              <EventRemindersContent
+                eventId={eventId}
+                eventStartsAt={event?.startsAt}
+                eventStatus={event?.status}
+              />
             </EventDashboardCard>
           )}
 
@@ -485,12 +512,12 @@ export default function OrganizerDashboard({
                     event?.status === "PUBLISHED"
                       ? "border-green-500 text-green-600"
                       : event?.status === "LIVE"
-                      ? "border-green-500 text-green-600 animate-pulse"
-                      : event?.status === "ENDED"
-                      ? "border-gray-400 text-gray-500"
-                      : event?.status === "CANCELLED"
-                      ? "border-red-400 text-red-500"
-                      : "border-amber-500 text-amber-600"
+                        ? "border-green-500 text-green-600 animate-pulse"
+                        : event?.status === "ENDED"
+                          ? "border-gray-400 text-gray-500"
+                          : event?.status === "CANCELLED"
+                            ? "border-red-400 text-red-500"
+                            : "border-amber-500 text-amber-600"
                   }
                 >
                   {event?.status ?? "DRAFT"}
@@ -509,49 +536,49 @@ export default function OrganizerDashboard({
 
                 {(event?.status === "PUBLISHED" ||
                   event?.status === "LIVE") && (
-                  <div className="space-y-2">
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        Mark the event as ended once it&apos;s over. Rewards
-                        will be distributed automatically.
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10"
-                        onClick={() => setConfirmStatus("ENDED")}
-                        disabled={isUpdatingStatus}
-                      >
-                        <StopCircle className="h-4 w-4" />
-                        End Event
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          Mark the event as ended once it&apos;s over. Rewards
+                          will be distributed automatically.
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10"
+                          onClick={() => setConfirmStatus("ENDED")}
+                          disabled={isUpdatingStatus}
+                        >
+                          <StopCircle className="h-4 w-4" />
+                          End Event
+                        </Button>
+                      </div>
+                      <div className="rounded-xl border border-gray-300 bg-muted/30 p-4 space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          Cancel the event. Attendees will be notified.
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 rounded-xl border-gray-400 text-gray-500 hover:bg-gray-100"
+                          onClick={() => setConfirmStatus("CANCELLED")}
+                          disabled={isUpdatingStatus}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Cancel Event
+                        </Button>
+                      </div>
                     </div>
-                    <div className="rounded-xl border border-gray-300 bg-muted/30 p-4 space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        Cancel the event. Attendees will be notified.
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2 rounded-xl border-gray-400 text-gray-500 hover:bg-gray-100"
-                        onClick={() => setConfirmStatus("CANCELLED")}
-                        disabled={isUpdatingStatus}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Cancel Event
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  )}
 
                 {(event?.status === "ENDED" ||
                   event?.status === "CANCELLED") && (
-                  <div className="rounded-xl border border-border p-4 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      This event has been{" "}
-                      {event?.status === "ENDED" ? "ended" : "cancelled"} and
-                      cannot be modified.
-                    </p>
-                  </div>
-                )}
+                    <div className="rounded-xl border border-border p-4 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        This event has been{" "}
+                        {event?.status === "ENDED" ? "ended" : "cancelled"} and
+                        cannot be modified.
+                      </p>
+                    </div>
+                  )}
               </div>
             </EventDashboardCard>
           )}
@@ -590,6 +617,8 @@ export default function OrganizerDashboard({
               <AnalyticsPanelContent />
             </EventDashboardCard>
           )} */}
+
+
 
           {isLoading ? (
             <DashboardCardSkeleton />

@@ -44,7 +44,7 @@ const Footer = () => {
     { icon: Twitter, href: "https://x.com/mynextvibe", name: "Twitter" },
     {
       icon: Instagram,
-      href: "https://www.instagram.com/mynextvibe/",
+      href: "https://www.instagram.com/mynextvibe?igsh=enE2a3NoZ3A3NW1q",
       name: "Instagram",
     },
   ];

@@ -61,7 +61,7 @@ const socials = [
   {
     name: "Instagram",
     handle: "@mynextvibe",
-    url: "https://instagram.com/nextvibe",
+    url: "https://www.instagram.com/mynextvibe?igsh=enE2a3NoZ3A3NW1q",
     icon: Instagram,
   },
   {
