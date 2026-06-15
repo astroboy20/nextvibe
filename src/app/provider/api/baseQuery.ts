@@ -39,18 +39,37 @@ function flushQueue(succeeded: boolean) {
   waiting.forEach(({ resolve, reject }) => (succeeded ? resolve() : reject()));
 }
 
+// Routes that are publicly accessible — 401s on these should NOT redirect to login
+const PUBLIC_PATHS = [
+  "/events",
+  "/dashboard/events",
+  "/postcards",
+  "/postcard",
+  "/dashboard/postcards",
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
+
 function clearSessionAndRedirect(isAdminRoute: boolean) {
   if (typeof window === "undefined") return;
+  const currentPath = window.location.pathname;
   if (isAdminRoute) {
     Cookies.remove("admin_accessToken");
     Cookies.remove("admin_refreshToken");
   } else {
+    // Don't redirect to login if we're on a public page — just clear stale tokens
     Cookies.remove("accessToken");
     Cookies.remove("refreshToken");
-    const from = encodeURIComponent(
-      window.location.pathname + window.location.search
-    );
-    window.location.href = `/auth/login?from=${from}`;
+    if (!isPublicPath(currentPath)) {
+      const from = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      window.location.href = `/auth/login?from=${from}`;
+    }
   }
 }
 

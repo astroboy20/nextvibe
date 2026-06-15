@@ -17,6 +17,7 @@ import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { useToggleFollowMutation } from "@/app/provider/api/socialApi";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface EventAboutTabProps {
   event: any;
@@ -24,7 +25,12 @@ interface EventAboutTabProps {
 
 export function EventAboutTab({ event }: EventAboutTabProps) {
   const router = useRouter();
-  const { data: me, isLoading: isLoadingUser } = useGetUserQuery();
+  const requireAuth = useRequireAuth();
+  const { data: me, isLoading: isLoadingUser } = useGetUserQuery(undefined, {
+    // Only fetch the current user when they're logged in — avoids a noisy 401
+    // on public event pages viewed by unauthenticated users.
+    skip: typeof window !== "undefined" && !document.cookie.includes("accessToken"),
+  });
   const isOrganizer =
     me?.data?.id && event?.organizer?.id
       ? me.data.id === event.organizer.id
@@ -37,6 +43,7 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
 
   const handleFollow = async () => {
     if (!event?.organizer?.id) return;
+    if (!requireAuth({ tab: "about" })) return;
     const prev = followed;
     setFollowed(!prev);
     try {

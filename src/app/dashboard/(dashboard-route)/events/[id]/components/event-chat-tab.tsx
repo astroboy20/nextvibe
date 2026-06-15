@@ -13,6 +13,7 @@ import Cookies from "js-cookie";
 import { useSocket } from "@/hooks/useSocket";
 import { errorHandler } from "@/utils/errorHandler";
 import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type Section = "pre-event" | "during" | "post-event";
 
@@ -63,6 +64,7 @@ function msgText(msg: ChatMessage) {
 
 export function EventChatTab({ eventId }: EventChatTabProps) {
   const router = useRouter()
+  const requireAuth = useRequireAuth();
   const [activeSection, setActiveSection] = useState<Section>("pre-event");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -72,9 +74,10 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   // server echoes the real message back (prevents double-bubble).
   const pendingOptimisticRef = useRef<Map<string, string>>(new Map());
 
-  const { data: meData } = useGetUserQuery();
-  const myId = meData?.data?.id;
   const token = Cookies.get("accessToken");
+  const isLoggedIn = !!token;
+  const { data: meData } = useGetUserQuery(undefined, { skip: !isLoggedIn });
+  const myId = meData?.data?.id;
 
   const { socketRef, isConnected } = useSocket("messaging", {
     enabled: !!eventId && !!token,
@@ -146,9 +149,12 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       if (!eventId) return;
       setIsLoadingHistory(true);
       try {
+        const headers: HeadersInit = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const res = await fetch(
           `${API_BASE}/v1/events/${eventId}/chat/${SECTION_KEY[section]}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers }
         );
 
         if (!res.ok) {
@@ -183,6 +189,7 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
   const handleSend = () => {
     const text = message.trim();
     if (!text || !isConnected) return;
+    if (!requireAuth({ tab: "chat" })) return;
 
     const socket = socketRef.current;
     socket?.emit("send:event-chat", {
@@ -328,22 +335,33 @@ export function EventChatTab({ eventId }: EventChatTabProps) {
       </div>
 
       <div className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-background">
-        <Input
-          placeholder={isConnected ? "Type a message..." : "Connecting..."}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-0"
-          disabled={!isConnected}
-        />
-        <Button
-          size="icon"
-          className="rounded-full shrink-0 bg-[#531342] hover:bg-[#531342]/90"
-          disabled={!message.trim() || !isConnected}
-          onClick={handleSend}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isLoggedIn ? (
+          <>
+            <Input
+              placeholder={isConnected ? "Type a message..." : "Connecting..."}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-0"
+              disabled={!isConnected}
+            />
+            <Button
+              size="icon"
+              className="rounded-full shrink-0 bg-[#531342] hover:bg-[#531342]/90"
+              disabled={!message.trim() || !isConnected}
+              onClick={handleSend}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <button
+            onClick={() => requireAuth({ tab: "chat" })}
+            className="flex-1 text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            Sign in to join the conversation
+          </button>
+        )}
       </div>
     </div>
   );

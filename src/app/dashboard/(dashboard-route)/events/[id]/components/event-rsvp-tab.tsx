@@ -12,6 +12,7 @@ import {
   useGetEventAttendeesQuery,
 } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface EventRSVPTabProps {
   event: any;
@@ -31,6 +32,7 @@ function extractErrorMessage(err: any): string {
 
 export function EventRSVPTab({ event }: EventRSVPTabProps) {
   const [rsvpMutation] = useRsvpMutation();
+  const requireAuth = useRequireAuth();
 
   const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(
     event?.isRsvped ? "going" : null
@@ -48,6 +50,7 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
 
   const handleGoing = () => {
     if (rsvpStatus === "going" || isAnyLoading) return;
+    if (!requireAuth({ tab: "rsvp" })) return;
     setShowTicketModal(true);
   };
 
@@ -70,6 +73,7 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
 
   const handleSimpleRsvp = async (choice: "maybe" | "not-going") => {
     if (isAnyLoading) return;
+    if (!requireAuth({ tab: "rsvp" })) return;
     setLoadingChoice(choice);
     const status = choice === "maybe" ? "WAITLIST" : "CANCELLED";
     try {

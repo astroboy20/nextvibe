@@ -33,6 +33,8 @@ import {
 import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import Cookies from "js-cookie";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -537,9 +539,11 @@ function WordPuzzleGrid({
 function WordPuzzleRoundPlayer({
   questions,
   onAllComplete,
+  initialFoundWords,
 }: {
   questions: any[];
   onAllComplete: (answers: string[]) => void;
+  initialFoundWords?: string[];
 }) {
   // Build the grid once from all questions (stable across re-renders via useMemo)
   const { grid, hiddenWords, timeLimitSecs } = useMemo(
@@ -548,7 +552,9 @@ function WordPuzzleRoundPlayer({
     [questions.length]
   );
 
-  const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
+  const [foundWords, setFoundWords] = useState<Set<string>>(
+    () => new Set(initialFoundWords ?? [])
+  );
   const [timeLeft, setTimeLeft] = useState(timeLimitSecs);
   const [expired, setExpired] = useState(false);
   const startTimeRef = useRef(Date.now());
@@ -772,10 +778,24 @@ function RoundPlayer({
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
 
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<(number | string)[]>([]);
+  // ── Restore answers from sessionStorage if user just returned from login ──
+  const storageKey = `game_answers:${round.id}`;
+  const savedState = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      if (!raw) return null;
+      sessionStorage.removeItem(storageKey); // consume once
+      return JSON.parse(raw) as { answers: (number | string)[]; currentQ: number; startTime: number };
+    } catch { return null; }
+  })();
 
-  const [totalStartTime] = useState(Date.now());
+  const [currentQ, setCurrentQ] = useState(savedState?.currentQ ?? 0);
+  const [answers, setAnswers] = useState<(number | string)[]>(savedState?.answers ?? []);
+
+  // If we restored from sessionStorage, adjust start time so elapsed reflects
+  // time already spent before the login redirect.
+  const [totalStartTime] = useState(savedState?.startTime ?? Date.now());
   const [qStartTime, setQStartTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
 
@@ -815,18 +835,35 @@ function RoundPlayer({
       return (
         <WordPuzzleRoundPlayer
           questions={questions}
+          initialFoundWords={
+            savedState?.answers
+              ? (savedState.answers as string[]).filter(Boolean)
+              : undefined
+          }
           onAllComplete={async (wordAnswers) => {
             setWaitingForResult(true);
+            const timeTakenMs = Date.now() - totalStartTime;
             const result = await onSubmit(
               round.id,
               wordAnswers,
-              Date.now() - totalStartTime
+              timeTakenMs
             );
             if (result.ok) {
               await refetchLeaderboard();
               setFinalScore(result.score ?? 0);
               onComplete?.();
             } else {
+              // If submit returned false (auth redirect), save word answers
+              try {
+                sessionStorage.setItem(
+                  `game_answers:${round.id}`,
+                  JSON.stringify({
+                    answers: wordAnswers,
+                    currentQ: 0,
+                    startTime: Date.now() - timeTakenMs,
+                  })
+                );
+              } catch { /* ignore */ }
               setWaitingForResult(false);
             }
           }}
@@ -1090,8 +1127,9 @@ function SessionCard({
   onPlay: (roundId: string) => void;
   onToggleLeaderboard: () => void;
 }) {
-  // isJoined from /v1/game-sessions/:id response, fall back to local state
-  const isJoined = sessionData?.isJoined ?? isJoinedProp;
+  // isJoined from /v1/game-sessions/:id response, fall back to local state.
+  // Local state wins if true — covers unauthenticated users who joined locally.
+  const isJoined = isJoinedProp || (sessionData?.isJoined ?? false);
 
   // Build submitted rounds from session rounds[].hasPlayed + local fallback
   const apiPlayedRounds = new Set<string>(
@@ -1315,6 +1353,12 @@ function SessionCard({
 
 interface EventGamesTabProps {
   event: any;
+  /** Pre-select a session id (restored from ?session= URL param after login) */
+  initialSessionId?: string;
+  /** Pre-select a round id to jump straight into playing (restored from ?round= URL param) */
+  initialRoundId?: string;
+  /** Called whenever active session/round changes so the parent can sync the URL */
+  onGameStateChange?: (sessionId: string | null, roundId: string | null) => void;
 }
 
 type PhaseTab = "pre-event" | "main-event" | "post-event" | "both";
@@ -1364,20 +1408,29 @@ function SessionFetcher({
 
   return null;
 }
-export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
+export function EventGamesTab({
+  event: eventProp,
+  initialSessionId,
+  initialRoundId,
+  onGameStateChange,
+}: EventGamesTabProps) {
+  const requireAuth = useRequireAuth();
+  const isLoggedIn = !!Cookies.get("accessToken");
+
   const { data: eventDetails } = useGetEventDetailsQuery(
     eventProp?.id,
     { skip: !eventProp?.id, refetchOnMountOrArgChange: true }
   );
   const event = eventDetails?.data ?? eventProp;
 
-  // Use the dedicated endpoint to check if the user has joined the active game
+  // Use the dedicated endpoint to check if the user has joined the active game.
+  // Skip entirely for unauthenticated users — they join locally only.
   const {
     data: gameStatusData,
     isLoading: isLoadingStatus,
     refetch: refetchGameStatus,
   } = useGetActiveGameStatusQuery(event?.id, {
-    skip: !event?.id,
+    skip: !event?.id || !isLoggedIn,
     refetchOnMountOrArgChange: true,
   });
 
@@ -1395,8 +1448,12 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     useSubmitRoundAnswersMutation();
 
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(
+    initialSessionId ?? null
+  );
+  const [playingRoundId, setPlayingRoundId] = useState<string | null>(
+    initialRoundId ?? null
+  );
 
   // Holds GET /v1/game-sessions/:id data keyed by session id — populated after games load
   const [sessionDataMap, setSessionDataMap] = useState<Record<string, any>>({});
@@ -1479,11 +1536,47 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isJoinedFromStatus, activeSessionIdFromStatus]);
 
+  // Auto-join the session when returning from login redirect with ?session= in the URL.
+  // The user was playing unauthenticated; now that they're logged in we silently join
+  // server-side so their submit will succeed.
+  useEffect(() => {
+    if (!initialSessionId || !allSessions.length) return;
+    const alreadyJoined =
+      joinedSessions.has(initialSessionId) ||
+      (isJoinedFromStatus && activeSessionIdFromStatus === initialSessionId);
+    if (alreadyJoined) return;
+    joinSession(initialSessionId)
+      .unwrap()
+      .then(() => {
+        markSessionJoined(initialSessionId);
+        refetchGameStatus();
+      })
+      .catch(() => {
+        // Silently ignore — may already be joined or session ended
+      });
+    // Only run once after sessions are available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSessionId, allSessions.length]);
+
   const handleJoin = async (sessionId: string) => {
+    const isLoggedIn = !!Cookies.get("accessToken");
+
+    if (!isLoggedIn) {
+      // Allow unauthenticated users to join locally so they can browse rounds
+      // and play questions. The server join + submit will be handled together
+      // when they authenticate at submit time.
+      markSessionJoined(sessionId);
+      setActiveSessionId(sessionId);
+      onGameStateChange?.(sessionId, null);
+      toast.success("You're in! Sign in when you're ready to submit your score.");
+      return;
+    }
+
     try {
       await joinSession(sessionId).unwrap();
       markSessionJoined(sessionId);
       setActiveSessionId(sessionId);
+      onGameStateChange?.(sessionId, null);
       // Refetch this session so isJoined + hasPlayed are up to date
       sessionRefetchMap[sessionId]?.();
       refetchGameStatus();
@@ -1502,6 +1595,45 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
     answers: (number | string)[],
     timeTakenMs: number
   ): Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }> => {
+    // Gate on auth — redirect to login preserving the exact game state in the URL.
+    // Save answers + progress to sessionStorage first so RoundPlayer can restore
+    // them when the user returns after logging in.
+    if (!requireAuth({
+      tab: "games",
+      ...(activeSessionId ? { session: activeSessionId } : {}),
+      ...(roundId ? { round: roundId } : {}),
+    })) {
+      // Persist the answers so they're restored after login redirect
+      try {
+        sessionStorage.setItem(
+          `game_answers:${roundId}`,
+          JSON.stringify({
+            answers,
+            currentQ: answers.length - 1, // they were on the last question
+            startTime: Date.now() - timeTakenMs,
+          })
+        );
+      } catch { /* sessionStorage may be unavailable */ }
+      return { ok: false };
+    }
+
+    // Ensure the session is joined server-side before submitting.
+    // This covers the case where the user joined locally (unauthenticated),
+    // then logged in and came back — the auto-join effect may still be in
+    // flight, so we do a best-effort join here too (server ignores duplicates).
+    if (activeSessionId) {
+      const alreadyJoinedServer =
+        joinedSessions.has(activeSessionId) && isJoinedFromStatus;
+      if (!alreadyJoinedServer) {
+        try {
+          await joinSession(activeSessionId).unwrap();
+          markSessionJoined(activeSessionId);
+        } catch {
+          // Ignore — already joined or session ended
+        }
+      }
+    }
+
     try {
       const res = await submitAnswers({
         roundId,
@@ -1554,7 +1686,10 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
         <div className="flex items-center gap-2">
           <button
             className="text-sm text-muted-foreground hover:text-foreground"
-            onClick={() => setPlayingRoundId(null)}
+            onClick={() => {
+              setPlayingRoundId(null);
+              onGameStateChange?.(activeSessionId, null);
+            }}
           >
             ← Back
           </button>
@@ -1672,6 +1807,7 @@ export function EventGamesTab({ event: eventProp }: EventGamesTabProps) {
             onPlay={(roundId) => {
               setActiveSessionId(session.id);
               setPlayingRoundId(roundId);
+              onGameStateChange?.(session.id, roundId);
             }}
             onToggleLeaderboard={() =>
               setShowLeaderboard(

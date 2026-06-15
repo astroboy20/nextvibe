@@ -40,7 +40,10 @@ export default function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const from = searchParams.get("from") || "/events";
+  const from = searchParams.get("from") || null;
+  const decodedFrom = from
+    ? (() => { try { return decodeURIComponent(from); } catch { return from; } })()
+    : null;
   const [registerMutation, { isLoading }] = useRegisterMutation();
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -71,7 +74,8 @@ export default function RegisterContent() {
         secure: process.env.NODE_ENV === "production",
       });
       toast.success("Account created successfully");
-      router.replace(`/events`);
+      const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
+      router.replace(validFrom ? decodedFrom : "/events");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Something went wrong");
     }

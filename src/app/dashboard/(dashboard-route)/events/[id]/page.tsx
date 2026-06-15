@@ -1,5 +1,5 @@
 "use client";
-import { use, useCallback, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EventAboutTab } from "./components/event-about-tab";
 import { EventRSVPTab } from "./components/event-rsvp-tab";
 import { EventQRTab } from "./components/event-qr-tab";
@@ -119,7 +119,7 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
   );
 }
 
-export default function EventPage({
+function EventPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -127,8 +127,35 @@ export default function EventPage({
   const { id } = use(params);
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(id);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("about");
+  const searchParams = useSearchParams();
+
+  // Sync tab with ?tab= search param so the URL can be used as a deep-link
+  // back to the exact tab after a login redirect.
+  const VALID_TABS = ["about", "rsvp", "qr", "games", "postcard", "chat"];
+  const initialTab = VALID_TABS.includes(searchParams.get("tab") ?? "")
+    ? (searchParams.get("tab") as string)
+    : "about";
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isLiked, setIsLiked] = useState(false);
+
+  // Keep URL in sync whenever the tab changes
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setActiveTab(tab);
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", tab);
+      // Clear game-specific params when leaving the games tab
+      if (tab !== "games") {
+        params.delete("session");
+        params.delete("round");
+      }
+      router.replace(`${window.location.pathname}?${params.toString()}`, {
+        scroll: false,
+      });
+    },
+    [router]
+  );
 
   const event = eventDetails?.data;
   const hasGame = event?.hasGame ?? false;
@@ -370,7 +397,7 @@ export default function EventPage({
       </div>
 
       <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
             {visibleTabs.map(({ value, label, icon }) => (
               <TabsTrigger
@@ -398,7 +425,23 @@ export default function EventPage({
             </TabsContent>
 
             <TabsContent value="games" className="mt-0">
-              <EventGamesTab event={eventDetails?.data} />
+              <EventGamesTab
+                event={eventDetails?.data}
+                initialSessionId={searchParams.get("session") ?? undefined}
+                initialRoundId={searchParams.get("round") ?? undefined}
+                onGameStateChange={(sessionId, roundId) => {
+                  const p = new URLSearchParams(window.location.search);
+                  p.set("tab", "games");
+                  if (sessionId) p.set("session", sessionId);
+                  else p.delete("session");
+                  if (roundId) p.set("round", roundId);
+                  else p.delete("round");
+                  router.replace(
+                    `${window.location.pathname}?${p.toString()}`,
+                    { scroll: false }
+                  );
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="postcard" className="mt-0">
@@ -419,5 +462,26 @@ export default function EventPage({
 
       <BottomNav />
     </div>
+  );
+}
+
+// Wrap in Suspense so useSearchParams doesn't cause a build-time error in Next.js
+import { Suspense } from "react";
+
+function EventPageFallback() {
+  return (
+    <EventPageSkeleton onBack={() => {}} />
+  );
+}
+
+export default function EventPageWithSuspense({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={<EventPageFallback />}>
+      <EventPage params={params} />
+    </Suspense>
   );
 }

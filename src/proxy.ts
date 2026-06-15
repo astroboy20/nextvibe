@@ -17,10 +17,13 @@ const PUBLIC_ROUTES = [
   "/faq",
   "/privacy",
   "/terms",
+  // Events — publicly browsable (actions inside are individually auth-gated)
   "/events",
   "/dashboard/events",
+  // Postcards — publicly viewable
   "/postcards",
   "/postcard",
+  "/dashboard/postcards",
 ];
 
 // Admin-only routes — protected by admin_accessToken

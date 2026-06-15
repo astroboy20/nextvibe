@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -35,22 +35,22 @@ import {
 const TIMINGS: { value: ReminderTiming; label: string; description: string }[] =
   [
     {
-      value: "SEVEN_DAYS_BEFORE",
+      value: "SEVEN_DAYS",
       label: "7 Days Before",
       description: "One-week heads up",
     },
     {
-      value: "FIVE_DAYS_BEFORE",
+      value: "FIVE_DAYS",
       label: "5 Days Before",
       description: "Mid-week awareness",
     },
     {
-      value: "THREE_DAYS_BEFORE",
+      value: "THREE_DAYS",
       label: "3 Days Before",
       description: "Prep reminder",
     },
     {
-      value: "ONE_DAY_BEFORE",
+      value: "ONE_DAY",
       label: "1 Day Before",
       description: "Final nudge",
     },
@@ -62,26 +62,57 @@ const RSVP_STATUSES: { value: RsvpStatus; label: string }[] = [
 ];
 
 const PLACEHOLDER_CHIPS = [
-  { token: "{{name}}", hint: "Attendee name" },
-  { token: "{{eventName}}", hint: "Event name" },
-  { token: "{{date}}", hint: "Event date" },
-  { token: "{{location}}", hint: "Location" },
+  { token: "{{name}}", hint: "Attendee's display name", sample: "Alex" },
+  { token: "{{eventName}}", hint: "The event name", sample: "Summer Bash 2026" },
+  { token: "{{date}}", hint: "Event date & time", sample: "Monday, June 23, 2026, 07:00 PM" },
+  { token: "{{location}}", hint: "Venue / location", sample: "The Rooftop, Lagos" },
 ];
 
-const SAMPLE_VALUES: Record<string, string> = {
-  "{{name}}": "Alex",
-  "{{eventName}}": "Your Event",
-  "{{date}}": "Monday, June 23, 2026, 07:00 PM",
-  "{{location}}": "Main Venue",
-};
+const SAMPLE_VALUES: Record<string, string> = Object.fromEntries(
+  PLACEHOLDER_CHIPS.map((c) => [c.token, c.sample])
+);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function applyPreview(text: string) {
+/**
+ * Replace every known {{token}} with its sample value.
+ * Returns segments so we can highlight substituted parts in the preview.
+ */
+function applyPreview(text: string): string {
   return Object.entries(SAMPLE_VALUES).reduce(
     (acc, [token, val]) => acc.replaceAll(token, val),
     text
   );
+}
+
+/**
+ * Returns a JSX array where {{tokens}} are highlighted in the preview panel.
+ */
+function renderPreviewHighlighted(text: string): React.ReactNode[] {
+  const tokenPattern = /(\{\{[^}]+\}\})/g;
+  const parts = text.split(tokenPattern);
+  return parts.map((part, i) => {
+    const chip = PLACEHOLDER_CHIPS.find((c) => c.token === part);
+    if (chip) {
+      return (
+        <span
+          key={i}
+          className="inline rounded bg-primary/15 px-1 text-primary font-medium"
+        >
+          {chip.sample}
+        </span>
+      );
+    }
+    // unknown token — flag it
+    if (/^\{\{[^}]+\}\}$/.test(part)) {
+      return (
+        <span key={i} className="inline rounded bg-destructive/15 px-1 text-destructive font-medium">
+          {part}
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }
 
 function hasUnknownTokens(text: string): boolean {
@@ -121,22 +152,35 @@ function StatusDot({ template }: StatusDotProps) {
 }
 
 interface PlaceholderChipsProps {
+  /** Which field is currently focused — chips insert into that field */
+  activeField: "subject" | "message";
   onInsert: (token: string) => void;
 }
-function PlaceholderChips({ onInsert }: PlaceholderChipsProps) {
+function PlaceholderChips({ activeField, onInsert }: PlaceholderChipsProps) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {PLACEHOLDER_CHIPS.map((chip) => (
-        <button
-          key={chip.token}
-          type="button"
-          title={chip.hint}
-          onClick={() => onInsert(chip.token)}
-          className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs text-primary hover:bg-primary/15 transition-colors"
-        >
-          {chip.token}
-        </button>
-      ))}
+    <div className="space-y-1">
+      <p className="text-[10px] text-muted-foreground">
+        Click a token to insert at cursor{" "}
+        <span className="text-primary font-medium">
+          ({activeField === "subject" ? "subject" : "message"})
+        </span>
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {PLACEHOLDER_CHIPS.map((chip) => (
+          <button
+            key={chip.token}
+            type="button"
+            title={chip.hint}
+            onClick={() => onInsert(chip.token)}
+            className="group flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs text-primary hover:bg-primary/20 hover:border-primary/60 active:scale-95 transition-all"
+          >
+            <span className="font-mono">{chip.token}</span>
+            <span className="text-[9px] text-muted-foreground group-hover:text-primary/70 hidden sm:inline">
+              → {chip.sample}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -161,8 +205,9 @@ function ReminderCard({
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState(template?.subject ?? "");
   const [message, setMessage] = useState(template?.message ?? "");
-  const [showPreview, setShowPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Track which field was last focused so chips know where to insert
+  const [activeField, setActiveField] = useState<"subject" | "message">("subject");
 
   const subjectRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
@@ -171,7 +216,6 @@ function ReminderCard({
   const [toggle, { isLoading: isToggling }] = useToggleReminderMutation();
   const [remove, { isLoading: isDeleting }] = useDeleteReminderMutation();
 
-  // Sync local state when template changes (e.g. after a save)
   const templateSubject = template?.subject ?? "";
   const templateMessage = template?.message ?? "";
   const isDirty = subject !== templateSubject || message !== templateMessage;
@@ -180,10 +224,10 @@ function ReminderCard({
   let daysWarning: string | null = null;
   if (eventStartsAt && timing) {
     const daysMap: Record<ReminderTiming, number> = {
-      ONE_DAY_BEFORE: 1,
-      THREE_DAYS_BEFORE: 3,
-      FIVE_DAYS_BEFORE: 5,
-      SEVEN_DAYS_BEFORE: 7,
+      ONE_DAY: 1,
+      THREE_DAYS: 3,
+      FIVE_DAYS: 5,
+      SEVEN_DAYS: 7,
     };
     const daysNeeded = daysMap[timing];
     const daysUntil = Math.ceil(
@@ -207,22 +251,21 @@ function ReminderCard({
       : message.length > 2000
       ? "Max 2000 characters"
       : null;
-  const unknownToken =
-    hasUnknownTokens(subject) || hasUnknownTokens(message)
-      ? "Unknown placeholder detected — check your {{tokens}}"
-      : null;
+  const unknownSubject = hasUnknownTokens(subject);
+  const unknownMessage = hasUnknownTokens(message);
   const canSave =
     subject.length >= 3 &&
     subject.length <= 150 &&
     message.length >= 10 &&
     message.length <= 2000 &&
-    !unknownToken;
+    !unknownSubject &&
+    !unknownMessage;
 
-  function insertAtCursor(
-    field: "subject" | "message",
-    token: string
-  ) {
-    if (field === "subject" && subjectRef.current) {
+  // Has any content worth previewing
+  const hasContent = subject.length > 0 || message.length > 0;
+
+  function insertAtCursor(token: string) {
+    if (activeField === "subject" && subjectRef.current) {
       const el = subjectRef.current;
       const start = el.selectionStart ?? subject.length;
       const end = el.selectionEnd ?? subject.length;
@@ -232,7 +275,7 @@ function ReminderCard({
         el.focus();
         el.setSelectionRange(start + token.length, start + token.length);
       });
-    } else if (field === "message" && messageRef.current) {
+    } else if (activeField === "message" && messageRef.current) {
       const el = messageRef.current;
       const start = el.selectionStart ?? message.length;
       const end = el.selectionEnd ?? message.length;
@@ -281,6 +324,10 @@ function ReminderCard({
   const rsvpLabel =
     RSVP_STATUSES.find((r) => r.value === rsvpStatus)?.label ?? rsvpStatus;
 
+  // Preview content — shown when there's any content
+  const previewSubject = subject ? renderPreviewHighlighted(subject) : null;
+  const previewMessage = message ? renderPreviewHighlighted(message) : null;
+
   return (
     <div
       className={cn(
@@ -322,7 +369,8 @@ function ReminderCard({
 
       {/* Body */}
       {open && (
-        <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+        <div className="border-t border-border px-3 pb-3 pt-3 space-y-3">
+          {/* Days warning */}
           {daysWarning && (
             <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
@@ -332,91 +380,171 @@ function ReminderCard({
             </div>
           )}
 
-          {/* Subject */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-foreground">
-                Subject
-              </label>
-              <span
+          {/* Editor + Live Preview side-by-side on wider screens */}
+          <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
+
+            {/* ── Left: editor fields ── */}
+            <div className="flex-1 space-y-3 min-w-0">
+
+              {/* Subject */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-foreground">
+                    Subject
+                  </label>
+                  <span
+                    className={cn(
+                      "text-[10px]",
+                      subject.length > 150 ? "text-destructive" : "text-muted-foreground"
+                    )}
+                  >
+                    {subject.length}/150
+                  </span>
+                </div>
+                <input
+                  ref={subjectRef}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  onFocus={() => setActiveField("subject")}
+                  placeholder="e.g. {{eventName}} is almost here!"
+                  className={cn(
+                    "w-full rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-colors",
+                    activeField === "subject"
+                      ? "border-primary/50"
+                      : "border-border"
+                  )}
+                />
+                {subjectErr && (
+                  <p className="text-[10px] text-destructive">{subjectErr}</p>
+                )}
+                {unknownSubject && (
+                  <p className="text-[10px] text-amber-500">
+                    Unknown token in subject
+                  </p>
+                )}
+              </div>
+
+              {/* Message */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-foreground">
+                    Message
+                  </label>
+                  <span
+                    className={cn(
+                      "text-[10px]",
+                      message.length > 2000 ? "text-destructive" : "text-muted-foreground"
+                    )}
+                  >
+                    {message.length}/2000
+                  </span>
+                </div>
+                <textarea
+                  ref={messageRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => setActiveField("message")}
+                  rows={5}
+                  placeholder={`Hey {{name}}, just a reminder — {{eventName}} is happening on {{date}} at {{location}}. See you there!`}
+                  className={cn(
+                    "w-full rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none transition-colors",
+                    activeField === "message"
+                      ? "border-primary/50"
+                      : "border-border"
+                  )}
+                />
+                {messageErr && (
+                  <p className="text-[10px] text-destructive">{messageErr}</p>
+                )}
+                {unknownMessage && (
+                  <p className="text-[10px] text-amber-500">
+                    Unknown token in message
+                  </p>
+                )}
+              </div>
+
+              {/* Token chips — shared, inserts into whichever field is active */}
+              <PlaceholderChips
+                activeField={activeField}
+                onInsert={insertAtCursor}
+              />
+            </div>
+
+            {/* ── Right: live preview panel ── */}
+            <div className="lg:w-56 xl:w-64 shrink-0">
+              <div
                 className={cn(
-                  "text-[10px]",
-                  subject.length > 150
-                    ? "text-destructive"
-                    : "text-muted-foreground"
+                  "rounded-xl border h-full transition-colors",
+                  hasContent
+                    ? "border-primary/20 bg-primary/[0.03]"
+                    : "border-dashed border-border bg-muted/20"
                 )}
               >
-                {subject.length}/150
-              </span>
+                {/* Preview header */}
+                <div className="flex items-center gap-1.5 border-b border-inherit px-3 py-2">
+                  <span className="h-2 w-2 rounded-full bg-primary/40" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Live Preview
+                  </span>
+                </div>
+
+                {/* Preview body */}
+                <div className="px-3 py-2.5 space-y-2">
+                  {hasContent ? (
+                    <>
+                      {/* Simulated email "from" line */}
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <Bell className="h-2.5 w-2.5 text-primary" />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          NextVibe · Event Reminder
+                        </span>
+                      </div>
+
+                      {/* Subject line */}
+                      <div>
+                        <p className="text-[10px] uppercase text-muted-foreground mb-0.5">
+                          Subject
+                        </p>
+                        <p className="text-xs font-semibold text-foreground leading-snug">
+                          {previewSubject ?? (
+                            <span className="italic text-muted-foreground font-normal">
+                              No subject yet
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-border/60" />
+
+                      {/* Message body */}
+                      <div>
+                        <p className="text-[10px] uppercase text-muted-foreground mb-0.5">
+                          Message
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {previewMessage ?? (
+                            <span className="italic">No message yet</span>
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+                      <Bell className="h-5 w-5 text-muted-foreground/40" />
+                      <p className="text-[10px] text-muted-foreground">
+                        Start typing to see
+                        <br />
+                        a live preview here
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <input
-              ref={subjectRef}
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. {{eventName}} is almost here!"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-            />
-            {subjectErr && (
-              <p className="text-[10px] text-destructive">{subjectErr}</p>
-            )}
-            <PlaceholderChips onInsert={(t) => insertAtCursor("subject", t)} />
           </div>
-
-          {/* Message */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-foreground">
-                Message
-              </label>
-              <span
-                className={cn(
-                  "text-[10px]",
-                  message.length > 2000
-                    ? "text-destructive"
-                    : "text-muted-foreground"
-                )}
-              >
-                {message.length}/2000
-              </span>
-            </div>
-            <textarea
-              ref={messageRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={4}
-              placeholder="Hey {{name}}, just a reminder that {{eventName}} is coming up at {{location}} on {{date}}!"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
-            />
-            {messageErr && (
-              <p className="text-[10px] text-destructive">{messageErr}</p>
-            )}
-            {unknownToken && (
-              <p className="text-[10px] text-amber-500">{unknownToken}</p>
-            )}
-            <PlaceholderChips onInsert={(t) => insertAtCursor("message", t)} />
-          </div>
-
-          {/* Preview toggle */}
-          {(subject || message) && (
-            <button
-              type="button"
-              onClick={() => setShowPreview((p) => !p)}
-              className="text-xs text-primary underline-offset-2 hover:underline"
-            >
-              {showPreview ? "Hide preview" : "Show live preview"}
-            </button>
-          )}
-
-          {showPreview && (
-            <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-1">
-              <p className="text-xs font-semibold text-foreground">
-                {applyPreview(subject) || <span className="text-muted-foreground italic">No subject</span>}
-              </p>
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                {applyPreview(message) || <span className="italic">No message</span>}
-              </p>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-1">

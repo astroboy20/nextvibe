@@ -4,10 +4,10 @@ import { baseQueryWithReauth } from "./baseQuery";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ReminderTiming =
-  | "ONE_DAY_BEFORE"
-  | "THREE_DAYS_BEFORE"
-  | "FIVE_DAYS_BEFORE"
-  | "SEVEN_DAYS_BEFORE";
+  | "ONE_DAY"
+  | "THREE_DAYS"
+  | "FIVE_DAYS"
+  | "SEVEN_DAYS";
 
 export type RsvpStatus = "CONFIRMED" | "WAITLISTED";
 

@@ -10,13 +10,14 @@ import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
 import {
-  PostcardViewer, ProgressiveImage,
+  PostcardViewer,
   type PostcardData,
 } from "@/components/postcard-viewer";
 import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" ;
 
@@ -181,6 +182,7 @@ export function EventVibeTagsTab({
     null;
 
   const [toggleLike] = useToggleLikePostcardMutation();
+  const requireAuth = useRequireAuth();
 
   // Build a lookup map: vibeTagId → VibeTag so tiles can resolve image + timing
   const vibeTagMap: Record<string, VibeTag> = Object.fromEntries(
@@ -193,6 +195,7 @@ export function EventVibeTagsTab({
 
   const handleLike = async (postcardId: string) => {
     if (!eventId) return;
+    if (!requireAuth({ tab: "postcard" })) return;
     try {
       await toggleLike({ eventId, postcardId }).unwrap();
     } catch {
@@ -307,7 +310,10 @@ export function EventVibeTagsTab({
                 !activeTag ||
                 (resolvedTiming === "DURING_EVENT" && !eventHasStarted)
               }
-              onClick={() => activeTag && setShowCreator(true)}
+              onClick={() => {
+                if (!activeTag) return;
+                setShowCreator(true);
+              }}
             >
               <Camera className="h-4 w-4" />
               Create Your Postcard

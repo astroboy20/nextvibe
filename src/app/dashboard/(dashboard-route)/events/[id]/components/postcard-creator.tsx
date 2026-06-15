@@ -27,6 +27,8 @@ import { useCreatePostcardsMutation } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
+import { AuthBottomSheet } from "@/components/auth-bottom-sheet";
+import Cookies from "js-cookie";
 
 const MAX_ITEMS = 20;
 
@@ -269,6 +271,9 @@ export function PostcardCreator({
   );
   const [isFlipping, setIsFlipping] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
+  // Holds the queue to submit once auth completes — preserves media across auth
+  const pendingQueueRef = useRef<QueuedItem[] | null>(null);
   const [submitProgress, setSubmitProgress] = useState(0);
   const [submitStage, setSubmitStage] = useState<"uploading" | "saving">(
     "uploading"
@@ -603,6 +608,13 @@ export function PostcardCreator({
     if (!ready.length) return;
     if (!eventId) {
       toast.error("Event ID missing.");
+      return;
+    }
+
+    // Auth gate — show inline sheet instead of redirecting so media is preserved
+    if (!Cookies.get("accessToken")) {
+      pendingQueueRef.current = queue;
+      setShowAuthSheet(true);
       return;
     }
 
@@ -1374,6 +1386,22 @@ export function PostcardCreator({
         multiple
         className="hidden"
         onChange={handleFileUpload}
+      />
+
+      {/* Auth sheet — shown when unauthenticated user tries to post.
+          Keeps media alive so nothing is lost. */}
+      <AuthBottomSheet
+        open={showAuthSheet}
+        onClose={() => setShowAuthSheet(false)}
+        prompt="Sign in to post your postcard to the event feed."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          // Re-run submit now that the user is authenticated
+          if (pendingQueueRef.current) {
+            handleSubmitAll(pendingQueueRef.current);
+            pendingQueueRef.current = null;
+          }
+        }}
       />
     </div>
   );
