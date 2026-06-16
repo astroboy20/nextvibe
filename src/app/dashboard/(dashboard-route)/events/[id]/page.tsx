@@ -25,6 +25,7 @@ import { EventChatTab } from "./components/event-chat-tab";
 import { EventGamesTab } from "./components/event-game-tab";
 import { EventVibeTagsTab } from "./components/event-vibetags-tab";
 import { useGetEventDetailsQuery } from "@/app/provider/api/eventApi";
+import { PrivateEventGuard } from "@/components/private-event-guard";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -305,13 +306,15 @@ function EventPage({
     [promoVideoUrl]
   );
 
+  const isPrivate = event?.isPublic === false;
+
   if (isLoading) {
     return (
       <EventPageSkeleton onBack={() => router.push("/events")} />
     );
   }
 
-  return (
+  const pageContent = (
     <div className="min-h-screen bg-background pb-24 ">
       <div className="relative h-72 w-full overflow-hidden">
         {promoVideoUrl && (
@@ -463,6 +466,20 @@ function EventPage({
       <BottomNav />
     </div>
   );
+
+  if (isPrivate) {
+    return (
+      <PrivateEventGuard
+        eventId={id}
+        eventName={event?.name}
+        correctAccessKey={event?.accessKey ?? ""}
+      >
+        {pageContent}
+      </PrivateEventGuard>
+    );
+  }
+
+  return pageContent;
 }
 
 // Wrap in Suspense so useSearchParams doesn't cause a build-time error in Next.js

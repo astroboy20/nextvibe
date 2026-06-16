@@ -106,6 +106,7 @@ const Discover = () => {
   const { data: eventsData, isLoading: isLoadingEvents } = useGetEventsQuery({
     page: eventsPage,
     limit: PAGE_SIZE,
+    isPublic: true,
   });
   const { userInterests } = useEventDiscovery();
 
@@ -160,7 +161,9 @@ const Discover = () => {
 
   const hasFilters = locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
 
-  const allEvents: any[] = eventsData?.data?.data ?? [];
+  const allEvents: any[] = (eventsData?.data?.data ?? []).filter(
+    (e: any) => e.isPublic !== false
+  );
   const eventsMeta = eventsData?.data?.meta;
   // total pages: prefer server meta, fall back to local count
   const eventsTotalPages = eventsMeta?.totalPages

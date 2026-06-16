@@ -35,6 +35,8 @@ export default function DashboardLayout({
             <h1 className="font-display text-xl sm:text-2xl font-semibold">
               {pathname.startsWith("/auth/login") && "Welcome back"}
               {pathname.startsWith("/auth/register") && "Join NextVibe"}
+              {pathname.startsWith("/auth/forgot-password") && "Reset password"}
+              {pathname.startsWith("/auth/reset-password") && "New password"}
             </h1>
 
             <p className="text-sm sm:text-base text-muted-foreground">
@@ -42,6 +44,10 @@ export default function DashboardLayout({
                 "Sign in to continue your vibe"}
               {pathname.startsWith("/auth/register") &&
                 "Create your account and start vibing"}
+              {pathname.startsWith("/auth/forgot-password") &&
+                "We'll send a reset link to your inbox"}
+              {pathname.startsWith("/auth/reset-password") &&
+                "Choose a strong password for your account"}
             </p>
           </div>
 

@@ -35,6 +35,7 @@ import {
   useGetGamesQuery,
   useUpdateEventStatusMutation,
 } from "@/app/provider/api/eventApi";
+import { AccessKeyDisplay } from "@/components/private-event-guard";
 import { useGetRemindersQuery } from "@/app/provider/api/reminderApi";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
@@ -421,6 +422,14 @@ export default function OrganizerDashboard({
         )}
 
         <div className="space-y-4">
+          {/* Private event access key panel */}
+          {!isLoading && event?.isPublic === false && event?.accessKey && (
+            <AccessKeyDisplay
+              accessKey={event.accessKey}
+              eventId={eventId}
+            />
+          )}
+
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (

@@ -13,11 +13,12 @@ export const eventsApi = createApi({
   endpoints: (builder) => ({
 
 
-    getEvents: builder.query<any, { page?: number; limit?: number } | void>({
+    getEvents: builder.query<any, { page?: number; limit?: number; isPublic?: boolean } | void>({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
         if (params?.limit) p.set("limit", String(params.limit));
+        if (params?.isPublic !== undefined) p.set("isPublic", String(params.isPublic));
         const qs = p.toString();
         return `/v1/events${qs ? `?${qs}` : ""}`;
       },

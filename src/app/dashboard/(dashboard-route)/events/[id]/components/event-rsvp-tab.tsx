@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, HelpCircle, X, Ticket, Loader2 } from "lucide-react";
+import { Check, HelpCircle, X, Ticket, Loader2, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +18,7 @@ interface EventRSVPTabProps {
   event: any;
 }
 
-type RSVPChoice = "going" | "maybe" | "not-going" | null;
+type RSVPChoice = "going" | "waitlisted" | "maybe" | "not-going" | null;
 
 function extractErrorMessage(err: any): string {
   return (
@@ -30,13 +30,31 @@ function extractErrorMessage(err: any): string {
   );
 }
 
+/** Returns true when the event is at absolute capacity (all tiers sold out) */
+function isAtCapacity(event: any): boolean {
+  if (!event?.ticketTiers || event.ticketTiers.length === 0) return false;
+  return event.ticketTiers.every(
+    (t: any) => (t.quantitySold ?? 0) >= (t.quantity ?? Infinity)
+  );
+}
+
 export function EventRSVPTab({ event }: EventRSVPTabProps) {
   const [rsvpMutation] = useRsvpMutation();
   const requireAuth = useRequireAuth();
 
-  const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(
-    event?.isRsvped ? "going" : null
-  );
+  const isFull = isAtCapacity(event);
+
+  // Derive initial RSVP state — check for waitlisted status too
+  const deriveInitialStatus = (): RSVPChoice => {
+    if (!event?.isRsvped && !event?.rsvpStatus) return null;
+    const s = event?.rsvpStatus ?? (event?.isRsvped ? "CONFIRMED" : null);
+    if (s === "CONFIRMED") return "going";
+    if (s === "WAITLIST" || s === "WAITLISTED") return "waitlisted";
+    if (s === "CANCELLED") return "not-going";
+    return event?.isRsvped ? "going" : null;
+  };
+
+  const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(deriveInitialStatus());
   const [loadingChoice, setLoadingChoice] = useState<RSVPChoice>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
 
@@ -51,7 +69,27 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
   const handleGoing = () => {
     if (rsvpStatus === "going" || isAnyLoading) return;
     if (!requireAuth({ tab: "rsvp" })) return;
+    // If at capacity, go straight to waitlist
+    if (isFull) {
+      handleJoinWaitlist();
+      return;
+    }
     setShowTicketModal(true);
+  };
+
+  const handleJoinWaitlist = async () => {
+    if (isAnyLoading) return;
+    if (!requireAuth({ tab: "rsvp" })) return;
+    setLoadingChoice("waitlisted");
+    try {
+      await rsvpMutation({ eventId: event.id, status: "WAITLIST" }).unwrap();
+      setRsvpStatus("waitlisted");
+      toast.success("You're on the waitlist! We'll notify you if a spot opens.");
+    } catch (err: any) {
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setLoadingChoice(null);
+    }
   };
 
   const handleTicketSelected = async (tierId: string) => {
@@ -65,7 +103,20 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
       setRsvpStatus("going");
       toast.success("🎉 You're going! See you at the event.");
     } catch (err: any) {
-      toast.error(extractErrorMessage(err));
+      const msg = extractErrorMessage(err);
+      // Backend returned capacity-exceeded — automatically put on waitlist
+      if (
+        msg.toLowerCase().includes("capacity") ||
+        msg.toLowerCase().includes("full") ||
+        msg.toLowerCase().includes("waitlist")
+      ) {
+        setRsvpStatus("waitlisted");
+        toast("Event is full. You've been added to the waitlist.", {
+          icon: "⏳",
+        });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoadingChoice(null);
     }
@@ -78,9 +129,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
     const status = choice === "maybe" ? "WAITLIST" : "CANCELLED";
     try {
       await rsvpMutation({ eventId: event.id, status }).unwrap();
-      setRsvpStatus(choice);
+      setRsvpStatus(choice === "maybe" ? "waitlisted" : "not-going");
       toast.success(
-        choice === "maybe" ? "🤔 You're on the waitlist!" : "😢 RSVP cancelled."
+        choice === "maybe" ? "⏳ You're on the waitlist!" : "😢 RSVP cancelled."
       );
     } catch (err: any) {
       toast.error(extractErrorMessage(err));
@@ -91,45 +142,44 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* ── Status banners ── */}
       {rsvpStatus === "going" && (
         <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
             <Ticket className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-green-600">
-              You&apos;re going! 🎉
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Your RSVP is confirmed
-            </p>
+            <p className="font-semibold text-green-600">You&apos;re going! 🎉</p>
+            <p className="text-sm text-muted-foreground">Your RSVP is confirmed</p>
           </div>
-          <Badge
-            variant="outline"
-            className="bg-green-500/10 text-green-600 border-green-500/20"
-          >
+          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
             Confirmed
           </Badge>
         </div>
       )}
 
-      {rsvpStatus === "maybe" && (
+      {rsvpStatus === "waitlisted" && (
         <div className="flex items-center gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500">
-            <HelpCircle className="h-5 w-5 text-white" />
+            <Clock className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-amber-600">On the waitlist</p>
+            <p className="font-semibold text-amber-600">Waitlisted — Pending Approval</p>
             <p className="text-sm text-muted-foreground">
-              We&apos;ll notify you if a spot opens
+              We&apos;ll notify you if a spot opens up.
             </p>
           </div>
-          <Badge
-            variant="outline"
-            className="bg-amber-500/10 text-amber-600 border-amber-500/20"
-          >
-            Waitlist
+          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">
+            Waitlisted
           </Badge>
+        </div>
+      )}
+
+      {/* Capacity warning banner */}
+      {isFull && rsvpStatus === null && (
+        <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          This event is at capacity. You can join the waitlist below.
         </div>
       )}
 
@@ -137,26 +187,41 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
         <h3 className="font-semibold text-foreground">Are you going?</h3>
 
         <div className="grid grid-cols-3 gap-3">
-          {/* Going */}
+          {/* Going / Join Waitlist */}
           <Button
             variant={rsvpStatus === "going" ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
               rsvpStatus === "going" &&
                 "bg-green-600 hover:bg-green-700 border-green-600",
-              isAnyLoading && loadingChoice !== "going" && "opacity-40"
+              isFull && rsvpStatus === null &&
+                "border-amber-500 text-amber-600 hover:bg-amber-50",
+              isAnyLoading &&
+                loadingChoice !== "going" &&
+                loadingChoice !== "waitlisted" &&
+                "opacity-40"
             )}
             onClick={handleGoing}
-            disabled={isAnyLoading || rsvpStatus === "going"}
+            disabled={
+              isAnyLoading ||
+              rsvpStatus === "going" ||
+              rsvpStatus === "waitlisted"
+            }
           >
             <div
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                rsvpStatus === "going" ? "bg-white/20" : "bg-green-500/10"
+                rsvpStatus === "going"
+                  ? "bg-white/20"
+                  : isFull
+                  ? "bg-amber-500/10"
+                  : "bg-green-500/10"
               )}
             >
-              {loadingChoice === "going" ? (
-                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              {loadingChoice === "going" || loadingChoice === "waitlisted" ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isFull && rsvpStatus === null ? (
+                <Clock className="h-5 w-5 text-amber-600" />
               ) : (
                 <Check
                   className={cn(
@@ -172,26 +237,37 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 rsvpStatus === "going" ? "text-white" : "text-foreground"
               )}
             >
-              {loadingChoice === "going" ? "Submitting..." : "Going"}
+              {loadingChoice === "going" || loadingChoice === "waitlisted"
+                ? "Submitting..."
+                : isFull && rsvpStatus === null
+                ? "Join Waitlist"
+                : "Going"}
             </span>
           </Button>
 
           {/* Maybe */}
           <Button
-            variant={rsvpStatus === "maybe" ? "default" : "outline"}
+            variant="outline"
             className={cn(
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
-              rsvpStatus === "maybe" &&
+              rsvpStatus === "waitlisted" &&
+                !isFull &&
                 "bg-amber-500 hover:bg-amber-600 border-amber-500",
               isAnyLoading && loadingChoice !== "maybe" && "opacity-40"
             )}
             onClick={() => handleSimpleRsvp("maybe")}
-            disabled={isAnyLoading || rsvpStatus === "maybe"}
+            disabled={
+              isAnyLoading ||
+              rsvpStatus === "going" ||
+              rsvpStatus === "waitlisted"
+            }
           >
             <div
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full",
-                rsvpStatus === "maybe" ? "bg-white/20" : "bg-amber-500/10"
+                rsvpStatus === "waitlisted" && !isFull
+                  ? "bg-white/20"
+                  : "bg-amber-500/10"
               )}
             >
               {loadingChoice === "maybe" ? (
@@ -200,7 +276,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                 <HelpCircle
                   className={cn(
                     "h-5 w-5",
-                    rsvpStatus === "maybe" ? "text-white" : "text-amber-600"
+                    rsvpStatus === "waitlisted" && !isFull
+                      ? "text-white"
+                      : "text-amber-600"
                   )}
                 />
               )}
@@ -208,7 +286,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
             <span
               className={cn(
                 "text-sm font-medium",
-                rsvpStatus === "maybe" ? "text-white" : "text-foreground"
+                rsvpStatus === "waitlisted" && !isFull
+                  ? "text-white"
+                  : "text-foreground"
               )}
             >
               {loadingChoice === "maybe" ? "Submitting..." : "Maybe"}
@@ -315,15 +395,15 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                       "text-[10px] shrink-0",
                       status === "CONFIRMED" &&
                         "border-green-500/50 text-green-600 bg-green-500/5",
-                      status === "WAITLIST" &&
+                      (status === "WAITLIST" || status === "WAITLISTED") &&
                         "border-amber-500/50 text-amber-600 bg-amber-500/5",
                       status === "CANCELLED" && "border-gray-400 text-gray-500"
                     )}
                   >
                     {status === "CONFIRMED"
                       ? "Going"
-                      : status === "WAITLIST"
-                      ? "Waitlist"
+                      : status === "WAITLIST" || status === "WAITLISTED"
+                      ? "Waitlisted"
                       : "Cancelled"}
                   </Badge>
                 </div>

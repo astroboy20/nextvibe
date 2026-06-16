@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Calendar, Gamepad2, MapPin, Tag, Users } from "lucide-react";
+import { Calendar, Gamepad2, Lock, MapPin, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/hooks/format-date";
@@ -18,6 +18,7 @@ export interface EventCardProps {
   attendees?: number;
   hasGames?: boolean;
   hasVibeTag?: boolean;
+  isPublic?: boolean;
   rsvpStartDateTime?: string | null;
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
@@ -39,6 +40,7 @@ export function EventCard({
   attendees = 0,
   hasGames,
   hasVibeTag,
+  isPublic,
   rsvpStartDateTime,
   colorAccent = "plum",
   className,
@@ -174,8 +176,14 @@ export function EventCard({
           />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-        {(hasGames || hasVibeTag) && (
+        {(hasGames || hasVibeTag || isPublic === false) && (
           <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
+            {isPublic === false && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                <Lock className="h-2.5 w-2.5" />
+                Private
+              </span>
+            )}
             {hasGames && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-vibe-cyan/80 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
                 <Gamepad2 className="h-2.5 w-2.5" />

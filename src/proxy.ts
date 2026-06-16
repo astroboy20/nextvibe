@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   "/auth/login",
   "/auth/register",
   "/auth/forgot-password",
+  "/auth/reset-password",
   "/verify-email",
   "/check-verification",
   "/game",

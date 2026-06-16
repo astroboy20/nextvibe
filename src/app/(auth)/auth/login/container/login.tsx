@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 
 import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
 import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
@@ -61,9 +61,8 @@ const LoginContent = () => {
   if (searchParams.get("DEFAULT_ROLE"))
     queryParams.set("DEFAULT_ROLE", defaultRole);
 
-  const registerUrl = `/auth/register${
-    queryParams.toString() ? `?${queryParams.toString()}` : ""
-  }`;
+  const registerUrl = `/auth/register${queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
 
   const handleSubmit = async (values: LoginFormValues) => {
     const { email, password } = values;
@@ -103,8 +102,18 @@ const LoginContent = () => {
     }
   };
 
+  const resetSuccess = searchParams.get("reset") === "success";
+
   return (
     <Form {...form}>
+      {resetSuccess && (
+        <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 mb-4">
+          <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-green-800">
+            Password reset successfully. Please log in with your new password.
+          </p>
+        </div>
+      )}
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="flex flex-col gap-6">
           <div className="space-y-5">
@@ -171,6 +180,7 @@ const LoginContent = () => {
                 Forgot Password?
               </Link>
             </div>
+
           </div>
 
           <Button

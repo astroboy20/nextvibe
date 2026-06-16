@@ -812,6 +812,37 @@ function RoundPlayer({
   const { data: leaderboardData, refetch: refetchLeaderboard } =
     useGetSessionLeaderboardQuery(session?.id, { skip: !session?.id });
 
+  // ── Auto-submit on mount when returning from login redirect ──────────────
+  // savedState means the user already played but was redirected to login before
+  // submitting. Now they're authenticated — submit immediately and show score.
+  useEffect(() => {
+    if (!savedState) return;
+    let cancelled = false;
+
+    const autoSubmit = async () => {
+      setWaitingForResult(true);
+      const timeTakenMs = Date.now() - (savedState.startTime ?? totalStartTime);
+      const result = await onSubmit(
+        round.id,
+        savedState.answers,
+        timeTakenMs
+      );
+      if (cancelled) return;
+      if (result.ok) {
+        await refetchLeaderboard();
+        setFinalScore(result.score ?? 0);
+        onComplete?.();
+      } else {
+        // Auth failed again (shouldn't happen) — let them retry
+        setWaitingForResult(false);
+      }
+    };
+
+    autoSubmit();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (flash || finalScore !== null) return;
     setElapsed(0);
@@ -831,7 +862,9 @@ function RoundPlayer({
   if (gameType === "word-puzzle") {
     if (finalScore !== null) {
       // fall through to score screen below
-    } else if (!waitingForResult) {
+    } else if (waitingForResult) {
+      // auto-submit is in flight — show the submitting spinner below
+    } else {
       return (
         <WordPuzzleRoundPlayer
           questions={questions}
@@ -1536,28 +1569,6 @@ export function EventGamesTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isJoinedFromStatus, activeSessionIdFromStatus]);
 
-  // Auto-join the session when returning from login redirect with ?session= in the URL.
-  // The user was playing unauthenticated; now that they're logged in we silently join
-  // server-side so their submit will succeed.
-  useEffect(() => {
-    if (!initialSessionId || !allSessions.length) return;
-    const alreadyJoined =
-      joinedSessions.has(initialSessionId) ||
-      (isJoinedFromStatus && activeSessionIdFromStatus === initialSessionId);
-    if (alreadyJoined) return;
-    joinSession(initialSessionId)
-      .unwrap()
-      .then(() => {
-        markSessionJoined(initialSessionId);
-        refetchGameStatus();
-      })
-      .catch(() => {
-        // Silently ignore — may already be joined or session ended
-      });
-    // Only run once after sessions are available
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSessionId, allSessions.length]);
-
   const handleJoin = async (sessionId: string) => {
     const isLoggedIn = !!Cookies.get("accessToken");
 
@@ -1618,19 +1629,14 @@ export function EventGamesTab({
     }
 
     // Ensure the session is joined server-side before submitting.
-    // This covers the case where the user joined locally (unauthenticated),
-    // then logged in and came back — the auto-join effect may still be in
-    // flight, so we do a best-effort join here too (server ignores duplicates).
+    // Always attempt this — the server handles duplicates gracefully, and it
+    // guarantees the user is joined even if the auto-join effect hasn't resolved yet.
     if (activeSessionId) {
-      const alreadyJoinedServer =
-        joinedSessions.has(activeSessionId) && isJoinedFromStatus;
-      if (!alreadyJoinedServer) {
-        try {
-          await joinSession(activeSessionId).unwrap();
-          markSessionJoined(activeSessionId);
-        } catch {
-          // Ignore — already joined or session ended
-        }
+      try {
+        await joinSession(activeSessionId).unwrap();
+        markSessionJoined(activeSessionId);
+      } catch {
+        // Ignore — already joined or session ended
       }
     }
 

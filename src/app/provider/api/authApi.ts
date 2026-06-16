@@ -65,6 +65,15 @@ export const authApi = createApi({
                 }
             }
         }),
+        resetPassword: build.mutation({
+            query(body: { token: string; newPassword: string }) {
+                return {
+                    url: "/v1/auth/reset-password",
+                    method: "POST",
+                    body
+                }
+            }
+        }),
         getUser: build.query<any, void>({
             query() {
                 return {
@@ -168,4 +177,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useLogoutMutation, useUpdateUserMutation, useGetPresignedUrlMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation, useUpdateUserMutation, useGetPresignedUrlMutation } = authApi
