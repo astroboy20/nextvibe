@@ -1275,8 +1275,24 @@ export function PostcardCreator({
                           className="h-full w-full object-cover"
                           playsInline
                         />
-                        {/* Overlay image shown on top of video preview */}
-                        {hasOverlay && (
+                        {/* Overlay image shown on top of video preview —
+                            only while baking is in progress. Once done the
+                            overlay is already stamped into the baked video,
+                            so showing it again here would double it. */}
+                        {hasOverlay && activeItem.baking && (
+                          <div className="absolute inset-0 pointer-events-none z-10">
+                            <img
+                              src={vibeTagOverlay!.imageUrl}
+                              alt={vibeTagOverlay!.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        {/* For large videos where baking was skipped, always
+                            show the CSS overlay since it was never baked in */}
+                        {hasOverlay && !activeItem.baking &&
+                          activeItem.blob &&
+                          activeItem.blob.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024 && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
                               src={vibeTagOverlay!.imageUrl}
