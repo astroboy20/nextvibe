@@ -1,0 +1,288 @@
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Rocket,
+  Mail,
+  Instagram,
+  Twitter,
+  Facebook,
+  Calendar,
+  Sparkles,
+  Users,
+  Zap,
+  Music,
+  Camera,
+  Gamepad2,
+  Check,
+} from "lucide-react";
+import { toast } from "sonner";
+import LaunchFAQ from "../component/launch-faq";
+import RewardTiers from "../component/reward-tier";
+import WhyBackNextVibe from "../component/why-nextvibe";
+
+function useCountdown(targetDate: Date) {
+  const calculateTimeLeft = useCallback(() => {
+    const difference = targetDate.getTime() - new Date().getTime();
+    if (difference <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+    return {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+    };
+  }, [targetDate]);
+
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [calculateTimeLeft]);
+
+  return timeLeft;
+}
+
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      className="relative flex flex-col items-center justify-center rounded-2xl bg-white/60 glass p-6 sm:p-8 w-20 sm:w-28 md:w-32 shadow-elevated"
+    >
+      <div className="font-display text-3xl sm:text-5xl md:text-6xl font-bold text-primary tabular-nums">
+        {String(value).padStart(2, "0")}
+      </div>
+      <div className="mt-1 text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-vibe-cyan/5 to-vibe-pink/5 pointer-events-none" />
+    </motion.div>
+  );
+}
+
+const teaserFeatures = [
+  {
+    icon: Calendar,
+    label: "Event Discovery",
+    desc: "Find events that match your vibe",
+  },
+  {
+    icon: Camera,
+    label: "Memory Bank",
+    desc: "Capture and share event memories",
+  },
+  {
+    icon: Gamepad2,
+    label: "Play Games",
+    desc: "Trivia, puzzles & live leaderboards",
+  },
+  { icon: Music, label: "VibeTags", desc: "Curated music & event moments" },
+  { icon: Users, label: "Connect", desc: "Meet your tribe at events" },
+  { icon: Zap, label: "Rewards", desc: "Earn points and unlock perks" },
+];
+
+export default function LaunchLanding() {
+  const launchDate = new Date("2026-07-01T00:00:00");
+  const timeLeft = useCountdown(launchDate);
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      toast.warning("Please enter a valid email");
+      return;
+    }
+    setSubmitted(true);
+    toast.success("You're on the list! 🎉");
+    setEmail("");
+  };
+
+  return (
+    <div className="min-h-screen overflow-hidden ">
+      {/* Background blobs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-vibe-pink/10 blur-[100px] animate-float" />
+        <div
+          className="absolute top-1/3 -right-20 h-96 w-96 rounded-full bg-vibe-cyan/10 blur-[100px] animate-float"
+          style={{ animationDelay: "1s" }}
+        />
+        <div
+          className="absolute -bottom-20 left-1/3 h-80 w-80 rounded-full bg-primary/10 blur-[100px] animate-float"
+          style={{ animationDelay: "2s" }}
+        />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Hero */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+          <div className="container mx-auto max-w-5xl flex flex-col items-center text-center">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-6"
+            >
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+                <Sparkles className="h-4 w-4" />
+                Something big is coming
+              </span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="font-display text-4xl sm:text-5xl md:text-7xl font-bold leading-tight"
+            >
+              NextVibe is
+              <br />
+              <span className="text-gradient">launching soon</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mt-6 max-w-lg text-lg sm:text-xl text-muted-foreground"
+            >
+              The ultimate event discovery and memory platform. Discover, play,
+              capture, and connect — all in one place.
+            </motion.p>
+
+            {/* Countdown */}
+            <motion.div
+              id="countdown"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="mt-12 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
+            >
+              <CountdownUnit value={timeLeft.days} label="Days" />
+              <CountdownUnit value={timeLeft.hours} label="Hours" />
+              <CountdownUnit value={timeLeft.minutes} label="Minutes" />
+              <CountdownUnit value={timeLeft.seconds} label="Seconds" />
+            </motion.div>
+
+            {/* Date label */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6 text-sm text-muted-foreground font-medium"
+            >
+              Launching July 1, 2026
+            </motion.p>
+
+            {/* Notify Me */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mt-10 w-full max-w-md"
+            >
+              {submitted ? (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center justify-center gap-3 rounded-2xl bg-green-50 border border-green-200 px-6 py-4 text-green-800"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-200">
+                    <Check className="h-5 w-5 text-green-700" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">You&apos;re on the list!</p>
+                    <p className="text-sm opacity-80">
+                      We&apos;ll notify you when we launch.
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex flex-col sm:flex-row gap-3"
+                >
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10 h-12 rounded-xl bg-white/70 backdrop-blur border-border/50 focus-visible:ring-primary"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="h-12 px-8 rounded-xl"
+                  >
+                    <Rocket className="h-4 w-4 mr-2" />
+                    Notify Me
+                  </Button>
+                </form>
+              )}
+              <p className="mt-3 text-xs text-muted-foreground">
+                Be the first to know. No spam, ever.
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Why Back NextVibe (Manifesto) */}
+          <WhyBackNextVibe />
+
+          {/* Reward Tiers (Kickstarter-style) */}
+          <RewardTiers />
+
+          {/* Features Grid */}
+          <motion.div
+            id="features"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+            className="container mx-auto max-w-5xl mt-24 mb-12"
+          >
+            <h2 className="text-center font-display text-2xl sm:text-3xl font-bold mb-10">
+              What&apos;s <span className="text-gradient">coming</span>
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {teaserFeatures.map((feature, i) => (
+                <motion.div
+                  key={feature.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className="group relative rounded-2xl bg-white/60 glass p-6 text-left shadow-card hover:shadow-card-hover transition-shadow"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <feature.icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-display text-lg font-semibold mb-1">
+                    {feature.label}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {feature.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* FAQ */}
+          <LaunchFAQ />
+        </main>
+      </div>
+    </div>
+  );
+}
