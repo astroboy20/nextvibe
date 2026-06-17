@@ -1,11 +1,11 @@
 import Footer from "@/components/footer";
-import { Header } from "@/components/navbar/admin-navbar";
 import LaunchLanding from "./container/launch";
+import Navbar from "@/components/navbar/navbar";
 
 export default function LaunchPage() {
   return (
     <div>
-      <Header />
+      <Navbar />
       <LaunchLanding />
       <Footer />
     </div>
