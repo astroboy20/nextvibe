@@ -163,7 +163,7 @@ export default function LaunchLanding() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-6 text-sm text-muted-foreground font-medium"
+              className="mt-6 text-sm text-[#5b1a57] font-bold "
             >
               Launching July 1, 2026
             </motion.p>

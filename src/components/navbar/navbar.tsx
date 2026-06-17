@@ -18,6 +18,7 @@ const links = [
   { name: "Contact us", href: "/contact" },
   { name: "How it works", href: "/how-it-works" },
   { name: "FAQ", href: "/faq" },
+  {name: "Launch", href: "/launch"}
 ];
 
 export default function Navbar() {
