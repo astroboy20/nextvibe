@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -399,8 +399,8 @@ export default function RewardTiers() {
       <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
         Prices shown in USD with NGN equivalents at ₦
         {USD_TO_NGN.toLocaleString()}/$1. Payment gateway integration coming
-        soon — pledge now to reserve your tier and we&apos;ll email you when checkout
-        opens.
+        soon — pledge now to reserve your tier and we&apos;ll email you when
+        checkout opens.
       </p>
     </section>
   );

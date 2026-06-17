@@ -61,7 +61,6 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
       <div className="mt-1 text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-vibe-cyan/5 to-vibe-pink/5 pointer-events-none" />
     </motion.div>
   );
 }
@@ -105,20 +104,7 @@ export default function LaunchLanding() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden ">
-      {/* Background blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-vibe-pink/10 blur-[100px] animate-float" />
-        <div
-          className="absolute top-1/3 -right-20 h-96 w-96 rounded-full bg-vibe-cyan/10 blur-[100px] animate-float"
-          style={{ animationDelay: "1s" }}
-        />
-        <div
-          className="absolute -bottom-20 left-1/3 h-80 w-80 rounded-full bg-primary/10 blur-[100px] animate-float"
-          style={{ animationDelay: "2s" }}
-        />
-      </div>
-
+    <div className="min-h-screen overflow-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* Hero */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
@@ -143,7 +129,7 @@ export default function LaunchLanding() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="font-display text-4xl sm:text-5xl md:text-7xl font-bold leading-tight"
             >
-              NextVibe is
+              Nextvibe is
               <br />
               <span className="text-gradient">launching soon</span>
             </motion.h1>
