@@ -383,6 +383,39 @@ export const eventsApi = createApi({
       }),
     }),
 
+    /** POST /v1/games/anonymous/join/:token — no auth required */
+    anonymousJoinGame: builder.mutation<any, { token: string; anonymousId?: string }>({
+      query: ({ token, anonymousId }) => ({
+        url: `/v1/games/anonymous/join/${token}`,
+        method: "POST",
+        body: { anonymousId },
+      }),
+    }),
+
+    /** POST /v1/games/anonymous/rounds/:roundId/submit — no auth required */
+    anonymousSubmitRound: builder.mutation<
+      any,
+      { roundId: string; anonymousId: string; answers?: any[]; metadata?: Record<string, any> }
+    >({
+      query: ({ roundId, ...body }) => ({
+        url: `/v1/games/anonymous/rounds/${roundId}/submit`,
+        method: "POST",
+        body,
+      }),
+    }),
+
+    /** POST /v1/games/anonymous/merge — requires auth */
+    mergeAnonymousSessions: builder.mutation<
+      any,
+      { anonymousId: string; confirmedEventIds: string[] }
+    >({
+      query: (body) => ({
+        url: `/v1/games/anonymous/merge`,
+        method: "POST",
+        body,
+      }),
+    }),
+
     /** POST /v1/events/checkin  { qrCode: event.qrCode } */
     checkinEvent: builder.mutation<any, { qrCode: string; eventId: string }>({
       query: ({ qrCode }) => ({
@@ -633,4 +666,7 @@ export const {
   useGetPublishPreviewQuery,
   useUploadIntentMutation,
   useTrackPostcardViewMutation,
+  useAnonymousJoinGameMutation,
+  useAnonymousSubmitRoundMutation,
+  useMergeAnonymousSessionsMutation,
 } = eventsApi;

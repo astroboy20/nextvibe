@@ -6,6 +6,8 @@ import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
 import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
 import { Loader2 } from "lucide-react";
+import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -31,6 +33,7 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
     pathname === "/auth/login"
       ? "Logged in successfully"
       : "Account created successfully";
+  const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,7 +53,16 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
   if (!isLoaded) return null;
 
   return (
-    <GoogleLogin
+    <>
+      {showDialog && (
+        <AnonymousMergeDialog
+          sessions={pendingSessions}
+          isLoading={isMerging}
+          onConfirm={(ids) => confirmMerge(ids, () => router.replace(validFrom ?? "/events"))}
+          onSkip={() => skipMerge(() => router.replace(validFrom ?? "/events"))}
+        />
+      )}
+      <GoogleLogin
       onSuccess={async (credentialResponse) => {
         const res = await googleLogin({
           idToken: credentialResponse.credential as string,
@@ -79,11 +91,8 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
 
         await new Promise((resolve) => setTimeout(resolve, 50));
 
-        if (isSuperAdmin) {
-          router.replace(validFrom ?? "/admin");
-        } else {
-          router.replace(validFrom ?? "/events");
-        }
+        const destination = isSuperAdmin ? (validFrom ?? "/admin") : (validFrom ?? "/events");
+        await handlePostAuth(() => router.replace(destination));
       }}
       logo_alignment="center"
       size="large"
@@ -91,6 +100,7 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
         toast.error("Login Failed. Please try again");
       }}
     />
+    </>
   );
 };
 

@@ -23,6 +23,8 @@ import Cookies from "js-cookie";
 import PasswordField from "../component/password-field";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -46,6 +48,7 @@ export default function RegisterContent() {
     : null;
   const [registerMutation, { isLoading }] = useRegisterMutation();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(registerSchema),
@@ -74,8 +77,11 @@ export default function RegisterContent() {
         secure: process.env.NODE_ENV === "production",
       });
       toast.success("Account created successfully");
+
       const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
-      router.replace(validFrom ? decodedFrom : "/events");
+      const destination = validFrom ? decodedFrom! : "/events";
+
+      await handlePostAuth(() => router.replace(destination));
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Something went wrong");
     }
@@ -83,6 +89,20 @@ export default function RegisterContent() {
 
   return (
     <div>
+      {showDialog && (
+        <AnonymousMergeDialog
+          sessions={pendingSessions}
+          isLoading={isMerging}
+          onConfirm={(ids) => {
+            const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
+            confirmMerge(ids, () => router.replace(validFrom ? decodedFrom! : "/events"));
+          }}
+          onSkip={() => {
+            const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
+            skipMerge(() => router.replace(validFrom ? decodedFrom! : "/events"));
+          }}
+        />
+      )}
       <GoogleLoginButton onLoadingChange={setGoogleLoading} />
 
       <div className="py-4 flex items-center gap-2 text-sm text-gray-500">

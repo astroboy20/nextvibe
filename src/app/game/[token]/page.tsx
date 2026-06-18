@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Trophy, Play, Loader2, CheckCircle2, XCircle,
-  Timer, Share2, HelpCircle, Puzzle, MessageSquare, Zap,
+  Timer, Share2, HelpCircle, Puzzle, MessageSquare, Zap, UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -14,10 +14,13 @@ import {
   useJoinGameSessionByTokenMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
+  useAnonymousJoinGameMutation,
+  useAnonymousSubmitRoundMutation,
 } from "@/app/provider/api/eventApi";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "@/app/dashboard/(dashboard-route)/events/[id]/components/game-share";
 import { toast } from "sonner";
+import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -721,9 +724,13 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const { token } = use(params);
   const { data, isLoading, error } = useGetGameSessionByTokenQuery(token);
   const [joinByToken, { isLoading: isJoining }] = useJoinGameSessionByTokenMutation();
+  const [anonymousJoin, { isLoading: isAnonJoining }] = useAnonymousJoinGameMutation();
   const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
+  const [anonymousSubmit] = useAnonymousSubmitRoundMutation();
 
   const [joined, setJoined] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [anonId, setAnonId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
   const [playedRounds, setPlayedRounds] = useState<Set<string>>(new Set());
 
@@ -753,12 +760,32 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
     (activeRound && playedRounds.has(activeRound?.id));
 
   const handleJoin = async () => {
-    try {
-      await joinByToken(token).unwrap();
-      setJoined(true);
-      toast.success("Joined! Get ready to play.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Could not join. Try again.");
+    if (myUserId) {
+      try {
+        await joinByToken(token).unwrap();
+        setJoined(true);
+        toast.success("Joined! Get ready to play.");
+      } catch (err: any) {
+        toast.error(err?.data?.message ?? "Could not join. Try again.");
+      }
+    } else {
+      try {
+        const existingAnonId = getAnonymousId();
+        const res = await anonymousJoin({ token, anonymousId: existingAnonId ?? undefined }).unwrap();
+        // backend wraps in { success, data } via ResponseInterceptor
+        const payload = (res?.data ?? res) as { anonymousId: string; sessionId: string; eventId: string; eventName: string };
+        saveAnonSession(payload.anonymousId, {
+          sessionId: payload.sessionId,
+          eventId: payload.eventId,
+          eventName: payload.eventName,
+        });
+        setAnonId(payload.anonymousId);
+        setIsAnonymous(true);
+        setJoined(true);
+        toast.success("Joined as guest! Sign up after to save your score.");
+      } catch (err: any) {
+        toast.error(err?.data?.message ?? "Could not join. Try again.");
+      }
     }
   };
 
@@ -767,6 +794,24 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
     answers: (number | string)[],
     timeTakenMs: number
   ): Promise<{ ok: boolean; score?: number }> => {
+    if (isAnonymous && anonId) {
+      try {
+        const res = await anonymousSubmit({
+          roundId,
+          anonymousId: anonId,
+          answers,
+          metadata: { timeTakenMs },
+        }).unwrap();
+        const payload = (res?.data ?? res) as { score: number };
+        toast.success("Answers submitted!");
+        setPlayedRounds((prev) => new Set(prev).add(roundId));
+        return { ok: true, score: payload.score ?? 0 };
+      } catch (err: any) {
+        toast.error(err?.data?.message ?? "Submission failed.");
+        return { ok: false };
+      }
+    }
+
     try {
       const res = await submitAnswers({ roundId, answers, timeTakenMs }).unwrap();
       toast.success("Answers submitted!");
@@ -887,14 +932,22 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
                 <p className="text-xs text-muted-foreground">Check the leaderboard to see your rank.</p>
               </div>
             ) : !joined ? (
-              <Button
-                className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleJoin}
-                disabled={isJoining}
-              >
-                {isJoining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                Join &amp; Play
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleJoin}
+                  disabled={isJoining || isAnonJoining}
+                >
+                  {(isJoining || isAnonJoining) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  {myUserId ? "Join & Play" : "Join & Play as Guest"}
+                </Button>
+                {!myUserId && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    <UserRound className="inline h-3 w-3 mr-1" />
+                    Sign up after playing to save your score &amp; RSVP the event
+                  </p>
+                )}
+              </div>
             ) : activeRound ? (
               <Button
                 className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
@@ -904,10 +957,28 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
                 Play Round: {activeRound.title}
               </Button>
             ) : (
-              <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4 text-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                <p className="text-xs text-green-700 font-medium">You&apos;re in the lobby!</p>
-                <p className="text-xs text-muted-foreground">Waiting for the organizer to start a round.</p>
+              <div className="space-y-2">
+                <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4 text-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <p className="text-xs text-green-700 font-medium">You&apos;re in the lobby!</p>
+                  <p className="text-xs text-muted-foreground">Waiting for the organizer to start a round.</p>
+                </div>
+                {isAnonymous && (
+                  <div className="rounded-xl bg-muted/60 border border-border p-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      <UserRound className="inline h-3 w-3 mr-1" />
+                      Playing as guest —{" "}
+                      <a href="/auth/register" className="font-semibold text-[#5B1A57] hover:underline">
+                        Sign up
+                      </a>{" "}
+                      or{" "}
+                      <a href="/auth/login" className="font-semibold text-[#5B1A57] hover:underline">
+                        log in
+                      </a>{" "}
+                      to save your progress
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

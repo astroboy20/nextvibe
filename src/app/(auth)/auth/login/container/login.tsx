@@ -24,6 +24,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/app/provider/api/authApi";
+import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -39,6 +41,7 @@ const LoginContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
+  const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
 
   const rawFrom = searchParams.get("from");
   // Middleware uses encodeURIComponent so the value may arrive as "%2Fdashboard%2F..."
@@ -87,16 +90,17 @@ const LoginContent = () => {
 
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
+      toast.success(res.message || "Logged in successfully");
 
       const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
-      if (isSuperAdmin) {
-        router.push(validFrom ? from : "/admin");
-      } else {
-        router.push(validFrom ? from : "/events");
-      }
+      const destination = isSuperAdmin
+        ? (validFrom ? from : "/admin")
+        : (validFrom ? from : "/events");
 
-      router.refresh();
-      toast.success(res.message || "Logged in successfully");
+      await handlePostAuth(() => {
+        router.push(destination!);
+        router.refresh();
+      });
     } catch (error: any) {
       toast(error?.data?.message || "Login Error");
     }
@@ -106,6 +110,26 @@ const LoginContent = () => {
 
   return (
     <Form {...form}>
+      {showDialog && (
+        <AnonymousMergeDialog
+          sessions={pendingSessions}
+          isLoading={isMerging}
+          onConfirm={(ids) => {
+            const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
+            confirmMerge(ids, () => {
+              router.push(validFrom ? from : "/events");
+              router.refresh();
+            });
+          }}
+          onSkip={() => {
+            const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
+            skipMerge(() => {
+              router.push(validFrom ? from : "/events");
+              router.refresh();
+            });
+          }}
+        />
+      )}
       {resetSuccess && (
         <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 mb-4">
           <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
