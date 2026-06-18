@@ -29,12 +29,15 @@ import {
   useGetSessionLeaderboardQuery,
   useGetGameSessionQuery,
   useGetActiveGameStatusQuery,
+  useAnonymousJoinGameMutation,
+  useAnonymousSubmitRoundMutation,
 } from "@/app/provider/api/eventApi";
 import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Cookies from "js-cookie";
+import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -1477,8 +1480,10 @@ export function EventGamesTab({
     refetchOnMountOrArgChange: true,
   });
   const [joinSession, { isLoading: isJoining }] = useJoinGameSessionMutation();
-  const [submitAnswers, { isLoading: isSubmitting }] =
-    useSubmitRoundAnswersMutation();
+  const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
+  const [anonymousJoin] = useAnonymousJoinGameMutation();
+  const [anonymousSubmit] = useAnonymousSubmitRoundMutation();
+  const [anonId, setAnonId] = useState<string | null>(() => getAnonymousId());
 
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(
@@ -1573,13 +1578,27 @@ export function EventGamesTab({
     const isLoggedIn = !!Cookies.get("accessToken");
 
     if (!isLoggedIn) {
-      // Allow unauthenticated users to join locally so they can browse rounds
-      // and play questions. The server join + submit will be handled together
-      // when they authenticate at submit time.
+      const sessionData = sessionDataMap[sessionId];
+      const shareToken: string | undefined = sessionData?.shareToken;
+      if (shareToken) {
+        try {
+          const existingAnonId = getAnonymousId();
+          const res = await anonymousJoin({ token: shareToken, anonymousId: existingAnonId ?? undefined }).unwrap();
+          const payload = (res?.data ?? res) as { anonymousId: string; sessionId: string; eventId: string; eventName: string };
+          saveAnonSession(payload.anonymousId, {
+            sessionId: payload.sessionId,
+            eventId: payload.eventId,
+            eventName: payload.eventName,
+          });
+          setAnonId(payload.anonymousId);
+        } catch {
+          // Fall through to local-only join if the call fails
+        }
+      }
       markSessionJoined(sessionId);
       setActiveSessionId(sessionId);
       onGameStateChange?.(sessionId, null);
-      toast.success("You're in! Sign in when you're ready to submit your score.");
+      toast.success("You're in! Sign in after to save your score.");
       return;
     }
 
@@ -1606,26 +1625,42 @@ export function EventGamesTab({
     answers: (number | string)[],
     timeTakenMs: number
   ): Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }> => {
-    // Gate on auth — redirect to login preserving the exact game state in the URL.
-    // Save answers + progress to sessionStorage first so RoundPlayer can restore
-    // them when the user returns after logging in.
-    if (!requireAuth({
-      tab: "games",
-      ...(activeSessionId ? { session: activeSessionId } : {}),
-      ...(roundId ? { round: roundId } : {}),
-    })) {
-      // Persist the answers so they're restored after login redirect
+    const effectiveAnonId = anonId ?? getAnonymousId();
+    const isLoggedIn = !!Cookies.get("accessToken");
+
+    if (!isLoggedIn && effectiveAnonId) {
       try {
-        sessionStorage.setItem(
-          `game_answers:${roundId}`,
-          JSON.stringify({
-            answers,
-            currentQ: answers.length - 1, // they were on the last question
-            startTime: Date.now() - timeTakenMs,
-          })
-        );
-      } catch { /* sessionStorage may be unavailable */ }
-      return { ok: false };
+        const res = await anonymousSubmit({
+          roundId,
+          anonymousId: effectiveAnonId,
+          answers,
+          metadata: { timeTakenMs },
+        }).unwrap();
+        const payload = (res?.data ?? res) as { score: number };
+        toast.success("Answers submitted!");
+        markRoundPlayed(roundId);
+        return { ok: true, score: payload.score ?? 0 };
+      } catch (err: any) {
+        toast.error(err?.data?.message ?? "Submission failed.");
+        return { ok: false };
+      }
+    }
+
+    if (!isLoggedIn) {
+      // No anonymousId — redirect to login so they can authenticate and replay
+      if (!requireAuth({
+        tab: "games",
+        ...(activeSessionId ? { session: activeSessionId } : {}),
+        ...(roundId ? { round: roundId } : {}),
+      })) {
+        try {
+          sessionStorage.setItem(
+            `game_answers:${roundId}`,
+            JSON.stringify({ answers, currentQ: answers.length - 1, startTime: Date.now() - timeTakenMs })
+          );
+        } catch { /* sessionStorage may be unavailable */ }
+        return { ok: false };
+      }
     }
 
     // Ensure the session is joined server-side before submitting.
