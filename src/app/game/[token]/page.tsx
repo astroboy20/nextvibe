@@ -836,11 +836,16 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
     answers: (number | string)[],
     timeTakenMs: number
   ): Promise<{ ok: boolean; score?: number }> => {
-    if (isAnonymous && anonId) {
+    // Use localStorage as the source of truth — React state can be stale in a
+    // setTimeout closure or before the restore useEffect runs on page refresh.
+    const effectiveAnonId = anonId ?? getAnonymousId();
+    const isAnonPlayer = (isAnonymous || !myUserId) && !!effectiveAnonId;
+
+    if (isAnonPlayer) {
       try {
         const res = await anonymousSubmit({
           roundId,
-          anonymousId: anonId,
+          anonymousId: effectiveAnonId!,
           answers,
           metadata: { timeTakenMs },
         }).unwrap();
