@@ -16,11 +16,12 @@ import {
   useGetSessionLeaderboardQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
+  useMergeAnonymousSessionsMutation,
 } from "@/app/provider/api/eventApi";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "@/app/dashboard/(dashboard-route)/events/[id]/components/game-share";
 import { toast } from "sonner";
-import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
+import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/lib/anonymous-game";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
@@ -727,6 +728,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const [anonymousJoin, { isLoading: isAnonJoining }] = useAnonymousJoinGameMutation();
   const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
   const [anonymousSubmit] = useAnonymousSubmitRoundMutation();
+  const [mergeAnon] = useMergeAnonymousSessionsMutation();
 
   const [joined, setJoined] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -739,8 +741,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const gameType = mapType(session?.rounds?.[0]?.gameType ?? "TRIVIA");
   const eventName = session?.event?.name ?? session?.eventName;
 
-  // Check leaderboard to see if user has already played
-  const { data: lbData } = useGetSessionLeaderboardQuery(session?.id, {
+  const { data: lbData, refetch: refetchLeaderboard } = useGetSessionLeaderboardQuery(session?.id, {
     skip: !session?.id,
     refetchOnMountOrArgChange: true,
   });
@@ -754,10 +755,51 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const isInEntries = !!myUserId && lbEntries.some(
     (e: any) => e.user?.id === myUserId || e.userId === myUserId
   );
-  const hasPlayed =
-    !!myEntry ||
-    isInEntries ||
-    (activeRound && playedRounds.has(activeRound?.id));
+
+  // Check hasPlayed from leaderboard AND from the session's per-round hasPlayed flag
+  const activeRoundHasPlayed = !!activeRound && (
+    playedRounds.has(activeRound.id) ||
+    !!session?.rounds?.find((r: any) => r.id === activeRound.id)?.hasPlayed
+  );
+  const hasPlayed = !!myEntry || isInEntries || activeRoundHasPlayed;
+
+  // Initialize joined state from session.isJoined (handles the post-merge page load case)
+  useEffect(() => {
+    if (session?.isJoined) setJoined(true);
+  }, [session?.isJoined]);
+
+  // Restore anonymous state from localStorage after a page refresh
+  useEffect(() => {
+    if (myUserId || !session?.id) return;
+    const storedId = getAnonymousId();
+    if (!storedId) return;
+    const pending = getPendingSessions();
+    if (pending.find((s) => s.sessionId === session.id)) {
+      setIsAnonymous(true);
+      setAnonId(storedId);
+      setJoined(true);
+    }
+  }, [session?.id, myUserId]);
+
+  // If user is now logged in and has pending anonymous sessions for this game,
+  // auto-merge in the background so they don't have to do anything manually
+  useEffect(() => {
+    if (!myUserId || !session?.id) return;
+    const storedId = getAnonymousId();
+    if (!storedId) return;
+    const pending = getPendingSessions();
+    if (!pending.find((s) => s.sessionId === session.id)) return;
+    const eventIds = [...new Set(pending.map((s) => s.eventId))];
+    mergeAnon({ anonymousId: storedId, confirmedEventIds: eventIds })
+      .unwrap()
+      .then(() => {
+        clearAnonGameData();
+        toast.success("Your game progress has been saved!");
+        refetchLeaderboard();
+      })
+      .catch(() => clearAnonGameData());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUserId, session?.id]);
 
   const handleJoin = async () => {
     if (myUserId) {
@@ -926,10 +968,27 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         {session.status === "ACTIVE" && (
           <div className="space-y-3">
             {hasPlayed ? (
-              <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
-                <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
-                <p className="text-xs text-muted-foreground">Check the leaderboard to see your rank.</p>
+              <div className="space-y-2">
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
+                  <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
+                  <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
+                  <p className="text-xs text-muted-foreground">Check the leaderboard to see your rank.</p>
+                </div>
+                {isAnonymous && !myUserId && (
+                  <div className="rounded-xl bg-[#5B1A57]/5 border border-[#5B1A57]/20 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      <UserRound className="inline h-3 w-3 mr-1" />
+                      Your score is saved for 7 days.{" "}
+                      <a
+                        href={`/auth/register?from=${encodeURIComponent(`/game/${token}`)}`}
+                        className="font-semibold text-[#5B1A57] hover:underline"
+                      >
+                        Create an account
+                      </a>{" "}
+                      to keep it &amp; RSVP this event.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : !joined ? (
               <div className="space-y-2">
@@ -968,14 +1027,20 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
                     <p className="text-xs text-muted-foreground">
                       <UserRound className="inline h-3 w-3 mr-1" />
                       Playing as guest —{" "}
-                      <a href="/auth/register" className="font-semibold text-[#5B1A57] hover:underline">
+                      <a
+                        href={`/auth/register?from=${encodeURIComponent(`/game/${token}`)}`}
+                        className="font-semibold text-[#5B1A57] hover:underline"
+                      >
                         Sign up
                       </a>{" "}
                       or{" "}
-                      <a href="/auth/login" className="font-semibold text-[#5B1A57] hover:underline">
+                      <a
+                        href={`/auth/login?from=${encodeURIComponent(`/game/${token}`)}`}
+                        className="font-semibold text-[#5B1A57] hover:underline"
+                      >
                         log in
                       </a>{" "}
-                      to save your progress
+                      to save your progress &amp; RSVP this event
                     </p>
                   </div>
                 )}

@@ -46,6 +46,7 @@ const PUBLIC_PATHS = [
   "/postcards",
   "/postcard",
   "/dashboard/postcards",
+  "/game",
 ];
 
 function isPublicPath(pathname: string): boolean {
