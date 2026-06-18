@@ -492,11 +492,15 @@ function PublicRoundPlayer({
   session,
   onSubmit,
   isSubmitting,
+  isAnonymous,
+  token,
 }: {
   round: any;
   session: any;
   onSubmit: (roundId: string, answers: (number | string)[], timeTakenMs: number) => Promise<{ ok: boolean; score?: number }>;
   isSubmitting: boolean;
+  isAnonymous?: boolean;
+  token?: string;
 }) {
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
@@ -649,6 +653,25 @@ function PublicRoundPlayer({
           <Share2 className="h-4 w-4" />
           Share Score
         </Button>
+        {isAnonymous && (() => {
+          const from = encodeURIComponent(`/game/${token}`);
+          return (
+            <div className="w-full rounded-xl border border-[#5B1A57]/20 bg-[#5B1A57]/5 p-3 text-center space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">
+                Log in to see the full leaderboard &amp; keep your score
+              </p>
+              <div className="flex gap-3 justify-center">
+                <a href={`/auth/login?from=${from}`} className="text-xs font-semibold text-[#5B1A57] hover:underline">
+                  Log in
+                </a>
+                <span className="text-xs text-muted-foreground">·</span>
+                <a href={`/auth/register?from=${from}`} className="text-xs font-semibold text-[#5B1A57] hover:underline">
+                  Sign up
+                </a>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
@@ -896,6 +919,10 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   // Playing a round
   if (playingRoundId) {
     const round = session.rounds?.find((r: any) => r.id === playingRoundId);
+    const roundAlreadyPlayed =
+      playedRounds.has(playingRoundId) ||
+      !!session?.rounds?.find((r: any) => r.id === playingRoundId)?.hasPlayed;
+
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-lg mx-auto px-4 py-8 space-y-4">
@@ -906,12 +933,30 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
             ← Back
           </button>
           <p className="text-xs text-muted-foreground font-medium">{session.title}</p>
-          {round ? (
+          {roundAlreadyPlayed ? (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground">Round already completed</p>
+                <p className="text-sm text-muted-foreground">You&apos;ve already submitted your answers for this round.</p>
+                {myEntry?.score != null && (
+                  <p className="text-sm font-medium text-primary mt-1">Your score: {myEntry.score.toLocaleString()} pts</p>
+                )}
+              </div>
+              <Button variant="outline" className="rounded-xl" onClick={() => setPlayingRoundId(null)}>
+                Back to Lobby
+              </Button>
+            </div>
+          ) : round ? (
             <PublicRoundPlayer
               round={round}
               session={session}
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
+              isAnonymous={isAnonymous || (!myUserId && !!anonId)}
+              token={token}
             />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>

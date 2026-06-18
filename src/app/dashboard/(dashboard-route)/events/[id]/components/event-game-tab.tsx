@@ -1044,6 +1044,27 @@ function RoundPlayer({
           <Share2 className="h-4 w-4" />
           Share Score
         </Button>
+        {!Cookies.get("accessToken") && (() => {
+          const from = encodeURIComponent(
+            typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+          );
+          return (
+            <div className="w-full rounded-xl border border-[#5B1A57]/20 bg-[#5B1A57]/5 p-3 text-center space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">
+                Log in to see the full leaderboard &amp; keep your score
+              </p>
+              <div className="flex gap-3 justify-center">
+                <a href={`/auth/login?from=${from}`} className="text-xs font-semibold text-[#5B1A57] hover:underline">
+                  Log in
+                </a>
+                <span className="text-xs text-muted-foreground">·</span>
+                <a href={`/auth/register?from=${from}`} className="text-xs font-semibold text-[#5B1A57] hover:underline">
+                  Sign up
+                </a>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
@@ -1721,21 +1742,56 @@ export function EventGamesTab({
   if (playingRoundId) {
     const session = allSessions.find((s: any) => s.id === activeSessionId);
     const round = session?.rounds?.find((r: any) => r.id === playingRoundId);
+    const sessionDetail = sessionDataMap[activeSessionId ?? ""];
+    const roundAlreadyPlayed =
+      playedRounds.has(playingRoundId) ||
+      !!sessionDetail?.rounds?.find((r: any) => r.id === playingRoundId)?.hasPlayed;
+
+    const backBtn = (
+      <div className="flex items-center gap-2">
+        <button
+          className="text-sm text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            setPlayingRoundId(null);
+            onGameStateChange?.(activeSessionId, null);
+          }}
+        >
+          ← Back
+        </button>
+        <span className="text-sm font-medium">{session?.title}</span>
+      </div>
+    );
+
+    if (roundAlreadyPlayed) {
+      return (
+        <div className="space-y-4 animate-fade-in">
+          {backBtn}
+          <div className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">Round already completed</p>
+              <p className="text-sm text-muted-foreground">You&apos;ve already submitted your answers for this round.</p>
+            </div>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setPlayingRoundId(null);
+                onGameStateChange?.(activeSessionId, null);
+              }}
+            >
+              Back to Lobby
+            </Button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-4 animate-fade-in">
-        <div className="flex items-center gap-2">
-          <button
-            className="text-sm text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              setPlayingRoundId(null);
-              onGameStateChange?.(activeSessionId, null);
-            }}
-          >
-            ← Back
-          </button>
-          <span className="text-sm font-medium">{session?.title}</span>
-        </div>
+        {backBtn}
         {round ? (
           <RoundPlayer
             round={round}
