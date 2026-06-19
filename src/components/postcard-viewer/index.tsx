@@ -480,61 +480,98 @@ export function PostcardViewer({
 
   // ─── Vertical swipe between postcards ────────────────────────────────────
   const currentPostcardIndex = initialPostcardIndex ?? 0;
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
   const swipeTouchStartY = useRef<number | null>(null);
   const swipeTouchStartX = useRef<number | null>(null);
+  const swipeDeltaY = useRef(0);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swipeTransitioning, setSwipeTransitioning] = useState(false);
 
-  const handleSwipeTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (!postcardList || postcardList.length <= 1) return;
+  useEffect(() => {
+    const el = swipeContainerRef.current;
+    if (!el || !postcardList || postcardList.length <= 1) return;
+
+    const onTouchStart = (e: TouchEvent) => {
       swipeTouchStartY.current = e.touches[0].clientY;
       swipeTouchStartX.current = e.touches[0].clientX;
-    },
-    [postcardList]
-  );
+      swipeDeltaY.current = 0;
+    };
 
-  const handleSwipeTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (
-        !postcardList ||
-        postcardList.length <= 1 ||
-        swipeTouchStartY.current === null ||
-        swipeTouchStartX.current === null
-      )
-        return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (swipeTouchStartY.current === null || swipeTouchStartX.current === null) return;
 
-      const deltaY = swipeTouchStartY.current - e.changedTouches[0].clientY;
-      const deltaX = swipeTouchStartX.current - e.changedTouches[0].clientX;
+      const dy = swipeTouchStartY.current - e.touches[0].clientY;
+      const dx = swipeTouchStartX.current - e.touches[0].clientX;
 
-      // Only trigger if mostly vertical and above threshold
-      if (Math.abs(deltaY) < 60 || Math.abs(deltaX) > Math.abs(deltaY) * 0.8) {
-        swipeTouchStartY.current = null;
-        swipeTouchStartX.current = null;
-        return;
-      }
+      // Lock direction: if moving more horizontally, don't intercept
+      if (Math.abs(dx) > Math.abs(dy) * 0.9) return;
 
-      if (deltaY > 0) {
+      // Prevent pull-to-refresh and page scroll
+      e.preventDefault();
+
+      swipeDeltaY.current = dy;
+      // Rubber-band feel: resist at the edges
+      const hasNext = currentPostcardIndex < postcardList.length - 1;
+      const hasPrev = currentPostcardIndex > 0;
+      const resistedDy =
+        (!hasNext && dy > 0) || (!hasPrev && dy < 0)
+          ? dy * 0.2 // heavy resistance at boundary
+          : dy * 0.85; // slight resistance for smoothness
+
+      setSwipeOffset(-resistedDy);
+    };
+
+    const onTouchEnd = () => {
+      if (swipeTouchStartY.current === null) return;
+
+      const dy = swipeDeltaY.current;
+      const threshold = 80;
+
+      setSwipeTransitioning(true);
+
+      if (dy > threshold) {
         // Swipe up → next postcard
         const nextIndex = currentPostcardIndex + 1;
         if (nextIndex >= postcardList.length) {
           toast("You've reached the last postcard", { icon: "🏁" });
+          setSwipeOffset(0);
         } else {
           onNavigatePostcard?.(nextIndex);
         }
-      } else {
+      } else if (dy < -threshold) {
         // Swipe down → previous postcard
         const prevIndex = currentPostcardIndex - 1;
         if (prevIndex < 0) {
           toast("You're already at the first postcard", { icon: "🔝" });
+          setSwipeOffset(0);
         } else {
           onNavigatePostcard?.(prevIndex);
         }
+      } else {
+        // Snap back
+        setSwipeOffset(0);
       }
 
       swipeTouchStartY.current = null;
       swipeTouchStartX.current = null;
-    },
-    [postcardList, currentPostcardIndex, onNavigatePostcard]
-  );
+      swipeDeltaY.current = 0;
+
+      setTimeout(() => {
+        setSwipeTransitioning(false);
+        setSwipeOffset(0);
+      }, 300);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [postcardList, currentPostcardIndex, onNavigatePostcard]);
 
   // Fetch fresh data in the background — isLoading is only true on the very
   // first fetch when there is no cached data at all. Since the parent already
@@ -751,12 +788,20 @@ export function PostcardViewer({
   return (
     <>
       <div
-        className="fixed inset-0 flex flex-col bg-background overflow-y-scroll no-scrollbar"
+        className="fixed inset-0 flex flex-col bg-background overflow-hidden"
         style={{ zIndex }}
-        ref={cardRef}
-        onTouchStart={handleSwipeTouchStart}
-        onTouchEnd={handleSwipeTouchEnd}
+        ref={swipeContainerRef}
       >
+        {/* Inner wrapper that slides during swipe */}
+        <div
+          className="flex flex-col w-full h-full overflow-y-auto no-scrollbar"
+          ref={cardRef}
+          style={{
+            transform: `translateY(${swipeOffset}px)`,
+            transition: swipeTransitioning ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none",
+            willChange: "transform",
+          }}
+        >
         <div className="flex items-center gap-2 p-4  bg-background shrink-0">
           <button
             onClick={onClose}
@@ -943,6 +988,7 @@ export function PostcardViewer({
             <span className="text-sm text-foreground">{postcard.caption}</span>
           </div>
         )} */}
+        </div>{/* end inner swipe wrapper */}
       </div>
 
       {showComments && postcard.id && (
