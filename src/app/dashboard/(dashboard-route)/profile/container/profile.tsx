@@ -501,6 +501,13 @@ const Profile = () => {
           eventName=""
           onClose={() => setSelectedPostcard(null)}
           zIndex={60}
+          postcardList={(activity?.postcards ?? []) as PostcardData[]}
+          initialPostcardIndex={((activity?.postcards ?? []) as PostcardData[]).findIndex(
+            (p) => p.id === selectedPostcard.id
+          )}
+          onNavigatePostcard={(idx) =>
+            setSelectedPostcard(((activity?.postcards ?? []) as PostcardData[])[idx])
+          }
         />
       )}
     </>

@@ -25,7 +25,8 @@ const PUBLIC_ROUTES = [
   "/postcards",
   "/postcard",
   "/dashboard/postcards",
-  "/launch"
+  "/launch",
+  "/pledge"
 ];
 
 // Admin-only routes — protected by admin_accessToken

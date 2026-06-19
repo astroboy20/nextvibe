@@ -6,9 +6,6 @@ import { Input } from "@/components/ui/input";
 import {
   Rocket,
   Mail,
-  Instagram,
-  Twitter,
-  Facebook,
   Calendar,
   Sparkles,
   Users,
@@ -17,11 +14,10 @@ import {
   Camera,
   Gamepad2,
   Check,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import LaunchFAQ from "../component/launch-faq";
-import RewardTiers from "../component/reward-tier";
-import WhyBackNextVibe from "../component/why-nextvibe";
+import Link from "next/link";
 
 function useCountdown(targetDate: Date) {
   const calculateTimeLeft = useCallback(() => {
@@ -104,7 +100,7 @@ export default function LaunchLanding() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen mt-20">
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* Hero */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
@@ -222,12 +218,6 @@ export default function LaunchLanding() {
             </motion.div>
           </div>
 
-          {/* Why Back NextVibe (Manifesto) */}
-          <WhyBackNextVibe />
-
-          {/* Reward Tiers (Kickstarter-style) */}
-          <RewardTiers />
-
           {/* Features Grid */}
           <motion.div
             id="features"
@@ -235,7 +225,7 @@ export default function LaunchLanding() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
-            className="container mx-auto max-w-5xl mt-24 mb-12"
+            className="container mx-auto max-w-5xl mt-24 mb-12 px-4"
           >
             <h2 className="text-center font-display text-2xl sm:text-3xl font-bold mb-10">
               What&apos;s <span className="text-gradient">coming</span>
@@ -265,8 +255,31 @@ export default function LaunchLanding() {
             </div>
           </motion.div>
 
-          {/* FAQ */}
-          <LaunchFAQ />
+          {/* CTA to Pledge page */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="container mx-auto max-w-2xl px-4 mb-16 text-center"
+          >
+            <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-vibe-purple/10 border border-primary/20 p-8 sm:p-10">
+              <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
+              <h3 className="font-display text-2xl sm:text-3xl font-bold mb-3">
+                Back us before launch
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Get exclusive early-backer tiers, 3× bundles for the price of 1, and become a
+                founding member of NextVibe.
+              </p>
+              <Button asChild size="lg" className="rounded-xl px-8 h-12">
+                <Link href="/pledge">
+                  View pledge tiers
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
         </main>
       </div>
     </div>

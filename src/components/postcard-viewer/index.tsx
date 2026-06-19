@@ -26,8 +26,6 @@ import {
   VolumeX,
   ImageOff,
   ChevronLeft,
-  View,
-  Play,
   Eye,
 } from "lucide-react";
 import {
@@ -453,6 +451,9 @@ export function PostcardViewer({
   eventName,
   onClose,
   zIndex = 50,
+  postcardList,
+  initialPostcardIndex,
+  onNavigatePostcard,
 }: {
   postcard: PostcardData;
   eventId: string;
@@ -460,6 +461,12 @@ export function PostcardViewer({
   onClose: () => void;
   /** Override z-index when used inside other overlays. Default: 50 */
   zIndex?: number;
+  /** Optional list of all postcards to enable swipe-up/down navigation */
+  postcardList?: PostcardData[];
+  /** Index of the current postcard in postcardList */
+  initialPostcardIndex?: number;
+  /** Called when user swipes to navigate; receives the new index */
+  onNavigatePostcard?: (index: number) => void;
 }) {
   const dispatch = useDispatch();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -470,6 +477,64 @@ export function PostcardViewer({
   const [showComments, setShowComments] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
+
+  // ─── Vertical swipe between postcards ────────────────────────────────────
+  const currentPostcardIndex = initialPostcardIndex ?? 0;
+  const swipeTouchStartY = useRef<number | null>(null);
+  const swipeTouchStartX = useRef<number | null>(null);
+
+  const handleSwipeTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!postcardList || postcardList.length <= 1) return;
+      swipeTouchStartY.current = e.touches[0].clientY;
+      swipeTouchStartX.current = e.touches[0].clientX;
+    },
+    [postcardList]
+  );
+
+  const handleSwipeTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (
+        !postcardList ||
+        postcardList.length <= 1 ||
+        swipeTouchStartY.current === null ||
+        swipeTouchStartX.current === null
+      )
+        return;
+
+      const deltaY = swipeTouchStartY.current - e.changedTouches[0].clientY;
+      const deltaX = swipeTouchStartX.current - e.changedTouches[0].clientX;
+
+      // Only trigger if mostly vertical and above threshold
+      if (Math.abs(deltaY) < 60 || Math.abs(deltaX) > Math.abs(deltaY) * 0.8) {
+        swipeTouchStartY.current = null;
+        swipeTouchStartX.current = null;
+        return;
+      }
+
+      if (deltaY > 0) {
+        // Swipe up → next postcard
+        const nextIndex = currentPostcardIndex + 1;
+        if (nextIndex >= postcardList.length) {
+          toast("You've reached the last postcard", { icon: "🏁" });
+        } else {
+          onNavigatePostcard?.(nextIndex);
+        }
+      } else {
+        // Swipe down → previous postcard
+        const prevIndex = currentPostcardIndex - 1;
+        if (prevIndex < 0) {
+          toast("You're already at the first postcard", { icon: "🔝" });
+        } else {
+          onNavigatePostcard?.(prevIndex);
+        }
+      }
+
+      swipeTouchStartY.current = null;
+      swipeTouchStartX.current = null;
+    },
+    [postcardList, currentPostcardIndex, onNavigatePostcard]
+  );
 
   // Fetch fresh data in the background — isLoading is only true on the very
   // first fetch when there is no cached data at all. Since the parent already
@@ -689,6 +754,8 @@ export function PostcardViewer({
         className="fixed inset-0 flex flex-col bg-background overflow-y-scroll no-scrollbar"
         style={{ zIndex }}
         ref={cardRef}
+        onTouchStart={handleSwipeTouchStart}
+        onTouchEnd={handleSwipeTouchEnd}
       >
         <div className="flex items-center gap-2 p-4  bg-background shrink-0">
           <button

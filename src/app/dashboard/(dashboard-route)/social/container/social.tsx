@@ -555,6 +555,11 @@ const Social = () => {
           eventName={viewerPostcard.event?.name ?? ""}
           onClose={() => setViewerPostcard(null)}
           zIndex={60}
+          postcardList={postcards.map(toPostcardData)}
+          initialPostcardIndex={postcards.findIndex(
+            (p) => (p.id ?? p._id ?? p.post_id) === (viewerPostcard.id ?? viewerPostcard._id ?? viewerPostcard.post_id)
+          )}
+          onNavigatePostcard={(idx) => setViewerPostcard(postcards[idx])}
         />
       )}
     </div>

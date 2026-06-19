@@ -211,6 +211,9 @@ export default function EventPostcardsPage({
           eventId={id}
           eventName={eventName}
           onClose={() => setSelectedPostcard(null)}
+          postcardList={gridItems}
+          initialPostcardIndex={gridItems.findIndex((p) => p.id === selectedPostcard.id)}
+          onNavigatePostcard={(idx) => setSelectedPostcard(gridItems[idx])}
         />
       )}
 
