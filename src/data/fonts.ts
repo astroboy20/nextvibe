@@ -1,113 +1,407 @@
+/**
+ * Font / text-style presets for the VibeTag studio.
+ *
+ * webStyles   → applied to the HTML preview button (CSS)
+ * canvasStyles → applied to the Fabric.js Textbox when added to canvas
+ *
+ * Fabric shadow shape: { color, blur, offsetX, offsetY }
+ * Fabric stroke/strokeWidth add an outline around each character.
+ * fillLinearGradientColorStops format: [0, "color1", 1, "color2", ...]
+ */
+
 export const fonts = [
+  // ── Clean / Modern ────────────────────────────────────────────────────────
   {
-    label: "",
-    name: "Helvetica",
-    webStyles: { fontFamily: "Helvetica", fontWeight: 600 },
-    canvasStyles: { fontFamily: "Helvetica" },
-  },
-  {
-    label: "",
-    name: "Adam Script",
-    webStyles: { fontFamily: "Adam Script" },
-    canvasStyles: { fontFamily: "Adam Script" },
-  },
-  {
-    label: "Attack Graffiti",
-    name: "Attack Graffiti",
-    webStyles: { fontFamily: "Attack Graffiti" },
-    canvasStyles: { fontFamily: "Attack Graffiti" },
-  },
-  {
-    label: "",
-    name: "Bold Love",
-    webStyles: { fontFamily: "Bold Love" },
-    canvasStyles: { fontFamily: "Bold Love" },
-  },
-  {
-    label: "",
-    name: "Bombing",
-    webStyles: { fontFamily: "Bombing" },
-    canvasStyles: { fontFamily: "Bombing" },
-  },
-  {
-    label: "",
-    name: "Deutsch Gothic",
-    webStyles: { fontFamily: "Deutsch Gothic" },
-    canvasStyles: { fontFamily: "Deutsch Gothic" },
-  },
-  {
-    label: "",
-    name: "Docallisme On Street",
+    name: "Bold & Clean",
     webStyles: {
-      fontFamily: "Docallisme On Street",
-      textShadow: "5px 5px 5px rgba(0,0,0,0.5)",
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      color: "#111",
+      letterSpacing: "0.04em",
     },
     canvasStyles: {
-      fontFamily: "Docallisme On Street",
-      shadowColor: "black",
-      shadowBlur: 5,
-      shadowOffsetX: 5,
-      shadowOffsetY: 5,
-      shadowOpacity: 0.5,
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fill: "#111111",
+      charSpacing: 40,
     },
   },
   {
-    label: "",
-    name: "Geraldine",
-    webStyles: { fontFamily: "Geraldine" },
-    canvasStyles: { fontFamily: "Geraldine" },
+    name: "Minimal White",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 300,
+      color: "#fff",
+      textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+      letterSpacing: "0.08em",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "300",
+      fill: "#ffffff",
+      shadow: { color: "rgba(0,0,0,0.6)", blur: 4, offsetX: 0, offsetY: 1 },
+      charSpacing: 80,
+    },
+  },
+
+  // ── Outlined / Stroke ─────────────────────────────────────────────────────
+  {
+    name: "Outlined Black",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 900,
+      color: "transparent",
+      WebkitTextStroke: "1.5px #111",
+      letterSpacing: "0.06em",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "900",
+      fill: "transparent",
+      stroke: "#111111",
+      strokeWidth: 1.5,
+      paintFirst: "stroke",
+    },
   },
   {
-    label: "",
-    name: "Menlawai",
-    webStyles: { fontFamily: "Menlawai" },
-    canvasStyles: { fontFamily: "Menlawai" },
+    name: "Outlined White",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 900,
+      color: "transparent",
+      WebkitTextStroke: "1.5px #fff",
+      letterSpacing: "0.06em",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "900",
+      fill: "transparent",
+      stroke: "#ffffff",
+      strokeWidth: 1.5,
+      paintFirst: "stroke",
+    },
+  },
+
+  // ── Gradient fills ────────────────────────────────────────────────────────
+  {
+    name: "Gold Gradient",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #f7d060, #e0a020, #f7d060)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#f7d060", 0.5, "#e0a020", 1, "#f7d060"],
+    },
   },
   {
-    label: "",
-    name: "Mind The Caps",
-    webStyles: { fontFamily: "Mind The Caps" },
-    canvasStyles: { fontFamily: "Mind The Caps" },
+    name: "Sunset",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #ff6b35, #f7c59f, #ff1744)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#ff6b35", 0.5, "#f7c59f", 1, "#ff1744"],
+    },
   },
   {
-    label: "",
-    name: "Next",
-    webStyles: { fontFamily: "Next" },
-    canvasStyles: { fontFamily: "Next" },
+    name: "Ocean Vibe",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #00b4d8, #0077b6, #90e0ef)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#00b4d8", 0.5, "#0077b6", 1, "#90e0ef"],
+    },
   },
   {
-    label: "",
-    name: "Nose Grind",
-    webStyles: { fontFamily: "Nose Grind" },
-    canvasStyles: { fontFamily: "Nose Grind" },
+    name: "Rose Gold",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #f9a8d4, #ec4899, #fda4af)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#f9a8d4", 0.5, "#ec4899", 1, "#fda4af"],
+    },
   },
   {
-    label: "",
-    name: "Peinture Fraiche",
-    webStyles: { fontFamily: "Peinture Fraiche" },
-    canvasStyles: { fontFamily: "Peinture Fraiche" },
+    name: "Purple Haze",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #a855f7, #7c3aed, #ec4899)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#a855f7", 0.5, "#7c3aed", 1, "#ec4899"],
+    },
   },
   {
-    label: "",
+    name: "Forest",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      background: "linear-gradient(135deg, #22c55e, #15803d, #86efac)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#22c55e", 0.5, "#15803d", 1, "#86efac"],
+    },
+  },
+
+  // ── Neon / Glow ───────────────────────────────────────────────────────────
+  {
+    name: "Neon Pink",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      color: "#ff2d78",
+      textShadow:
+        "0 0 6px #ff2d78, 0 0 20px #ff2d78, 0 0 40px #ff2d78",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fill: "#ff2d78",
+      shadow: { color: "#ff2d78", blur: 30, offsetX: 0, offsetY: 0 },
+    },
+  },
+  {
+    name: "Neon Blue",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      color: "#00d4ff",
+      textShadow:
+        "0 0 6px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fill: "#00d4ff",
+      shadow: { color: "#00d4ff", blur: 30, offsetX: 0, offsetY: 0 },
+    },
+  },
+  {
+    name: "Neon Green",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      color: "#39ff14",
+      textShadow:
+        "0 0 6px #39ff14, 0 0 20px #39ff14, 0 0 40px #39ff14",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fill: "#39ff14",
+      shadow: { color: "#39ff14", blur: 30, offsetX: 0, offsetY: 0 },
+    },
+  },
+  {
+    name: "Neon Purple",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 800,
+      color: "#bf5fff",
+      textShadow:
+        "0 0 6px #bf5fff, 0 0 20px #bf5fff, 0 0 40px #bf5fff",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "800",
+      fill: "#bf5fff",
+      shadow: { color: "#bf5fff", blur: 30, offsetX: 0, offsetY: 0 },
+    },
+  },
+
+  // ── 3-D / Drop Shadow ─────────────────────────────────────────────────────
+  {
+    name: "3D Black",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 900,
+      color: "#fff",
+      textShadow:
+        "2px 2px 0 #000, 4px 4px 0 #333",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "900",
+      fill: "#ffffff",
+      stroke: "#000000",
+      strokeWidth: 0.5,
+      shadow: { color: "#000000", blur: 0, offsetX: 4, offsetY: 4 },
+    },
+  },
+  {
+    name: "3D Gold",
+    webStyles: {
+      fontFamily: "Helvetica, sans-serif",
+      fontWeight: 900,
+      color: "#f7d060",
+      textShadow:
+        "2px 2px 0 #7a5c00, 4px 4px 0 #5c3d00",
+    },
+    canvasStyles: {
+      fontFamily: "Helvetica",
+      fontWeight: "900",
+      fill: "#f7d060",
+      shadow: { color: "#7a5c00", blur: 0, offsetX: 4, offsetY: 4 },
+    },
+  },
+
+  // ── Decorative / Script ───────────────────────────────────────────────────
+  {
+    name: "Script Gold",
+    webStyles: {
+      fontFamily: "'Adam Script', cursive",
+      fontSize: "1.4em",
+      background: "linear-gradient(135deg, #f7d060, #e0a020)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Adam Script",
+      fontSize: 28,
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#f7d060", 1, "#e0a020"],
+    },
+  },
+  {
     name: "Sweet Unicorn",
     webStyles: {
-      fontFamily: "Sweet Unicorn",
-      textShadow: "5px 5px 5px rgba(242,177,34, 1)",
+      fontFamily: "Sweet Unicorn, cursive",
+      fontSize: "1.4em",
+      color: "#f2b122",
+      textShadow: "5px 5px 5px rgba(242,177,34,1)",
     },
     canvasStyles: {
       fontFamily: "Sweet Unicorn",
-      shadowColor: "rgb(242,177,34)",
-      shadowBlur: 5,
-      shadowOffsetX: 5,
-      shadowOffsetY: 5,
-      shadowOpacity: 1,
+      fontSize: 28,
+      fill: "#f2b122",
+      shadow: { color: "rgb(242,177,34)", blur: 5, offsetX: 5, offsetY: 5 },
     },
   },
   {
-    label: "",
+    name: "Geraldine",
+    webStyles: { fontFamily: "Geraldine, cursive", fontSize: "1.3em", color: "#222" },
+    canvasStyles: { fontFamily: "Geraldine", fontSize: 26 },
+  },
+  {
+    name: "Waltograph",
+    webStyles: { fontFamily: "Waltograph, fantasy", fontSize: "1.2em", color: "#1a237e" },
+    canvasStyles: { fontFamily: "Waltograph", fontSize: 24, fill: "#1a237e" },
+  },
+
+  // ── Street / Graffiti ─────────────────────────────────────────────────────
+  {
+    name: "Attack Graffiti",
+    webStyles: {
+      fontFamily: "Attack Graffiti, cursive",
+      fontSize: "1.3em",
+      color: "#e53935",
+      textShadow: "3px 3px 0 #000",
+    },
+    canvasStyles: {
+      fontFamily: "Attack Graffiti",
+      fontSize: 26,
+      fill: "#e53935",
+      shadow: { color: "#000000", blur: 0, offsetX: 3, offsetY: 3 },
+    },
+  },
+  {
+    name: "Throwupz",
+    webStyles: {
+      fontFamily: "Throwupz, cursive",
+      fontSize: "1.3em",
+      color: "#fff",
+      WebkitTextStroke: "1px #111",
+    },
+    canvasStyles: {
+      fontFamily: "Throwupz",
+      fontSize: 26,
+      fill: "#ffffff",
+      stroke: "#111111",
+      strokeWidth: 1,
+      paintFirst: "stroke",
+    },
+  },
+  {
+    name: "Bombing",
+    webStyles: {
+      fontFamily: "Bombing, cursive",
+      fontSize: "1.3em",
+      color: "#ffeb3b",
+      textShadow: "2px 2px 0 #e65100",
+    },
+    canvasStyles: {
+      fontFamily: "Bombing",
+      fontSize: 26,
+      fill: "#ffeb3b",
+      shadow: { color: "#e65100", blur: 0, offsetX: 2, offsetY: 2 },
+    },
+  },
+  {
+    name: "Deutsch Gothic",
+    webStyles: { fontFamily: "Deutsch Gothic, fantasy", fontSize: "1.2em", color: "#212121" },
+    canvasStyles: { fontFamily: "Deutsch Gothic", fontSize: 24, fill: "#212121" },
+  },
+  {
+    name: "Peinture Fraiche",
+    webStyles: { fontFamily: "Peinture Fraiche, cursive", fontSize: "1.2em", color: "#311b92" },
+    canvasStyles: { fontFamily: "Peinture Fraiche", fontSize: 24, fill: "#311b92" },
+  },
+  {
     name: "The Jacatra",
     webStyles: {
-      fontFamily: "The Jacatra",
+      fontFamily: "The Jacatra, cursive",
+      fontSize: "1.2em",
       background: "linear-gradient(45deg, red, blue)",
       WebkitTextFillColor: "transparent",
       WebkitBackgroundClip: "text",
@@ -117,76 +411,164 @@ export const fonts = [
       fontFamily: "The Jacatra",
       fill: "red",
       fillLinearGradientStartPoint: { x: 0, y: 0 },
-      fillLinearGradientEndPoint: { x: 100, y: 100 },
-      fillLinearGradientColorStops: [0, "red", 1, "blue"],
-      fillEnabled: true,
-      fillPriority: "linear-gradient",
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#ff0000", 1, "#0000ff"],
+    },
+  },
+
+  // ── Seasonal / Themed ─────────────────────────────────────────────────────
+  {
+    name: "Holiday Wishes",
+    webStyles: {
+      fontFamily: "Holiday Wishes, cursive",
+      fontSize: "1.3em",
+      color: "#c62828",
+      textShadow: "0 0 8px rgba(198,40,40,0.5)",
+    },
+    canvasStyles: {
+      fontFamily: "Holiday Wishes",
+      fontSize: 26,
+      fill: "#c62828",
+      shadow: { color: "rgba(198,40,40,0.5)", blur: 8, offsetX: 0, offsetY: 0 },
     },
   },
   {
-    label: "",
-    name: "Throwupz",
-    webStyles: { fontFamily: "Throwupz" },
-    canvasStyles: { fontFamily: "Throwupz" },
-  },
-  {
-    label: "",
-    name: "Waltograph",
-    webStyles: { fontFamily: "Waltograph" },
-    canvasStyles: { fontFamily: "Waltograph" },
-  },
-  {
-    label: "",
-    name: "Amazing Sweety",
-    webStyles: { fontFamily: "Amazing Sweety" },
-    canvasStyles: { fontFamily: "Amazing Sweety" },
-  },
-  {
-    label: "",
-    name: "Holiday Wishes",
-    webStyles: { fontFamily: "Holiday Wishes" },
-    canvasStyles: { fontFamily: "Holiday Wishes" },
-  },
-  {
-    label: "",
     name: "Haunted Moon",
-    webStyles: { fontFamily: "Haunted Moon" },
-    canvasStyles: { fontFamily: "Haunted Moon" },
+    webStyles: {
+      fontFamily: "Haunted Moon, cursive",
+      fontSize: "1.3em",
+      color: "#ff6f00",
+      textShadow: "0 0 10px rgba(255,111,0,0.7)",
+    },
+    canvasStyles: {
+      fontFamily: "Haunted Moon",
+      fontSize: 26,
+      fill: "#ff6f00",
+      shadow: { color: "rgba(255,111,0,0.7)", blur: 10, offsetX: 0, offsetY: 0 },
+    },
   },
   {
-    label: "",
     name: "October Twilight",
-    webStyles: { fontFamily: "October Twilight" },
-    canvasStyles: { fontFamily: "October Twilight" },
+    webStyles: { fontFamily: "October Twilight, cursive", fontSize: "1.2em", color: "#4a148c" },
+    canvasStyles: { fontFamily: "October Twilight", fontSize: 24, fill: "#4a148c" },
   },
   {
-    label: "",
-    name: "Retrow Mentho",
-    webStyles: { fontFamily: "Retrow Mentho" },
-    canvasStyles: { fontFamily: "Retrow Mentho" },
+    name: "Amazing Sweety",
+    webStyles: { fontFamily: "Amazing Sweety, cursive", fontSize: "1.3em", color: "#ad1457" },
+    canvasStyles: { fontFamily: "Amazing Sweety", fontSize: 26, fill: "#ad1457" },
   },
   {
-    label: "",
-    name: "Rocket Chicken",
-    webStyles: { fontFamily: "Rocket Chicken" },
-    canvasStyles: { fontFamily: "Rocket Chicken" },
-  },
-  {
-    label: "",
     name: "Teaberry Essence",
-    webStyles: { fontFamily: "Teaberry Essence" },
-    canvasStyles: { fontFamily: "Teaberry Essence" },
+    webStyles: { fontFamily: "Teaberry Essence, cursive", fontSize: "1.2em", color: "#880e4f" },
+    canvasStyles: { fontFamily: "Teaberry Essence", fontSize: 24, fill: "#880e4f" },
   },
   {
-    label: "",
     name: "Welcome Summer",
-    webStyles: { fontFamily: "Welcome Summer" },
-    canvasStyles: { fontFamily: "Welcome Summer" },
+    webStyles: {
+      fontFamily: "Welcome Summer, cursive",
+      fontSize: "1.3em",
+      background: "linear-gradient(135deg, #ff9800, #ff5722)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    },
+    canvasStyles: {
+      fontFamily: "Welcome Summer",
+      fontSize: 26,
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 200, y: 60 },
+      fillLinearGradientColorStops: [0, "#ff9800", 1, "#ff5722"],
+    },
   },
   {
-    label: "",
     name: "The Nightfall",
-    webStyles: { fontFamily: "The Nightfall" },
-    canvasStyles: { fontFamily: "The Nightfall" },
+    webStyles: {
+      fontFamily: "The Nightfall, cursive",
+      fontSize: "1.2em",
+      color: "#e3f2fd",
+      textShadow: "0 0 12px #1565c0",
+    },
+    canvasStyles: {
+      fontFamily: "The Nightfall",
+      fontSize: 24,
+      fill: "#e3f2fd",
+      shadow: { color: "#1565c0", blur: 12, offsetX: 0, offsetY: 0 },
+    },
+  },
+
+  // ── Extra styles ──────────────────────────────────────────────────────────
+  {
+    name: "Bold Love",
+    webStyles: { fontFamily: "Bold Love, cursive", fontSize: "1.3em", color: "#c2185b" },
+    canvasStyles: { fontFamily: "Bold Love", fontSize: 26, fill: "#c2185b" },
+  },
+  {
+    name: "Menlawai",
+    webStyles: { fontFamily: "Menlawai, cursive", fontSize: "1.2em", color: "#00695c" },
+    canvasStyles: { fontFamily: "Menlawai", fontSize: 24, fill: "#00695c" },
+  },
+  {
+    name: "Mind The Caps",
+    webStyles: {
+      fontFamily: "Mind The Caps, sans-serif",
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      color: "#212121",
+    },
+    canvasStyles: { fontFamily: "Mind The Caps", fontWeight: "700", charSpacing: 100 },
+  },
+  {
+    name: "Next",
+    webStyles: { fontFamily: "Next, sans-serif", fontSize: "1.1em", color: "#1a1a2e" },
+    canvasStyles: { fontFamily: "Next", fontSize: 22, fill: "#1a1a2e" },
+  },
+  {
+    name: "Nose Grind",
+    webStyles: { fontFamily: "Nose Grind, sans-serif", fontSize: "1.1em", color: "#263238" },
+    canvasStyles: { fontFamily: "Nose Grind", fontSize: 22, fill: "#263238" },
+  },
+  {
+    name: "Rocket Chicken",
+    webStyles: {
+      fontFamily: "Rocket Chicken, fantasy",
+      fontSize: "1.2em",
+      color: "#b71c1c",
+      textShadow: "2px 2px 0 #000",
+    },
+    canvasStyles: {
+      fontFamily: "Rocket Chicken",
+      fontSize: 24,
+      fill: "#b71c1c",
+      shadow: { color: "#000000", blur: 0, offsetX: 2, offsetY: 2 },
+    },
+  },
+  {
+    name: "Retrow Mentho",
+    webStyles: {
+      fontFamily: "Retrow Mentho, fantasy",
+      fontSize: "1.2em",
+      color: "#00bcd4",
+      textShadow: "2px 2px 0 #006064",
+    },
+    canvasStyles: {
+      fontFamily: "Retrow Mentho",
+      fontSize: 24,
+      fill: "#00bcd4",
+      shadow: { color: "#006064", blur: 0, offsetX: 2, offsetY: 2 },
+    },
+  },
+  {
+    name: "Docallisme On Street",
+    webStyles: {
+      fontFamily: "Docallisme On Street, cursive",
+      fontSize: "1.2em",
+      color: "#212121",
+      textShadow: "5px 5px 5px rgba(0,0,0,0.5)",
+    },
+    canvasStyles: {
+      fontFamily: "Docallisme On Street",
+      fontSize: 24,
+      shadow: { color: "rgba(0,0,0,0.5)", blur: 5, offsetX: 5, offsetY: 5 },
+    },
   },
 ];

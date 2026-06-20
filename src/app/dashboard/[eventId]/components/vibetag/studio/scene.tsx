@@ -9,10 +9,11 @@ import {
 } from "@/app/provider/slices/canvas-slice";
 import { canvasStore } from "@/hooks/canvas-store";
 
+const PLACEHOLDER = "Tap to edit";
+
 const Scene = () => {
   const dispatch = useDispatch();
   const domCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  // Persistent proxy input — always in the DOM so focus() always works
   const proxyInputRef = useRef<HTMLInputElement | null>(null);
   const template = useSelector((state: RootState) => state.canvas.template);
   const templateFrame = template?.frame ?? null;
@@ -22,11 +23,7 @@ const Scene = () => {
 
     const initFabric = async () => {
       const fabricModule = await import("fabric");
-      const {
-        Canvas,
-        Image: FabricImage,
-        InteractiveFabricObject,
-      } = fabricModule;
+      const { Canvas, Image: FabricImage, InteractiveFabricObject } = fabricModule;
 
       if (!domCanvasRef.current || !isMounted) return;
 
@@ -53,109 +50,136 @@ const Scene = () => {
         transparentCorners: false,
       };
 
-      // ── Proxy input keyboard bridge ───────────────────────────────────────
-      // The proxy <input> is always mounted in the DOM. When we focus it,
-      // the mobile keyboard opens immediately because it's a real input element
-      // in a trusted gesture context. We then forward every keystroke into
-      // whichever Fabric textbox is currently being edited.
+      // ─────────────────────────────────────────────────────────────────────
+      // Proxy input keyboard bridge
       //
-      // This sidesteps the core problem: Fabric's hiddenTextarea is created
-      // lazily and may be detached between edit sessions, so focus() on it
-      // outside a direct user-gesture doesn't open the keyboard on mobile.
+      // Mobile browsers only open the keyboard from focus() calls inside a
+      // trusted user-gesture handler (touchend, click, etc.).
+      // Fabric's hiddenTextarea is created lazily and is often detached between
+      // edit sessions, so focusing it programmatically doesn't reliably open
+      // the keyboard on iOS/Android.
+      //
+      // Solution: keep a real <input> always in the DOM. Tap on any textbox →
+      // focus the proxy input (keyboard opens) → forward every keystroke into
+      // the active Fabric Textbox → canvas re-renders → user sees their text.
+      // ─────────────────────────────────────────────────────────────────────
 
       let activeTextbox: any = null;
+      const proxyInput = proxyInputRef.current!;
 
-      const proxyInput = proxyInputRef.current;
-
-      const focusProxy = (textbox: any) => {
-        activeTextbox = textbox;
-        if (proxyInput) {
-          proxyInput.value = textbox.text ?? "";
-          proxyInput.focus();
-          // Move cursor to end
-          const len = proxyInput.value.length;
-          proxyInput.setSelectionRange(len, len);
+      // Sync proxy value → Fabric textbox on every input event
+      const onProxyInput = () => {
+        if (!activeTextbox) return;
+        const newText = proxyInput.value;
+        const pos = proxyInput.selectionStart ?? newText.length;
+        activeTextbox.set("text", newText || PLACEHOLDER);
+        // If user has cleared to empty, show placeholder dimmed
+        if (!newText) {
+          activeTextbox.set({ fill: "#aaaaaa" });
+        } else {
+          // Restore the original fill (stored when editing began)
+          if (activeTextbox._originalFill !== undefined) {
+            activeTextbox.set({ fill: activeTextbox._originalFill });
+          }
         }
+        activeTextbox.selectionStart = pos;
+        activeTextbox.selectionEnd = pos;
+        fabricCanvas.requestRenderAll();
+      };
+
+      // Handle Enter key (newline in Fabric textbox)
+      const onProxyKeydown = (e: KeyboardEvent) => {
+        if (!activeTextbox) return;
+        if (e.key === "Enter") {
+          const pos = proxyInput.selectionStart ?? activeTextbox.text.length;
+          const text = proxyInput.value;
+          const newText = text.slice(0, pos) + "\n" + text.slice(pos);
+          proxyInput.value = newText;
+          activeTextbox.set("text", newText);
+          fabricCanvas.requestRenderAll();
+          const newPos = pos + 1;
+          proxyInput.setSelectionRange(newPos, newPos);
+          activeTextbox.selectionStart = newPos;
+          activeTextbox.selectionEnd = newPos;
+          e.preventDefault();
+        }
+        if (e.key === "Backspace" && proxyInput.value === "") {
+          // All text deleted — restore placeholder
+          activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
+          fabricCanvas.requestRenderAll();
+        }
+      };
+
+      // When proxy loses focus, gracefully exit Fabric editing
+      const onProxyBlur = () => {
+        if (!activeTextbox) return;
+        // If the textbox is empty after editing, restore placeholder
+        const currentText = activeTextbox.text ?? "";
+        if (!currentText || currentText === "") {
+          activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
+        }
+        activeTextbox.exitEditing?.();
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.requestRenderAll();
+        activeTextbox = null;
+      };
+
+      proxyInput.addEventListener("input", onProxyInput);
+      proxyInput.addEventListener("keydown", onProxyKeydown);
+      proxyInput.addEventListener("blur", onProxyBlur);
+
+      // Focus proxy and enter Fabric editing mode
+      const enterTextEditing = (textbox: any) => {
+        // If already editing this textbox, just re-focus the proxy (re-opens keyboard)
+        if (activeTextbox === textbox) {
+          proxyInput.focus();
+          return;
+        }
+
+        // Exit any previously active textbox
+        if (activeTextbox && activeTextbox !== textbox) {
+          activeTextbox.exitEditing?.();
+        }
+
+        activeTextbox = textbox;
+        fabricCanvas.setActiveObject(textbox);
+
+        // Store original fill so we can restore it after placeholder removal
+        if (textbox._originalFill === undefined) {
+          textbox._originalFill = textbox.fill ?? "#000000";
+        }
+
+        // Clear placeholder text and restore fill
+        if (textbox.text === PLACEHOLDER) {
+          textbox.set({ text: "", fill: textbox._originalFill });
+          fabricCanvas.requestRenderAll();
+        }
+
+        // Enter Fabric's native editing mode so the cursor blinking renders
+        if (!textbox.isEditing) {
+          textbox.enterEditing();
+        }
+        fabricCanvas.requestRenderAll();
+
+        // Sync proxy value to current text (empty string so keyboard shows blank)
+        proxyInput.value = textbox.text === PLACEHOLDER ? "" : (textbox.text ?? "");
+        proxyInput.focus();
+        // Place cursor at end
+        const len = proxyInput.value.length;
+        proxyInput.setSelectionRange(len, len);
       };
 
       const blurProxy = () => {
-        activeTextbox = null;
-        proxyInput?.blur();
+        proxyInput.blur();
       };
 
-      // Forward proxy input events → Fabric textbox
-      if (proxyInput) {
-        // input event: user typed or deleted a character
-        proxyInput.addEventListener("input", () => {
-          if (!activeTextbox) return;
-          const newText = proxyInput.value;
-          activeTextbox.set("text", newText);
-          // Move cursor to match proxy input cursor
-          const pos = proxyInput.selectionStart ?? newText.length;
-          activeTextbox.selectionStart = pos;
-          activeTextbox.selectionEnd = pos;
-          fabricCanvas.requestRenderAll();
-          // Keep proxy value in sync (in case Fabric modifies text)
-          proxyInput.value = activeTextbox.text ?? "";
-        });
-
-        // keydown: handle special keys (Enter, Backspace, arrow keys)
-        proxyInput.addEventListener("keydown", (e) => {
-          if (!activeTextbox) return;
-          if (e.key === "Enter") {
-            const pos = proxyInput.selectionStart ?? activeTextbox.text.length;
-            const text = activeTextbox.text as string;
-            const newText = text.slice(0, pos) + "\n" + text.slice(pos);
-            activeTextbox.set("text", newText);
-            activeTextbox.selectionStart = pos + 1;
-            activeTextbox.selectionEnd = pos + 1;
-            fabricCanvas.requestRenderAll();
-            proxyInput.value = activeTextbox.text;
-            const newPos = pos + 1;
-            proxyInput.setSelectionRange(newPos, newPos);
-            e.preventDefault();
-          }
-        });
-
-        // blur: exit editing when proxy loses focus
-        proxyInput.addEventListener("blur", () => {
-          if (activeTextbox) {
-            activeTextbox.exitEditing?.();
-            activeTextbox = null;
-            fabricCanvas.requestRenderAll();
-          }
-        });
-      }
-
-      // ── Core enter-editing function ───────────────────────────────────────
-      const PLACEHOLDER = "Click to edit";
-
-      const enterTextEditing = (textbox: any) => {
-        fabricCanvas.setActiveObject(textbox);
-        fabricCanvas.requestRenderAll();
-
-        // Clear placeholder text on first edit
-        if (textbox.text === PLACEHOLDER) {
-          textbox.set("text", "");
-          fabricCanvas.requestRenderAll();
-        }
-
-        // Enter Fabric's editing mode so cursor renders
-        if (!textbox.isEditing) {
-          textbox.enterEditing();
-          fabricCanvas.requestRenderAll();
-        }
-        // Focus the proxy input to open the mobile keyboard
-        focusProxy(textbox);
-      };
-
-      // Expose for Fonts.tsx
+      // Expose on canvasStore so Fonts.tsx and other controls can call it
       (canvasStore as any).enterTextEditing = enterTextEditing;
       (canvasStore as any).blurProxy = blurProxy;
 
-      // ── Raw touch handler on the upper canvas ─────────────────────────────
-      // touchend is a trusted gesture — focus() called here WILL open keyboard
+      // ── Touch handler (trusted gesture → keyboard opens) ──────────────────
       const upperCanvas = fabricCanvas.upperCanvasEl ?? domCanvasRef.current;
+
       const handleTouchEnd = (e: TouchEvent) => {
         const touch = e.changedTouches[0];
         if (!touch) return;
@@ -170,19 +194,17 @@ const Scene = () => {
 
       upperCanvas?.addEventListener("touchend", handleTouchEnd, { passive: true });
 
-      // ── Desktop: double-click ─────────────────────────────────────────────
-      fabricCanvas.on("mouse:dblclick", (e: any) => {
-        if (e.target?.type === "textbox") enterTextEditing(e.target);
-      });
-
-      // ── Desktop/mobile: single click — covers both new selections and
-      //    clicks on an already-selected textbox (which don't fire
-      //    selection:created / selection:updated again) ───────────────────────
+      // ── Desktop: single click enters editing immediately ──────────────────
       fabricCanvas.on("mouse:down", (e: any) => {
         if (e.target?.type === "textbox") enterTextEditing(e.target);
       });
 
-      // ── selection events (kept for completeness / fast path) ─────────────
+      // ── Desktop: double-click also triggers (redundant but safe) ─────────
+      fabricCanvas.on("mouse:dblclick", (e: any) => {
+        if (e.target?.type === "textbox") enterTextEditing(e.target);
+      });
+
+      // ── Selection events ──────────────────────────────────────────────────
       fabricCanvas.on("selection:created", (e: any) => {
         const t = e.selected?.[0];
         if (t?.type === "textbox") enterTextEditing(t);
@@ -191,8 +213,6 @@ const Scene = () => {
         const t = e.selected?.[0];
         if (t?.type === "textbox") enterTextEditing(t);
       });
-
-      // ── Exit editing when canvas selection is cleared ─────────────────────
       fabricCanvas.on("selection:cleared", () => {
         blurProxy();
       });
@@ -207,7 +227,6 @@ const Scene = () => {
           console.error("Failed to save canvas:", err);
         }
       };
-
       fabricCanvas.on("object:added", saveCanvas);
       fabricCanvas.on("object:modified", saveCanvas);
       fabricCanvas.on("object:removed", saveCanvas);
@@ -219,8 +238,20 @@ const Scene = () => {
             FabricImage.fromURL(templateFrame, { crossOrigin: "anonymous" }).then(
               (img: any) => {
                 if (!isMounted) return resolve();
-                img.scaleX = fabricCanvas.getWidth() / img.width;
-                img.scaleY = fabricCanvas.getHeight() / img.height;
+                const cw = fabricCanvas.getWidth();
+                const ch = fabricCanvas.getHeight();
+                const iw = img.width || img.getElement?.()?.naturalWidth || cw;
+                const ih = img.height || img.getElement?.()?.naturalHeight || ch;
+                img.set({
+                  left: 0,
+                  top: 0,
+                  originX: "left",
+                  originY: "top",
+                  scaleX: cw / iw,
+                  scaleY: ch / ih,
+                  selectable: false,
+                  evented: false,
+                });
                 fabricCanvas.backgroundImage = img;
                 fabricCanvas.renderAll();
                 resolve();
@@ -237,10 +268,13 @@ const Scene = () => {
 
       await loadTemplateAndRestore();
 
-      // Cleanup
+      // Cleanup — remove proxy listeners and canvas
       const originalDispose = fabricCanvas.dispose.bind(fabricCanvas);
       fabricCanvas.dispose = () => {
         upperCanvas?.removeEventListener("touchend", handleTouchEnd);
+        proxyInput.removeEventListener("input", onProxyInput);
+        proxyInput.removeEventListener("keydown", onProxyKeydown);
+        proxyInput.removeEventListener("blur", onProxyBlur);
         return originalDispose();
       };
     };
@@ -266,10 +300,9 @@ const Scene = () => {
             className="border border-gray-100 rounded-lg"
           />
           {/*
-            Proxy input — always in the DOM, positioned off-screen so it's
-            invisible but focusable. The mobile keyboard opens when this
-            input is focused (trusted gesture). Keystrokes are bridged to
-            whichever Fabric textbox is active.
+            Proxy input — always in the DOM, off-screen but focusable.
+            Tapping a textbox focuses this input → keyboard opens on mobile.
+            All keystrokes are forwarded into the active Fabric Textbox.
           */}
           <input
             ref={proxyInputRef}
@@ -280,8 +313,8 @@ const Scene = () => {
             autoCapitalize="off"
             spellCheck={false}
             style={{
-              position: "absolute",
-              top: 0,
+              position: "fixed",
+              bottom: 0,
               left: 0,
               width: 1,
               height: 1,
