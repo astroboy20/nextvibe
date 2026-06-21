@@ -1,30 +1,117 @@
 @import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap");
 
-/* ── VibeTag Studio custom fonts ─────────────────────────────────────────── */
-@import url('https://fonts.cdnfonts.com/css/adam-script');
-@import url('https://fonts.cdnfonts.com/css/attack-graffiti');
-@import url('https://fonts.cdnfonts.com/css/bold-love');
-@import url('https://fonts.cdnfonts.com/css/bombing');
-@import url('https://fonts.cdnfonts.com/css/deutsch-gothic');
-@import url('https://fonts.cdnfonts.com/css/docallisme-on-street');
-@import url('https://fonts.cdnfonts.com/css/geraldine');
-@import url('https://fonts.cdnfonts.com/css/menlawai');
-@import url('https://fonts.cdnfonts.com/css/mind-the-caps');
-@import url('https://fonts.cdnfonts.com/css/nose-grind');
-@import url('https://fonts.cdnfonts.com/css/peinture-fraiche');
-@import url('https://fonts.cdnfonts.com/css/sweet-unicorn');
-@import url('https://fonts.cdnfonts.com/css/the-jacatra');
-@import url('https://fonts.cdnfonts.com/css/throwupz');
-@import url('https://fonts.cdnfonts.com/css/waltograph');
-@import url('https://fonts.cdnfonts.com/css/amazing-sweety');
-@import url('https://fonts.cdnfonts.com/css/holiday-wishes');
-@import url('https://fonts.cdnfonts.com/css/haunted-moon');
-@import url('https://fonts.cdnfonts.com/css/october-twilight');
-@import url('https://fonts.cdnfonts.com/css/retrow-mentho');
-@import url('https://fonts.cdnfonts.com/css/rocket-chicken');
-@import url('https://fonts.cdnfonts.com/css/teaberry-essence');
-@import url('https://fonts.cdnfonts.com/css/welcome-summer');
-@import url('https://fonts.cdnfonts.com/css/the-nightfall');
+/* ── VibeTag Studio custom fonts (@font-face, verified from cdnfonts.com) ─── */
+@font-face {
+  font-family: 'Adam Script';
+  font-style: normal; font-weight: 400;
+  src: local('Adam Script'), url('https://fonts.cdnfonts.com/s/21671/AdamScript.woff') format('woff');
+}
+@font-face {
+  font-family: 'Geraldine';
+  font-style: normal; font-weight: 400;
+  src: local('Geraldine'), url('https://fonts.cdnfonts.com/s/74345/Geraldine.woff') format('woff');
+}
+@font-face {
+  font-family: 'Menlawai';
+  font-style: normal; font-weight: 400;
+  src: local('Menlawai'), url('https://fonts.cdnfonts.com/s/76026/MenlawaiRegular-YzLAO.woff') format('woff');
+}
+@font-face {
+  font-family: 'Mind The Caps';
+  font-style: normal; font-weight: 400;
+  src: local('Mind The Caps'), url('https://fonts.cdnfonts.com/s/76528/MindTheCapsDemoVersion-owGpV.woff') format('woff');
+}
+@font-face {
+  font-family: 'Sweet Unicorn';
+  font-style: normal; font-weight: 400;
+  src: local('Sweet Unicorn'), url('https://fonts.cdnfonts.com/s/37539/Sweet%20Unicorn.woff') format('woff');
+}
+@font-face {
+  font-family: 'THE JACATRA';
+  font-style: normal; font-weight: 400;
+  src: local('THE JACATRA'), url('https://fonts.cdnfonts.com/s/62188/THE_JACATRA.woff') format('woff');
+}
+@font-face {
+  font-family: 'Throwupz';
+  font-style: normal; font-weight: 400;
+  src: local('Throwupz'), url('https://fonts.cdnfonts.com/s/62229/throwupz.woff') format('woff');
+}
+@font-face {
+  font-family: 'Waltograph';
+  font-style: normal; font-weight: 400;
+  src: local('Waltograph'), url('https://fonts.cdnfonts.com/s/10244/waltograph42.woff') format('woff');
+}
+@font-face {
+  font-family: 'Deutsch Gothic';
+  font-style: normal; font-weight: 400;
+  src: local('Deutsch Gothic'), url('https://fonts.cdnfonts.com/s/46315/Deutsch.woff') format('woff');
+}
+@font-face {
+  font-family: 'DOCALLISME ON STREET';
+  font-style: normal; font-weight: 400;
+  src: local('DOCALLISME ON STREET'), url('https://fonts.cdnfonts.com/s/62191/docallismeonstreet.woff') format('woff');
+}
+@font-face {
+  font-family: 'Amazing Sweety';
+  font-style: normal; font-weight: 400;
+  src: local('Amazing Sweety'), url('https://fonts.cdnfonts.com/s/54180/AmazingSweety-Eaygr.woff') format('woff');
+}
+@font-face {
+  font-family: 'Holiday Wishes';
+  font-style: normal; font-weight: 400;
+  src: local('Holiday Wishes'), url('https://fonts.cdnfonts.com/s/50118/HolidayWishes-51mwa.woff') format('woff');
+}
+@font-face {
+  font-family: 'Haunted Moon';
+  font-style: normal; font-weight: 400;
+  src: local('Haunted Moon'), url('https://fonts.cdnfonts.com/s/31502/Haunted%20Moon%20-%20TTF.woff') format('woff');
+}
+@font-face {
+  font-family: 'October Twilight';
+  font-style: normal; font-weight: 400;
+  src: local('October Twilight'), url('https://fonts.cdnfonts.com/s/28283/October%20Twilight.woff') format('woff');
+}
+@font-face {
+  font-family: 'Retrow Mentho';
+  font-style: normal; font-weight: 400;
+  src: local('Retrow Mentho'), url('https://fonts.cdnfonts.com/s/39284/Retrow%20Mentho.woff') format('woff');
+}
+@font-face {
+  font-family: 'Rocket Chicken';
+  font-style: normal; font-weight: 400;
+  src: local('Rocket Chicken'), url('https://fonts.cdnfonts.com/s/56511/RocketchickenRegular-qZ6EV.woff') format('woff');
+}
+@font-face {
+  font-family: 'Teaberry Essence';
+  font-style: normal; font-weight: 400;
+  src: local('Teaberry Essence'), url('https://fonts.cdnfonts.com/s/73851/TeaberryEssence-K7Awo.woff') format('woff');
+}
+@font-face {
+  font-family: 'Welcome Summer';
+  font-style: normal; font-weight: 400;
+  src: local('Welcome Summer'), url('https://fonts.cdnfonts.com/s/41169/Welcome%20Summer.woff') format('woff');
+}
+@font-face {
+  font-family: 'The Nightfall';
+  font-style: normal; font-weight: 400;
+  src: local('The Nightfall'), url('https://fonts.cdnfonts.com/s/75368/Thenightfall-gxmO3.woff') format('woff');
+}
+/* Replacements for fonts not found on cdnfonts */
+@font-face {
+  font-family: 'Graffiti Treat';
+  font-style: normal; font-weight: 400;
+  src: local('Graffiti Treat'), url('https://fonts.cdnfonts.com/s/10144/graffiti%20treat.woff') format('woff');
+}
+@font-face {
+  font-family: 'Lovely Script';
+  font-style: normal; font-weight: 400;
+  src: local('Lovely Script'), url('https://fonts.cdnfonts.com/s/34195/Lovely%20Script.woff') format('woff');
+}
+@font-face {
+  font-family: 'Friday Vibes';
+  font-style: normal; font-weight: 400;
+  src: local('Friday Vibes'), url('https://fonts.cdnfonts.com/s/19464/Friday%20Vibes.woff') format('woff');
+}
 
 @import "tailwindcss";
 @import "tw-animate-css";

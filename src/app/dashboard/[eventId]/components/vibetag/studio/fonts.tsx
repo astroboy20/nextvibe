@@ -58,8 +58,7 @@ export default function Fonts({ canvas }: FontsProps) {
     text._originalFill = originalFill ?? styles.fill ?? "#000000";
 
     // Ensure the font is loaded in the browser before Fabric tries to render it.
-    // document.fonts.load() resolves immediately if already loaded, or waits
-    // until the @font-face finishes downloading — canvas will then render correctly.
+    // Use the exact fontFamily from canvasStyles — must match the @font-face declaration.
     const fontFamily: string = styles.fontFamily ?? "Helvetica";
     const fontSize: number = styles.fontSize ?? 22;
     const fontPromise = document.fonts
