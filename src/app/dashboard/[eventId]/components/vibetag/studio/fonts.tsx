@@ -13,29 +13,40 @@ import {
 } from "@/components/ui/dialog";
 import { canvasStore } from "@/hooks/canvas-store";
 
-// Must match the PLACEHOLDER constant in scene.tsx
-const PLACEHOLDER = "Tap to edit";
+export const PLACEHOLDER = "Tap to edit";
 
 interface FontsProps {
   canvas: any | null;
 }
 
+/**
+ * Determine if a font style needs a dark tile background.
+ * White fills and neon colours are invisible on a light bg.
+ */
+function needsDarkBg(webStyles: Record<string, any>): boolean {
+  const fill = webStyles.color ?? webStyles.WebkitTextFillColor ?? "";
+  if (typeof fill === "string") {
+    const lower = fill.toLowerCase();
+    if (lower === "#fff" || lower === "#ffffff" || lower === "white") return true;
+    // Neon colours are very light/bright — always look better on dark
+    if (lower.startsWith("#00") || lower === "#39ff14" || lower === "#bf5fff") return true;
+  }
+  // Neon shadow effects look best on dark
+  const shadow = webStyles.textShadow ?? "";
+  if (shadow.includes("0 0")) return true;
+  return false;
+}
+
 export default function Fonts({ canvas }: FontsProps) {
   const dispatch = useDispatch();
-  const isFontsOpen = useSelector(
-    (state: RootState) => state.canvas.isFontsOpen
-  );
+  const isFontsOpen = useSelector((state: RootState) => state.canvas.isFontsOpen);
 
-  const onAddText = (styles: any) => {
+  const onAddText = (styles: any, originalFill?: string) => {
     if (!canvas) return;
-
-    // Store the intended fill so scene.tsx can restore it after clearing the placeholder
-    const intendedFill = styles.fill ?? styles.fillLinearGradientColorStops ? undefined : "#000000";
 
     const text = new Textbox(PLACEHOLDER, {
       ...styles,
-      // Show placeholder in a muted grey so the user knows to tap
-      fill: "#aaaaaa",
+      fill: "#aaaaaa",           // grey placeholder until user taps
       fontSize: styles.fontSize ?? 22,
       width: 200,
       padding: 5,
@@ -43,18 +54,16 @@ export default function Fonts({ canvas }: FontsProps) {
       editable: true,
     }) as any;
 
-    // Store the real fill so scene.tsx can restore it when user starts typing
-    text._originalFill = intendedFill ?? styles.fill ?? "#000000";
+    // Store the real fill/gradient info for scene.tsx to restore on first edit
+    text._originalFill = originalFill ?? styles.fill ?? "#000000";
 
     canvas.add(text);
     canvas.centerObject(text);
     canvas.requestRenderAll();
 
-    // Close the dialog first, then immediately enter editing so
-    // the keyboard opens right away on mobile
     dispatch(setIsFontsOpen(false));
 
-    // Small tick to let the dialog close animation finish, then enter editing
+    // Let dialog close animation finish, then enter editing
     setTimeout(() => {
       const enterTextEditing = (canvasStore as any).enterTextEditing;
       if (enterTextEditing) {
@@ -82,27 +91,34 @@ export default function Fonts({ canvas }: FontsProps) {
 
         <div className="overflow-y-auto flex-1 px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
-            {fonts.map((font, index) => (
-              <button
-                key={index}
-                onClick={() => onAddText(font.canvasStyles)}
-                className="relative flex items-center justify-center rounded-xl border border-border bg-muted/40 hover:border-primary/60 hover:bg-muted/80 active:scale-95 transition-all duration-150 overflow-hidden"
-                style={{ height: 72 }}
-              >
-                {/* Background pattern for dark text styles */}
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width%3D%2220%22 height%3D%2220%22 xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect width%3D%2210%22 height%3D%2210%22 fill%3D%22%23f5f5f5%22%2F%3E%3Crect x%3D%2210%22 y%3D%2210%22 width%3D%2210%22 height%3D%2210%22 fill%3D%22%23f5f5f5%22%2F%3E%3C%2Fsvg%3E')] opacity-50" />
+            {fonts.map((font, index) => {
+              const dark = needsDarkBg(font.webStyles);
+              // Inline style for the preview span — use webStyles directly
+              const previewStyle: React.CSSProperties = {
+                fontSize: "1.1rem",
+                lineHeight: 1.2,
+                ...font.webStyles,
+              };
 
-                <span
-                  className="relative z-10 px-3 py-1 text-center leading-tight truncate max-w-full"
+              return (
+                <button
+                  key={index}
+                  onClick={() => onAddText(font.canvasStyles, font.webStyles.color as string)}
+                  className="relative flex items-center justify-center rounded-xl border border-border overflow-hidden active:scale-95 transition-all duration-150"
                   style={{
-                    fontSize: "1.15rem",
-                    ...font.webStyles,
+                    height: 72,
+                    background: dark ? "#1a1a2e" : "#f8f8f8",
                   }}
                 >
-                  {font.name}
-                </span>
-              </button>
-            ))}
+                  <span
+                    className="relative z-10 px-3 text-center leading-tight"
+                    style={previewStyle}
+                  >
+                    {font.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </DialogContent>

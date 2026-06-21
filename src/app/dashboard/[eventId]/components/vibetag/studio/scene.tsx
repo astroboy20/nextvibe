@@ -9,7 +9,7 @@ import {
 } from "@/app/provider/slices/canvas-slice";
 import { canvasStore } from "@/hooks/canvas-store";
 
-const PLACEHOLDER = "Tap to edit";
+export const PLACEHOLDER = "Tap to edit";
 
 const Scene = () => {
   const dispatch = useDispatch();
@@ -45,6 +45,10 @@ const Scene = () => {
         ...InteractiveFabricObject.ownDefaults,
         selectable: true,
         evented: true,
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
         cornerStyle: "circle",
         cornerColor: "#030047",
         transparentCorners: false,
@@ -53,41 +57,37 @@ const Scene = () => {
       // ─────────────────────────────────────────────────────────────────────
       // Proxy input keyboard bridge
       //
-      // Mobile browsers only open the keyboard from focus() calls inside a
-      // trusted user-gesture handler (touchend, click, etc.).
-      // Fabric's hiddenTextarea is created lazily and is often detached between
-      // edit sessions, so focusing it programmatically doesn't reliably open
-      // the keyboard on iOS/Android.
-      //
-      // Solution: keep a real <input> always in the DOM. Tap on any textbox →
-      // focus the proxy input (keyboard opens) → forward every keystroke into
-      // the active Fabric Textbox → canvas re-renders → user sees their text.
+      // Mobile browsers only open the keyboard from focus() inside a trusted
+      // user-gesture handler. We keep a real <textarea> always in the DOM.
+      // Tapping a textbox focuses this proxy → keyboard opens → keystrokes
+      // are forwarded into the active Fabric Textbox.
       // ─────────────────────────────────────────────────────────────────────
 
       let activeTextbox: any = null;
+      // Track whether the user is dragging so we don't enter edit on move
+      let pointerMoved = false;
+
       const proxyInput = proxyInputRef.current!;
 
-      // Sync proxy value → Fabric textbox on every input event
       const onProxyInput = () => {
         if (!activeTextbox) return;
         const newText = proxyInput.value;
         const pos = proxyInput.selectionStart ?? newText.length;
-        activeTextbox.set("text", newText || PLACEHOLDER);
-        // If user has cleared to empty, show placeholder dimmed
+
         if (!newText) {
-          activeTextbox.set({ fill: "#aaaaaa" });
+          activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
         } else {
-          // Restore the original fill (stored when editing began)
+          activeTextbox.set("text", newText);
           if (activeTextbox._originalFill !== undefined) {
             activeTextbox.set({ fill: activeTextbox._originalFill });
           }
         }
+
         activeTextbox.selectionStart = pos;
         activeTextbox.selectionEnd = pos;
         fabricCanvas.requestRenderAll();
       };
 
-      // Handle Enter key (newline in Fabric textbox)
       const onProxyKeydown = (e: KeyboardEvent) => {
         if (!activeTextbox) return;
         if (e.key === "Enter") {
@@ -96,6 +96,9 @@ const Scene = () => {
           const newText = text.slice(0, pos) + "\n" + text.slice(pos);
           proxyInput.value = newText;
           activeTextbox.set("text", newText);
+          if (activeTextbox._originalFill !== undefined) {
+            activeTextbox.set({ fill: activeTextbox._originalFill });
+          }
           fabricCanvas.requestRenderAll();
           const newPos = pos + 1;
           proxyInput.setSelectionRange(newPos, newPos);
@@ -103,40 +106,33 @@ const Scene = () => {
           activeTextbox.selectionEnd = newPos;
           e.preventDefault();
         }
-        if (e.key === "Backspace" && proxyInput.value === "") {
-          // All text deleted — restore placeholder
-          activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
-          fabricCanvas.requestRenderAll();
-        }
       };
 
-      // When proxy loses focus, gracefully exit Fabric editing
+      // On blur: exit editing but keep the object selected so color picker still works
       const onProxyBlur = () => {
         if (!activeTextbox) return;
-        // If the textbox is empty after editing, restore placeholder
         const currentText = activeTextbox.text ?? "";
-        if (!currentText || currentText === "") {
+        if (!currentText || currentText === PLACEHOLDER) {
           activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
         }
         activeTextbox.exitEditing?.();
-        fabricCanvas.discardActiveObject();
+        // DO NOT discard active object — keep it selected so color/actions still apply
         fabricCanvas.requestRenderAll();
-        activeTextbox = null;
+        // Don't null out activeTextbox here — color picker needs it
       };
 
       proxyInput.addEventListener("input", onProxyInput);
       proxyInput.addEventListener("keydown", onProxyKeydown);
       proxyInput.addEventListener("blur", onProxyBlur);
 
-      // Focus proxy and enter Fabric editing mode
+      // Enter text editing mode (only called on intentional tap/click, not drag)
       const enterTextEditing = (textbox: any) => {
-        // If already editing this textbox, just re-focus the proxy (re-opens keyboard)
-        if (activeTextbox === textbox) {
+        if (activeTextbox === textbox && textbox.isEditing) {
+          // Already editing — just re-focus to reopen keyboard
           proxyInput.focus();
           return;
         }
 
-        // Exit any previously active textbox
         if (activeTextbox && activeTextbox !== textbox) {
           activeTextbox.exitEditing?.();
         }
@@ -144,77 +140,105 @@ const Scene = () => {
         activeTextbox = textbox;
         fabricCanvas.setActiveObject(textbox);
 
-        // Store original fill so we can restore it after placeholder removal
         if (textbox._originalFill === undefined) {
-          textbox._originalFill = textbox.fill ?? "#000000";
+          textbox._originalFill =
+            typeof textbox.fill === "string" ? textbox.fill : "#000000";
         }
 
-        // Clear placeholder text and restore fill
         if (textbox.text === PLACEHOLDER) {
           textbox.set({ text: "", fill: textbox._originalFill });
           fabricCanvas.requestRenderAll();
         }
 
-        // Enter Fabric's native editing mode so the cursor blinking renders
         if (!textbox.isEditing) {
           textbox.enterEditing();
         }
         fabricCanvas.requestRenderAll();
 
-        // Sync proxy value to current text (empty string so keyboard shows blank)
         proxyInput.value = textbox.text === PLACEHOLDER ? "" : (textbox.text ?? "");
         proxyInput.focus();
-        // Place cursor at end
         const len = proxyInput.value.length;
         proxyInput.setSelectionRange(len, len);
       };
 
-      const blurProxy = () => {
+      const exitTextEditing = () => {
+        if (activeTextbox) {
+          const t = activeTextbox.text ?? "";
+          if (!t || t === PLACEHOLDER) {
+            activeTextbox.set({ text: PLACEHOLDER, fill: "#aaaaaa" });
+          }
+          activeTextbox.exitEditing?.();
+          fabricCanvas.requestRenderAll();
+        }
+        // Keep activeTextbox set so color picker can still reference it
         proxyInput.blur();
       };
 
-      // Expose on canvasStore so Fonts.tsx and other controls can call it
+      // Expose on canvasStore for Fonts.tsx, ColorMenu, etc.
       (canvasStore as any).enterTextEditing = enterTextEditing;
-      (canvasStore as any).blurProxy = blurProxy;
+      (canvasStore as any).exitTextEditing = exitTextEditing;
+      (canvasStore as any).getActiveTextbox = () => activeTextbox;
 
-      // ── Touch handler (trusted gesture → keyboard opens) ──────────────────
+      // ── Touch: distinguish tap vs drag ────────────────────────────────────
       const upperCanvas = fabricCanvas.upperCanvasEl ?? domCanvasRef.current;
+      let touchStartX = 0, touchStartY = 0;
+
+      const handleTouchStart = (e: TouchEvent) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        pointerMoved = false;
+      };
+
+      const handleTouchMove = () => {
+        pointerMoved = true;
+      };
 
       const handleTouchEnd = (e: TouchEvent) => {
         const touch = e.changedTouches[0];
         if (!touch) return;
+
+        const dx = Math.abs(touch.clientX - touchStartX);
+        const dy = Math.abs(touch.clientY - touchStartY);
+        // Only enter editing if it was a tap (< 8px movement)
+        if (dx > 8 || dy > 8) return;
+
+        // findTarget returns a different type in this Fabric version — cast via unknown
         const target = fabricCanvas.findTarget({
           clientX: touch.clientX,
           clientY: touch.clientY,
-        } as any);
-        if (target && (target as any).type === "textbox") {
-          enterTextEditing(target as any);
+        } as any) as unknown as any;
+        if (target?.type === "textbox") {
+          enterTextEditing(target);
+        } else if (activeTextbox) {
+          exitTextEditing();
         }
       };
 
+      upperCanvas?.addEventListener("touchstart", handleTouchStart, { passive: true });
+      upperCanvas?.addEventListener("touchmove", handleTouchMove, { passive: true });
       upperCanvas?.addEventListener("touchend", handleTouchEnd, { passive: true });
 
-      // ── Desktop: single click enters editing immediately ──────────────────
-      fabricCanvas.on("mouse:down", (e: any) => {
-        if (e.target?.type === "textbox") enterTextEditing(e.target);
-      });
-
-      // ── Desktop: double-click also triggers (redundant but safe) ─────────
-      fabricCanvas.on("mouse:dblclick", (e: any) => {
-        if (e.target?.type === "textbox") enterTextEditing(e.target);
+      // ── Desktop: distinguish click vs drag ────────────────────────────────
+      fabricCanvas.on("mouse:down", () => { pointerMoved = false; });
+      fabricCanvas.on("mouse:move", () => { pointerMoved = true; });
+      fabricCanvas.on("mouse:up", (e: any) => {
+        if (pointerMoved) return; // was a drag — don't enter edit
+        if (e.target?.type === "textbox") {
+          enterTextEditing(e.target);
+        } else if (!e.target && activeTextbox) {
+          // Clicked on empty canvas area — exit editing
+          exitTextEditing();
+          fabricCanvas.discardActiveObject();
+          fabricCanvas.requestRenderAll();
+        }
       });
 
       // ── Selection events ──────────────────────────────────────────────────
-      fabricCanvas.on("selection:created", (e: any) => {
-        const t = e.selected?.[0];
-        if (t?.type === "textbox") enterTextEditing(t);
-      });
-      fabricCanvas.on("selection:updated", (e: any) => {
-        const t = e.selected?.[0];
-        if (t?.type === "textbox") enterTextEditing(t);
-      });
       fabricCanvas.on("selection:cleared", () => {
-        blurProxy();
+        if (activeTextbox) {
+          exitTextEditing();
+        }
+        activeTextbox = null;
       });
 
       // ── Persistence ───────────────────────────────────────────────────────
@@ -268,9 +292,10 @@ const Scene = () => {
 
       await loadTemplateAndRestore();
 
-      // Cleanup — remove proxy listeners and canvas
       const originalDispose = fabricCanvas.dispose.bind(fabricCanvas);
       fabricCanvas.dispose = () => {
+        upperCanvas?.removeEventListener("touchstart", handleTouchStart);
+        upperCanvas?.removeEventListener("touchmove", handleTouchMove);
         upperCanvas?.removeEventListener("touchend", handleTouchEnd);
         proxyInput.removeEventListener("input", onProxyInput);
         proxyInput.removeEventListener("keydown", onProxyKeydown);
@@ -299,11 +324,6 @@ const Scene = () => {
             ref={domCanvasRef}
             className="border border-gray-100 rounded-lg"
           />
-          {/*
-            Proxy input — always in the DOM, off-screen but focusable.
-            Tapping a textbox focuses this input → keyboard opens on mobile.
-            All keystrokes are forwarded into the active Fabric Textbox.
-          */}
           <input
             ref={proxyInputRef}
             type="text"

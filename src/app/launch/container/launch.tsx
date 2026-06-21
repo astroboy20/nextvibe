@@ -13,11 +13,12 @@ import {
   Music,
   Camera,
   Gamepad2,
-  Check,
   ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useWaitlistMutation } from "@/app/provider/api/launchApi";
+import { Spinner } from "@/components/ui/spinner";
 
 function useCountdown(targetDate: Date) {
   const calculateTimeLeft = useCallback(() => {
@@ -86,17 +87,36 @@ export default function LaunchLanding() {
   const launchDate = new Date("2026-07-01T00:00:00");
   const timeLeft = useCountdown(launchDate);
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [waitlistMutation, { isLoading }] = useWaitlistMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
-      toast.warning("Please enter a valid email");
+
+    const trimmed = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmed) {
+      toast.warning("Please enter your email address");
       return;
     }
-    setSubmitted(true);
-    toast.success("You're on the list! 🎉");
-    setEmail("");
+    if (!emailRegex.test(trimmed)) {
+      toast.warning("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      await waitlistMutation({ email: trimmed }).unwrap();
+      toast.success("You're on the list! 🎉 We'll notify you at launch.");
+      setEmail("");
+    } catch (error: any) {
+      const msg =
+        error?.data?.message ??
+        error?.data?.error?.message ??
+        error?.message ??
+        "Something went wrong. Please try again.";
+      toast.error(msg);
+    }
   };
 
   return (
@@ -171,47 +191,37 @@ export default function LaunchLanding() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="mt-10 w-full max-w-md"
             >
-              {submitted ? (
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center justify-center gap-3 rounded-2xl bg-green-50 border border-green-200 px-6 py-4 text-green-800"
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col sm:flex-row gap-3"
+              >
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12 rounded-xl bg-white/70 backdrop-blur border-border/50 focus-visible:ring-primary"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="h-12 px-8 rounded-xl"
+                  disabled={isLoading}
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-200">
-                    <Check className="h-5 w-5 text-green-700" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold">You&apos;re on the list!</p>
-                    <p className="text-sm opacity-80">
-                      We&apos;ll notify you when we launch.
-                    </p>
-                  </div>
-                </motion.div>
-              ) : (
-                <form
-                  onSubmit={handleSubmit}
-                  className="flex flex-col sm:flex-row gap-3"
-                >
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-12 rounded-xl bg-white/70 backdrop-blur border-border/50 focus-visible:ring-primary"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="h-12 px-8 rounded-xl"
-                  >
-                    <Rocket className="h-4 w-4 mr-2" />
-                    Notify Me
-                  </Button>
-                </form>
-              )}
+                  {isLoading ? (
+                    <Spinner className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {" "}
+                      <Rocket className="h-4 w-4 mr-2" />
+                      Notify Me
+                    </>
+                  )}
+                </Button>
+              </form>
               <p className="mt-3 text-xs text-muted-foreground">
                 Be the first to know. No spam, ever.
               </p>
@@ -263,14 +273,14 @@ export default function LaunchLanding() {
             transition={{ duration: 0.6 }}
             className="container mx-auto max-w-2xl px-4 mb-16 text-center"
           >
-            <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-vibe-purple/10 border border-primary/20 p-8 sm:p-10">
+            <div className="rounded-3xl bg-linear-to-br from-primary/10 to-vibe-purple/10 border border-primary/20 p-8 sm:p-10">
               <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
               <h3 className="font-display text-2xl sm:text-3xl font-bold mb-3">
                 Back us before launch
               </h3>
               <p className="text-muted-foreground mb-6">
-                Get exclusive early-backer tiers, 3× bundles for the price of 1, and become a
-                founding member of NextVibe.
+                Get exclusive early-backer tiers, 3× bundles for the price of 1,
+                and become a founding member of NextVibe.
               </p>
               <Button asChild size="lg" className="rounded-xl px-8 h-12">
                 <Link href="/pledge">

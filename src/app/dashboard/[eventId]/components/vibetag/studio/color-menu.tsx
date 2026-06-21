@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { canvasStore } from "@/hooks/canvas-store";
 
 const PRESET_COLORS = [
   "#000000", "#ffffff", "#ef4444", "#f97316", "#eab308",
@@ -14,14 +15,11 @@ interface ColorMenuProps {
   canvas: any | null;
 }
 
-/** Remove all gradient fills from a Fabric textbox so a solid fill can take effect */
-function clearGradientFill(obj: any) {
-  // Fabric v6: gradient is stored as obj.fill being a Gradient instance
-  // or via fillLinearGradientColorStops / fillRadialGradientColorStops
+/** Strip gradient fill so solid color can take effect */
+function clearGradient(obj: any) {
   if (obj.fill && typeof obj.fill === "object") {
     obj.fill = "#000000";
   }
-  // Also wipe out any gradient properties that were set directly
   obj.set({
     fillLinearGradientStartPoint: undefined,
     fillLinearGradientEndPoint: undefined,
@@ -33,66 +31,55 @@ function clearGradientFill(obj: any) {
   });
 }
 
-/** Get the active textbox — works whether or not the proxy input has focus */
-function getActiveTextbox(canvas: any): any | null {
+/** Read the active textbox — from canvas selection OR from canvasStore proxy */
+function resolveTextbox(canvas: any): any | null {
   if (!canvas) return null;
+  // First try canvas active object
   const obj = canvas.getActiveObject();
-  if (
-    obj &&
-    (obj.type === "text" || obj.type === "i-text" || obj.type === "textbox")
-  ) {
+  if (obj && (obj.type === "text" || obj.type === "i-text" || obj.type === "textbox")) {
     return obj;
+  }
+  // Fall back to the textbox tracked by scene.tsx (survives proxy blur)
+  const fromStore = (canvasStore as any).getActiveTextbox?.();
+  if (fromStore && (fromStore.type === "text" || fromStore.type === "i-text" || fromStore.type === "textbox")) {
+    return fromStore;
   }
   return null;
 }
 
-/** Read the current solid fill color from a textbox (ignores gradients) */
 function readFill(obj: any): string {
   const fill = obj?.fill;
-  if (typeof fill === "string") return fill;
-  // Gradient or unknown — default to black
-  return "#000000";
+  return typeof fill === "string" ? fill : "#000000";
 }
 
 export default function ColorMenu({ canvas }: ColorMenuProps) {
   const [color, setColor] = useState<string>("#000000");
 
-  // Sync picker color whenever canvas selection changes
   useEffect(() => {
     if (!canvas) return;
-
     const sync = () => {
-      const obj = getActiveTextbox(canvas);
+      const obj = resolveTextbox(canvas);
       setColor(obj ? readFill(obj) : "#000000");
     };
-
     sync();
     canvas.on("selection:created", sync);
     canvas.on("selection:updated", sync);
     canvas.on("selection:cleared", () => setColor("#000000"));
-
     return () => {
       canvas.off("selection:created", sync);
       canvas.off("selection:updated", sync);
+      canvas.off("selection:cleared", sync);
     };
   }, [canvas]);
 
   const applyColor = useCallback(
     (newColor: string) => {
       if (!canvas) return;
-
-      const obj = getActiveTextbox(canvas);
+      const obj = resolveTextbox(canvas);
       if (!obj) return;
-
-      // 1. Strip any gradient so solid fill takes effect
-      clearGradientFill(obj);
-
-      // 2. Apply solid color
+      clearGradient(obj);
       obj.set("fill", newColor);
-
-      // 3. Also update _originalFill so scene.tsx doesn't restore the old value
       obj._originalFill = newColor;
-
       canvas.requestRenderAll();
     },
     [canvas]
@@ -114,8 +101,12 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
         />
       </PopoverTrigger>
 
-      <PopoverContent className="w-52 p-3 space-y-3">
-        {/* Native color picker for full spectrum */}
+      <PopoverContent
+        className="w-52 p-3 space-y-3"
+        // Prevent popover open/close from triggering canvas blur
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Custom color</p>
           <input
@@ -126,7 +117,6 @@ export default function ColorMenu({ canvas }: ColorMenuProps) {
           />
         </div>
 
-        {/* Quick preset swatches */}
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Presets</p>
           <div className="grid grid-cols-5 gap-1.5">
