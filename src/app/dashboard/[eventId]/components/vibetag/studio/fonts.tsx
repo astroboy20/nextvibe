@@ -57,9 +57,20 @@ export default function Fonts({ canvas }: FontsProps) {
     // Store the real fill/gradient info for scene.tsx to restore on first edit
     text._originalFill = originalFill ?? styles.fill ?? "#000000";
 
-    canvas.add(text);
-    canvas.centerObject(text);
-    canvas.requestRenderAll();
+    // Ensure the font is loaded in the browser before Fabric tries to render it.
+    // document.fonts.load() resolves immediately if already loaded, or waits
+    // until the @font-face finishes downloading — canvas will then render correctly.
+    const fontFamily: string = styles.fontFamily ?? "Helvetica";
+    const fontSize: number = styles.fontSize ?? 22;
+    const fontPromise = document.fonts
+      .load(`${fontSize}px "${fontFamily}"`)
+      .catch(() => {/* silently fall back if font isn't available */});
+
+    fontPromise.then(() => {
+      canvas.add(text);
+      canvas.centerObject(text);
+      canvas.requestRenderAll();
+    });
 
     dispatch(setIsFontsOpen(false));
 
@@ -73,7 +84,7 @@ export default function Fonts({ canvas }: FontsProps) {
         text.enterEditing();
         canvas.requestRenderAll();
       }
-    }, 150);
+    }, 200);
   };
 
   return (

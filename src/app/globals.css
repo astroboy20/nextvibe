@@ -1,4 +1,31 @@
 @import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap");
+
+/* ── VibeTag Studio custom fonts ─────────────────────────────────────────── */
+@import url('https://fonts.cdnfonts.com/css/adam-script');
+@import url('https://fonts.cdnfonts.com/css/attack-graffiti');
+@import url('https://fonts.cdnfonts.com/css/bold-love');
+@import url('https://fonts.cdnfonts.com/css/bombing');
+@import url('https://fonts.cdnfonts.com/css/deutsch-gothic');
+@import url('https://fonts.cdnfonts.com/css/docallisme-on-street');
+@import url('https://fonts.cdnfonts.com/css/geraldine');
+@import url('https://fonts.cdnfonts.com/css/menlawai');
+@import url('https://fonts.cdnfonts.com/css/mind-the-caps');
+@import url('https://fonts.cdnfonts.com/css/nose-grind');
+@import url('https://fonts.cdnfonts.com/css/peinture-fraiche');
+@import url('https://fonts.cdnfonts.com/css/sweet-unicorn');
+@import url('https://fonts.cdnfonts.com/css/the-jacatra');
+@import url('https://fonts.cdnfonts.com/css/throwupz');
+@import url('https://fonts.cdnfonts.com/css/waltograph');
+@import url('https://fonts.cdnfonts.com/css/amazing-sweety');
+@import url('https://fonts.cdnfonts.com/css/holiday-wishes');
+@import url('https://fonts.cdnfonts.com/css/haunted-moon');
+@import url('https://fonts.cdnfonts.com/css/october-twilight');
+@import url('https://fonts.cdnfonts.com/css/retrow-mentho');
+@import url('https://fonts.cdnfonts.com/css/rocket-chicken');
+@import url('https://fonts.cdnfonts.com/css/teaberry-essence');
+@import url('https://fonts.cdnfonts.com/css/welcome-summer');
+@import url('https://fonts.cdnfonts.com/css/the-nightfall');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
