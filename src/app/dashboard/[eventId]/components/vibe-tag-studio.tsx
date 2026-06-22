@@ -280,19 +280,21 @@ const VibeTagStudioContent = ({ eventId, name, eventPlan }: VibeTagStudioContent
 
       {/* VibeTags Creator Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg h-screen overflow-y-scroll">
+        <DialogContent className="w-full max-w-lg h-screen overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="mt-5">
               Create VibeTag —{" "}
               {TIMING_TABS.find((t) => t.value === activeTiming)?.label}
             </DialogTitle>
           </DialogHeader>
-          <Vibetags
-            onClose={handleCreated}
-            activityTiming={activeTiming}
-            eventId={eventId}
-            eventName={name}
-          />
+          <div className="w-full overflow-x-hidden">
+            <Vibetags
+              onClose={handleCreated}
+              activityTiming={activeTiming}
+              eventId={eventId}
+              eventName={name}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

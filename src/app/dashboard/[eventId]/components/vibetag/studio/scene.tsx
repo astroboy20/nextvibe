@@ -317,12 +317,13 @@ const Scene = () => {
   }, [dispatch, templateFrame]);
 
   return (
-    <div className="w-full flex justify-center items-center">
-      <div className="flex bg-white rounded-xl shadow-md p-2.5 border border-gray-100">
-        <div className="bg-gray-100 relative">
+    <div className="w-full flex justify-center items-center overflow-hidden">
+      <div className="flex bg-white rounded-xl shadow-md p-2.5 border border-gray-100 max-w-full">
+        <div className="bg-gray-100 relative overflow-hidden">
           <canvas
             ref={domCanvasRef}
-            className="border border-gray-100 rounded-lg"
+            className="border border-gray-100 rounded-lg block max-w-full"
+            style={{ touchAction: "none" }}
           />
           <input
             ref={proxyInputRef}
