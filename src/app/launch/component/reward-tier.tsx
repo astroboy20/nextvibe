@@ -3,6 +3,15 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   Minus,
   Plus,
   Check,
@@ -14,8 +23,13 @@ import {
   Rocket,
   Star,
   Gem,
+  Loader2,
+  Mail,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useInitiatePledgeMutation } from "@/app/provider/api/pledgeApi";
+import { useGetUserQuery } from "@/app/provider/api/authApi";
 
 const USD_TO_NGN = 1500;
 
@@ -50,8 +64,8 @@ export const TIERS: Tier[] = [
     ],
   },
   {
-    id: "vibespark",
-    name: "The Vibe Spark",
+    id: "vibesupporter",
+    name: "The Vibe Supporter",
     tagline: "Start the spark for small gatherings",
     priceUsd: 10,
     bundles: "3 × Micro Mega Bundle (1–50)",
@@ -64,54 +78,54 @@ export const TIERS: Tier[] = [
     ],
   },
   {
-    id: "vibesquad",
-    name: "The Vibe Squad",
+    id: "vibefan",
+    name: "The Vibe Fan",
     tagline: "Rally your squad with mid-size events",
-    priceUsd: 20,
+    priceUsd: 25,
     bundles: "3 × Small Mega Bundle (51–200)",
-    normalValue: 30,
+    normalValue: 37,
     savingsPct: 33,
     icon: Users,
     rewards: ["3 Small Mega Bundles", "VIP badge on profile"],
   },
   {
-    id: "vibemaestro",
-    name: "The Vibe Maestro",
+    id: "vibeenthusiast",
+    name: "The Vibe Enthusiast",
     tagline: "Conduct medium-scale experiences",
-    priceUsd: 40,
+    priceUsd: 50,
     bundles: "3 × Medium Mega Bundle (201–500)",
-    normalValue: 60,
+    normalValue: 75,
     savingsPct: 33,
     icon: Award,
     rewards: ["3 Medium Mega Bundles", "VIP badge & Hall of Fame"],
   },
   {
-    id: "vibeblueprint",
-    name: "The Vibe Blueprint",
+    id: "vibechampion",
+    name: "The Vibe Champion",
     tagline: "Blueprint for serious organizers",
-    priceUsd: 65,
+    priceUsd: 100,
     bundles: "3 × Large Mega Bundle (501–2,000)",
-    normalValue: 114,
-    savingsPct: 43,
+    normalValue: 150,
+    savingsPct: 33,
     icon: Rocket,
     highlight: true,
     badge: "Most Popular",
     rewards: ["3 Large Mega Bundles", "Founder's Club T-shirt"],
   },
   {
-    id: "vibearchitect",
-    name: "The Vibe Architect",
+    id: "vibepatron",
+    name: "The Vibe Patron",
     tagline: "Architect city-scale events",
-    priceUsd: 100,
+    priceUsd: 150,
     bundles: "3 × Enterprise Mega Bundle (2,001+)",
-    normalValue: 195,
-    savingsPct: 49,
+    normalValue: 225,
+    savingsPct: 33,
     icon: Star,
     rewards: ["3 Enterprise Mega Bundles", "Full Merch Kit & Social Shoutout"],
   },
   {
-    id: "vibeicon",
-    name: "The Vibe Icon",
+    id: "vibemaestro",
+    name: "The Vibe Maestro",
     tagline: "Become an icon of the movement",
     priceUsd: 250,
     bundles: "15 bundles across all 5 tiers",
@@ -129,13 +143,13 @@ export const TIERS: Tier[] = [
     name: "The Vibe King",
     tagline: "Rule the vibe — top of the throne",
     priceUsd: 500,
-    bundles: "Everything in Icon + bespoke perks",
+    bundles: "Everything in Maestro + bespoke perks",
     normalValue: 845,
     savingsPct: 41,
     icon: Crown,
     badge: "Limited",
     rewards: [
-      "Everything in Vibe Icon Tier",
+      "Everything in Vibe Maestro Tier",
       "Dedicated Onboarding & Strategy",
     ],
   },
@@ -153,11 +167,13 @@ function TierCard({
   qty,
   setQty,
   onPledge,
+  isPledging,
 }: {
   tier: Tier;
   qty: number;
   setQty: (n: number) => void;
   onPledge: () => void;
+  isPledging: boolean;
 }) {
   const Icon = tier.icon;
   const total = tier.priceUsd * qty;
@@ -331,10 +347,15 @@ function TierCard({
         type="button"
         onClick={onPledge}
         size="lg"
+        disabled={isPledging}
         variant={tier.highlight ? "secondary" : "default"}
         className="w-full rounded-xl"
       >
-        Pledge {formatUsd(total)}
+        {isPledging ? (
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
+        ) : (
+          <>Pledge ${formatUsd(total)}</>
+        )}
       </Button>
     </motion.div>
   );
@@ -344,11 +365,64 @@ export default function RewardTiers() {
   const [quantities, setQuantities] = useState<Record<string, number>>(
     Object.fromEntries(TIERS.map((t) => [t.id, 1]))
   );
+  const [pledgingId, setPledgingId] = useState<string | null>(null);
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [initiatePledge] = useInitiatePledgeMutation();
+  const { data: userData } = useGetUserQuery();
+  const user = userData?.data;
+
+  const submitPledge = async (tier: Tier, opts?: { name: string; email: string }) => {
+    const qty = quantities[tier.id];
+    setPledgingId(tier.id);
+    try {
+      const body: Parameters<typeof initiatePledge>[0] = {
+        tierId: tier.id as any,
+        quantity: qty,
+        // Only include name/email for guests — API pulls them from token for auth'd users
+        ...(opts ? { name: opts.name, email: opts.email } : {}),
+      };
+
+      const res = await initiatePledge(body).unwrap();
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pendingPledgeId", res.pledgeId);
+      }
+      window.location.href = res.checkoutUrl;
+    } catch (err: any) {
+      const msg = err?.data?.message ?? err?.message ?? "Failed to initiate pledge.";
+      toast.error(msg);
+      setPledgingId(null);
+    }
+  };
 
   const handlePledge = (tier: Tier) => {
-    const qty = quantities[tier.id];
-    const total = tier.priceUsd * qty;
-    toast.success(`Pledge reserved: ${tier.name}`);
+    if (user) {
+      // Logged-in — send only tierId + quantity, no name/email
+      submitPledge(tier);
+    } else {
+      // Guest — show name/email form first
+      setPendingTier(tier);
+    }
+  };
+
+  const handleGuestSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!pendingTier) return;
+    const name = guestName.trim();
+    const email = guestEmail.trim();
+    if (!name || !email) {
+      toast.error("Please enter your name and email.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setPendingTier(null);
+    submitPledge(pendingTier, { name, email });
   };
 
   return (
@@ -391,17 +465,111 @@ export default function RewardTiers() {
               qty={quantities[tier.id]}
               setQty={(n) => setQuantities((q) => ({ ...q, [tier.id]: n }))}
               onPledge={() => handlePledge(tier)}
+              isPledging={pledgingId === tier.id}
             />
           </motion.div>
         ))}
       </div>
 
       <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
-        Prices shown in USD with NGN equivalents at ₦
-        {USD_TO_NGN.toLocaleString()}/$1. Payment gateway integration coming
-        soon — pledge now to reserve your tier and we&apos;ll email you when
-        checkout opens.
+        Prices in USD. NGN equivalent at ₦{USD_TO_NGN.toLocaleString()}/$1.
+        Secure checkout powered by Ercaspay.
       </p>
+
+      {/* ── Guest details modal ───────────────────────────────────────────── */}
+      <Dialog
+        open={!!pendingTier}
+        onOpenChange={(open) => { if (!open && pledgingId === null) setPendingTier(null); }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Complete your pledge</DialogTitle>
+            <DialogDescription>
+              Enter your details so we can send your confirmation and keep you
+              updated on the campaign.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Selected tier summary */}
+          {pendingTier && (
+            <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex items-center justify-between text-sm">
+              <span className="font-medium">{pendingTier.name}</span>
+              <span className="font-bold text-primary">
+                ${pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1)}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({formatNgn(pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1))})
+                </span>
+              </span>
+            </div>
+          )}
+
+          <form onSubmit={handleGuestSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="pledge-name">
+                Full name <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="pledge-name"
+                  type="text"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="e.g. Kingsley Daprime"
+                  className="pl-9"
+                  required
+                  autoComplete="name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="pledge-email">
+                Email address <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="pledge-email"
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="pl-9"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                We&apos;ll send your receipt and pledge updates here.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setPendingTier(null)}
+                disabled={pledgingId !== null}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={pledgingId !== null}
+              >
+                {pledgingId !== null ? (
+                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
+                ) : (
+                  "Continue to Payment"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

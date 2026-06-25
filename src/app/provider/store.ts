@@ -15,6 +15,7 @@ import { notificationApi } from "./api/notificationApi";
 import { adminApi } from "./api/admin";
 import { organizerPaymentApi } from "./api/organizerPaymentApi";
 import { reminderApi } from "./api/reminderApi";
+import { pledgeApi } from "./api/pledgeApi";
 
 export const store = configureStore({
     reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
         [adminApi.reducerPath]: adminApi.reducer,
         [organizerPaymentApi.reducerPath]: organizerPaymentApi.reducer,
         [reminderApi.reducerPath]: reminderApi.reducer,
+        [pledgeApi.reducerPath]: pledgeApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -48,6 +50,7 @@ export const store = configureStore({
             adminApi.middleware,
             organizerPaymentApi.middleware,
             reminderApi.middleware,
+            pledgeApi.middleware,
         )
     }
 })

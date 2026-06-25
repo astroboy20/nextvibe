@@ -1,22 +1,50 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface PurchaseSummary {
+  purchaseId: string;
+  paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
+  paidAt: string | null;
+  totalAmount: number;
+  currency: string;
+  customerName: string;
+  event: {
+    id: string;
+    name: string;
+    description: string;
+    startsAt: string;
+    endsAt: string;
+    locationName: string;
+    flierUrl: string | null;
+    mode: string;
+  };
+  tickets: Array<{
+    ticketNumber: string;
+    tierName: string;
+    tierPrice: number;
+    status: "VALID" | "USED" | "CANCELLED";
+    qrCode: string;
+  }>;
+}
+
 export const paymentApi = createApi({
   reducerPath: "paymentApi",
-
   baseQuery: baseQueryWithReauth,
-
   tagTypes: ["Purchases"],
 
   endpoints: (builder) => ({
-    /** POST /v1/payments/purchase — initiate ticket purchase, returns paymentUrl + purchaseId */
+    /** POST /v1/payments/purchase — initiate ticket purchase → checkoutUrl + purchaseId */
     initiatePurchase: builder.mutation<
       {
         success: boolean;
         data: {
           purchaseId: string;
-          paymentUrl: string;
-          reference: string;
+          paymentReference: string;
+          totalAmount: number;
+          checkoutUrl: string;
+          expiresAt: string;
         };
       },
       {
@@ -31,18 +59,12 @@ export const paymentApi = createApi({
       }),
     }),
 
-    /** GET /v1/payments/verify/{purchaseId} — verify payment status */
-    verifyPurchase: builder.query<
-      {
-        success: boolean;
-        data: {
-          status: "PENDING" | "SUCCESS" | "FAILED";
-          purchaseId: string;
-        };
-      },
+    /** GET /v1/payments/purchases/:purchaseId/summary — public, for confirmation page */
+    getPurchaseSummary: builder.query<
+      { success: boolean; data: PurchaseSummary },
       string
     >({
-      query: (purchaseId) => `/v1/payments/verify/${purchaseId}`,
+      query: (purchaseId) => `/v1/payments/purchases/${purchaseId}/summary`,
     }),
 
     /** GET /v1/payments/purchases?limit=20&page=1 — user's purchase history */
@@ -57,7 +79,7 @@ export const paymentApi = createApi({
       providesTags: ["Purchases"],
     }),
 
-    /** GET /v1/payments/purchases/{id} — single purchase detail */
+    /** GET /v1/payments/purchases/:id — full purchase detail (auth-gated) */
     getPurchaseById: builder.query<any, string>({
       query: (id) => `/v1/payments/purchases/${id}`,
     }),
@@ -66,8 +88,7 @@ export const paymentApi = createApi({
 
 export const {
   useInitiatePurchaseMutation,
-  useVerifyPurchaseQuery,
-  useLazyVerifyPurchaseQuery,
+  useGetPurchaseSummaryQuery,
   useGetUserPurchasesQuery,
   useGetPurchaseByIdQuery,
 } = paymentApi;
