@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/incompatible-library */
 "use client";
+import imageCompression from "browser-image-compression";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,9 @@ import SuccessModal from "../../../components/success-modal";
 import { Badge } from "@/components/ui/badge";
 import { errorHandler } from "@/utils/errorHandler";
 
-const MAX_VIDEO_SIZE = 350 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 350 * 1024 * 1024; // 350 MB
+const MAX_FLIER_SIZE = 10 * 1024 * 1024; // 10 MB hard cap before compression
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
 const eventTypes = [
   { id: "concert", name: "Concert" },
@@ -63,8 +66,12 @@ const basicInfoSchema = z.object({
   promoVideo: z
     .instanceof(File)
     .refine(
+      (file) => ACCEPTED_VIDEO_TYPES.includes(file.type),
+      "Please upload an MP4, MOV, or WebM file"
+    )
+    .refine(
       (file) => file.size <= MAX_VIDEO_SIZE,
-      "Video must be 350MB or less"
+      "Video must be 350 MB or less"
     )
     .optional(),
   name: z.string().min(2, "Name must have at least 2 letters"),
@@ -167,15 +174,29 @@ const BasicInfo = () => {
     });
 
   const handleFlierChange = async (file: File) => {
+    if (file.size > MAX_FLIER_SIZE) {
+      toast.warning("Flyer must be 10 MB or less. Please use a smaller image.");
+      return;
+    }
     setValue("flier", file, { shouldValidate: true });
     setFlierUpload({ status: "uploading", progress: 0, url: null });
     try {
+      // Compress before uploading — reduces a 10MB photo to ~300KB
+      const toUpload = file.type.startsWith("image/")
+        ? await imageCompression(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: "image/jpeg",
+          })
+        : file;
+
       const intent = await uploadIntent({
         filename: file.name,
-        contentType: file.type,
+        contentType: toUpload.type,
         folder: "events",
       }).unwrap();
-      await uploadFile(file, intent.data.uploadUrl, (pct) =>
+      await uploadFile(toUpload, intent.data.uploadUrl, (pct) =>
         setFlierUpload((prev) => ({ ...prev, progress: pct }))
       );
       setFlierUpload({
@@ -190,8 +211,12 @@ const BasicInfo = () => {
   };
 
   const handleVideoChange = async (file: File) => {
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast.warning("Please upload an MP4, MOV, or WebM video file.");
+      return;
+    }
     if (file.size > MAX_VIDEO_SIZE) {
-      toast.warning("Video must be 350MB or less");
+      toast.warning("Video must be 350 MB or less.");
       return;
     }
     setValue("promoVideo", file, { shouldValidate: true });
@@ -736,7 +761,7 @@ const BasicInfo = () => {
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
-                        input.accept = "video/*";
+                        input.accept = "video/mp4,video/quicktime,video/webm";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement)
                             .files?.[0];
@@ -773,11 +798,11 @@ const BasicInfo = () => {
                     Upload promotional video
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    (max 350MB)
+                    MP4, MOV or WebM · max 350 MB
                   </span>
                   <input
                     type="file"
-                    accept="video/*"
+                    accept="video/mp4,video/quicktime,video/webm"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
