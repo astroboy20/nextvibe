@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -73,11 +73,21 @@ export default function PledgeConfirmPage() {
   }, [status]);
 
   const handleShare = async () => {
-    const text = `I just backed NextVibe as a ${pledge?.tierName ?? "supporter"}! 🚀 Join the movement.`;
+    const text = `I just backed NextVibe as a ${
+      pledge?.tierName ?? "supporter"
+    }! 🚀 Join the movement.`;
     if (navigator.share) {
-      await navigator.share({ title: "I backed NextVibe!", text, url: "https://nextvibe.co/pledge" }).catch(() => {});
+      await navigator
+        .share({
+          title: "I backed NextVibe!",
+          text,
+          url: "https://nextvibe.co/pledge",
+        })
+        .catch(() => {});
     } else {
-      await navigator.clipboard.writeText(`${text} https://nextvibe.co/pledge`).catch(() => {});
+      await navigator.clipboard
+        .writeText(`${text} https://nextvibe.co/pledge`)
+        .catch(() => {});
       toast.success("Copied to clipboard!");
     }
   };
@@ -107,126 +117,140 @@ export default function PledgeConfirmPage() {
   const isPending = !status || status === "PENDING";
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10 pb-24">
-      <div className="max-w-md mx-auto space-y-6">
+    <Suspense fallback={null}>
+      <div className="min-h-screen bg-background px-4 py-10 pb-24">
+        <div className="max-w-md mx-auto space-y-6">
+          {/* Back */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 -ml-2 text-muted-foreground"
+            asChild
+          >
+            <Link href="/pledge">
+              <ArrowLeft className="h-4 w-4" />
+              Back to pledge page
+            </Link>
+          </Button>
 
-        {/* Back */}
-        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" asChild>
-          <Link href="/pledge">
-            <ArrowLeft className="h-4 w-4" />
-            Back to pledge page
-          </Link>
-        </Button>
+          {/* Status card */}
+          <div
+            className={cn(
+              "rounded-2xl p-8 text-center space-y-4 border",
+              isCompleted && "bg-primary/5 border-primary/20",
+              isFailed && "bg-destructive/5 border-destructive/20",
+              isPending && "bg-amber-500/5 border-amber-500/20"
+            )}
+          >
+            {isPending ? (
+              <Loader2 className="h-14 w-14 mx-auto text-amber-500 animate-spin" />
+            ) : isCompleted ? (
+              <div className="relative inline-block">
+                <CheckCircle2 className="h-14 w-14 mx-auto text-primary" />
+                <Sparkles className="absolute -top-1 -right-2 h-5 w-5 text-yellow-400" />
+              </div>
+            ) : (
+              <XCircle className="h-14 w-14 mx-auto text-destructive" />
+            )}
 
-        {/* Status card */}
-        <div
-          className={cn(
-            "rounded-2xl p-8 text-center space-y-4 border",
-            isCompleted && "bg-primary/5 border-primary/20",
-            isFailed && "bg-destructive/5 border-destructive/20",
-            isPending && "bg-amber-500/5 border-amber-500/20"
-          )}
-        >
-          {isPending ? (
-            <Loader2 className="h-14 w-14 mx-auto text-amber-500 animate-spin" />
-          ) : isCompleted ? (
-            <div className="relative inline-block">
-              <CheckCircle2 className="h-14 w-14 mx-auto text-primary" />
-              <Sparkles className="absolute -top-1 -right-2 h-5 w-5 text-yellow-400" />
+            <div>
+              <h1 className="text-2xl font-bold">
+                {isPending
+                  ? "Confirming your pledge…"
+                  : isCompleted
+                  ? "You're a backer! 🎉"
+                  : "Pledge failed"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                {isPending
+                  ? "Hang tight, this usually takes a few seconds."
+                  : isCompleted
+                  ? "Thank you for believing in NextVibe. You're part of the story."
+                  : "Something went wrong. Please try again."}
+              </p>
             </div>
-          ) : (
-            <XCircle className="h-14 w-14 mx-auto text-destructive" />
-          )}
 
-          <div>
-            <h1 className="text-2xl font-bold">
-              {isPending
-                ? "Confirming your pledge…"
-                : isCompleted
-                ? "You're a backer! 🎉"
-                : "Pledge failed"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              {isPending
-                ? "Hang tight, this usually takes a few seconds."
-                : isCompleted
-                ? "Thank you for believing in NextVibe. You're part of the story."
-                : "Something went wrong. Please try again."}
-            </p>
+            {/* Status badge */}
+            <div className="flex justify-center">
+              {isCompleted && (
+                <Badge className="gap-1.5 bg-primary/10 text-primary border-primary/30">
+                  <Heart className="h-3.5 w-3.5 fill-current" />
+                  Pledge Confirmed
+                </Badge>
+              )}
+              {isFailed && (
+                <Badge className="gap-1.5 bg-destructive/10 text-destructive border-destructive/30">
+                  <XCircle className="h-3.5 w-3.5" />
+                  {status === "EXPIRED" ? "Expired" : "Failed"}
+                </Badge>
+              )}
+              {isPending && (
+                <Badge className="gap-1.5 bg-amber-500/10 text-amber-700 border-amber-500/30">
+                  <Clock className="h-3.5 w-3.5" />
+                  Processing
+                </Badge>
+              )}
+            </div>
           </div>
 
-          {/* Status badge */}
-          <div className="flex justify-center">
-            {isCompleted && (
-              <Badge className="gap-1.5 bg-primary/10 text-primary border-primary/30">
-                <Heart className="h-3.5 w-3.5 fill-current" />
-                Pledge Confirmed
-              </Badge>
-            )}
-            {isFailed && (
-              <Badge className="gap-1.5 bg-destructive/10 text-destructive border-destructive/30">
-                <XCircle className="h-3.5 w-3.5" />
-                {status === "EXPIRED" ? "Expired" : "Failed"}
-              </Badge>
-            )}
-            {isPending && (
-              <Badge className="gap-1.5 bg-amber-500/10 text-amber-700 border-amber-500/30">
-                <Clock className="h-3.5 w-3.5" />
-                Processing
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Pledge details */}
-        {isCompleted && pledge && (
-          <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm text-muted-foreground">Tier</span>
-              <span className="font-semibold text-sm">{pledge.tierName}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm text-muted-foreground">Quantity</span>
-              <span className="font-semibold text-sm">{pledge.quantity}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm text-muted-foreground">Amount (USD)</span>
-              <span className="font-semibold text-sm">${Number(pledge.totalUsd).toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-sm text-muted-foreground">Amount (NGN)</span>
-              <span className="font-semibold text-sm">{formatNgn(pledge.totalNgn)}</span>
-            </div>
-            {pledge.paidAt && (
+          {/* Pledge details */}
+          {isCompleted && pledge && (
+            <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3.5">
-                <span className="text-sm text-muted-foreground">Paid at</span>
+                <span className="text-sm text-muted-foreground">Tier</span>
+                <span className="font-semibold text-sm">{pledge.tierName}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3.5">
+                <span className="text-sm text-muted-foreground">Quantity</span>
+                <span className="font-semibold text-sm">{pledge.quantity}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3.5">
+                <span className="text-sm text-muted-foreground">
+                  Amount (USD)
+                </span>
                 <span className="font-semibold text-sm">
-                  {format(new Date(pledge.paidAt), "PPP 'at' p")}
+                  ${Number(pledge.totalUsd).toFixed(2)}
                 </span>
               </div>
-            )}
-          </div>
-        )}
+              <div className="flex items-center justify-between px-4 py-3.5">
+                <span className="text-sm text-muted-foreground">
+                  Amount (NGN)
+                </span>
+                <span className="font-semibold text-sm">
+                  {formatNgn(pledge.totalNgn)}
+                </span>
+              </div>
+              {pledge.paidAt && (
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <span className="text-sm text-muted-foreground">Paid at</span>
+                  <span className="font-semibold text-sm">
+                    {format(new Date(pledge.paidAt), "PPP 'at' p")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Actions */}
-        {isCompleted && (
-          <div className="space-y-3">
-            <Button className="w-full gap-2" onClick={handleShare}>
-              <Share2 className="h-4 w-4" />
-              Share with friends
-            </Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/events">Explore Events</Link>
-            </Button>
-          </div>
-        )}
+          {/* Actions */}
+          {isCompleted && (
+            <div className="space-y-3">
+              <Button className="w-full gap-2" onClick={handleShare}>
+                <Share2 className="h-4 w-4" />
+                Share with friends
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/events">Explore Events</Link>
+              </Button>
+            </div>
+          )}
 
-        {isFailed && (
-          <Button className="w-full" onClick={() => router.push("/pledge")}>
-            Try Again
-          </Button>
-        )}
+          {isFailed && (
+            <Button className="w-full" onClick={() => router.push("/pledge")}>
+              Try Again
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+    </Suspense>
   );
 }
