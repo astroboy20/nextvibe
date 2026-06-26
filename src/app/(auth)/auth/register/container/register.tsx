@@ -25,7 +25,6 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
-import { resolvePostAuthDestination, userHasVibes } from "@/utils/navigate-after-auth";
 
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -83,14 +82,9 @@ export default function RegisterContent() {
         ? decodedFrom
         : null;
 
-      // New users never have vibes — always send to onboarding
-      const destination = resolvePostAuthDestination({
-        isSuperAdmin: false,
-        validFrom,
-        hasVibes: userHasVibes(res?.data?.user),
-      });
-
-      await handlePostAuth(() => router.replace(destination));
+      // Always send new users to onboarding — they have no vibes yet
+      const next = validFrom ? encodeURIComponent(validFrom) : encodeURIComponent("/events");
+      await handlePostAuth(() => router.replace(`/onboarding/vibes?next=${next}`));
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Something went wrong");
     }

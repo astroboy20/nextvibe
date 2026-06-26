@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useInitiatePledgeMutation } from "@/app/provider/api/pledgeApi";
-import { useGetUserQuery } from "@/app/provider/api/authApi";
 
 const USD_TO_NGN = 1500;
 
@@ -184,7 +183,7 @@ function TierCard({
       transition={{ type: "spring", stiffness: 300 }}
       className={`relative flex flex-col h-full rounded-3xl p-6 sm:p-7 shadow-card hover:shadow-card-hover transition-shadow ${
         tier.highlight
-          ? "bg-gradient-to-br from-primary to-vibe-purple text-primary-foreground border-2 border-primary"
+          ? "bg-linear-to-br from-primary to-vibe-purple text-primary-foreground border-2 border-primary"
           : "bg-white/70 glass border border-border/40"
       }`}
     >
@@ -352,9 +351,12 @@ function TierCard({
         className="w-full rounded-xl"
       >
         {isPledging ? (
-          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Processing…
+          </>
         ) : (
-          <>Pledge ${formatUsd(total)}</>
+          <>Pledge {formatUsd(total)}</>
         )}
       </Button>
     </motion.div>
@@ -370,57 +372,58 @@ export default function RewardTiers() {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [initiatePledge] = useInitiatePledgeMutation();
-  const { data: userData } = useGetUserQuery();
-  const user = userData?.data;
 
-  const submitPledge = async (tier: Tier, opts?: { name: string; email: string }) => {
+  const submitPledge = async (
+    tier: Tier,
+    opts: { name: string; email: string }
+  ) => {
     const qty = quantities[tier.id];
     setPledgingId(tier.id);
     try {
-      const body: Parameters<typeof initiatePledge>[0] = {
+      const res = await initiatePledge({
         tierId: tier.id as any,
         quantity: qty,
-        // Only include name/email for guests — API pulls them from token for auth'd users
-        ...(opts ? { name: opts.name, email: opts.email } : {}),
-      };
+        name: opts.name,
+        email: opts.email,
+      }).unwrap();
 
-      const res = await initiatePledge(body).unwrap();
+      console.log(res)
 
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("pendingPledgeId", res.pledgeId);
+        sessionStorage.setItem("pendingPledgeId", res?.data?.pledgeId);
       }
-      window.location.href = res.checkoutUrl;
+      window.location.href = res?.data?.checkoutUrl;
     } catch (err: any) {
-      const msg = err?.data?.message ?? err?.message ?? "Failed to initiate pledge.";
+      const msg =
+        err?.data?.message ?? err?.message ?? "Failed to initiate pledge.";
       toast.error(msg);
       setPledgingId(null);
     }
   };
 
   const handlePledge = (tier: Tier) => {
-    if (user) {
-      // Logged-in — send only tierId + quantity, no name/email
-      submitPledge(tier);
-    } else {
-      // Guest — show name/email form first
-      setPendingTier(tier);
-    }
+    // Always show the guest details modal
+    setPendingTier(tier);
   };
 
   const handleGuestSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!pendingTier) return;
+
     const name = guestName.trim();
     const email = guestEmail.trim();
+
     if (!name || !email) {
       toast.error("Please enter your name and email.");
       return;
     }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast.error("Please enter a valid email address.");
       return;
     }
+
     setPendingTier(null);
     submitPledge(pendingTier, { name, email });
   };
@@ -479,7 +482,9 @@ export default function RewardTiers() {
       {/* ── Guest details modal ───────────────────────────────────────────── */}
       <Dialog
         open={!!pendingTier}
-        onOpenChange={(open) => { if (!open && pledgingId === null) setPendingTier(null); }}
+        onOpenChange={(open) => {
+          if (!open && pledgingId === null) setPendingTier(null);
+        }}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -497,7 +502,11 @@ export default function RewardTiers() {
               <span className="font-bold text-primary">
                 ${pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1)}{" "}
                 <span className="text-xs font-normal text-muted-foreground">
-                  ({formatNgn(pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1))})
+                  (
+                  {formatNgn(
+                    pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1)
+                  )}
+                  )
                 </span>
               </span>
             </div>
@@ -561,7 +570,10 @@ export default function RewardTiers() {
                 disabled={pledgingId !== null}
               >
                 {pledgingId !== null ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing…
+                  </>
                 ) : (
                   "Continue to Payment"
                 )}

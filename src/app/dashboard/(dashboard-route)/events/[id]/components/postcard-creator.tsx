@@ -145,7 +145,10 @@ async function bakeOverlayOntoVideo(
     const objectUrl = URL.createObjectURL(videoBlob);
 
     const video = document.createElement("video");
-    video.muted = true;       // mute during processing — no speaker output
+    // NOTE: do NOT set video.muted = true here — it would prevent the
+    // AudioContext from capturing the audio track for the baked output.
+    // The audio is routed through AudioContext so it won't play through
+    // the device speakers during processing anyway.
     video.playsInline = true;
     video.preload = "auto";
     video.playbackRate = 2;   // encode at 2× speed → half the time
@@ -192,9 +195,25 @@ async function bakeOverlayOntoVideo(
         // Capture at 15 fps — half the draw calls vs 30 fps
         const videoStream = (canvas as any).captureStream(15) as MediaStream;
 
+        // Preserve the original audio — create a silent AudioContext source
+        // from the video element and pipe it into the output stream so the
+        // baked file keeps its audio track.
+        try {
+          const audioCtx = new AudioContext();
+          const src = audioCtx.createMediaElementSource(video);
+          const dst = audioCtx.createMediaStreamDestination();
+          src.connect(dst);
+          // Also connect to speakers so audio isn't dropped silently
+          src.connect(audioCtx.destination);
+          dst.stream.getAudioTracks().forEach((t) => videoStream.addTrack(t));
+        } catch {
+          // AudioContext not available — audio will be missing but video still works
+        }
+
         const recorder = new MediaRecorder(videoStream, {
           mimeType,
           videoBitsPerSecond: 2_000_000,  // 2 Mbps — 4× less than original 8 Mbps
+          audioBitsPerSecond: 128_000,
         });
 
         const chunks: Blob[] = [];

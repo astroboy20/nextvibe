@@ -8,7 +8,6 @@ import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
-import { resolvePostAuthDestination, userHasVibes } from "@/utils/navigate-after-auth";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -92,11 +91,18 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
 
         await new Promise((resolve) => setTimeout(resolve, 50));
 
-        const destination = resolvePostAuthDestination({
-          isSuperAdmin,
-          validFrom,
-          hasVibes: userHasVibes(res.data.user),
-        });
+        // Only send to onboarding when coming from the register page (new account).
+        // Login via Google goes straight to the destination.
+        const isRegisterPage = pathname === "/auth/register";
+        let destination: string;
+        if (isSuperAdmin) {
+          destination = validFrom ?? "/admin";
+        } else if (isRegisterPage) {
+          const next = encodeURIComponent(validFrom ?? "/events");
+          destination = `/onboarding/vibes?next=${next}`;
+        } else {
+          destination = validFrom ?? "/events";
+        }
         await handlePostAuth(() => router.replace(destination));
       }}
       logo_alignment="center"

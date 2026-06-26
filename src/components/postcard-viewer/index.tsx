@@ -186,10 +186,21 @@ export function VideoPlayer({
   onDoubleTap?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Videos start muted so autoplay is permitted by browsers.
+  // We track mute state in React only to drive the icon — the actual
+  // mute is applied directly on the DOM element to avoid React's
+  // one-way `muted` prop which cannot be toggled after mount.
   const [muted, setMuted] = useState(true);
   const [buffering, setBuffering] = useState(true);
   const lastTapRef = useRef<number>(0);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Apply the initial muted state to the DOM element on mount
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.muted = true;
+  }, []);
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -218,11 +229,11 @@ export function VideoPlayer({
       // Potential single tap — wait to see if a second tap follows
       singleTapTimerRef.current = setTimeout(() => {
         singleTapTimerRef.current = null;
-        // Single tap: toggle mute
+        // Single tap: toggle mute directly on the DOM element
         const vid = videoRef.current;
         if (!vid) return;
         if (vid.paused) vid.play().catch(() => {});
-        const next = !muted;
+        const next = !vid.muted;
         vid.muted = next;
         setMuted(next);
         onSingleTap?.();
@@ -245,11 +256,13 @@ export function VideoPlayer({
           <Loader2 className="h-8 w-8 text-white animate-spin" />
         </div>
       )}
+      {/* muted prop intentionally omitted — controlled via ref to allow
+          reliable toggling after mount. Initial muted state is applied in
+          the mount effect above. */}
       <video
         ref={videoRef}
         src={src}
         autoPlay
-        muted={muted}
         loop
         playsInline
         preload="metadata"

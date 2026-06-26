@@ -36,6 +36,7 @@ export const pledgeApi = createApi({
      */
     initiatePledge: builder.mutation<
       {
+        data: any;
         pledgeId: string;
         checkoutUrl: string;
         totalNgn: number;

@@ -494,6 +494,7 @@ function PublicRoundPlayer({
   isSubmitting,
   isAnonymous,
   token,
+  onScoreReceived,
 }: {
   round: any;
   session: any;
@@ -501,6 +502,7 @@ function PublicRoundPlayer({
   isSubmitting: boolean;
   isAnonymous?: boolean;
   token?: string;
+  onScoreReceived?: (score: number) => void;
 }) {
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
@@ -551,7 +553,9 @@ function PublicRoundPlayer({
       const result = await onSubmit(round.id, allAnswers, Date.now() - totalStartTime);
       if (result.ok) {
         await refetchLeaderboard();
-        setFinalScore(result.score ?? 0);
+        const score = result.score ?? 0;
+        setFinalScore(score);
+        onScoreReceived?.(score);
       }
     }
   };
@@ -577,7 +581,9 @@ function PublicRoundPlayer({
           const result = await onSubmit(round.id, wordAnswers, Date.now() - totalStartTime);
           if (result.ok) {
             await refetchLeaderboard();
-            setFinalScore(result.score ?? 0);
+            const score = result.score ?? 0;
+            setFinalScore(score);
+            onScoreReceived?.(score);
           }
         }}
       />
@@ -758,6 +764,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const [anonId, setAnonId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
   const [playedRounds, setPlayedRounds] = useState<Set<string>>(new Set());
+  const [lastScore, setLastScore] = useState<number | null>(null);
 
   const session = data?.data;
   const activeRound = session?.rounds?.find((r: any) => r.status === "ACTIVE");
@@ -957,6 +964,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
               isSubmitting={isSubmitting}
               isAnonymous={isAnonymous || (!myUserId && !!anonId)}
               token={token}
+              onScoreReceived={(score) => setLastScore(score)}
             />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>
@@ -1019,11 +1027,26 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
           <div className="space-y-3">
             {hasPlayed ? (
               <div className="space-y-2">
-                <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
-                  <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                  <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
-                  <p className="text-xs text-muted-foreground">Check the leaderboard to see your rank.</p>
-                </div>
+                {lastScore !== null ? (
+                  <div className="flex flex-col items-center gap-4 py-6 text-center animate-fade-in">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
+                      <Trophy className="h-10 w-10 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground font-medium">Your Score</p>
+                      <p className="font-display text-5xl font-bold text-foreground">{lastScore.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">points</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
+                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
+                    {myEntry?.score != null && (
+                      <p className="text-sm font-bold text-foreground mt-1">{myEntry.score.toLocaleString()} pts</p>
+                    )}
+                  </div>
+                )}
                 {isAnonymous && !myUserId && (
                   <div className="rounded-xl bg-[#5B1A57]/5 border border-[#5B1A57]/20 p-3 text-center">
                     <p className="text-xs text-muted-foreground">
