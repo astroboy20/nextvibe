@@ -36,6 +36,7 @@ export const notificationApi = createApi({
   reducerPath: "notificationApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Notifications"],
+  keepUnusedDataFor: 60, // notifications are more time-sensitive, 1 minute cache
   endpoints: (builder) => ({
     /** GET /v1/notifications */
     getNotifications: builder.query<NotificationsResponse, void>({

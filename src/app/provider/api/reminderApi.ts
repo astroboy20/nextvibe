@@ -68,6 +68,7 @@ export const reminderApi = createApi({
   reducerPath: "reminderApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Reminders", "ReminderLogs"],
+  keepUnusedDataFor: 300,
 
   endpoints: (builder) => ({
     /** GET /v1/events/:eventId/reminders */

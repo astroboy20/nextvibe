@@ -230,6 +230,7 @@ export const adminApi = createApi({
     reducerPath: 'adminApi',
     baseQuery: adminBaseQuery,
     tagTypes: ['Stats', 'Analytics', 'Payments', 'Events', 'Postcards', 'GameSessions', 'VibeTag', 'Users', 'Coupons'],
+    keepUnusedDataFor: 300,
     endpoints: (builder) => ({
         // ── Stats & Analytics ──────────────────────────────────────────────────
         getStats: builder.query<any, void>({

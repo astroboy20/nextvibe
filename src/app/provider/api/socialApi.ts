@@ -98,6 +98,7 @@ export const socialApi = createApi({
   reducerPath: "socialApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Postcards", "Comments", "People", "Feed"],
+  keepUnusedDataFor: 300,
   endpoints: (build) => ({
 
     // ── Feed: postcards from accounts you follow ──────────────────────────────

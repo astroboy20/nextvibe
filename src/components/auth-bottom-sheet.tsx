@@ -86,7 +86,6 @@ export function AuthBottomSheet({
 
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      router.refresh();
       toast.success("Signed in!");
       onSuccess();
     } catch (err: any) {
@@ -111,7 +110,6 @@ export function AuthBottomSheet({
 
       dispatch(setIsAuthenticated(true));
       dispatch(setUser({ ...res.data.user }));
-      router.refresh();
       toast.success("Account created!");
       onSuccess();
     } catch (err: any) {

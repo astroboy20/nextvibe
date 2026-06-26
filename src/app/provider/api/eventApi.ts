@@ -9,6 +9,7 @@ export const eventsApi = createApi({
   baseQuery: baseQueryWithReauth,
 
   tagTypes: ["Events", "Event", "Gallery", "Messages", "Games", "PublishPreview"],
+  keepUnusedDataFor: 300, // cache for 5 minutes — avoids re-fetching on every mount/navigation
 
   endpoints: (builder) => ({
 

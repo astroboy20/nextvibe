@@ -9,6 +9,7 @@ export const gamesApi = createApi({
     reducerPath: "gamesApi",
     baseQuery: baseQueryWithReauth,
     tagTypes: ["Game", "LeaderBoard"],
+    keepUnusedDataFor: 300,
     endpoints: (build) => ({
 
         generateTrivia: build.mutation<GenerateTriviaResponse, GenerateTriviaRequest>({

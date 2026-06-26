@@ -46,6 +46,7 @@ export const discoverApi = createApi({
   reducerPath: "discoverApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["VibeTags", "DiscoverFeed"],
+  keepUnusedDataFor: 300, // cache for 5 minutes — avoids re-fetching on every mount
 
   endpoints: (builder) => ({
     /**

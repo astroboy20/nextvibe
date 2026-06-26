@@ -76,6 +76,7 @@ export const organizerPaymentApi = createApi({
   reducerPath: "organizerPaymentApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["OrganizerPayments"],
+  keepUnusedDataFor: 300,
 
   endpoints: (builder) => ({
     /**

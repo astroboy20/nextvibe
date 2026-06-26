@@ -44,6 +44,7 @@ export const messagingApi = createApi({
   reducerPath: "messagingApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Conversations", "Messages"],
+  keepUnusedDataFor: 60, // messages are real-time sensitive, 1 minute cache
   endpoints: (build) => ({
     getConversations: build.query<ConversationsResponse, void>({
       query: () => ({ url: "/v1/conversations", method: "GET" }),

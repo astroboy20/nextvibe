@@ -27,6 +27,7 @@ export const pledgeApi = createApi({
   reducerPath: "pledgeApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Pledges"],
+  keepUnusedDataFor: 300,
 
   endpoints: (builder) => ({
     /**

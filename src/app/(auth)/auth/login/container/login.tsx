@@ -99,7 +99,6 @@ const LoginContent = () => {
 
       await handlePostAuth(() => {
         router.push(destination);
-        router.refresh();
       });
     } catch (error: any) {
       toast(error?.data?.message || "Login Error");
@@ -118,14 +117,12 @@ const LoginContent = () => {
             const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
             confirmMerge(ids, () => {
               router.push(validFrom ? from : "/events");
-              router.refresh();
             });
           }}
           onSkip={() => {
             const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
             skipMerge(() => {
               router.push(validFrom ? from : "/events");
-              router.refresh();
             });
           }}
         />

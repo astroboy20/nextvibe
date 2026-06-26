@@ -112,10 +112,19 @@ export const baseQueryWithReauth: BaseQueryFn<
   try {
     // Refresh token is httpOnly — call the Next.js proxy route which reads it
     // server-side, calls the backend, and sets the new cookies in one step.
-    const refreshRes = await fetch(
-      `/api/auth/refresh${isAdminRoute ? "?isAdmin=true" : ""}`,
-      { method: "POST" }
-    );
+    // Hard cap at 10 s so a hung refresh doesn't freeze the whole app.
+    const refreshController = new AbortController();
+    const refreshTimeout = setTimeout(() => refreshController.abort(), 10000);
+
+    let refreshRes: Response;
+    try {
+      refreshRes = await fetch(
+        `/api/auth/refresh${isAdminRoute ? "?isAdmin=true" : ""}`,
+        { method: "POST", signal: refreshController.signal }
+      );
+    } finally {
+      clearTimeout(refreshTimeout);
+    }
 
     if (refreshRes.ok) {
       flushQueue(true);

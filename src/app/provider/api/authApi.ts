@@ -8,6 +8,7 @@ export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: baseQueryWithReauth,
     tagTypes: ["User"],
+    keepUnusedDataFor: 300, // cache user data for 5 minutes
     endpoints: (build) => ({
 
         login: build.mutation({

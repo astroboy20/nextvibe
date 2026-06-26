@@ -33,6 +33,7 @@ export const paymentApi = createApi({
   reducerPath: "paymentApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Purchases"],
+  keepUnusedDataFor: 300,
 
   endpoints: (builder) => ({
     /** POST /v1/payments/purchase — initiate ticket purchase → checkoutUrl + purchaseId */

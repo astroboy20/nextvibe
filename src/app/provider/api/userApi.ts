@@ -7,6 +7,7 @@ import { baseQueryWithReauth } from "./baseQuery";
 export const userApi = createApi({
     reducerPath: "userApi",
     baseQuery: baseQueryWithReauth,
+    keepUnusedDataFor: 300,
     endpoints: (build) => ({
 
 
