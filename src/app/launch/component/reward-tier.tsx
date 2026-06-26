@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ import {
 import { toast } from "sonner";
 import { useInitiatePledgeMutation } from "@/app/provider/api/pledgeApi";
 
-const USD_TO_NGN = 1500;
+const USD_TO_NGN_FALLBACK = 1500; // used only if the live fetch fails
 
 export type Tier = {
   id: string;
@@ -157,8 +157,32 @@ export const TIERS: Tier[] = [
 function formatUsd(v: number) {
   return `$${v.toLocaleString()}`;
 }
-function formatNgn(usd: number) {
-  return `₦${(usd * USD_TO_NGN).toLocaleString()}`;
+
+function formatNgn(usd: number, rate: number) {
+  return `₦${(usd * rate).toLocaleString()}`;
+}
+
+/** Fetches the live USD → NGN exchange rate. No API key needed, no rate limits. */
+function useExchangeRate() {
+  const [rate, setRate] = useState(USD_TO_NGN_FALLBACK);
+
+  useEffect(() => {
+    fetch(
+      "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json"
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const liveRate = data?.usd?.ngn;
+        if (typeof liveRate === "number" && liveRate > 0) {
+          setRate(Math.round(liveRate));
+        }
+      })
+      .catch(() => {
+        // silently keep the fallback
+      });
+  }, []);
+
+  return rate;
 }
 
 function TierCard({
@@ -167,12 +191,14 @@ function TierCard({
   setQty,
   onPledge,
   isPledging,
+  rate,
 }: {
   tier: Tier;
   qty: number;
   setQty: (n: number) => void;
   onPledge: () => void;
   isPledging: boolean;
+  rate: number;
 }) {
   const Icon = tier.icon;
   const total = tier.priceUsd * qty;
@@ -231,7 +257,7 @@ function TierCard({
                 : "text-muted-foreground"
             }`}
           >
-            ({formatNgn(tier.priceUsd)})
+            ({formatNgn(tier.priceUsd, rate)})
           </span>
         </div>
         {tier.savingsPct !== null && tier.normalValue !== null && (
@@ -338,7 +364,7 @@ function TierCard({
         <span>Total</span>
         <span className="font-display text-lg font-bold tabular-nums">
           {formatUsd(total)}{" "}
-          <span className="text-xs opacity-70">({formatNgn(total)})</span>
+          <span className="text-xs opacity-70">({formatNgn(total, rate)})</span>
         </span>
       </div>
 
@@ -364,6 +390,7 @@ function TierCard({
 }
 
 export default function RewardTiers() {
+  const rate = useExchangeRate();
   const [quantities, setQuantities] = useState<Record<string, number>>(
     Object.fromEntries(TIERS.map((t) => [t.id, 1]))
   );
@@ -387,7 +414,7 @@ export default function RewardTiers() {
         email: opts.email,
       }).unwrap();
 
-      console.log(res)
+      console.log(res);
 
       if (typeof window !== "undefined") {
         sessionStorage.setItem("pendingPledgeId", res?.data?.pledgeId);
@@ -402,7 +429,6 @@ export default function RewardTiers() {
   };
 
   const handlePledge = (tier: Tier) => {
-    // Always show the guest details modal
     setPendingTier(tier);
   };
 
@@ -469,13 +495,14 @@ export default function RewardTiers() {
               setQty={(n) => setQuantities((q) => ({ ...q, [tier.id]: n }))}
               onPledge={() => handlePledge(tier)}
               isPledging={pledgingId === tier.id}
+              rate={rate}
             />
           </motion.div>
         ))}
       </div>
 
       <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
-        Prices in USD. NGN equivalent at ₦{USD_TO_NGN.toLocaleString()}/$1.
+        Prices in USD. NGN equivalent at ₦{rate.toLocaleString()}/$1.
         Secure checkout powered by Ercaspay.
       </p>
 
@@ -500,11 +527,12 @@ export default function RewardTiers() {
             <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex items-center justify-between text-sm">
               <span className="font-medium">{pendingTier.name}</span>
               <span className="font-bold text-primary">
-                ${pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1)}{" "}
+                {formatUsd(pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1))}{" "}
                 <span className="text-xs font-normal text-muted-foreground">
                   (
                   {formatNgn(
-                    pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1)
+                    pendingTier.priceUsd * (quantities[pendingTier.id] ?? 1),
+                    rate
                   )}
                   )
                 </span>

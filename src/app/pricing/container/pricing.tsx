@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,52 @@ import {
   Quote,
 } from "lucide-react";
 import Link from "next/link";
+
+// ─── Exchange rate ────────────────────────────────────────────────────────────
+
+const NGN_FALLBACK = 1500; // fallback if both fetches fail
+
+function useExchangeRate() {
+  const [rate, setRate] = useState(NGN_FALLBACK);
+  const [isNigerian, setIsNigerian] = useState(true);
+
+  useEffect(() => {
+    // 1. Detect user's currency via ipapi.co
+    fetch("https://ipapi.co/json/")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.currency) setIsNigerian(data.currency === "NGN");
+      })
+      .catch(() => {});
+
+    // 2. Fetch live USD → NGN rate (no API key, no rate limits)
+    fetch(
+      "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json"
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const liveRate = data?.usd?.ngn;
+        if (typeof liveRate === "number" && liveRate > 0) {
+          setRate(Math.round(liveRate));
+        }
+      })
+      .catch(() => {
+        // silently keep the fallback
+      });
+  }, []);
+
+  return { rate, isNigerian };
+}
+
+/** Format a NGN amount, with optional USD equivalent for non-Nigerian visitors */
+function fmtNgn(ngn: number, rate: number, showUsd: boolean) {
+  const ngnStr = `₦${ngn.toLocaleString()}`;
+  if (!showUsd) return ngnStr;
+  const usd = (ngn / rate).toFixed(2);
+  return `${ngnStr} (~$${parseFloat(usd).toLocaleString()})`;
+}
+
+// ─── Static data ──────────────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 } as const,
@@ -41,15 +88,16 @@ const perfectFor = [
   "Large festivals, stadium events",
 ];
 
-const vibetagSingle = ["₦5,000", "₦10,000", "₦20,000", "₦35,000", "₦50,000"];
-const vibetagBundle = ["₦8,000", "₦15,000", "₦30,000", "₦50,000", "₦75,000"];
+// Raw NGN values — formatted dynamically with useExchangeRate
+const vibetagSingleNgn = [5000, 10000, 20000, 35000, 50000];
+const vibetagBundleNgn = [8000, 15000, 30000, 50000, 75000];
 
-const gameSingle = ["₦5,000", "₦10,000", "₦20,000", "₦35,000", "₦50,000"];
-const gameBundle = ["₦8,000", "₦15,000", "₦30,000", "₦50,000", "₦75,000"];
-const gameExtra = ["₦2,000", "₦3,500", "₦6,000", "₦10,000", "₦15,000"];
+const gameSingleNgn = [5000, 10000, 20000, 35000, 50000];
+const gameBundleNgn = [8000, 15000, 30000, 50000, 75000];
+const gameExtraNgn = [2000, 3500, 6000, 10000, 15000];
 
-const megaSingle = ["₦8,000", "₦15,000", "₦30,000", "₦55,000", "₦85,000"];
-const megaFull = ["₦12,000", "₦25,000", "₦50,000", "₦85,000", "₦135,000"];
+const megaSingleNgn = [8000, 15000, 30000, 55000, 85000];
+const megaFullNgn = [12000, 25000, 50000, 85000, 135000];
 
 const testimonials = [
   {
@@ -69,38 +117,40 @@ const testimonials = [
   },
 ];
 
-const quickCompare = [
+const quickCompareData = [
   {
     type: "Birthday Party",
     attendees: "40",
     need: "VibeTag Bundle (Pre + Main)",
-    price: "₦8,000",
+    priceNgn: 8000,
   },
   {
     type: "House Party",
     attendees: "30",
     need: "Games Bundle (Pre + Main)",
-    price: "₦8,000",
+    priceNgn: 8000,
   },
   {
     type: "Small Wedding",
     attendees: "150",
     need: "Mega Bundle (Pre + Main)",
-    price: "₦25,000",
+    priceNgn: 25000,
   },
   {
     type: "Conference",
     attendees: "300",
     need: "Mega Bundle (Pre + Main)",
-    price: "₦50,000",
+    priceNgn: 50000,
   },
   {
     type: "Concert",
     attendees: "1,000",
     need: "Mega Bundle (Pre + Main)",
-    price: "₦85,000",
+    priceNgn: 85000,
   },
 ];
+
+// ─── Components ───────────────────────────────────────────────────────────────
 
 function PricingTable({
   title,
@@ -166,7 +216,14 @@ function PricingTable({
   );
 }
 
+// ─── Main export ──────────────────────────────────────────────────────────────
+
 export default function Pricing() {
+  const { rate, isNigerian } = useExchangeRate();
+  const showUsd = !isNigerian;
+
+  const fmt = (ngn: number) => fmtNgn(ngn, rate, showUsd);
+
   return (
     <div className="min-h-screen bg-background">
       <main className="pt-20 pb-24">
@@ -301,7 +358,7 @@ export default function Pricing() {
             icon={Tag}
             description="Custom branded VibeTag design, unlimited postcards, forever storage, analytics."
             headers={["Tier", "Single (Pre OR Main)", "Bundle (Pre + Main)"]}
-            rows={tiers.map((t, i) => [t, vibetagSingle[i], vibetagBundle[i]])}
+            rows={tiers.map((t, i) => [t, fmt(vibetagSingleNgn[i]), fmt(vibetagBundleNgn[i])])}
           />
 
           <PricingTable
@@ -309,7 +366,7 @@ export default function Pricing() {
             icon={Gamepad2}
             description="2 games included, AI generation, leaderboards, real-time scoring, sound effects & haptics."
             headers={["Tier", "Single (2 games)", "Bundle (4 games)"]}
-            rows={tiers.map((t, i) => [t, gameSingle[i], gameBundle[i]])}
+            rows={tiers.map((t, i) => [t, fmt(gameSingleNgn[i]), fmt(gameBundleNgn[i])])}
           />
 
           <motion.div
@@ -347,7 +404,7 @@ export default function Pricing() {
                         {t}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {gameExtra[i]}
+                        {fmt(gameExtraNgn[i])}
                       </td>
                     </tr>
                   ))}
@@ -365,7 +422,7 @@ export default function Pricing() {
               "Single (Pre OR Main)",
               "Full Event (Pre + Main)",
             ]}
-            rows={tiers.map((t, i) => [t, megaSingle[i], megaFull[i]])}
+            rows={tiers.map((t, i) => [t, fmt(megaSingleNgn[i]), fmt(megaFullNgn[i])])}
           />
         </div>
 
@@ -477,7 +534,7 @@ export default function Pricing() {
                 </tr>
               </thead>
               <tbody>
-                {quickCompare.map((r) => (
+                {quickCompareData.map((r) => (
                   <tr key={r.type} className="border-t border-border">
                     <td className="px-4 py-3 font-semibold text-foreground">
                       {r.type}
@@ -489,7 +546,7 @@ export default function Pricing() {
                       {r.need}
                     </td>
                     <td className="px-4 py-3 font-bold text-primary">
-                      {r.price}
+                      {fmt(r.priceNgn)}
                     </td>
                   </tr>
                 ))}
