@@ -881,7 +881,6 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         }).unwrap();
         const payload = (res?.data ?? res) as { score: number };
         toast.success("Answers submitted!");
-        setPlayedRounds((prev) => new Set(prev).add(roundId));
         return { ok: true, score: payload.score ?? 0 };
       } catch (err: any) {
         toast.error(err?.data?.message ?? "Submission failed.");
@@ -892,7 +891,6 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
     try {
       const res = await submitAnswers({ roundId, answers, timeTakenMs }).unwrap();
       toast.success("Answers submitted!");
-      setPlayedRounds((prev) => new Set(prev).add(roundId));
       const score = res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
       return { ok: true, score };
     } catch (err: any) {
@@ -940,7 +938,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
             ← Back
           </button>
           <p className="text-xs text-muted-foreground font-medium">{session.title}</p>
-          {roundAlreadyPlayed ? (
+          {roundAlreadyPlayed && lastScore === null ? (
             <div className="flex flex-col items-center gap-4 py-10 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -964,7 +962,10 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
               isSubmitting={isSubmitting}
               isAnonymous={isAnonymous || (!myUserId && !!anonId)}
               token={token}
-              onScoreReceived={(score) => setLastScore(score)}
+              onScoreReceived={(score) => {
+                setLastScore(score);
+                setPlayedRounds((prev) => new Set(prev).add(playingRoundId!));
+              }}
             />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>

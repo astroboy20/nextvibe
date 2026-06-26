@@ -413,53 +413,55 @@ function EventPage({
               </TabsTrigger>
             ))}
           </TabsList>
+        </Tabs>
+      </div>
 
-          <div className="container px-4 py-6">
-            <TabsContent value="about" className="mt-0">
-              <EventAboutTab event={eventDetails?.data} />
-            </TabsContent>
+      <div className="container px-4 py-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsContent value="about" className="mt-0">
+            <EventAboutTab event={eventDetails?.data} />
+          </TabsContent>
 
-            <TabsContent value="rsvp" className="mt-0">
-              <EventRSVPTab event={eventDetails?.data} />
-            </TabsContent>
+          <TabsContent value="rsvp" className="mt-0">
+            <EventRSVPTab event={eventDetails?.data} />
+          </TabsContent>
 
-            <TabsContent value="qr" className="mt-0">
-              <EventQRTab event={eventDetails?.data} />
-            </TabsContent>
+          <TabsContent value="qr" className="mt-0">
+            <EventQRTab event={eventDetails?.data} />
+          </TabsContent>
 
-            <TabsContent value="games" className="mt-0">
-              <EventGamesTab
-                event={eventDetails?.data}
-                initialSessionId={searchParams.get("session") ?? undefined}
-                initialRoundId={searchParams.get("round") ?? undefined}
-                onGameStateChange={(sessionId, roundId) => {
-                  const p = new URLSearchParams(window.location.search);
-                  p.set("tab", "games");
-                  if (sessionId) p.set("session", sessionId);
-                  else p.delete("session");
-                  if (roundId) p.set("round", roundId);
-                  else p.delete("round");
-                  router.replace(
-                    `${window.location.pathname}?${p.toString()}`,
-                    { scroll: false }
-                  );
-                }}
-              />
-            </TabsContent>
+          <TabsContent value="games" className="mt-0">
+            <EventGamesTab
+              event={eventDetails?.data}
+              initialSessionId={searchParams.get("session") ?? undefined}
+              initialRoundId={searchParams.get("round") ?? undefined}
+              onGameStateChange={(sessionId, roundId) => {
+                const p = new URLSearchParams(window.location.search);
+                p.set("tab", "games");
+                if (sessionId) p.set("session", sessionId);
+                else p.delete("session");
+                if (roundId) p.set("round", roundId);
+                else p.delete("round");
+                router.replace(
+                  `${window.location.pathname}?${p.toString()}`,
+                  { scroll: false }
+                );
+              }}
+            />
+          </TabsContent>
 
-            <TabsContent value="postcard" className="mt-0">
-              <EventVibeTagsTab
-                eventId={id}
-                vibeTag={eventDetails?.data?.vibeTag ?? null}
-                eventName={eventDetails?.data?.name ?? "Event"}
-                eventStartsAt={eventDetails?.data?.startsAt ?? null}
-              />
-            </TabsContent>
+          <TabsContent value="postcard" className="mt-0">
+            <EventVibeTagsTab
+              eventId={id}
+              vibeTag={eventDetails?.data?.vibeTag ?? null}
+              eventName={eventDetails?.data?.name ?? "Event"}
+              eventStartsAt={eventDetails?.data?.startsAt ?? null}
+            />
+          </TabsContent>
 
-            <TabsContent value="chat" className="mt-0">
-              <EventChatTab eventId={id} />
-            </TabsContent>
-          </div>
+          <TabsContent value="chat" className="mt-0">
+            <EventChatTab eventId={id} />
+          </TabsContent>
         </Tabs>
       </div>
 
