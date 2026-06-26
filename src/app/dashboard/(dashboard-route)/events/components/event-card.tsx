@@ -137,7 +137,7 @@ export function EventCard({
 
   const href =
     variant === "postcard"
-      ? `/postcards/${id}`
+      ? `/events/${id}?tab=postcard`
       : `/events/${id}`;
 
   return (

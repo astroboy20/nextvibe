@@ -89,6 +89,276 @@ function Pagination({
   );
 }
 
+// ── Postcards view with phase filter ─────────────────────────────────────────
+
+const PHASE_FILTERS = [
+  { id: "all",        label: "All",        icon: Sparkles },
+  { id: "pre-event",  label: "Pre-Event",  icon: Clock },
+  { id: "main-event", label: "Main Event", icon: TrendingUp },
+  { id: "post-event", label: "Post-Event", icon: Tag },
+] as const;
+
+type PostcardPhase = typeof PHASE_FILTERS[number]["id"];
+
+function PostcardsView({
+  allEvents,
+  userInterests,
+  postcardsPage,
+  setPostcardsPage,
+  postcardsTotalPages,
+}: {
+  allEvents: any[];
+  userInterests: any[];
+  postcardsPage: number;
+  setPostcardsPage: (p: number) => void;
+  postcardsTotalPages: number;
+}) {
+  const [activeTab, setActiveTab] = useState<"foryou" | "trending" | "nearby">("foryou");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [interestFilter, setInterestFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [autoLocating, setAutoLocating] = useState(false);
+
+  const toggleFilter = (id: string) => {
+    setActiveFilters((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
+    );
+    setPostcardsPage(1);
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) return;
+    setAutoLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`
+          );
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || "";
+          const country = data.address?.country || "";
+          setLocationFilter(city || country);
+        } catch {}
+        setAutoLocating(false);
+      },
+      () => setAutoLocating(false),
+      { timeout: 8000 }
+    );
+  };
+
+  const clearFilters = () => {
+    setLocationFilter("");
+    setInterestFilter("");
+    setActiveFilters([]);
+    setPostcardsPage(1);
+  };
+
+  const hasFilters = locationFilter || interestFilter || activeFilters.length > 0;
+
+  const filteredEvents = useMemo(() => {
+    let list =
+      activeTab === "trending"
+        ? [...allEvents].sort((a: any, b: any) => (b.postcardCount ?? 0) - (a.postcardCount ?? 0))
+        : activeTab === "nearby" && locationFilter
+        ? [...allEvents].sort((a: any) =>
+            (a.locationName ?? "").toLowerCase().includes(locationFilter.toLowerCase()) ? -1 : 1
+          )
+        : allEvents;
+
+    if (locationFilter) {
+      const l = locationFilter.toLowerCase();
+      list = list.filter((e: any) => (e.locationName ?? "").toLowerCase().includes(l));
+    }
+    if (interestFilter) {
+      const i = interestFilter.toLowerCase().replace(/-/g, " ");
+      list = list.filter(
+        (e: any) =>
+          (e.name ?? "").toLowerCase().includes(i) ||
+          (e.locationName ?? "").toLowerCase().includes(i) ||
+          (e.category ?? "").toLowerCase().includes(i)
+      );
+    }
+    if (activeFilters.includes("games"))   list = list.filter((e: any) => e.hasGame);
+    if (activeFilters.includes("vibetag")) list = list.filter((e: any) => e.hasVibetag);
+    if (activeFilters.includes("free"))    list = list.filter((e: any) => !e.isPaid && !e.ticketPrice);
+    if (activeFilters.includes("soon")) {
+      const now = Date.now();
+      const threeDays = 3 * 24 * 60 * 60 * 1000;
+      list = list.filter((e: any) => {
+        const start = new Date(e.startsAt).getTime();
+        return start > now && start - now <= threeDays;
+      });
+    }
+    // Only show events that actually have postcards
+    return list.filter((e: any) => (e.postcardCount ?? 0) > 0 || e.hasVibetag);
+  }, [allEvents, activeTab, locationFilter, interestFilter, activeFilters]);
+
+  const chips = [
+    { id: "games",   label: "Has Games",      icon: Gamepad2 },
+    { id: "vibetag", label: "Has VibeTag",     icon: Tag },
+    { id: "free",    label: "Free",            icon: Ticket },
+    { id: "soon",    label: "Starting Soon",   icon: Clock },
+  ];
+
+  return (
+    <>
+      {/* Location + Vibe filter box — identical to events */}
+      <div className="mb-6 grid gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-3">
+        <div className="flex items-center gap-2">
+          <Input
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            placeholder="Location"
+            className="h-9"
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={detectLocation}
+            disabled={autoLocating}
+            title="Use my location"
+          >
+            <MapPin className={autoLocating ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+          </Button>
+        </div>
+
+        <select
+          value={interestFilter}
+          onChange={(e) => { setInterestFilter(e.target.value); setPostcardsPage(1); }}
+          className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+        >
+          <option value="">Vibe</option>
+          {INTEREST_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+            </option>
+          ))}
+          {userInterests
+            .filter((u: any) => !INTEREST_OPTIONS.includes(u.interest))
+            .map((u: any) => (
+              <option key={u.id} value={u.interest}>{u.interest}</option>
+            ))}
+        </select>
+
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="sm:col-span-3 justify-start text-xs text-muted-foreground"
+          >
+            <X className="mr-1 h-3 w-3" /> Clear filters
+          </Button>
+        )}
+      </div>
+
+      {/* For You / Trending / Near You tabs + chip filters — identical to events */}
+      <div className="mb-5">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPostcardsPage(1); }}
+          className="mb-4"
+        >
+          <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
+            <TabsTrigger
+              value="foryou"
+              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              For You
+            </TabsTrigger>
+            <TabsTrigger
+              value="trending"
+              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger
+              value="nearby"
+              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Near You
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {chips.map(({ id, label, icon: Icon }) => {
+            const isActive = activeFilters.includes(id);
+            return (
+              <button
+                key={id}
+                onClick={() => toggleFilter(id)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-card"
+                    : "bg-card text-muted-foreground shadow-sm hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeTab === "foryou" && userInterests.length > 0 && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span>Personalized based on your interests</span>
+        </div>
+      )}
+
+      {filteredEvents.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            {hasFilters ? "No postcards match your filters." : "No postcards yet. Check back later!"}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+            {filteredEvents.map((event: any, index: number) => (
+              <div
+                key={event.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <EventCard
+                  variant="postcard"
+                  id={event?.id}
+                  title={event?.name}
+                  date={event?.startsAt}
+                  location={event?.locationName}
+                  image={event?.flierUrl || event?.image || event?.data?.flierUrl}
+                  promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
+                  attendees={event?.attendees}
+                  hasGames={event?.hasGame}
+                  hasVibeTag={event?.hasVibetag}
+                  rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
+                  colorAccent={event?.colorAccent}
+                  postcardCount={event?.postcardCount ?? 0}
+                />
+              </div>
+            ))}
+          </div>
+          <Pagination
+            page={postcardsPage}
+            totalPages={postcardsTotalPages}
+            onChange={(p) => { setPostcardsPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 const Discover = () => {
   const [activeView, setActiveView] = useState<"events" | "postcards">("events");
@@ -400,47 +670,13 @@ const Discover = () => {
 
       {/* ── Postcards view ── */}
       {activeView === "postcards" && (
-        <>
-          {allEvents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-              <ImageOff className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No events yet. Check back later!</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                {allEvents.map((event: any, index: number) => (
-                  <div
-                    key={event.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <EventCard
-                      variant="postcard"
-                      id={event?.id}
-                      title={event?.name}
-                      date={event?.startsAt}
-                      location={event?.locationName}
-                      image={event?.flierUrl || event?.image || event?.data?.flierUrl}
-                      promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
-                      attendees={event?.attendees}
-                      hasGames={event?.hasGame}
-                      hasVibeTag={event?.hasVibetag}
-                      rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
-                      colorAccent={event?.colorAccent}
-                      postcardCount={event?.postcardCount ?? 0}
-                    />
-                  </div>
-                ))}
-              </div>
-              <Pagination
-                page={postcardsPage}
-                totalPages={postcardsTotalPages}
-                onChange={(p) => { setPostcardsPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              />
-            </>
-          )}
-        </>
+        <PostcardsView
+          allEvents={allEvents}
+          userInterests={userInterests}
+          postcardsPage={postcardsPage}
+          setPostcardsPage={setPostcardsPage}
+          postcardsTotalPages={postcardsTotalPages}
+        />
       )}
     </main>
   );

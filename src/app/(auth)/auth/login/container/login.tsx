@@ -26,6 +26,7 @@ import {
 import { useLoginMutation } from "@/app/provider/api/authApi";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { resolvePostAuthDestination, userHasVibes } from "@/utils/navigate-after-auth";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -92,13 +93,15 @@ const LoginContent = () => {
       dispatch(setUser({ ...res.data.user }));
       toast.success(res.message || "Logged in successfully");
 
-      const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
-      const destination = isSuperAdmin
-        ? (validFrom ? from : "/admin")
-        : (validFrom ? from : "/events");
+      const validFrom = from && from.startsWith("/") && !from.startsWith("/auth") ? from : null;
+      const destination = resolvePostAuthDestination({
+        isSuperAdmin,
+        validFrom,
+        hasVibes: userHasVibes(res.data.user),
+      });
 
       await handlePostAuth(() => {
-        router.push(destination!);
+        router.push(destination);
         router.refresh();
       });
     } catch (error: any) {

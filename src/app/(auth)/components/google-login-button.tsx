@@ -8,6 +8,7 @@ import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { resolvePostAuthDestination, userHasVibes } from "@/utils/navigate-after-auth";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -91,7 +92,11 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
 
         await new Promise((resolve) => setTimeout(resolve, 50));
 
-        const destination = isSuperAdmin ? (validFrom ?? "/admin") : (validFrom ?? "/events");
+        const destination = resolvePostAuthDestination({
+          isSuperAdmin,
+          validFrom,
+          hasVibes: userHasVibes(res.data.user),
+        });
         await handlePostAuth(() => router.replace(destination));
       }}
       logo_alignment="center"
