@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,11 @@ import {
   Camera,
   Gamepad2,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useWaitlistMutation } from "@/app/provider/api/launchApi";
-import { Spinner } from "@/components/ui/spinner";
 
 function useCountdown(targetDate: Date) {
   const calculateTimeLeft = useCallback(() => {
@@ -106,8 +106,8 @@ export default function LaunchLanding() {
     }
 
     try {
-      await waitlistMutation({ email: trimmed }).unwrap();
-      toast.success("You're on the list! 🎉 We'll notify you at launch.");
+      const res = await waitlistMutation({ email: trimmed }).unwrap();
+      toast.success(res?.data?.message || "You've been added to the waitlist!");
       setEmail("");
     } catch (error: any) {
       const msg =
@@ -212,10 +212,12 @@ export default function LaunchLanding() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Spinner className="h-4 w-4 animate-spin" />
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Adding you…
+                    </>
                   ) : (
                     <>
-                      {" "}
                       <Rocket className="h-4 w-4 mr-2" />
                       Notify Me
                     </>
