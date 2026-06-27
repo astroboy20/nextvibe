@@ -200,8 +200,9 @@ export default function PurchaseConfirmation({
                   {format(new Date(summary.event.startsAt), "EEEE, MMMM d yyyy")}
                   {" · "}
                   {format(new Date(summary.event.startsAt), "h:mm a")}
-                  {" – "}
-                  {format(new Date(summary.event.endsAt), "h:mm a")}
+                  {summary.event.endsAt && (
+                    <>{" – "}{format(new Date(summary.event.endsAt), "h:mm a")}</>
+                  )}
                 </span>
               </div>
               {summary.event.locationName && (

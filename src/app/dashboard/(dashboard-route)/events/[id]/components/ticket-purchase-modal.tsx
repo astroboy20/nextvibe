@@ -87,14 +87,9 @@ export function TicketPurchaseModal({
         ticketTiers: [{ tierId: selected.id, quantity: selectedQty }],
       }).unwrap();
 
-      const { checkoutUrl, purchaseId } = res.data;
+      const { checkoutUrl } = res.data;
 
-      // Store purchaseId so confirmation page can retrieve it after redirect
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("pendingPurchaseId", purchaseId);
-      }
-
-      // Redirect to Ercaspay
+      // Redirect to Ercaspay — purchaseId is embedded in the callbackUrl by the backend
       window.location.href = checkoutUrl;
     } catch (err: any) {
       const msg =
