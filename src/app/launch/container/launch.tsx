@@ -212,10 +212,12 @@ export default function LaunchLanding() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Spinner className="h-4 w-4 animate-spin" />
+                    <>
+                      <Spinner className="h-4 w-4 mr-2" />
+                      Adding you…
+                    </>
                   ) : (
                     <>
-                      {" "}
                       <Rocket className="h-4 w-4 mr-2" />
                       Notify Me
                     </>
