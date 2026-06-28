@@ -16,7 +16,6 @@ export default function LaunchLayout({
 }) {
   return (
     <>
-      {/* Meta Pixel — scoped to the /launch route */}
       <Script
         id="meta-pixel-init"
         strategy="afterInteractive"
