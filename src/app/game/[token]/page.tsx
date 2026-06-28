@@ -495,6 +495,7 @@ function PublicRoundPlayer({
   isAnonymous,
   token,
   onScoreReceived,
+  onFinish,
 }: {
   round: any;
   session: any;
@@ -503,6 +504,7 @@ function PublicRoundPlayer({
   isAnonymous?: boolean;
   token?: string;
   onScoreReceived?: (score: number) => void;
+  onFinish?: () => void;
 }) {
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
@@ -659,6 +661,11 @@ function PublicRoundPlayer({
           <Share2 className="h-4 w-4" />
           Share Score
         </Button>
+        {onFinish && (
+          <Button variant="outline" className="w-full rounded-xl" onClick={onFinish}>
+            Back to Lobby
+          </Button>
+        )}
         {isAnonymous && (() => {
           const from = encodeURIComponent(`/game/${token}`);
           return (
@@ -924,9 +931,10 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   // Playing a round
   if (playingRoundId) {
     const round = session.rounds?.find((r: any) => r.id === playingRoundId);
-    const roundAlreadyPlayed =
-      playedRounds.has(playingRoundId) ||
-      !!session?.rounds?.find((r: any) => r.id === playingRoundId)?.hasPlayed;
+    // Use only local state — session.rounds[].hasPlayed can update via server refetch
+    // during submission and cause a race where PublicRoundPlayer unmounts before
+    // finalScore is committed, losing the score screen entirely.
+    const roundAlreadyPlayed = playedRounds.has(playingRoundId);
 
     return (
       <div className="min-h-screen bg-background">
@@ -966,6 +974,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
                 setLastScore(score);
                 setPlayedRounds((prev) => new Set(prev).add(playingRoundId!));
               }}
+              onFinish={() => setPlayingRoundId(null)}
             />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>

@@ -125,9 +125,12 @@ const BasicInfo = () => {
   const locationName = watch("locationName");
   const promotionalVideo = watch("promoVideo");
   const isPublic = watch("isPublic");
+  const eventMode = watch("eventMode");
   // Need to re-register text fields since we dropped spread register
   const name = watch("name");
   const description = watch("description");
+
+  const isVirtual = eventMode === "VIRTUAL";
 
   const flierPreviewUrl = useMemo(
     () => (flier ? URL.createObjectURL(flier) : null),
@@ -483,13 +486,17 @@ const BasicInfo = () => {
             <div className="space-y-2">
               <Label>Event Mode</Label>
               <Select
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setValue(
                     "eventMode",
                     value as "ONSITE" | "HYBRID" | "VIRTUAL",
                     { shouldValidate: true, shouldDirty: true }
-                  )
-                }
+                  );
+                  if (value === "VIRTUAL") {
+                    setValue("locationName", "");
+                    setValue("coordinates", undefined);
+                  }
+                }}
               >
                 <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
                   <SelectValue placeholder="Select event mode" />
@@ -542,25 +549,27 @@ const BasicInfo = () => {
               <p className="text-xs text-red-500">{errors.startsAt.message}</p>
             )}
 
-            {/* Location */}
-            <div className="space-y-2">
-              <Label htmlFor="eventLocation">Location</Label>
-              <AddressSearch
-                value={locationName ?? ""}
-                onChange={(value, coordinates) => {
-                  setValue("locationName", value, { shouldValidate: true });
-                  if (coordinates)
-                    setValue("coordinates", coordinates, {
-                      shouldValidate: true,
-                    });
-                }}
-              />
-              {errors.locationName && (
-                <p className="text-xs text-red-500">
-                  {errors.locationName.message}
-                </p>
-              )}
-            </div>
+            {/* Location — hidden for virtual events */}
+            {!isVirtual && (
+              <div className="space-y-2">
+                <Label htmlFor="eventLocation">Location</Label>
+                <AddressSearch
+                  value={locationName ?? ""}
+                  onChange={(value, coordinates) => {
+                    setValue("locationName", value, { shouldValidate: true });
+                    if (coordinates)
+                      setValue("coordinates", coordinates, {
+                        shouldValidate: true,
+                      });
+                  }}
+                />
+                {errors.locationName && (
+                  <p className="text-xs text-red-500">
+                    {errors.locationName.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Flyer Upload */}
             <div className="space-y-2">
