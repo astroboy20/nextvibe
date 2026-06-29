@@ -7,9 +7,10 @@ export interface PurchaseSummary {
   purchaseId: string;
   paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
   paidAt: string | null;
-  totalAmount: number;
-  currency: string;
-  customerName: string;
+  totalAmount: number | null;
+  currency: string | null;
+  customerName: string | null;
+  /** null when the record was not found in our DB but Ercaspay confirmed payment */
   event: {
     id: string;
     name: string;
@@ -19,7 +20,7 @@ export interface PurchaseSummary {
     locationName: string;
     flierUrl: string | null;
     mode: string;
-  };
+  } | null;
   tickets: Array<{
     ticketNumber: string;
     tierName: string;
@@ -27,6 +28,8 @@ export interface PurchaseSummary {
     status: "VALID" | "USED" | "CANCELLED";
     qrCode: string;
   }>;
+  /** true when event/tickets are unavailable — record fetched from Ercaspay only */
+  _fromErcaspay?: boolean;
 }
 
 export const paymentApi = createApi({
@@ -63,9 +66,15 @@ export const paymentApi = createApi({
     /** GET /v1/payments/purchases/:purchaseId/summary — public, for confirmation page */
     getPurchaseSummary: builder.query<
       { success: boolean; data: PurchaseSummary },
-      string
+      { purchaseId: string; reference?: string; transRef?: string }
     >({
-      query: (purchaseId) => `/v1/payments/purchases/${purchaseId}/summary`,
+      query: ({ purchaseId, reference, transRef }) => {
+        const p = new URLSearchParams();
+        if (reference) p.set("reference", reference);
+        if (transRef) p.set("transRef", transRef);
+        const qs = p.toString();
+        return `/v1/payments/purchases/${purchaseId}/summary${qs ? `?${qs}` : ""}`;
+      },
     }),
 
     /** GET /v1/payments/purchases?limit=20&page=1 — user's purchase history */

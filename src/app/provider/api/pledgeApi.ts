@@ -1,7 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
-// Tier IDs from the API spec
 export type PledgeTierId =
   | "vibewatcher"
   | "vibesupporter"
@@ -13,12 +12,13 @@ export type PledgeTierId =
   | "vibeking";
 
 export interface PledgeStatus {
-  status: "PENDING" | "COMPLETED" | "FAILED" | "EXPIRED";
+  status: "pending" | "completed" | "failed" | "expired";
   pledge: {
+    id: string;
     tierName: string;
     quantity: number;
-    totalUsd: string;
-    totalNgn: string;
+    totalUsd: number;
+    totalNgn: number;
     paidAt: string | null;
   } | null;
 }

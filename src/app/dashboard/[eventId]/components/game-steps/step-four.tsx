@@ -43,11 +43,14 @@ const StepFour = ({
   const addQuestion = () => {
     const newId = `q-${Date.now()}`;
     const isWordPuzzle = gameType === "word-puzzle";
-    const optionCount = gameType === "this-or-that" ? 2 : gameType === "two-truths" ? 3 : 4;
+    const isThisOrThat = gameType === "this-or-that";
+    const optionCount = gameType === "two-truths" ? 3 : 4;
     setQuestions((prev: Question[]) => [
       ...prev,
       isWordPuzzle
         ? { id: newId, question: "", clue: "", correctAnswer: "", timeLimitSecs: 15, points: 10 }
+        : isThisOrThat
+        ? { id: newId, question: "", options: ["True", "False"], correctAnswerIndex: 0, correctAnswer: "True", timeLimitSecs: 15, points: 5 }
         : { id: newId, question: "", options: Array(optionCount).fill(""), correctAnswerIndex: 0, correctAnswer: "", timeLimitSecs: 15, points: 10 },
     ]);
     setEditingQuestion(newId);
@@ -154,35 +157,66 @@ const StepFour = ({
                       {/* Options */}
                       {q.options && (
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">
-                            {gameType === "two-truths"
-                              ? "Enter 3 statements — tap circle to mark the LIE"
-                              : "Options — tap circle to mark correct answer"}
-                          </Label>
-                          {q.options.map((opt, optIdx) => (
-                            <div key={optIdx} className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleQuestionEdit(q.id, "correctAnswerIndex", optIdx)}
-                                className={cn(
-                                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors",
-                                  q.correctAnswerIndex === optIdx
-                                    ? gameType === "two-truths"
-                                      ? "bg-red-500 text-white"
-                                      : "bg-emerald-500 text-white"
-                                    : "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
-                                )}
-                              >
-                                {q.correctAnswerIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
-                              </button>
-                              <Input
-                                value={opt}
-                                onChange={(e) => handleOptionEdit(q.id, optIdx, e.target.value)}
-                                placeholder={gameType === "two-truths" ? `Statement ${optIdx + 1}` : `Option ${String.fromCharCode(65 + optIdx)}`}
-                                className="h-9 text-sm flex-1"
-                              />
-                            </div>
-                          ))}
+                          {gameType === "this-or-that" ? (
+                            <>
+                              <Label className="text-xs text-muted-foreground">
+                                Is the statement true or false? — tap to mark
+                              </Label>
+                              <div className="flex gap-2">
+                                {["True", "False"].map((label, optIdx) => (
+                                  <button
+                                    key={label}
+                                    type="button"
+                                    onClick={() => handleQuestionEdit(q.id, "correctAnswerIndex", optIdx)}
+                                    className={cn(
+                                      "flex-1 h-9 rounded-lg border text-sm font-medium transition-colors",
+                                      q.correctAnswerIndex === optIdx
+                                        ? "bg-emerald-500 border-emerald-500 text-white"
+                                        : "border-border bg-muted text-muted-foreground hover:bg-muted-foreground/10"
+                                    )}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Label className="text-xs text-muted-foreground">
+                                {gameType === "two-truths"
+                                  ? "Enter 3 statements — tap circle to mark the LIE"
+                                  : "Options — tap circle to mark correct answer"}
+                              </Label>
+                              {q.options.map((opt, optIdx) => (
+                                <div key={optIdx} className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuestionEdit(q.id, "correctAnswerIndex", optIdx)}
+                                    className={cn(
+                                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors",
+                                      q.correctAnswerIndex === optIdx
+                                        ? gameType === "two-truths"
+                                          ? "bg-red-500 text-white"
+                                          : "bg-emerald-500 text-white"
+                                        : "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
+                                    )}
+                                  >
+                                    {q.correctAnswerIndex === optIdx ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + optIdx)}
+                                  </button>
+                                  <Input
+                                    value={opt}
+                                    onChange={(e) => handleOptionEdit(q.id, optIdx, e.target.value)}
+                                    placeholder={
+                                      gameType === "two-truths"
+                                        ? `Statement ${optIdx + 1}`
+                                        : `Option ${String.fromCharCode(65 + optIdx)}`
+                                    }
+                                    className="h-9 text-sm flex-1"
+                                  />
+                                </div>
+                              ))}
+                            </>
+                          )}
                         </div>
                       )}
                     </>

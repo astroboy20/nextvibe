@@ -123,8 +123,8 @@ export const gameTypeConfig: Record<
   },
   "this-or-that": {
     icon: <Zap className="h-5 w-5" />,
-    label: "This or That",
-    description: "Choose between options",
+    label: "True or False",
+    description: "Fact-check statements",
   },
 };
 
@@ -462,14 +462,16 @@ export function GameCreationWizard({
           };
         }
 
-        // THIS_OR_THAT — opinion poll, no correct answer
+        // THIS_OR_THAT — True or False, options are always ["True", "False"]
         if (gameType === "this-or-that") {
+          const tfOptions = ["True", "False"];
+          const correctIdx = q.correctAnswerIndex ?? 0;
           return {
             ...base,
             question: q.text ?? q.question ?? "",
-            options: q.options ?? [],
-            correctAnswerIndex: undefined,
-            correctAnswer: undefined,
+            options: tfOptions,
+            correctAnswerIndex: correctIdx,
+            correctAnswer: tfOptions[correctIdx],
           };
         }
 
@@ -698,25 +700,31 @@ export function GameCreationWizard({
         perRoundPrice: 0,
         rewardTiers: rewardTierPayload,
         rounds: roundsData.map((r, i) => {
-          // Build the config.questions array in the shape the backend expects
+          if (r.gameType === "word-puzzle") {
+            // Backend scorer reads questions[0].hiddenWords[] — group all words there.
+            // Grid is shared across all words in a puzzle (comes from AI wordPuzzleMeta).
+            const grid = r.questions[0]?.wordPuzzleMeta?.grid ?? [];
+            const totalPoints = r.questions.reduce((sum, q) => sum + (q.points ?? 10), 0);
+            const hiddenWords = r.questions
+              .filter((q) => q.wordPuzzleMeta?.word)
+              .map((q) => ({
+                word: q.wordPuzzleMeta!.word,
+                startCell: q.wordPuzzleMeta!.startCell,
+                endCell: q.wordPuzzleMeta!.endCell,
+                direction: q.wordPuzzleMeta!.direction,
+              }));
+            return {
+              title: r.title || `Round ${i + 1}`,
+              description: r.description,
+              gameType: GAMETYPE_TO_API[r.gameType],
+              orderIndex: i,
+              config: { questions: [{ grid, hiddenWords, points: totalPoints }] },
+              rewardTiers: rewardTierPayload,
+            };
+          }
+
+          // TRIVIA / TWO_TRUTHS_ONE_LIE / THIS_OR_THAT
           const configQuestions = r.questions.map((q) => {
-            if (r.gameType === "word-puzzle") {
-              return {
-                text: q.clue ?? q.question,
-                correctAnswer: q.correctAnswer ?? "",
-                points: q.points ?? 10,
-                timeLimitSecs: q.timeLimitSecs,
-                // Include grid coordinates if available (from AI generation)
-                ...(q.wordPuzzleMeta && {
-                  word: q.wordPuzzleMeta.word,
-                  startCell: q.wordPuzzleMeta.startCell,
-                  endCell: q.wordPuzzleMeta.endCell,
-                  direction: q.wordPuzzleMeta.direction,
-                }),
-              };
-            }
-            // TRIVIA / TWO_TRUTHS_ONE_LIE / THIS_OR_THAT
-            // Backend uses correctAnswerIndex (number) for index-based scoring
             const options: string[] = q.options ?? [];
             const correctAnswerIndex =
               q.correctAnswerIndex !== undefined

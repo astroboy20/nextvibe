@@ -26,7 +26,7 @@ import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
 
 const mapType = (t: string): GameType =>
-  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS: "two-truths", THIS_OR_THAT: "this-or-that" }[t] ?? "trivia") as GameType;
+  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS_ONE_LIE: "two-truths", THIS_OR_THAT: "this-or-that" }[t] ?? "trivia") as GameType;
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
@@ -564,7 +564,7 @@ function PublicRoundPlayer({
 
   const handleSelectOption = (idx: number) => {
     if (flash) return;
-    const correctIdx: number | string = q?.correctAnswer ?? q?.correct ?? q?.answer ?? 0;
+    const correctIdx: number = q?.correctAnswerIndex ?? 0;
     const isCorrect = idx === correctIdx;
     const newAnswers = [...answers];
     newAnswers[currentQ] = idx;
