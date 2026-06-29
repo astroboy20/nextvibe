@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -16,6 +17,7 @@ import {
   ArrowLeft,
   Loader2,
   Share2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +26,14 @@ import { toast } from "sonner";
 import { useGetPurchaseSummaryQuery } from "@/app/provider/api/paymentApi";
 import { cn } from "@/lib/utils";
 
-const formatNgn = (amount: number) =>
-  new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0,
-  }).format(amount);
+const formatNgn = (amount: number | null) =>
+  amount == null
+    ? "—"
+    : new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN",
+        minimumFractionDigits: 0,
+      }).format(amount);
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "COMPLETED")
@@ -60,10 +64,16 @@ export default function PurchaseConfirmation({
   purchaseId: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const pollCount = useRef(0);
 
+  // Ercaspay appends these to the callback URL — forward them to the backend
+  // so it can fall back to paymentReference or Ercaspay lookups if needed.
+  const reference = searchParams.get("reference") ?? undefined;
+  const transRef = searchParams.get("transRef") ?? undefined;
+
   const { data, isLoading, error, refetch } = useGetPurchaseSummaryQuery(
-    purchaseId,
+    { purchaseId, reference, transRef },
     { skip: !purchaseId }
   );
 
@@ -81,9 +91,10 @@ export default function PurchaseConfirmation({
   }, [summary, refetch]);
 
   const handleShare = async () => {
-    const text = `I just got tickets to ${summary?.event.name} on NextVibe! 🎉`;
+    const eventName = summary?.event?.name ?? "an event";
+    const text = `I just got tickets to ${eventName} on NextVibe! 🎉`;
     if (navigator.share) {
-      await navigator.share({ title: summary?.event.name, text }).catch(() => {});
+      await navigator.share({ title: eventName, text }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(text).catch(() => {});
       toast.success("Copied to clipboard!");
@@ -121,6 +132,52 @@ export default function PurchaseConfirmation({
     );
   }
 
+  // ── Ercaspay-only fallback (payment confirmed but DB record missing) ──────
+  if (summary._fromErcaspay) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-8 pb-24">
+        <div className="max-w-lg mx-auto space-y-5">
+          <div className="rounded-2xl p-6 text-center space-y-3 border bg-green-500/5 border-green-500/20">
+            <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+            <div>
+              <h1 className="text-xl font-bold">Payment confirmed!</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {summary.customerName
+                  ? `Hi ${summary.customerName}, your`
+                  : "Your"}{" "}
+                payment of {formatNgn(summary.totalAmount)} was received.
+              </p>
+            </div>
+            <StatusBadge status="COMPLETED" />
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-amber-800">
+                Tickets are being processed
+              </p>
+              <p className="text-sm text-amber-700">
+                Your ticket details are still syncing. Please check your email
+                or contact support if your tickets don&apos;t arrive within a
+                few minutes.
+              </p>
+              {reference && (
+                <p className="text-xs text-amber-600 font-mono mt-2">
+                  Ref: {reference}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" asChild>
+            <Link href="/events">Browse Events</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const isPending = summary.paymentStatus === "PENDING";
   const isCompleted = summary.paymentStatus === "COMPLETED";
   const isFailed = summary.paymentStatus === "FAILED";
@@ -130,12 +187,14 @@ export default function PurchaseConfirmation({
       <div className="max-w-lg mx-auto space-y-5">
 
         {/* Back */}
-        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" asChild>
-          <Link href={`/events/${summary.event.id}`}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to event
-          </Link>
-        </Button>
+        {summary.event && (
+          <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" asChild>
+            <Link href={`/events/${summary.event.id}`}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to event
+            </Link>
+          </Button>
+        )}
 
         {/* Status header */}
         <div
@@ -181,47 +240,49 @@ export default function PurchaseConfirmation({
         </div>
 
         {/* Event card */}
-        <div className="rounded-2xl border border-border overflow-hidden">
-          {summary.event.flierUrl && (
-            <img
-              src={summary.event.flierUrl}
-              alt={summary.event.name}
-              className="w-full h-40 object-cover"
-            />
-          )}
-          <div className="p-4 space-y-3">
-            <h2 className="font-semibold text-lg leading-snug">
-              {summary.event.name}
-            </h2>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  {format(new Date(summary.event.startsAt), "EEEE, MMMM d yyyy")}
-                  {" · "}
-                  {format(new Date(summary.event.startsAt), "h:mm a")}
-                  {summary.event.endsAt && (
-                    <>{" – "}{format(new Date(summary.event.endsAt), "h:mm a")}</>
-                  )}
+        {summary.event && (
+          <div className="rounded-2xl border border-border overflow-hidden">
+            {summary.event.flierUrl && (
+              <img
+                src={summary.event.flierUrl}
+                alt={summary.event.name}
+                className="w-full h-40 object-cover"
+              />
+            )}
+            <div className="p-4 space-y-3">
+              <h2 className="font-semibold text-lg leading-snug">
+                {summary.event.name}
+              </h2>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 shrink-0 text-primary" />
+                  <span>
+                    {format(new Date(summary.event.startsAt), "EEEE, MMMM d yyyy")}
+                    {" · "}
+                    {format(new Date(summary.event.startsAt), "h:mm a")}
+                    {summary.event.endsAt && (
+                      <>{" – "}{format(new Date(summary.event.endsAt), "h:mm a")}</>
+                    )}
+                  </span>
+                </div>
+                {summary.event.locationName && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                    <span>{summary.event.locationName}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-border">
+                <span className="text-sm text-muted-foreground">
+                  {summary.tickets.length} ticket{summary.tickets.length !== 1 ? "s" : ""}
+                </span>
+                <span className="font-semibold">
+                  {formatNgn(summary.totalAmount)}
                 </span>
               </div>
-              {summary.event.locationName && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 shrink-0 text-primary" />
-                  <span>{summary.event.locationName}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between pt-1 border-t border-border">
-              <span className="text-sm text-muted-foreground">
-                {summary.tickets.length} ticket{summary.tickets.length !== 1 ? "s" : ""}
-              </span>
-              <span className="font-semibold">
-                {formatNgn(summary.totalAmount)}
-              </span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tickets */}
         {isCompleted && summary.tickets.length > 0 && (
@@ -282,17 +343,17 @@ export default function PurchaseConfirmation({
         )}
 
         {/* Failed state CTA */}
-        {isFailed && (
+        {isFailed && summary.event && (
           <Button
             className="w-full"
-            onClick={() => router.push(`/events/${summary.event.id}`)}
+            onClick={() => router.push(`/events/${summary.event!.id}`)}
           >
             Try Again
           </Button>
         )}
 
         {/* Actions */}
-        {isCompleted && (
+        {isCompleted && summary.tickets.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="gap-2" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
