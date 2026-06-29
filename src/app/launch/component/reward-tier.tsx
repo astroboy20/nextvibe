@@ -28,7 +28,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useInitiatePledgeMutation } from "@/app/provider/api/pledgeApi";
+import { useInitiatePledgeMutation, type PledgeTierId } from "@/app/provider/api/pledgeApi";
 
 const USD_TO_NGN_FALLBACK = 1500; // used only if the live fetch fails
 
@@ -408,7 +408,7 @@ export default function RewardTiers() {
     setPledgingId(tier.id);
     try {
       const res = await initiatePledge({
-        tierId: tier.id as any,
+        tierId: tier.id as PledgeTierId,
         quantity: qty,
         name: opts.name,
         email: opts.email,
