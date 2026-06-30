@@ -761,7 +761,8 @@ export function GameCreationWizard({
       clearSaved();
       onCancel();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to create game. Please try again.");
+      const msg = err?.data?.message ?? err?.data?.error ?? err?.message ?? "Failed to create game. Please try again.";
+      toast.error(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setIsLoading(false);
     }
