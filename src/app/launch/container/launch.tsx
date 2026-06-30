@@ -84,7 +84,7 @@ const teaserFeatures = [
 ];
 
 export default function LaunchLanding() {
-  const launchDate = new Date("2026-07-01T00:00:00");
+  const launchDate = new Date("2026-07-04T00:00:00");
   const timeLeft = useCountdown(launchDate);
   const [email, setEmail] = useState("");
 
