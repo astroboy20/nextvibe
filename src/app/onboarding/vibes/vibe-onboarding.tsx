@@ -28,15 +28,16 @@ export default function VibeOnboarding() {
       toast.success("Vibes saved! Your feed is now personalised 🎉");
       router.replace(next);
     } catch (err: any) {
-      const msg = err?.data?.message ?? err?.message ?? "Failed to save vibes. Please try again.";
+      const msg =
+        err?.data?.error?.message ??
+        err?.message ??
+        "Failed to save vibes. Please try again.";
+
       toast.error(msg);
     }
   };
 
   return (
-    <InterestSelector
-      onComplete={handleComplete}
-      isSubmitting={isLoading}
-    />
+    <InterestSelector onComplete={handleComplete} isSubmitting={isLoading} />
   );
 }
