@@ -52,7 +52,7 @@ const mapType = (t: string): GameType =>
 (({
   TRIVIA: "trivia",
   WORD_PUZZLE: "word-puzzle",
-  TWO_TRUTHS: "two-truths",
+  TWO_TRUTHS_ONE_LIE: "two-truths",
   THIS_OR_THAT: "this-or-that",
 }[t] ?? "trivia") as GameType);
 
@@ -776,7 +776,7 @@ function RoundPlayer({
   ) => Promise<{ ok: boolean; score?: number; correctAnswers?: any[] }>;
   isSubmitting: boolean;
   /** Called after score is set so parent can refetch session without unmounting this component */
-  onComplete?: () => void;
+  onComplete?: (score: number) => void;
 }) {
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
@@ -834,7 +834,7 @@ function RoundPlayer({
       if (result.ok) {
         await refetchLeaderboard();
         setFinalScore(result.score ?? 0);
-        onComplete?.();
+        onComplete?.(result.score ?? 0);
       } else {
         // Auth failed again (shouldn't happen) — let them retry
         setWaitingForResult(false);
@@ -887,7 +887,7 @@ function RoundPlayer({
             if (result.ok) {
               await refetchLeaderboard();
               setFinalScore(result.score ?? 0);
-              onComplete?.();
+              onComplete?.(result.score ?? 0);
             } else {
               // If submit returned false (auth redirect), save word answers
               try {
@@ -927,7 +927,7 @@ function RoundPlayer({
       if (result.ok) {
         await refetchLeaderboard();
         setFinalScore(result.score ?? 0);
-        onComplete?.();
+        onComplete?.(result.score ?? 0);
       } else {
         setWaitingForResult(false);
       }
@@ -1556,6 +1556,12 @@ export function EventGamesTab({
   };
 
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
+  // Tracks the score from the most-recently-completed round in this mount.
+  // Prevents roundAlreadyPlayed from unmounting RoundPlayer before the score screen renders.
+  const [lastRoundScore, setLastRoundScore] = useState<number | null>(null);
+  useEffect(() => {
+    if (!playingRoundId) setLastRoundScore(null);
+  }, [playingRoundId]);
 
   const eventHasStarted = event?.startsAt
     ? new Date() >= new Date(event.startsAt)
@@ -1659,7 +1665,6 @@ export function EventGamesTab({
         }).unwrap();
         const payload = (res?.data ?? res) as { score: number };
         toast.success("Answers submitted!");
-        markRoundPlayed(roundId);
         return { ok: true, score: payload.score ?? 0 };
       } catch (err: any) {
         toast.error(err?.data?.message ?? "Submission failed.");
@@ -1703,7 +1708,6 @@ export function EventGamesTab({
         timeTakenMs,
       }).unwrap();
       toast.success("Answers submitted!");
-      markRoundPlayed(roundId);
       const score =
         res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
       return { ok: true, score };
@@ -1744,8 +1748,9 @@ export function EventGamesTab({
     const round = session?.rounds?.find((r: any) => r.id === playingRoundId);
     const sessionDetail = sessionDataMap[activeSessionId ?? ""];
     const roundAlreadyPlayed =
-      playedRounds.has(playingRoundId) ||
-      !!sessionDetail?.rounds?.find((r: any) => r.id === playingRoundId)?.hasPlayed;
+      (playedRounds.has(playingRoundId) ||
+        !!sessionDetail?.rounds?.find((r: any) => r.id === playingRoundId)?.hasPlayed) &&
+      lastRoundScore === null;
 
     const backBtn = (
       <div className="flex items-center gap-2">
@@ -1799,7 +1804,9 @@ export function EventGamesTab({
             eventName={event?.name}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            onComplete={() => {
+            onComplete={(score) => {
+              markRoundPlayed(playingRoundId!);
+              setLastRoundScore(score);
               if (activeSessionId) sessionRefetchMap[activeSessionId]?.();
             }}
           />

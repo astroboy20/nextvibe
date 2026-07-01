@@ -84,7 +84,7 @@ const teaserFeatures = [
 ];
 
 export default function LaunchLanding() {
-  const launchDate = new Date("2026-07-01T00:00:00");
+  const launchDate = new Date("2026-07-04T00:00:00");
   const timeLeft = useCountdown(launchDate);
   const [email, setEmail] = useState("");
 
@@ -181,7 +181,7 @@ export default function LaunchLanding() {
               transition={{ delay: 0.5 }}
               className="mt-6 text-sm text-[#5b1a57] font-bold "
             >
-              Launching July 1, 2026
+              Launching July 4, 2026
             </motion.p>
 
             {/* Notify Me */}
