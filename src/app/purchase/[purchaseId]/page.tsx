@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import PurchaseConfirmation from "./purchase-confirmation";
 
-export default function PurchaseConfirmationPage({
+export default async function PurchaseConfirmationPage({
   params,
 }: {
-  params: { purchaseId: string };
+  params: Promise<{ purchaseId: string }>;
 }) {
+  const { purchaseId } = await params;
+
   return (
     <Suspense
       fallback={
@@ -14,7 +16,7 @@ export default function PurchaseConfirmationPage({
         </div>
       }
     >
-      <PurchaseConfirmation purchaseId={params.purchaseId} />
+      <PurchaseConfirmation purchaseId={purchaseId} />
     </Suspense>
   );
 }
