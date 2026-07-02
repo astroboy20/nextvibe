@@ -72,9 +72,9 @@ const HeroSection = () => {
               style={{ animationDelay: "300ms" }}
             >
               {[
-                { label: "Events Created", value: "10K+" },
-                { label: "Memories Captured", value: "500K+" },
-                { label: "Happy Users", value: "50K+" },
+                { label: "Events Created", value: "100+" },
+                { label: "Memories Captured", value: "1K+" },
+                { label: "Happy Users", value: "100+" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="font-display text-3xl font-bold text-primary">

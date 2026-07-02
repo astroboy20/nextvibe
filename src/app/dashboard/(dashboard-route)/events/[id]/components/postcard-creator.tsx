@@ -16,7 +16,6 @@ import {
   Loader2,
   SwitchCamera,
   CheckCircle2,
-  Trash2,
   Plus,
   Video,
   Play,
@@ -35,6 +34,12 @@ const MAX_ITEMS = 20;
 
 // Max recording duration in seconds — prevents unbounded blob growth
 const MAX_RECORDING_SECS = 60;
+
+// Max uploaded video file size in MB — files above this are rejected
+const MAX_VIDEO_UPLOAD_SIZE_MB = 50;
+
+// Max uploaded video duration in seconds — files above this are rejected
+const MAX_VIDEO_DURATION_SECS = 60;
 
 // Image output dimensions — reduced from 1080×1920 to save memory
 const OUTPUT_WIDTH = 720;
@@ -591,14 +596,51 @@ export function PostcardCreator({
     setIsProcessingUpload(true);
     setLocalUploadProgress(0);
 
+    let addedCount = 0;
+
     for (let i = 0; i < toProcess.length; i++) {
       const file = toProcess[i];
       if (file.type.startsWith("video/")) {
-        // Warn for very large videos (>40 MB) — overlay will be skipped for those
+        // Hard size cap — reject files over 50 MB
+        if (file.size > MAX_VIDEO_UPLOAD_SIZE_MB * 1024 * 1024) {
+          toast.error(
+            `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(0)} MB — videos must be under ${MAX_VIDEO_UPLOAD_SIZE_MB} MB.`
+          );
+          setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
+          continue;
+        }
+
+        // Duration cap — reject videos longer than 60 seconds
+        const duration = await new Promise<number>((res) => {
+          const tmp = document.createElement("video");
+          tmp.preload = "metadata";
+          const url = URL.createObjectURL(file);
+          tmp.onloadedmetadata = () => {
+            URL.revokeObjectURL(url);
+            res(tmp.duration);
+          };
+          tmp.onerror = () => {
+            URL.revokeObjectURL(url);
+            res(0);
+          };
+          tmp.src = url;
+        });
+
+        if (duration > MAX_VIDEO_DURATION_SECS) {
+          toast.error(
+            `"${file.name}" is ${Math.round(duration)}s — videos must be ${MAX_VIDEO_DURATION_SECS}s or shorter.`
+          );
+          setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
+          continue;
+        }
+
+        // Warn if overlay will be skipped due to size (>40 MB but ≤50 MB)
         if (file.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024) {
           toast.info(`Large video (${(file.size / 1024 / 1024).toFixed(0)} MB) — overlay will be shown on playback instead of baked in.`);
         }
-        await addVideoToQueue(file, setUploadQueue, uploadQueue.length + i);
+
+        await addVideoToQueue(file, setUploadQueue, uploadQueue.length + addedCount);
+        addedCount++;
       } else {
         const raw = await new Promise<string>((res) => {
           const reader = new FileReader();
@@ -606,15 +648,18 @@ export function PostcardCreator({
           reader.readAsDataURL(file);
         });
         const resized = await resizeTo1080p(raw);
-        await addImageToQueue(resized, setUploadQueue, uploadQueue.length + i);
+        await addImageToQueue(resized, setUploadQueue, uploadQueue.length + addedCount);
+        addedCount++;
       }
       setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
     }
 
     setIsProcessingUpload(false);
     setLocalUploadProgress(0);
-    setMode("upload-review");
-    setActiveIdx(0);
+    if (addedCount > 0) {
+      setMode("upload-review");
+      setActiveIdx(0);
+    }
     e.target.value = "";
   };
 
@@ -1188,7 +1233,7 @@ export function PostcardCreator({
                   <Upload className="h-5 w-5" />
                   Upload Photo or Video
                   <span className="ml-auto text-xs opacity-60">
-                    max {MAX_ITEMS}
+                    max {MAX_ITEMS} · videos ≤{MAX_VIDEO_UPLOAD_SIZE_MB}MB / {MAX_VIDEO_DURATION_SECS}s
                   </span>
                 </Button>
               )}
@@ -1254,6 +1299,14 @@ export function PostcardCreator({
                   {idx === activeIdx && (
                     <span className="absolute inset-0 ring-2 ring-primary ring-inset rounded-lg" />
                   )}
+                  {/* Remove button on thumbnail */}
+                  <button
+                    onClick={(ev) => { ev.stopPropagation(); removeFromQueue(item.id); }}
+                    className="absolute top-0.5 right-0.5 z-10 h-4 w-4 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                    aria-label="Remove"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
                 </button>
               ))}
               {activeQueue.length < MAX_ITEMS && (
@@ -1362,6 +1415,14 @@ export function PostcardCreator({
                           </div>
                         </div>
                       )}
+                    {/* Remove overlay button on the preview */}
+                    <button
+                      onClick={() => removeFromQueue(activeItem.id)}
+                      className="absolute top-3 right-3 z-30 h-8 w-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                      aria-label="Remove"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div className="px-4 pb-6 space-y-4">
@@ -1382,14 +1443,6 @@ export function PostcardCreator({
                     </div>
 
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => removeFromQueue(activeItem.id)}
-                        className="h-10 rounded-xl gap-1.5 text-destructive hover:text-destructive flex-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Remove
-                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => handleDownload(activeItem)}
