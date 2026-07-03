@@ -82,6 +82,7 @@ const basicInfoSchema = z.object({
     error: "Event tier is required",
   }),
   locationName: z.string().optional(),
+  virtualLink: z.string().optional(),
   startsAt: z.date().nullable().optional(),
   eventMode: z.enum(["ONSITE", "HYBRID", "VIRTUAL"], {
     error: "Event mode is required",
@@ -89,6 +90,33 @@ const basicInfoSchema = z.object({
   coordinates: z
     .object({ lon: z.number().optional(), lat: z.number().optional() })
     .optional(),
+}).superRefine((data, ctx) => {
+  // Location required for ONSITE and HYBRID
+  if (data.eventMode === "ONSITE" || data.eventMode === "HYBRID") {
+    if (!data.locationName || data.locationName.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Location is required for onsite and hybrid events",
+        path: ["locationName"],
+      });
+    }
+  }
+  // Virtual link required for VIRTUAL and HYBRID
+  if (data.eventMode === "VIRTUAL" || data.eventMode === "HYBRID") {
+    if (!data.virtualLink || data.virtualLink.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Meeting link is required for virtual and hybrid events",
+        path: ["virtualLink"],
+      });
+    } else if (!data.virtualLink.startsWith("https://")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Meeting link must start with https://",
+        path: ["virtualLink"],
+      });
+    }
+  }
 });
 
 type BasicInfoFormValues = z.infer<typeof basicInfoSchema>;
@@ -123,6 +151,7 @@ const BasicInfo = () => {
 
   const flier = watch("flier");
   const locationName = watch("locationName");
+  const virtualLink = watch("virtualLink");
   const promotionalVideo = watch("promoVideo");
   const isPublic = watch("isPublic");
   const eventMode = watch("eventMode");
@@ -131,6 +160,8 @@ const BasicInfo = () => {
   const description = watch("description");
 
   const isVirtual = eventMode === "VIRTUAL";
+  const showVirtualLink = eventMode === "VIRTUAL" || eventMode === "HYBRID";
+  const showLocation = eventMode === "ONSITE" || eventMode === "HYBRID";
 
   const flierPreviewUrl = useMemo(
     () => (flier ? URL.createObjectURL(flier) : null),
@@ -286,10 +317,9 @@ const BasicInfo = () => {
       return;
     }
     try {
-      const body = {
+      const body: Record<string, any> = {
         name: values.name,
         description: values.description,
-        locationName: values.locationName,
         isPublic: values.isPublic,
         mode: values.eventMode,
         startsAt: values.startsAt?.toISOString(),
@@ -297,6 +327,18 @@ const BasicInfo = () => {
         ...(flierUpload.url && { flierUrl: flierUpload.url }),
         ...(videoUpload.url && { promoVideoUrl: videoUpload.url }),
       };
+
+      // Conditionally include location/virtual fields
+      if (values.eventMode === "ONSITE" || values.eventMode === "HYBRID") {
+        body.locationName = values.locationName;
+        if (values.coordinates) {
+          body.latitude = values.coordinates.lat;
+          body.longitude = values.coordinates.lon;
+        }
+      }
+      if (values.eventMode === "VIRTUAL" || values.eventMode === "HYBRID") {
+        body.virtualLink = values.virtualLink;
+      }
 
       const request = await createEventMutation(body).unwrap();
       if (request?.success) {
@@ -496,6 +538,9 @@ const BasicInfo = () => {
                     setValue("locationName", "");
                     setValue("coordinates", undefined);
                   }
+                  if (value === "ONSITE") {
+                    setValue("virtualLink", "");
+                  }
                 }}
               >
                 <SelectTrigger className="rounded-lg border-gray-300 focus-visible:ring-[#5B1A57] w-full h-11!">
@@ -549,10 +594,12 @@ const BasicInfo = () => {
               <p className="text-xs text-red-500">{errors.startsAt.message}</p>
             )}
 
-            {/* Location — hidden for virtual events */}
-            {!isVirtual && (
+            {/* Location — shown for ONSITE and HYBRID */}
+            {showLocation && (
               <div className="space-y-2">
-                <Label htmlFor="eventLocation">Location</Label>
+                <Label htmlFor="eventLocation">
+                  Location{eventMode === "ONSITE" ? " *" : ""}
+                </Label>
                 <AddressSearch
                   value={locationName ?? ""}
                   onChange={(value, coordinates) => {
@@ -566,6 +613,33 @@ const BasicInfo = () => {
                 {errors.locationName && (
                   <p className="text-xs text-red-500">
                     {errors.locationName.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Virtual / Meeting Link — shown for VIRTUAL and HYBRID */}
+            {showVirtualLink && (
+              <div className="space-y-2">
+                <Label htmlFor="virtualLink">Meeting Link *</Label>
+                <Input
+                  id="virtualLink"
+                  type="url"
+                  value={virtualLink ?? ""}
+                  onChange={(e) =>
+                    setValue("virtualLink", e.target.value, {
+                      shouldValidate: true,
+                    })
+                  }
+                  placeholder="https://meetinglink.us"
+                  className="h-11 rounded-lg border-gray-300 focus-visible:ring-[#5B1A57]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Supports Zoom, Google Meet, Teams, or any HTTPS URL
+                </p>
+                {errors.virtualLink && (
+                  <p className="text-xs text-red-500">
+                    {errors.virtualLink.message}
                   </p>
                 )}
               </div>
@@ -801,7 +875,7 @@ const BasicInfo = () => {
                   </div>
                 </div>
               ) : (
-                <label className="h-62.5 flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border p-6 transition-colors hover:border-[#531342] hover:bg-muted/30">
+                <label className="h-62.5 flex flex-col cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border p-6 transition-colors hover:border-[#531342] hover:bg-muted/30">
                   <Plus className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
                     Upload promotional video

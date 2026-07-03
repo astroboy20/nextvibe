@@ -344,6 +344,7 @@ function PostcardsView({
                   rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
                   colorAccent={event?.colorAccent}
                   postcardCount={event?.postcardCount ?? 0}
+                  eventMode={event?.mode}
                 />
               </div>
             ))}
@@ -654,6 +655,7 @@ const Discover = () => {
                       rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
                       colorAccent={event?.colorAccent}
                       postcardCount={event?.postcardCount ?? 0}
+                      eventMode={event?.mode}
                     />
                   </div>
                 ))}

@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Check,
   Loader2,
+  Video,
 } from "lucide-react";
 import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
@@ -78,20 +79,46 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <MapPin className="h-5 w-5 text-primary" />
+        {/* Location — shown for ONSITE and HYBRID */}
+        {(event?.mode === "ONSITE" || event?.mode === "HYBRID" ||
+          // fallback for older data that may not have a mode field
+          (!event?.mode && event?.locationName)) && (
+          <div className="flex items-center gap-3 text-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <MapPin className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{event?.locationName}</p>
+              <button
+                onClick={openMap}
+                className="text-primary text-xs hover:underline flex items-center gap-1"
+              >
+                View on map <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
           </div>
-          <div>
-            <p className="font-medium text-foreground">{event?.locationName}</p>
-            <button
-              onClick={openMap}
-              className="text-primary text-xs hover:underline flex items-center gap-1"
-            >
-              View on map <ExternalLink className="h-3 w-3" />
-            </button>
+        )}
+
+        {/* Virtual link — shown for VIRTUAL and HYBRID */}
+        {(event?.mode === "VIRTUAL" || event?.mode === "HYBRID") &&
+          event?.virtualLink && (
+          <div className="flex items-center gap-3 text-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <Video className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Online Event</p>
+              <a
+                href={event.virtualLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary text-xs hover:underline flex items-center gap-1"
+              >
+                Join Online <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex items-center gap-3 text-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -164,9 +191,12 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
           </div>
         </CardContent>
       </Card>
-      <div className="relative h-50 w-full overflow-hidden rounded-2xl bg-muted">
-        <DisplayMap address={event?.locationName} />
-      </div>
+      {/* Map — only for ONSITE and HYBRID events */}
+      {event?.mode !== "VIRTUAL" && event?.locationName && (
+        <div className="relative h-50 w-full overflow-hidden rounded-2xl bg-muted">
+          <DisplayMap address={event?.locationName} />
+        </div>
+      )}
     </div>
   );
 }

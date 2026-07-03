@@ -19,6 +19,7 @@ export interface EventCardProps {
   hasGames?: boolean;
   hasVibeTag?: boolean;
   isPublic?: boolean;
+  eventMode?: "ONSITE" | "VIRTUAL" | "HYBRID" | "onsite" | "virtual" | "hybrid";
   rsvpStartDateTime?: string | null;
   colorAccent?: "pink" | "purple" | "cyan" | "plum";
   className?: string;
@@ -41,6 +42,7 @@ export function EventCard({
   hasGames,
   hasVibeTag,
   isPublic,
+  eventMode,
   rsvpStartDateTime,
   colorAccent = "plum",
   className,
@@ -176,12 +178,18 @@ export function EventCard({
           />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-        {(hasGames || hasVibeTag || isPublic === false) && (
+        {(hasGames || hasVibeTag || isPublic === false || eventMode) && (
           <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
             {isPublic === false && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
                 <Lock className="h-2.5 w-2.5" />
                 Private
+              </span>
+            )}
+            {eventMode && (eventMode.toUpperCase() === "VIRTUAL" || eventMode.toUpperCase() === "HYBRID") && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/80 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                {eventMode.toUpperCase() === "VIRTUAL" ? "🌐" : "🔀"}
+                {eventMode.toUpperCase() === "VIRTUAL" ? " Virtual" : " Hybrid"}
               </span>
             )}
             {hasGames && (
@@ -213,10 +221,12 @@ export function EventCard({
           <span className="shrink-0">{postcardCount} {postcardCount === 1 ? "Memory" : "Memories"}</span>
         </div>
 
-        {location && (
+        {(location || eventMode?.toUpperCase() === "VIRTUAL") && (
           <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
             <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
-            <span className="line-clamp-1">{location}</span>
+            <span className="line-clamp-1">
+              {eventMode?.toUpperCase() === "VIRTUAL" ? "Online Event" : location}
+            </span>
           </div>
         )}
 
