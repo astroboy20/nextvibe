@@ -278,7 +278,7 @@ export function TicketCreatorEnhanced({
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="ticket-payment-link">Payment Link</Label>
                 <Input
                   id="ticket-payment-link"
@@ -288,7 +288,7 @@ export function TicketCreatorEnhanced({
                     setNewTicket({ ...newTicket, ticketLink: e.target.value })
                   }
                 />
-              </div>
+              </div> */}
               <div className="space-y-2">
                 <Label htmlFor="ticket-end-date">Ticket End Date</Label>
                 <Input
@@ -454,7 +454,7 @@ export function TicketCreatorEnhanced({
                             />
                           </div>
                         </div>
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                           <Label>Payment Link</Label>
                           <Input
                             placeholder="https://payment-link.com"
@@ -466,7 +466,7 @@ export function TicketCreatorEnhanced({
                               })
                             }
                           />
-                        </div>
+                        </div> */}
                         <div className="space-y-2">
                           <Label>Ticket End Date</Label>
                           <Input
