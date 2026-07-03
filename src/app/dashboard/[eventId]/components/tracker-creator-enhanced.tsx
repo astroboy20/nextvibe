@@ -84,8 +84,19 @@ export function TicketCreatorEnhanced({
     if (!newTicket.name || !newTicket.price) return;
 
     try {
+      const ticketPayload = {
+        name: newTicket.name,
+        price: Number(newTicket.price),
+        ...(newTicket.description && { description: newTicket.description }),
+        ...(newTicket.quantity && { quantity: Number(newTicket.quantity) }),
+        ...(newTicket.currency && { currency: newTicket.currency }),
+        ...(newTicket.perks && { perks: newTicket.perks }),
+        ...(newTicket.ticketEndDate && { ticketEndDate: newTicket.ticketEndDate }),
+        ...(newTicket.ticketLink && { ticketLink: newTicket.ticketLink }),
+      };
+
       const request = await createTicketMutation({
-        ticketData: newTicket,
+        ticketData: ticketPayload,
         eventId: eventId,
       }).unwrap();
 
