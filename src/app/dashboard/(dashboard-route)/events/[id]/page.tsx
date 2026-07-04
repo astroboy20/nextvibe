@@ -37,7 +37,7 @@ const tabsConfig = [
   { value: "rsvp",     label: "RSVP",        icon: <Table className="mr-1.5 h-4 w-4" />,      always: true  },
   { value: "qr",       label: "QR",          icon: <QrCode className="mr-1.5 h-4 w-4" />,     always: true  },
   { value: "games",    label: "Games",       icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,   always: false, flag: "hasGame"    as const },
-  { value: "postcard", label: "Post Cards",  icon: <Tag className="mr-1.5 h-4 w-4" />,        always: false, flag: "hasVibeTag" as const },
+  { value: "postcard", label: "PostCards",  icon: <Tag className="mr-1.5 h-4 w-4" />,        always: false, flag: "hasVibeTag" as const },
   { value: "chat",     label: "Chat",        icon: <MessageCircle className="mr-1.5 h-4 w-4" />, always: true },
 ];
 
