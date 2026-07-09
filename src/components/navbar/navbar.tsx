@@ -32,6 +32,12 @@ export default function Navbar() {
     setIsAuthenticated(!!token);
   }, []);
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setIsAuthenticated(false);
+    window.location.href = "/";
+  };
+
   return (
     <div className=" fixed top-0 left-0 right-0 z-50  backdrop-blur-lg glass">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
@@ -57,13 +63,21 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
-              <Button
-                variant="outline"
-                className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white transition-colors h-8"
-                asChild
-              >
-                <Link href="/events">Events</Link>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white transition-colors h-8"
+                  asChild
+                >
+                  <Link href="/events">Events</Link>
+                </Button>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-[#A1349A] underline underline-offset-2 hover:text-[#5b1a57] transition-colors"
+                >
+                  Logout
+                </button>
+              </>
             ) : (
               <>
                 <Link
@@ -121,15 +135,23 @@ export default function Navbar() {
               {/* Mobile Auth */}
               <div className="flex flex-col gap-3">
                 {isAuthenticated ? (
-                  <Button
-                    variant="outline"
-                    className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white w-full"
-                    asChild
-                  >
-                    <Link href="/events" onClick={() => setOpen(false)}>
-                      Events
-                    </Link>
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      className="border-[#5B1A57] text-[#5B1A57] hover:bg-[#5B1A57] hover:text-white w-full"
+                      asChild
+                    >
+                      <Link href="/events" onClick={() => setOpen(false)}>
+                        Events
+                      </Link>
+                    </Button>
+                    <button
+                      onClick={() => { setOpen(false); handleLogout(); }}
+                      className="text-sm font-medium text-[#A1349A] underline underline-offset-2 text-center hover:text-[#5b1a57] transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </>
                 ) : (
                   <>
                     <Link

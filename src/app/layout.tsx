@@ -15,16 +15,25 @@ const nunitoSans = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "nextvibe",
-  description: "... Your event's digital memory bank",
+  metadataBase: new URL("https://mynextvibe.com"),
+  title: {
+    default: "NextVibe — Your Event's Digital Memory Bank",
+    template: "%s | NextVibe",
+  },
+  description:
+    "NextVibe is the event memory app for parties, weddings, festivals, and corporate events. Shared photo albums, VibeTags, event games, smart RSVP, and brand sponsorships.",
   keywords: [
+    "party photo sharing app",
+    "event memory app",
+    "shared event photo album",
+    "QR code party photos",
+    "wedding photo sharing",
+    "festival memory app",
+    "event photo album",
+    "VibeTags",
+    "event games",
+    "smart RSVP",
     "nextvibe",
-    "events",
-    "AI",
-    "lovenvibes",
-    "Simi Peters",
-    "event",
-    "Spectroniq",
   ],
   authors: [
     { name: "Spectroniq", url: "https://www.spectroniq.com/" },

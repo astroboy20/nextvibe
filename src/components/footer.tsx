@@ -1,6 +1,6 @@
 "use client";
 
-import { Facebook, Twitter, Instagram } from "lucide-react";
+import { Facebook, Twitter, Instagram, X } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -41,7 +41,7 @@ const Footer = () => {
       href: "https://www.facebook.com/profile.php?id=61572512998064",
       name: "Facebook",
     },
-    { icon: Twitter, href: "https://x.com/mynextvibe", name: "Twitter" },
+    { icon: X, href: "https://x.com/mynextvibe", name: "Twitter" },
     {
       icon: Instagram,
       href: "https://www.instagram.com/mynextvibe?igsh=enE2a3NoZ3A3NW1q",
