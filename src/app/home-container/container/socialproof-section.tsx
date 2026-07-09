@@ -137,9 +137,9 @@ const SocialProofSection = () => {
         </motion.div>
 
         {/* Testimonials Carousel */}
-        <div className="max-w-5xl mx-auto mb-20">
+        {/* <div className="max-w-5xl mx-auto mb-20">
           <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden">
-            {/* Video Placeholder Background */}
+     
             <div className="absolute inset-0 bg-linear-to-br from-purple-100 to-pink-100 opacity-50" />
 
             <div className="relative p-8 sm:p-12 md:p-16">
@@ -152,7 +152,6 @@ const SocialProofSection = () => {
                   transition={{ duration: 0.5 }}
                   className="text-center"
                 >
-                  {/* Quote Icon */}
                   <motion.div
                     className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-[#A1349A] to-[#5B1A57] rounded-full mb-6"
                     whileHover={{ rotate: 360 }}
@@ -161,7 +160,6 @@ const SocialProofSection = () => {
                     <Quote className="w-8 h-8 text-white" />
                   </motion.div>
 
-                  {/* Rating */}
                   <div className="flex justify-center gap-1 mb-4">
                     {[...Array(testimonials[activeTestimonial].rating)].map(
                       (_, i) => (
@@ -173,7 +171,6 @@ const SocialProofSection = () => {
                     )}
                   </div>
 
-                  {/* Highlight Quote */}
                   <motion.p
                     className="text-2xl sm:text-3xl font-bold text-[#5B1A57] mb-6"
                     initial={{ opacity: 0, y: 20 }}
@@ -183,7 +180,6 @@ const SocialProofSection = () => {
                     &quot;{testimonials[activeTestimonial].highlight}&quot;
                   </motion.p>
 
-                  {/* Full Quote */}
                   <motion.p
                     className="text-lg sm:text-xl text-gray-700 mb-8 leading-relaxed max-w-3xl mx-auto"
                     initial={{ opacity: 0 }}
@@ -192,8 +188,6 @@ const SocialProofSection = () => {
                   >
                     {testimonials[activeTestimonial].quote}
                   </motion.p>
-
-                  {/* Author */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -207,7 +201,6 @@ const SocialProofSection = () => {
                     </p>
                   </motion.div>
 
-                  {/* Play Button Overlay */}
                   <motion.button
                     className="mt-6 inline-flex items-center gap-2 text-[#A1349A] font-semibold hover:text-[#5B1A57] transition-colors"
                     whileHover={{ scale: 1.05 }}
@@ -221,7 +214,6 @@ const SocialProofSection = () => {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Navigation Arrows */}
               <div className="absolute top-1/2 -translate-y-1/2 left-4 right-4 flex justify-between pointer-events-none">
                 <motion.button
                   onClick={prevTestimonial}
@@ -241,7 +233,6 @@ const SocialProofSection = () => {
                 </motion.button>
               </div>
 
-              {/* Dots Indicator */}
               <div className="flex justify-center gap-2 mt-8">
                 {testimonials.map((_, index) => (
                   <button
@@ -257,7 +248,7 @@ const SocialProofSection = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Memory of the Week */}
         <MemoryOfTheWeek />

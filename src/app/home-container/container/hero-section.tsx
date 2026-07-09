@@ -45,7 +45,7 @@ const HeroSection = () => {
             </p>
 
             <div
-              className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-up"
+              className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-up "
               style={{ animationDelay: "200ms" }}
             >
               <Link
@@ -54,17 +54,17 @@ const HeroSection = () => {
                 className="w-full sm:w-auto bg-linear-to-br from-[hsl(316,62%,20%)] to-[hsl(280,60%,35%)] text-white shadow-elevated hover:shadow-card-hover hover:opacity-95 flex gap-2 items-center justify-center h-16 px-6 text-lg rounded-md"
               >
                 <Calendar className="h-5 w-5" />
-                Get Started
+                Start your vibe
               </Link>
 
-              <Link
+              {/* <Link
                 href="/auth/register"
                 data-tour="explore-btn"
                 className="w-full sm:w-auto border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-white flex gap-2 items-center justify-center h-16 px-6 text-lg rounded-md"
               >
                 Explore Events
                 <ArrowRight className="h-5 w-5" />
-              </Link>
+              </Link> */}
             </div>
 
             <div

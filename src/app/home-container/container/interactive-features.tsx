@@ -30,7 +30,7 @@ const InteractiveFeatures = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // Exit Intent Detection - FIXED
+  // Exit Intent Detection
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0 && !hasShownExitIntent) {
@@ -61,7 +61,6 @@ const InteractiveFeatures = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [hasShownScrollCapture])
 
-  // Email submission handler - FIXED
   const handleEmailSubmit = (source: string) => {
     if (!email || !email.includes('@')) {
       alert('Please enter a valid email address')
@@ -70,10 +69,8 @@ const InteractiveFeatures = () => {
 
     console.log(`Email submitted from ${source}:`, email)
 
-    // In production, use EmailJS here
-
     alert(
-      `✅ Success! We'll send "${email}" exclusive updates and the free guide!`
+      `✅ You're subscribed! We'll keep "${email}" updated with the latest from NextVibe.`
     )
     setEmail('')
 
@@ -133,7 +130,7 @@ const InteractiveFeatures = () => {
         )}
       </AnimatePresence>
 
-      {/* Exit-Intent Popup */}
+      {/* Exit-Intent Newsletter Popup */}
       <AnimatePresence>
         {showExitIntent && (
           <motion.div
@@ -161,10 +158,10 @@ const InteractiveFeatures = () => {
                   <Sparkles className='w-16 h-16' />
                 </motion.div>
                 <h3 className='text-3xl font-bold mb-2'>
-                  Wait! Don't let the vibe fade.
+                  Stay in the loop.
                 </h3>
                 <p className='text-white/90'>
-                  Be the first to know when NextVibe launches in your city.
+                  Subscribe to our newsletter and be the first to know when NextVibe launches in your city.
                 </p>
               </div>
 
@@ -190,7 +187,7 @@ const InteractiveFeatures = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className='w-full bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all'>
-                    Get Exclusive Early Invite
+                    Subscribe to Newsletter
                   </motion.button>
                 </div>
                 <p className='text-xs text-gray-500 text-center mt-4'>
@@ -211,7 +208,6 @@ const InteractiveFeatures = () => {
             exit={{ y: 100, opacity: 0 }}
             className='fixed bottom-0 left-0 right-0 z-40 p-3 sm:p-4'>
             <div className='relative max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl border-2 border-[#A1349A] overflow-hidden'>
-              {/* Close button */}
               <button
                 onClick={() => setShowScrollCapture(false)}
                 className='absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors z-10'>
@@ -219,7 +215,6 @@ const InteractiveFeatures = () => {
               </button>
 
               <div className='p-5 sm:p-6'>
-                {/* Icon + text row */}
                 <div className='flex items-start gap-3 mb-4 pr-6'>
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0] }}
@@ -241,7 +236,6 @@ const InteractiveFeatures = () => {
                   </div>
                 </div>
 
-                {/* Input stacked above button on mobile, side-by-side on sm+ */}
                 <div className='flex flex-col sm:flex-row gap-2'>
                   <input
                     type='email'

@@ -15,8 +15,8 @@ const nunitoSans = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "NextVibe",
-  description: "Getting closer to your next event",
+  title: "nextvibe",
+  description: "... Your event's digital memory bank",
   keywords: [
     "nextvibe",
     "events",
