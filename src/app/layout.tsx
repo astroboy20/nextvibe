@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/favicon/site.webmanifest",
+  verification: {
+    google: "heXFOeejdxJGoZFVb4Cn47P3JkurQhSeM2qmdtzmYl0",
+  },
   openGraph: {
     type: "website",
     siteName: "NextVibe",
