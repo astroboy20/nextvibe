@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     template: "%s | NextVibe",
   },
   description:
+    // "NextVibe is the event memory app for parties, weddings, festivals & corporate events. Shared photo albums, VibeTags, event games, smart RSVP, and brand sponsorships — all in one place.",
     "Party Photo Sharing & Event Memory App",
   keywords: [
     "party photo sharing app",
