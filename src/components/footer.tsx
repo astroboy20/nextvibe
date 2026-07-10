@@ -1,6 +1,6 @@
 "use client";
 
-import { Facebook, Twitter, Instagram, X } from "lucide-react";
+import { Facebook, Instagram, X } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -9,28 +9,30 @@ const Footer = () => {
     {
       title: "Product",
       links: [
-        { name: "Events", href: "/" },
-        { name: "Tickets", href: "/" },
-        { name: "How It Works", href: "/" },
+        { name: "How It Works", href: "/how-it-works" },
         { name: "Pricing", href: "/pricing" },
-      ],
-    },
-    {
-      title: "Company",
-      links: [
+        { name: "FAQ", href: "/faq" },
         { name: "About Us", href: "/about" },
         { name: "Contact", href: "/contact" },
-        { name: "Careers", href: "/" },
-        { name: "Blog", href: "/" },
       ],
     },
     {
-      title: "Resources",
+      title: "Use Cases",
       links: [
-        { name: "Help Center", href: "/" },
-        { name: "Community", href: "/" },
-        { name: "Partner Program", href: "/" },
-        { name: "Become a Sponsor", href: "/" },
+        { name: "Party Photo Sharing", href: "/party-photo-sharing" },
+        { name: "Event Memory App", href: "/event-memory-app" },
+        { name: "Weddings", href: "/use-cases/weddings" },
+        { name: "Birthday Parties", href: "/use-cases/birthday-parties" },
+        { name: "Festivals", href: "/use-cases/festivals" },
+        { name: "Corporate Events", href: "/use-cases/corporate-events" },
+      ],
+    },
+    {
+      title: "Compare",
+      links: [
+        { name: "NextVibe vs Alternatives", href: "/alternatives" },
+        { name: "Become a Sponsor", href: "/contact" },
+        { name: "Partner Program", href: "/contact" },
       ],
     },
   ];
@@ -41,7 +43,7 @@ const Footer = () => {
       href: "https://www.facebook.com/profile.php?id=61572512998064",
       name: "Facebook",
     },
-    { icon: X, href: "https://x.com/mynextvibe", name: "Twitter" },
+    { icon: X, href: "https://x.com/mynextvibe", name: "Twitter / X" },
     {
       icon: Instagram,
       href: "https://www.instagram.com/mynextvibe?igsh=enE2a3NoZ3A3NW1q",
@@ -62,9 +64,9 @@ const Footer = () => {
             >
               <h3 className="text-3xl font-bold mb-4">NextVibe</h3>
               <p className="text-white/80 mb-6 leading-relaxed">
-                The world&apos;s first platform that transforms events into a
-                shared, digital legacy. Capture every moment with the power of
-                VibeTag.
+                The digital memory bank for events. Shared photo albums via QR
+                code, VibeTags, event games, smart RSVP, and brand sponsorships
+                — for organizers, attendees, and brands.
               </p>
             </motion.div>
           </div>

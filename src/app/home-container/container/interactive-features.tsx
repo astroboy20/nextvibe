@@ -10,6 +10,8 @@ const InteractiveFeatures = () => {
   const [showExitIntent, setShowExitIntent] = useState(false)
   const [showScrollCapture, setShowScrollCapture] = useState(false)
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
   const [hasShownExitIntent, setHasShownExitIntent] = useState(false)
   const [hasShownScrollCapture, setHasShownScrollCapture] = useState(false)
 
@@ -61,21 +63,60 @@ const InteractiveFeatures = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [hasShownScrollCapture])
 
-  const handleEmailSubmit = (source: string) => {
+  const handleEmailSubmit = async (source: string) => {
     if (!email || !email.includes('@')) {
       alert('Please enter a valid email address')
       return
     }
 
-    console.log(`Email submitted from ${source}:`, email)
+    setIsSubmitting(true)
 
-    alert(
-      `✅ You're subscribed! We'll keep "${email}" updated with the latest from NextVibe.`
-    )
-    setEmail('')
+    try {
+      // Substack free subscription endpoint
+      const formData = new FormData()
+      formData.append('email', email)
+      formData.append('first_url', window.location.href)
+      formData.append('first_referrer', document.referrer)
+      formData.append('current_url', window.location.href)
+      formData.append('current_referrer', document.referrer)
+      formData.append('referral_code', '')
+      formData.append('source', 'embed')
 
-    if (source === 'exit-intent') setShowExitIntent(false)
-    if (source === 'scroll-capture') setShowScrollCapture(false)
+      const response = await fetch('https://nextvibe.substack.com/api/v1/free', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok || response.status === 200) {
+        setSubmitSuccess(true)
+        setEmail('')
+        setTimeout(() => {
+          setSubmitSuccess(false)
+          if (source === 'exit-intent') setShowExitIntent(false)
+          if (source === 'scroll-capture') setShowScrollCapture(false)
+        }, 3000)
+      } else {
+        // Fallback: redirect to Substack subscribe page
+        window.open(
+          `https://nextvibe.substack.com/subscribe?email=${encodeURIComponent(email)}`,
+          '_blank'
+        )
+        setEmail('')
+        if (source === 'exit-intent') setShowExitIntent(false)
+        if (source === 'scroll-capture') setShowScrollCapture(false)
+      }
+    } catch {
+      // Network error fallback — open Substack directly
+      window.open(
+        `https://nextvibe.substack.com/subscribe?email=${encodeURIComponent(email)}`,
+        '_blank'
+      )
+      setEmail('')
+      if (source === 'exit-intent') setShowExitIntent(false)
+      if (source === 'scroll-capture') setShowScrollCapture(false)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -184,10 +225,11 @@ const InteractiveFeatures = () => {
                   </div>
                   <motion.button
                     onClick={() => handleEmailSubmit('exit-intent')}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className='w-full bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all'>
-                    Subscribe to Newsletter
+                    disabled={isSubmitting || submitSuccess}
+                    whileHover={{ scale: isSubmitting || submitSuccess ? 1 : 1.02 }}
+                    whileTap={{ scale: isSubmitting || submitSuccess ? 1 : 0.98 }}
+                    className='w-full bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-70'>
+                    {submitSuccess ? '✅ Subscribed!' : isSubmitting ? 'Subscribing...' : 'Subscribe to Newsletter'}
                   </motion.button>
                 </div>
                 <p className='text-xs text-gray-500 text-center mt-4'>
@@ -249,10 +291,11 @@ const InteractiveFeatures = () => {
                   />
                   <motion.button
                     onClick={() => handleEmailSubmit('scroll-capture')}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className='w-full sm:w-auto bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all text-sm'>
-                    Get Free Guide
+                    disabled={isSubmitting || submitSuccess}
+                    whileHover={{ scale: isSubmitting || submitSuccess ? 1 : 1.02 }}
+                    whileTap={{ scale: isSubmitting || submitSuccess ? 1 : 0.98 }}
+                    className='w-full sm:w-auto bg-linear-to-r from-[#A1349A] to-[#5B1A57] text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-70'>
+                    {submitSuccess ? '✅ Subscribed!' : isSubmitting ? 'Subscribing...' : 'Get Free Guide'}
                   </motion.button>
                 </div>
               </div>

@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Clock,
   Gamepad2,
-  ImageOff,
   MapPin,
   Sparkles,
   Tag,
@@ -42,6 +41,15 @@ function Pagination({
   onChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
+
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+    .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
+      acc.push(p);
+      return acc;
+    }, []);
+
   return (
     <div className="flex items-center justify-center gap-2 pt-6 pb-2">
       <button
@@ -52,31 +60,24 @@ function Pagination({
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      {Array.from({ length: totalPages }, (_, i) => i + 1)
-        .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-        .reduce<(number | "…")[]>((acc, p, idx, arr) => {
-          if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
-          acc.push(p);
-          return acc;
-        }, [])
-        .map((p, i) =>
-          p === "…" ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-sm text-muted-foreground">…</span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onChange(p as number)}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
-                page === p
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-card text-foreground hover:bg-muted"
-              )}
-            >
-              {p}
-            </button>
-          )
-        )}
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span key={`ellipsis-${i}`} className="px-1 text-sm text-muted-foreground">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p as number)}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
+              page === p
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-foreground hover:bg-muted"
+            )}
+          >
+            {p}
+          </button>
+        )
+      )}
 
       <button
         onClick={() => onChange(page + 1)}
@@ -89,44 +90,82 @@ function Pagination({
   );
 }
 
-// ── Postcards view with phase filter ─────────────────────────────────────────
-
-const PHASE_FILTERS = [
-  { id: "all",        label: "All",        icon: Sparkles },
-  { id: "pre-event",  label: "Pre-Event",  icon: Clock },
-  { id: "main-event", label: "Main Event", icon: TrendingUp },
-  { id: "post-event", label: "Post-Event", icon: Tag },
+// ── Chip filter definitions (shared) ─────────────────────────────────────────
+const CHIP_FILTERS = [
+  { id: "games",   label: "Has Games",    icon: Gamepad2 },
+  { id: "vibetag", label: "Has VibeTag",  icon: Tag },
+  { id: "free",    label: "Free",         icon: Ticket },
+  { id: "soon",    label: "Starting Soon",icon: Clock },
 ] as const;
 
-type PostcardPhase = typeof PHASE_FILTERS[number]["id"];
+type ChipId = typeof CHIP_FILTERS[number]["id"];
 
-function PostcardsView({
-  allEvents,
-  userInterests,
-  postcardsPage,
-  setPostcardsPage,
-  postcardsTotalPages,
-}: {
-  allEvents: any[];
-  userInterests: any[];
-  postcardsPage: number;
-  setPostcardsPage: (p: number) => void;
-  postcardsTotalPages: number;
-}) {
+// ── Shared filter logic ───────────────────────────────────────────────────────
+function applyCommonFilters(
+  list: any[],
+  locationFilter: string,
+  interestFilter: string,
+  activeFilters: string[]
+) {
+  let result = list;
+  if (locationFilter) {
+    const l = locationFilter.toLowerCase();
+    result = result.filter((e) => (e.locationName ?? "").toLowerCase().includes(l));
+  }
+  if (interestFilter) {
+    const i = interestFilter.toLowerCase().replace(/-/g, " ");
+    result = result.filter(
+      (e) =>
+        (e.name ?? "").toLowerCase().includes(i) ||
+        (e.locationName ?? "").toLowerCase().includes(i) ||
+        (e.category ?? "").toLowerCase().includes(i)
+    );
+  }
+  if (activeFilters.includes("games"))   result = result.filter((e) => e.hasGame);
+  if (activeFilters.includes("vibetag")) result = result.filter((e) => e.hasVibetag);
+  if (activeFilters.includes("free"))    result = result.filter((e) => !e.isPaid && !e.ticketPrice);
+  if (activeFilters.includes("soon")) {
+    const now = Date.now();
+    const threeDays = 3 * 24 * 60 * 60 * 1000;
+    result = result.filter((e) => {
+      const start = new Date(e.startsAt).getTime();
+      return start > now && start - now <= threeDays;
+    });
+  }
+  return result;
+}
+
+// ── Postcards view ────────────────────────────────────────────────────────────
+function PostcardsView({ userInterests }: { userInterests: any[] }) {
   const [activeTab, setActiveTab] = useState<"foryou" | "trending" | "nearby">("foryou");
   const [locationFilter, setLocationFilter] = useState("");
   const [interestFilter, setInterestFilter] = useState("");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [activeFilters, setActiveFilters] = useState<ChipId[]>([]);
   const [autoLocating, setAutoLocating] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const toggleFilter = (id: string) => {
+  // Dedicated API call for postcards view — responds to its own page state
+  const { data: postcardsData, isLoading } = useGetEventsQuery({
+    page,
+    limit: PAGE_SIZE,
+    isPublic: true,
+  });
+
+  const allEvents: any[] = useMemo(
+    () => (postcardsData?.data?.data ?? []).filter((e: any) => e.isPublic !== false),
+    [postcardsData]
+  );
+  const meta = postcardsData?.data?.meta;
+  const totalPages = meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / PAGE_SIZE) : 1);
+
+  const toggleFilter = useCallback((id: ChipId) => {
     setActiveFilters((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
     );
-    setPostcardsPage(1);
-  };
+    setPage(1);
+  }, []);
 
-  const detectLocation = () => {
+  const detectLocation = useCallback(() => {
     if (!navigator.geolocation) return;
     setAutoLocating(true);
     navigator.geolocation.getCurrentPosition(
@@ -145,70 +184,55 @@ function PostcardsView({
       () => setAutoLocating(false),
       { timeout: 8000 }
     );
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setLocationFilter("");
     setInterestFilter("");
     setActiveFilters([]);
-    setPostcardsPage(1);
-  };
+    setPage(1);
+  }, []);
 
   const hasFilters = locationFilter || interestFilter || activeFilters.length > 0;
 
   const filteredEvents = useMemo(() => {
     let list =
       activeTab === "trending"
-        ? [...allEvents].sort((a: any, b: any) => (b.postcardCount ?? 0) - (a.postcardCount ?? 0))
+        ? [...allEvents].sort((a, b) => (b.postcardCount ?? 0) - (a.postcardCount ?? 0))
         : activeTab === "nearby" && locationFilter
-        ? [...allEvents].sort((a: any) =>
+        ? [...allEvents].sort((a) =>
             (a.locationName ?? "").toLowerCase().includes(locationFilter.toLowerCase()) ? -1 : 1
           )
         : allEvents;
 
-    if (locationFilter) {
-      const l = locationFilter.toLowerCase();
-      list = list.filter((e: any) => (e.locationName ?? "").toLowerCase().includes(l));
-    }
-    if (interestFilter) {
-      const i = interestFilter.toLowerCase().replace(/-/g, " ");
-      list = list.filter(
-        (e: any) =>
-          (e.name ?? "").toLowerCase().includes(i) ||
-          (e.locationName ?? "").toLowerCase().includes(i) ||
-          (e.category ?? "").toLowerCase().includes(i)
-      );
-    }
-    if (activeFilters.includes("games"))   list = list.filter((e: any) => e.hasGame);
-    if (activeFilters.includes("vibetag")) list = list.filter((e: any) => e.hasVibetag);
-    if (activeFilters.includes("free"))    list = list.filter((e: any) => !e.isPaid && !e.ticketPrice);
-    if (activeFilters.includes("soon")) {
-      const now = Date.now();
-      const threeDays = 3 * 24 * 60 * 60 * 1000;
-      list = list.filter((e: any) => {
-        const start = new Date(e.startsAt).getTime();
-        return start > now && start - now <= threeDays;
-      });
-    }
+    list = applyCommonFilters(list, locationFilter, interestFilter, activeFilters);
+
     // Only show events that actually have postcards
-    return list.filter((e: any) => (e.postcardCount ?? 0) > 0 || e.hasVibetag);
+    return list.filter((e) => (e.postcardCount ?? 0) > 0 || e.hasVibetag);
   }, [allEvents, activeTab, locationFilter, interestFilter, activeFilters]);
 
-  const chips = [
-    { id: "games",   label: "Has Games",      icon: Gamepad2 },
-    { id: "vibetag", label: "Has VibeTag",     icon: Tag },
-    { id: "free",    label: "Free",            icon: Ticket },
-    { id: "soon",    label: "Starting Soon",   icon: Clock },
-  ];
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-3">
+            <Skeleton className="h-36 sm:h-48 w-full rounded-2xl" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Location + Vibe filter box — identical to events */}
+      {/* Filters */}
       <div className="mb-6 grid gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-3">
         <div className="flex items-center gap-2">
           <Input
             value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
+            onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
             placeholder="Location"
             className="h-9"
           />
@@ -226,7 +250,7 @@ function PostcardsView({
 
         <select
           value={interestFilter}
-          onChange={(e) => { setInterestFilter(e.target.value); setPostcardsPage(1); }}
+          onChange={(e) => { setInterestFilter(e.target.value); setPage(1); }}
           className="h-9 rounded-md border border-border bg-background px-3 text-sm"
         >
           <option value="">Vibe</option>
@@ -254,40 +278,28 @@ function PostcardsView({
         )}
       </div>
 
-      {/* For You / Trending / Near You tabs + chip filters — identical to events */}
+      {/* Tab + chip filters */}
       <div className="mb-5">
         <Tabs
           value={activeTab}
-          onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPostcardsPage(1); }}
+          onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPage(1); }}
           className="mb-4"
         >
           <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
-            <TabsTrigger
-              value="foryou"
-              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              For You
+            <TabsTrigger value="foryou" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Sparkles className="h-3.5 w-3.5" /> For You
             </TabsTrigger>
-            <TabsTrigger
-              value="trending"
-              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              Trending
+            <TabsTrigger value="trending" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TrendingUp className="h-3.5 w-3.5" /> Trending
             </TabsTrigger>
-            <TabsTrigger
-              value="nearby"
-              className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <MapPin className="h-3.5 w-3.5" />
-              Near You
+            <TabsTrigger value="nearby" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <MapPin className="h-3.5 w-3.5" /> Near You
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {chips.map(({ id, label, icon: Icon }) => {
+          {CHIP_FILTERS.map(({ id, label, icon: Icon }) => {
             const isActive = activeFilters.includes(id);
             return (
               <button
@@ -325,34 +337,31 @@ function PostcardsView({
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
             {filteredEvents.map((event: any, index: number) => (
-              <div
+              <EventCard
                 key={event.id}
+                variant="postcard"
+                id={event?.id}
+                title={event?.name}
+                date={event?.startsAt}
+                location={event?.locationName}
+                image={event?.flierUrl || event?.image || event?.data?.flierUrl}
+                promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
+                attendees={event?.attendees}
+                hasGames={event?.hasGame}
+                hasVibeTag={event?.hasVibetag}
+                rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
+                colorAccent={event?.colorAccent}
+                postcardCount={event?.postcardCount ?? 0}
+                eventMode={event?.mode}
                 className="animate-fade-in"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                <EventCard
-                  variant="postcard"
-                  id={event?.id}
-                  title={event?.name}
-                  date={event?.startsAt}
-                  location={event?.locationName}
-                  image={event?.flierUrl || event?.image || event?.data?.flierUrl}
-                  promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
-                  attendees={event?.attendees}
-                  hasGames={event?.hasGame}
-                  hasVibeTag={event?.hasVibetag}
-                  rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
-                  colorAccent={event?.colorAccent}
-                  postcardCount={event?.postcardCount ?? 0}
-                  eventMode={event?.mode}
-                />
-              </div>
+                style={{ "--delay": `${index * 40}ms` } as React.CSSProperties}
+              />
             ))}
           </div>
           <Pagination
-            page={postcardsPage}
-            totalPages={postcardsTotalPages}
-            onChange={(p) => { setPostcardsPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            page={page}
+            totalPages={totalPages}
+            onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           />
         </>
       )}
@@ -368,11 +377,8 @@ const Discover = () => {
   const [interestFilter, setInterestFilter] = useState("");
   const [vibeFilter, setVibeFilter] = useState("");
   const [autoLocating, setAutoLocating] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
-
-  // separate page state per view
+  const [activeFilters, setActiveFilters] = useState<ChipId[]>([]);
   const [eventsPage, setEventsPage] = useState(1);
-  const [postcardsPage, setPostcardsPage] = useState(1);
 
   const { data: eventsData, isLoading: isLoadingEvents } = useGetEventsQuery({
     page: eventsPage,
@@ -381,12 +387,12 @@ const Discover = () => {
   });
   const { userInterests } = useEventDiscovery();
 
-  const toggleFilter = (id: string) => {
+  const toggleFilter = useCallback((id: ChipId) => {
     setActiveFilters((prev) =>
       prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
     );
     setEventsPage(1);
-  };
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("nextvibe_location");
@@ -398,7 +404,10 @@ const Discover = () => {
     }
   }, []);
 
-  const detectLocation = () => {
+  // Reset to page 1 when filters/tab change
+  useEffect(() => { setEventsPage(1); }, [activeTab, locationFilter, interestFilter, vibeFilter, activeFilters]);
+
+  const detectLocation = useCallback(() => {
     if (!navigator.geolocation) return;
     setAutoLocating(true);
     navigator.geolocation.getCurrentPosition(
@@ -419,27 +428,25 @@ const Discover = () => {
       () => setAutoLocating(false),
       { timeout: 8000 }
     );
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setLocationFilter("");
     setInterestFilter("");
     setVibeFilter("");
     setActiveFilters([]);
     setEventsPage(1);
     localStorage.removeItem("nextvibe_location");
-  };
+  }, []);
 
   const hasFilters = locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
 
-  const allEvents: any[] = (eventsData?.data?.data ?? []).filter(
-    (e: any) => e.isPublic !== false
+  const allEvents: any[] = useMemo(
+    () => (eventsData?.data?.data ?? []).filter((e: any) => e.isPublic !== false),
+    [eventsData]
   );
   const eventsMeta = eventsData?.data?.meta;
-  // total pages: prefer server meta, fall back to local count
   const eventsTotalPages = eventsMeta?.totalPages
-    ?? (eventsMeta?.total ? Math.ceil(eventsMeta.total / PAGE_SIZE) : 1);
-  const postcardsTotalPages = eventsMeta?.totalPages
     ?? (eventsMeta?.total ? Math.ceil(eventsMeta.total / PAGE_SIZE) : 1);
 
   const filteredEvents = useMemo(() => {
@@ -452,46 +459,12 @@ const Discover = () => {
           )
         : allEvents;
 
-    if (locationFilter) {
-      const l = locationFilter.toLowerCase();
-      list = list.filter((e) => (e.locationName ?? "").toLowerCase().includes(l));
-    }
-    if (interestFilter) {
-      const i = interestFilter.toLowerCase().replace(/-/g, " ");
-      list = list.filter(
-        (e) =>
-          (e.name ?? "").toLowerCase().includes(i) ||
-          (e.locationName ?? "").toLowerCase().includes(i) ||
-          (e.category ?? "").toLowerCase().includes(i)
-      );
-    }
+    list = applyCommonFilters(list, locationFilter, interestFilter, activeFilters);
     if (vibeFilter) list = list.filter((e) => e.hasVibetag);
-    if (activeFilters.includes("games")) list = list.filter((e) => e.hasGame);
-    if (activeFilters.includes("vibetag")) list = list.filter((e) => e.hasVibetag);
-    if (activeFilters.includes("free")) list = list.filter((e) => !e.isPaid && !e.ticketPrice);
-    if (activeFilters.includes("soon")) {
-      const now = Date.now();
-      const threeDays = 3 * 24 * 60 * 60 * 1000;
-      list = list.filter((e) => {
-        const start = new Date(e.startsAt).getTime();
-        return start > now && start - now <= threeDays;
-      });
-    }
     return list;
   }, [allEvents, activeTab, locationFilter, interestFilter, vibeFilter, activeFilters]);
 
-  const filters = [
-    { id: "games", label: "Has Games", icon: Gamepad2 },
-    { id: "vibetag", label: "Has VibeTag", icon: Tag },
-    { id: "free", label: "Free", icon: Ticket },
-    { id: "soon", label: "Starting Soon", icon: Clock },
-  ];
-
-  // reset to page 1 when filters/tab change
-  useEffect(() => { setEventsPage(1); }, [activeTab, locationFilter, interestFilter, vibeFilter, activeFilters]);
-  useEffect(() => { setPostcardsPage(1); }, []);
-
-  if (isLoadingEvents) {
+  if (isLoadingEvents && activeView === "events") {
     return (
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         {[1, 2, 3, 4].map((i) => (
@@ -573,37 +546,25 @@ const Discover = () => {
               className="mb-4"
             >
               <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
-                <TabsTrigger
-                  value="foryou"
-                  className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  For You
+                <TabsTrigger value="foryou" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Sparkles className="h-3.5 w-3.5" /> For You
                 </TabsTrigger>
-                <TabsTrigger
-                  value="trending"
-                  className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Trending
+                <TabsTrigger value="trending" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TrendingUp className="h-3.5 w-3.5" /> Trending
                 </TabsTrigger>
-                <TabsTrigger
-                  value="nearby"
-                  className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  Near You
+                <TabsTrigger value="nearby" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <MapPin className="h-3.5 w-3.5" /> Near You
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {filters.map((filter) => {
-                const Icon = filter.icon;
-                const isActive = activeFilters.includes(filter.id);
+              {CHIP_FILTERS.map(({ id, label, icon: Icon }) => {
+                const isActive = activeFilters.includes(id);
                 return (
                   <button
-                    key={filter.id}
-                    onClick={() => toggleFilter(filter.id)}
+                    key={id}
+                    onClick={() => toggleFilter(id)}
                     className={cn(
                       "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200",
                       isActive
@@ -612,7 +573,7 @@ const Discover = () => {
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {filter.label}
+                    {label}
                   </button>
                 );
               })}
@@ -636,28 +597,25 @@ const Discover = () => {
             <>
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
                 {filteredEvents.map((event: any, index: number) => (
-                  <div
+                  <EventCard
                     key={event.id}
+                    variant="event"
+                    id={event?.id}
+                    title={event?.name}
+                    date={event?.startsAt}
+                    location={event?.locationName}
+                    image={event?.flierUrl || event?.image || event?.data?.flierUrl}
+                    promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
+                    attendees={event?.attendees}
+                    hasGames={event?.hasGame}
+                    hasVibeTag={event?.hasVibetag}
+                    rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
+                    colorAccent={event?.colorAccent}
+                    postcardCount={event?.postcardCount ?? 0}
+                    eventMode={event?.mode}
                     className="animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <EventCard
-                      variant="event"
-                      id={event?.id}
-                      title={event?.name}
-                      date={event?.startsAt}
-                      location={event?.locationName}
-                      image={event?.flierUrl || event?.image || event?.data?.flierUrl}
-                      promoVideoUrl={event?.promoVideoUrl || event?.promotionalVideoUrl || event?.data?.promotionalVideoUrl}
-                      attendees={event?.attendees}
-                      hasGames={event?.hasGame}
-                      hasVibeTag={event?.hasVibetag}
-                      rsvpStartDateTime={event?.rsvpStartDateTime ?? null}
-                      colorAccent={event?.colorAccent}
-                      postcardCount={event?.postcardCount ?? 0}
-                      eventMode={event?.mode}
-                    />
-                  </div>
+                    style={{ "--delay": `${index * 40}ms` } as React.CSSProperties}
+                  />
                 ))}
               </div>
               <Pagination
@@ -672,13 +630,7 @@ const Discover = () => {
 
       {/* ── Postcards view ── */}
       {activeView === "postcards" && (
-        <PostcardsView
-          allEvents={allEvents}
-          userInterests={userInterests}
-          postcardsPage={postcardsPage}
-          setPostcardsPage={setPostcardsPage}
-          postcardsTotalPages={postcardsTotalPages}
-        />
+        <PostcardsView userInterests={userInterests} />
       )}
     </main>
   );

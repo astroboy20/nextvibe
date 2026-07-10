@@ -41,6 +41,16 @@ const MAX_VIDEO_UPLOAD_SIZE_MB = 50;
 // Max uploaded video duration in seconds — files above this are rejected
 const MAX_VIDEO_DURATION_SECS = 60;
 
+// Serial baking queue — ensures only one video is encoded at a time to prevent
+// multiple concurrent re-encodes from exhausting browser memory.
+let bakingQueuePromise: Promise<void> = Promise.resolve();
+function enqueueBake<T>(fn: () => Promise<T>): Promise<T> {
+  const result = bakingQueuePromise.then(() => fn());
+  // Chain onto the queue but swallow errors so a failed bake doesn't block future ones
+  bakingQueuePromise = result.then(() => {}, () => {});
+  return result;
+}
+
 // Image output dimensions — reduced from 1080×1920 to save memory
 const OUTPUT_WIDTH = 720;
 const OUTPUT_HEIGHT = 1280;
@@ -150,10 +160,7 @@ async function bakeOverlayOntoVideo(
     const objectUrl = URL.createObjectURL(videoBlob);
 
     const video = document.createElement("video");
-    // NOTE: do NOT set video.muted = true here — it would prevent the
-    // AudioContext from capturing the audio track for the baked output.
-    // The audio is routed through AudioContext so it won't play through
-    // the device speakers during processing anyway.
+    // Do NOT set video.muted = true — muted elements have no audio track to capture.
     video.playsInline = true;
     video.preload = "auto";
     video.playbackRate = 2;   // encode at 2× speed → half the time
@@ -197,25 +204,22 @@ async function bakeOverlayOntoVideo(
             ? "video/webm"
             : "video/mp4";
 
-        // Capture at 15 fps — half the draw calls vs 30 fps
-        const videoStream = (canvas as any).captureStream(15) as MediaStream;
+        // Capture canvas frames at 15 fps — half the draw calls vs 30 fps
+        const canvasStream = (canvas as any).captureStream(15) as MediaStream;
 
-        // Preserve the original audio — create a silent AudioContext source
-        // from the video element and pipe it into the output stream so the
-        // baked file keeps its audio track.
-        try {
-          const audioCtx = new AudioContext();
-          const src = audioCtx.createMediaElementSource(video);
-          const dst = audioCtx.createMediaStreamDestination();
-          src.connect(dst);
-          // Also connect to speakers so audio isn't dropped silently
-          src.connect(audioCtx.destination);
-          dst.stream.getAudioTracks().forEach((t) => videoStream.addTrack(t));
-        } catch {
-          // AudioContext not available — audio will be missing but video still works
-        }
+        // Pull audio directly from the video element's own capture stream after
+        // play() starts — audio tracks are only live once the video is playing.
+        // We build the combined stream with video tracks only for now; audio
+        // tracks are added dynamically in the play().then() callback below.
+        // This is more reliable than AudioContext.createMediaElementSource,
+        // which requires a user gesture and often silently drops audio.
 
-        const recorder = new MediaRecorder(videoStream, {
+        // Combine canvas video tracks into the output stream (audio added after play)
+        const combinedStream = new MediaStream([
+          ...canvasStream.getVideoTracks(),
+        ]);
+
+        const recorder = new MediaRecorder(combinedStream, {
           mimeType,
           videoBitsPerSecond: 2_000_000,  // 2 Mbps — 4× less than original 8 Mbps
           audioBitsPerSecond: 128_000,
@@ -248,7 +252,27 @@ async function bakeOverlayOntoVideo(
         };
 
         recorder.start(200); // larger timeslice → fewer chunk allocations
-        video.play().then(drawFrame).catch(() => {
+        video.play().then(() => {
+          // Add audio tracks after play() resolves — captureStream() audio tracks
+          // are only live once the video has actually started playing.
+          try {
+            let liveStream: MediaStream | null = null;
+            if (typeof (video as any).captureStream === "function") {
+              liveStream = (video as any).captureStream() as MediaStream;
+            } else if (typeof (video as any).mozCaptureStream === "function") {
+              liveStream = (video as any).mozCaptureStream() as MediaStream;
+            }
+            liveStream?.getAudioTracks().forEach((t) => {
+              // Only add if not already present (avoid duplicates)
+              if (!combinedStream.getAudioTracks().includes(t)) {
+                combinedStream.addTrack(t);
+              }
+            });
+          } catch {
+            // Audio capture unavailable — video-only output
+          }
+          drawFrame();
+        }).catch(() => {
           cancelAnimationFrame(animFrame);
           recorder.stop();
         });
@@ -393,25 +417,27 @@ export function PostcardCreator({
       ]);
 
       if (hasOverlay && vibeTagOverlay?.imageUrl) {
-        try {
-          const finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
-          const bakedUrl = URL.createObjectURL(finalBlob);
-          setter((q) =>
-            q.map((item) => {
-              if (item.id !== id) return item;
-              // Revoke the old raw URL — the baked one replaces it
-              if (item.raw !== bakedUrl) URL.revokeObjectURL(item.raw);
-              return { ...item, baked: bakedUrl, baking: false, blob: finalBlob };
-            })
-          );
-        } catch {
-          // Baking failed — use raw, mark done so submit isn't blocked
-          setter((q) =>
-            q.map((item) =>
-              item.id === id ? { ...item, baking: false } : item
-            )
-          );
-        }
+        enqueueBake(async () => {
+          try {
+            const finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
+            const bakedUrl = URL.createObjectURL(finalBlob);
+            setter((q) =>
+              q.map((item) => {
+                if (item.id !== id) return item;
+                // Revoke the old raw URL — the baked one replaces it
+                if (item.raw !== bakedUrl) URL.revokeObjectURL(item.raw);
+                return { ...item, baked: bakedUrl, baking: false, blob: finalBlob };
+              })
+            );
+          } catch {
+            // Baking failed — use raw, mark done so submit isn't blocked
+            setter((q) =>
+              q.map((item) =>
+                item.id === id ? { ...item, baking: false } : item
+              )
+            );
+          }
+        });
       }
     },
     [hasOverlay, vibeTagOverlay]

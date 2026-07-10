@@ -112,7 +112,7 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
                 href={event.virtualLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary text-xs hover:underline flex items-center gap-1"
+                className="text-xs hover:underline flex items-center gap-1 bg-[#5B1A57] text-white px-2 py-1 rounded-md"
               >
                 Join Online <ExternalLink className="h-3 w-3" />
               </a>

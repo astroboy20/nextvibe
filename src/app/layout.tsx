@@ -17,11 +17,11 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://mynextvibe.com"),
   title: {
-    default: "NextVibe — Your Event's Digital Memory Bank",
+    default: "nextvibe",
     template: "%s | NextVibe",
   },
   description:
-    "NextVibe is the event memory app for parties, weddings, festivals, and corporate events. Shared photo albums, VibeTags, event games, smart RSVP, and brand sponsorships.",
+    "Party Photo Sharing & Event Memory App",
   keywords: [
     "party photo sharing app",
     "event memory app",
@@ -36,11 +36,10 @@ export const metadata: Metadata = {
     "nextvibe",
   ],
   authors: [
-    { name: "Spectroniq", url: "https://www.spectroniq.com/" },
     { name: "Simi Peters" },
+    { name: "Tolulope Akinkunmi", url: "https://github.com/astroboy20" },
     { name: "Kingsley Ihemelandu", url: "https://github.com/kingsleydaprime" },
     { name: "Jeremiah Nwosu" },
-    { name: "Tolulope Akinkunmi", url: "https://github.com/astroboy20" },
   ],
   icons: {
     icon: [
@@ -65,6 +64,28 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/favicon/site.webmanifest",
+  openGraph: {
+    type: "website",
+    siteName: "NextVibe",
+    title: "NextVibe — Party Photo Sharing & Event Memory App",
+    description:
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP — the digital memory bank for your events.",
+    images: [
+      {
+        url: "/logos/new/logo_black_text.png",
+        width: 1200,
+        height: 630,
+        alt: "NextVibe — Your Event's Digital Memory Bank",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@mynextvibe",
+    title: "NextVibe — Party Photo Sharing & Event Memory App",
+    description:
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP.",
+  },
 };
 
 export default function RootLayout({
@@ -75,6 +96,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="beforeInteractive"

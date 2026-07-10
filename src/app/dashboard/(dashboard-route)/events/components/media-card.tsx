@@ -1,12 +1,10 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Calendar, Gamepad2, MapPin, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/hooks/format-date";
 import Image from "next/image";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
 
 export interface MediaCardProps {
   id?: string;
@@ -29,7 +27,14 @@ export interface MediaCardProps {
 const FLIER_MS = 5000;
 const FADE_MS = 700;
 
-export function MediaCard({
+const ACCENT_BORDER: Record<string, string> = {
+  pink: "border-vibe-pink/30",
+  purple: "border-vibe-purple/30",
+  cyan: "border-vibe-cyan/30",
+  plum: "border-primary/30",
+};
+
+export const MediaCard = memo(function MediaCard({
   id = "1",
   title,
   date,
@@ -48,15 +53,6 @@ export function MediaCard({
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data: attendeesData } = useGetEventAttendeesQuery(
-    { eventId: id },
-    { skip: !id || id === "1" }
-  );
-
-  const liveAttendees: number = attendeesData?.data?.meta?.total ?? attendees;
-  const attendeeList: { id: string; avatarUrl?: string; displayName?: string }[] =
-    attendeesData?.data?.data?.map((a: any) => a.user) ?? [];
-
   const [flierOpacity, setFlierOpacity] = useState(1);
   const [videoOpacity, setVideoOpacity] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -67,7 +63,7 @@ export function MediaCard({
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: "100px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -126,23 +122,12 @@ export function MediaCard({
     [promoVideoUrl, isVisible]
   );
 
-  const accentBorder = {
-    pink: "border-vibe-pink/30",
-    purple: "border-vibe-purple/30",
-    cyan: "border-vibe-cyan/30",
-    plum: "border-primary/30",
-  }[colorAccent ?? "plum"];
+  const accentBorder = ACCENT_BORDER[colorAccent ?? "plum"];
+  const imageHeight = variant === "postcard" ? "h-36" : "h-56 sm:h-64";
 
   const handleClick = () => {
-    if (variant === "postcard") {
-      router.push(`/postcards/${id}`);
-    } else {
-      router.replace(`/events/${id}`);
-    }
+    router.push(variant === "postcard" ? `/postcards/${id}` : `/events/${id}`);
   };
-
-  // Postcard variant uses a shorter image height to fit the 2-col grid
-  const imageHeight = variant === "postcard" ? "h-36" : "h-56 sm:h-64";
 
   return (
     <div
@@ -175,6 +160,7 @@ export function MediaCard({
             alt={title}
             width={400}
             height={256}
+            loading="lazy"
             style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
@@ -229,28 +215,12 @@ export function MediaCard({
           </div>
         )}
 
-        <div className="mt-2 flex items-center">
-          {attendeeList.length > 0 ? (
-            <>
-              <div className="flex -space-x-1.5">
-                {attendeeList.slice(0, 3).map((item, i) => (
-                  <Avatar key={item.id ?? i} className="h-6 w-6 border-2 border-card">
-                    {item.avatarUrl ? (
-                      <AvatarImage src={item.avatarUrl} alt={item.displayName ?? "Attendee"} />
-                    ) : null}
-                    <AvatarFallback className="text-[9px]">{item.displayName?.[0] ?? "U"}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-              {liveAttendees > 3 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">+{liveAttendees - 3}</span>
-              )}
-            </>
-          ) : (
-            <span className="text-xs text-muted-foreground">No attendees yet</span>
-          )}
-        </div>
+        {attendees > 0 && (
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            {attendees.toLocaleString()} {attendees === 1 ? "attendee" : "attendees"}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+});

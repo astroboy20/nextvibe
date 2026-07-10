@@ -2,7 +2,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, HelpCircle, X, Ticket, Loader2, Clock, AlertCircle } from "lucide-react";
+import {
+  Check,
+  HelpCircle,
+  X,
+  Ticket,
+  Loader2,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +21,7 @@ import {
 } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import Link from "next/link";
 
 interface EventRSVPTabProps {
   event: any;
@@ -54,7 +63,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
     return event?.isRsvped ? "going" : null;
   };
 
-  const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(deriveInitialStatus());
+  const [rsvpStatus, setRsvpStatus] = useState<RSVPChoice>(
+    deriveInitialStatus()
+  );
   const [loadingChoice, setLoadingChoice] = useState<RSVPChoice>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
 
@@ -84,7 +95,9 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
     try {
       await rsvpMutation({ eventId: event.id, status: "WAITLIST" }).unwrap();
       setRsvpStatus("waitlisted");
-      toast.success("You're on the waitlist! We'll notify you if a spot opens.");
+      toast.success(
+        "You're on the waitlist! We'll notify you if a spot opens."
+      );
     } catch (err: any) {
       toast.error(extractErrorMessage(err));
     } finally {
@@ -149,10 +162,17 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
             <Ticket className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-green-600">You&apos;re going! 🎉</p>
-            <p className="text-sm text-muted-foreground">Your RSVP is confirmed</p>
+            <p className="font-semibold text-green-600">
+              You&apos;re going! 🎉
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Your RSVP is confirmed
+            </p>
           </div>
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-600 border-green-500/20"
+          >
             Confirmed
           </Badge>
         </div>
@@ -164,12 +184,17 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
             <Clock className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-amber-600">Waitlisted — Pending Approval</p>
+            <p className="font-semibold text-amber-600">
+              Waitlisted — Pending Approval
+            </p>
             <p className="text-sm text-muted-foreground">
               We&apos;ll notify you if a spot opens up.
             </p>
           </div>
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">
+          <Badge
+            variant="outline"
+            className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0"
+          >
             Waitlisted
           </Badge>
         </div>
@@ -194,7 +219,8 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
               "h-auto flex-col gap-2 py-4 rounded-2xl transition-all",
               rsvpStatus === "going" &&
                 "bg-green-600 hover:bg-green-700 border-green-600",
-              isFull && rsvpStatus === null &&
+              isFull &&
+                rsvpStatus === null &&
                 "border-amber-500 text-amber-600 hover:bg-amber-50",
               isAnyLoading &&
                 loadingChoice !== "going" &&
@@ -367,6 +393,7 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
             {attendees.map((attendee: any, i: number) => {
               const user = attendee.user ?? attendee;
               const name = user?.displayName ?? user?.username ?? "Attendee";
+              const userId = user?.id;
               const status =
                 attendee.status ?? attendee.rsvpStatus ?? "CONFIRMED";
 
@@ -382,7 +409,12 @@ export function EventRSVPTab({ event }: EventRSVPTabProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{name}</p>
+                    <Link
+                      href={`/users/${userId}`}
+                      className="font-medium text-sm truncate "
+                    >
+                      {name}
+                    </Link>
                     {user?.username && (
                       <p className="text-xs text-muted-foreground">
                         @{user.username}
