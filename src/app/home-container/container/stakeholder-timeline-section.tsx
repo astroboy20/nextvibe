@@ -1,12 +1,8 @@
 "use client";
 
-import  { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  TrendingUp,
-  Camera,
-  Heart,
-} from "lucide-react";
+import { TrendingUp, Camera, Heart } from "lucide-react";
 
 const StakeholdersSection = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -16,14 +12,18 @@ const StakeholdersSection = () => {
       title: "For Organizers",
       icon: TrendingUp,
       description:
-        "Sell out your event with NextvibePilot. Track real engagement, not just attendance with VibeTag Analytics. Create a content goldmine.",
+        "Turn a one-night event into an experience people talk about for weeks — and content you own.",
+      // description:
+      //   "Sell out your event with NextvibePilot. Track real engagement, not just attendance with VibeTag Analytics. Create a content goldmine.",
       color: "from-purple-500 to-pink-500",
     },
     {
       title: "For Attendees/Creators",
       icon: Camera,
       description:
-        "Find all your photos and videos. Discover and engage with content hassle-free.",
+        "Every photo, every tag, every moment from the night — in one place, yours to keep.",
+      // description:
+      //   "Find all your photos and videos. Discover and engage with content hassle-free.",
       color: "from-[#A1349A] to-purple-600",
     },
     {
