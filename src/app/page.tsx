@@ -9,9 +9,9 @@ import {
 } from "@/lib/seo/structured-data";
 
 export const metadata: Metadata = {
-  title: "NextVibe — Party Photo Sharing & Event Memory App",
+  title: "Nextvibe — Party Photo Sharing & Event Memory App",
   description:
-    "NextVibe is the event memory app for parties, weddings, festivals & corporate events. Shared photo albums, VibeTags, event games, smart RSVP, and brand sponsorships — all in one place.",
+    "Nextvibe is the ultimate app for parties, weddings, and events. Shared photo albums, VibeTags, event games, and smart RSVP — all in one place.",
   keywords: [
     "party photo sharing app",
     "event memory app",
@@ -23,17 +23,13 @@ export const metadata: Metadata = {
     "VibeTags",
     "event games",
     "smart RSVP",
-    "capture party photos",
-    "event digital memory bank",
     "nextvibe",
   ],
-  alternates: {
-    canonical: "https://mynextvibe.com",
-  },
+  alternates: { canonical: "https://mynextvibe.com" },
   openGraph: {
-    title: "NextVibe — Party Photo Sharing & Event Memory App",
+    title: "Nextvibe — Party Photo Sharing & Event Memory App",
     description:
-      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP — the digital memory bank for your events.",
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, and event games.",
     url: "https://mynextvibe.com",
     siteName: "NextVibe",
     type: "website",
@@ -48,9 +44,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NextVibe — Party Photo Sharing & Event Memory App",
+    title: "Nextvibe — Party Photo Sharing & Event Memory App",
     description:
-      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP.",
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, and event games.",
     images: ["https://mynextvibe.com/logos/new/logo_black_text.png"],
   },
 };
@@ -97,7 +93,8 @@ export default function Home() {
             Smart RSVP — manage guest lists, reminders, and dietary requirements
           </li>
           <li>
-            Brand sponsorship tools — sponsor authentic moments, not just banners
+            Brand sponsorship tools — sponsor authentic moments, not just
+            banners
           </li>
           <li>
             NextvibePilot analytics — track real engagement, not just attendance
@@ -112,7 +109,10 @@ export default function Home() {
         </p>
         <h2>Use Cases</h2>
         <ul>
-          <li>Wedding photo sharing — collect every guest&apos;s photos in one place</li>
+          <li>
+            Wedding photo sharing — collect every guest&apos;s photos in one
+            place
+          </li>
           <li>Birthday party albums — 18th, 21st, 30th, 50th and beyond</li>
           <li>Music festival memory app — VibeTags per stage and artist set</li>
           <li>Corporate event photo sharing and analytics</li>

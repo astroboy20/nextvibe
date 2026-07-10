@@ -17,21 +17,17 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://mynextvibe.com"),
   title: {
-    default: "nextvibe",
+    default: "NextVibe — Party Photo Sharing & Event Memory App",
     template: "%s | NextVibe",
   },
   description:
-    // "NextVibe is the event memory app for parties, weddings, festivals & corporate events. Shared photo albums, VibeTags, event games, smart RSVP, and brand sponsorships — all in one place.",
-    "Party Photo Sharing & Event Memory App",
+    "Nextvibe is the ultimate app for parties, weddings, and events. Shared photo albums, VibeTags, event games, and smart RSVP — all in one place.",
   keywords: [
     "party photo sharing app",
     "event memory app",
     "shared event photo album",
-    "QR code party photos",
     "wedding photo sharing",
     "festival memory app",
-    "event photo album",
-    "VibeTags",
     "event games",
     "smart RSVP",
     "nextvibe",
@@ -43,25 +39,11 @@ export const metadata: Metadata = {
     { name: "Jeremiah Nwosu" },
   ],
   icons: {
-    icon: [
-      { url: "/favicon/favicon.ico" },
-      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
+    icon: [{ url: "/favicon/favicon.ico" }],
     apple: [{ url: "/apple-touch-icon.png" }],
     other: [
-      {
-        rel: "android-chrome-icon",
-        url: "/favicon/android-chrome-192x192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        rel: "android-chrome-icon",
-        url: "/favicon/android-chrome-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
+      { rel: "android-chrome-icon", url: "/favicon/android-chrome-192x192.png" },
+      { rel: "android-chrome-icon", url: "/favicon/android-chrome-512x512.png" },
     ],
   },
   manifest: "/favicon/site.webmanifest",
@@ -70,7 +52,7 @@ export const metadata: Metadata = {
     siteName: "NextVibe",
     title: "NextVibe — Party Photo Sharing & Event Memory App",
     description:
-      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP — the digital memory bank for your events.",
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, and smart RSVP.",
     images: [
       {
         url: "/logos/new/logo_black_text.png",
@@ -85,7 +67,7 @@ export const metadata: Metadata = {
     site: "@mynextvibe",
     title: "NextVibe — Party Photo Sharing & Event Memory App",
     description:
-      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, event games, and smart RSVP.",
+      "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, and smart RSVP.",
   },
 };
 
