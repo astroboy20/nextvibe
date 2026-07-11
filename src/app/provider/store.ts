@@ -18,6 +18,7 @@ import { reminderApi } from "./api/reminderApi";
 import { pledgeApi } from "./api/pledgeApi";
 import { discoverApi } from "./api/discoverApi";
 import { launchApi } from "./api/launchApi";
+import { analyticsApi } from "./api/analyticsApi";
 
 export const store = configureStore({
     reducer: {
@@ -40,6 +41,7 @@ export const store = configureStore({
         [pledgeApi.reducerPath]: pledgeApi.reducer,
         [discoverApi.reducerPath]: discoverApi.reducer,
         [launchApi.reducerPath]: launchApi.reducer,
+        [analyticsApi.reducerPath]: analyticsApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -56,7 +58,8 @@ export const store = configureStore({
             reminderApi.middleware,
             pledgeApi.middleware,
             discoverApi.middleware,
-            launchApi.middleware
+            launchApi.middleware,
+            analyticsApi.middleware
         )
     }
 })

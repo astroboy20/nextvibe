@@ -676,6 +676,47 @@ export default function OrganizerDashboard({
 
 
 
+          {/* Analytics — quick snapshot + link to full page */}
+          {!isLoading && (
+            <EventDashboardCard
+              title="Analytics"
+              icon={<BarChart3 className="h-4 w-4" />}
+              badge={
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+                >
+                  Insights
+                </Badge>
+              }
+            >
+              <div className="space-y-3">
+                {/* Quick KPI strip from event details */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "RSVPs",    value: rsvpCount,        color: "text-[#531342]" },
+                    { label: "Tickets",  value: totalTicketsSold, color: "text-green-600" },
+                    { label: "Games",    value: liveGameCount,    color: "text-purple-600" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="rounded-xl bg-muted/50 p-2.5 text-center">
+                      <p className={`font-display text-lg font-bold ${color}`}>{value}</p>
+                      <p className="text-[10px] text-muted-foreground">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Revenue, vibe-tags, postcards, social velocity &amp; audience demographics on the full page.
+                </p>
+                <Link href={`/dashboard/${eventId}/analytics`} className="block">
+                  <Button className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    View Full Analytics
+                  </Button>
+                </Link>
+              </div>
+            </EventDashboardCard>
+          )}
+
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
