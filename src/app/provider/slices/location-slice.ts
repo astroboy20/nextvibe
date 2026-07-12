@@ -1,7 +1,4 @@
-
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-
 
 export interface UserLocation {
     location: {
@@ -10,11 +7,10 @@ export interface UserLocation {
         address: string;
         city: string;
         country: string;
-    } | null
-
+    } | null;
+    /** true once city/country has been successfully synced to the backend this session */
+    synced: boolean;
 }
-
-
 
 const initialState: UserLocation = {
     location: {
@@ -24,7 +20,7 @@ const initialState: UserLocation = {
         city: "",
         country: "",
     },
-
+    synced: false,
 };
 
 const locationSlice = createSlice({
@@ -33,19 +29,17 @@ const locationSlice = createSlice({
     reducers: {
         setLocation(state, action: PayloadAction<UserLocation["location"] | null>) {
             if (!action.payload) return;
-
             state.location = {
                 ...state.location,
                 ...action.payload,
             };
-        }
-
-
+        },
+        setLocationSynced(state, action: PayloadAction<boolean>) {
+            state.synced = action.payload;
+        },
     },
 });
 
-export const {
-    setLocation
-} = locationSlice.actions;
+export const { setLocation, setLocationSynced } = locationSlice.actions;
 
 export default locationSlice.reducer;

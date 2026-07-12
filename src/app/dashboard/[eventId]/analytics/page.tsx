@@ -56,8 +56,8 @@ import {
   useGetEventPostcardAnalyticsQuery,
   useGetEventRevenueAnalyticsQuery,
   useGetEventSocialAnalyticsQuery,
+  useGetEventLocationAnalyticsQuery,
 } from "@/app/provider/api/analyticsApi";
-import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BRAND   = "#531342";
@@ -802,102 +802,71 @@ function PostcardSection({ eventId }: { eventId: string }) {
   );
 }
 
-// ─── Section 6: Audience Demographics ────────────────────────────────────────
-// There is NO dedicated /demographics backend endpoint yet.
-// Location data (city, country) lives on attendee user profiles.
-// We fetch all RSVPed attendees via GET /v1/events/:id/attendees and
-// aggregate city + country clusters client-side — exactly as the
-// Analytics Frontend Guide describes ("indexing pipeline reads updated
-// underlying fields... to refresh localized audience groupings").
+// ─── Section 6: Audience Demographics (Location) ─────────────────────────────
+// Uses GET /v1/analytics/events/:id/locations — the dedicated location endpoint.
+// Response shape:
+//   data.eventId         → string
+//   data.totalAttendees  → number
+//   data.byCity[]        → { city, count, percentage }
+//   data.byCountry[]     → { country, count, percentage }
 //
-// Attendee object shape (from /v1/events/:id/attendees):
-//   data.data[].user → { id, displayName, username, avatarUrl, city, country }
-//   data.data[].status → "CONFIRMED" | "WAITLIST" | "CANCELLED"
-//   data.meta → { total, page, limit, hasNext }
+// "Unknown" bucket = attendees who haven't shared location yet.
+// Per doc: show tooltip "Unknown includes attendees who haven't shared their location yet."
 function DemographicsSection({ eventId }: { eventId: string }) {
-  // Fetch up to 200 attendees — enough to build meaningful clusters
-  const { data, isLoading, isError, refetch } = useGetEventAttendeesQuery(
-    { eventId, page: 1, limit: 200 },
-    { skip: !eventId }
-  );
+  const { data, isLoading, isError, refetch } = useGetEventLocationAnalyticsQuery(eventId);
 
   if (isLoading) return <SectionSkeleton />;
   if (isError)   return <SectionError onRetry={refetch} />;
 
-  const attendees: any[] = data?.data?.data ?? data?.data ?? [];
-  const total = data?.data?.meta?.total ?? attendees.length;
+  const d = data?.data ?? data ?? {};
+  const totalAttendees: number = d.totalAttendees ?? 0;
+  const byCity: any[]          = d.byCity         ?? [];
+  const byCountry: any[]       = d.byCountry       ?? [];
 
-  // Only count confirmed attendees for demographics
-  const confirmed = attendees.filter(
-    (a: any) => (a.status ?? a.rsvpStatus) !== "CANCELLED"
-  );
-
-  // Aggregate city clusters
-  const cityMap = new Map<string, number>();
-  const countryMap = new Map<string, number>();
-
-  confirmed.forEach((a: any) => {
-    const user    = a.user ?? a;
-    const city    = user?.city?.trim()    || "Unknown";
-    const country = user?.country?.trim() || "Unknown";
-    cityMap.set(city,       (cityMap.get(city)       ?? 0) + 1);
-    countryMap.set(country, (countryMap.get(country) ?? 0) + 1);
-  });
-
-  // Sort descending, take top 8, Unknown always goes last
-  const sortClusters = (map: Map<string, number>) =>
-    Array.from(map.entries())
-      .sort(([aK, aV], [bK, bV]) => {
-        if (aK === "Unknown") return 1;
-        if (bK === "Unknown") return -1;
-        return bV - aV;
-      })
-      .slice(0, 8)
-      .map(([name, count]) => ({ name, count }));
-
-  const cities    = sortClusters(cityMap);
-  const countries = sortClusters(countryMap);
-
-  const locatedCount  = confirmed.filter((a: any) => {
-    const u = a.user ?? a;
-    return u?.city || u?.country;
-  }).length;
-  const unknownCount  = confirmed.length - locatedCount;
-  const coveragePct   = confirmed.length > 0
-    ? Math.round((locatedCount / confirmed.length) * 100) : 0;
-
-  if (confirmed.length === 0)
+  if (totalAttendees === 0)
     return (
       <Empty icon={MapPin}
         message="No confirmed attendees yet. Location clusters appear once people RSVP." />
     );
 
+  // "Unknown" always rendered last with a tooltip footnote
+  const unknownCity    = byCity.find((c: any) => c.city === "Unknown");
+  const unknownCountry = byCountry.find((c: any) => c.country === "Unknown");
+  const locatedCount   = totalAttendees - (unknownCity?.count ?? 0);
+  const coveragePct    = totalAttendees > 0
+    ? Math.round((locatedCount / totalAttendees) * 100) : 0;
+
+  // Separate known from unknown for bar chart data
+  const cityBars    = byCity.map((c: any)    => ({ name: c.city    ?? "Unknown", count: c.count, pct: c.percentage }));
+  const countryBars = byCountry.map((c: any) => ({ name: c.country ?? "Unknown", count: c.count, pct: c.percentage }));
+
   return (
     <div className="space-y-4">
-      {/* Coverage KPIs */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-2.5">
-        <KPICard label="Confirmed RSVPs" value={fmt(confirmed.length)} icon={Users}  color={BRAND} />
-        <KPICard label="Profile Coverage"
+        <KPICard label="Total Attendees"   value={fmt(totalAttendees)} icon={Users}  color={BRAND} />
+        <KPICard label="Location Coverage"
                  value={`${coveragePct}%`}
                  icon={MapPin} color="#0891b2"
                  sub={`${fmt(locatedCount)} with location`} />
       </div>
 
-      {/* Coverage notice if many Unknown */}
-      {unknownCount > 0 && (
+      {/* Unknown bucket notice */}
+      {unknownCity && unknownCity.count > 0 && (
         <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/30
                         bg-amber-500/5 px-3 py-2.5">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
           <p className="text-[11px] text-amber-700 leading-relaxed">
-            <span className="font-semibold">{fmt(unknownCount)}</span> attendee
-            {unknownCount !== 1 ? "s" : ""} have no city or country set on their profile.
-            As they update their profiles the clusters will fill in automatically.
+            <span className="font-semibold">{fmt(unknownCity.count)}</span> attendee
+            {unknownCity.count !== 1 ? "s" : ""}{" "}
+            ({unknownCity.percentage}%) haven&apos;t shared their location yet.
+            This percentage will decrease over time as more users use the app.
           </p>
         </div>
       )}
 
-      {/* City clusters — horizontal bar chart */}
-      {cities.length > 0 && (
+      {/* City bar chart */}
+      {cityBars.length > 0 && (
         <Card className="border-border/60">
           <CardContent className="px-4 pt-4 pb-2">
             <div className="flex items-center gap-1.5 mb-3">
@@ -906,18 +875,37 @@ function DemographicsSection({ eventId }: { eventId: string }) {
                 Top Cities
               </p>
             </div>
-            <div style={{ height: Math.max(120, cities.length * 40) }}>
+            <div style={{ height: Math.max(120, cityBars.length * 40) }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cities} layout="vertical" barSize={18}>
+                <BarChart data={cityBars} layout="vertical" barSize={18}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false}
                          allowDecimals={false} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} tickLine={false}
-                         axisLine={false} width={72} />
-                  <Tooltip {...TIP_STYLE}
-                    formatter={(v: any) => [fmt(v), "attendees"]} />
-                  <Bar dataKey="count" name="Attendees" fill={BRAND} radius={[0, 6, 6, 0]}>
-                  </Bar>
+                         axisLine={false} width={80} />
+                  <Tooltip
+                    {...TIP_STYLE}
+                    formatter={(v: any, _: any, props: any) => [
+                      `${fmt(v)} attendees (${props?.payload?.pct ?? 0}%)`,
+                      "Count",
+                    ]}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0].payload;
+                      return (
+                        <div style={TIP_STYLE.contentStyle} className="px-3 py-2 space-y-0.5">
+                          <p className="text-xs font-semibold text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{fmt(p.count)} attendees · {p.pct}%</p>
+                          {p.name === "Unknown" && (
+                            <p className="text-[10px] text-amber-600 max-w-[180px]">
+                              Unknown includes attendees who haven&apos;t shared their location yet.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="count" name="Attendees" fill={BRAND} radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -925,8 +913,8 @@ function DemographicsSection({ eventId }: { eventId: string }) {
         </Card>
       )}
 
-      {/* Country clusters */}
-      {countries.length > 0 && (
+      {/* Country bar chart */}
+      {countryBars.length > 0 && (
         <Card className="border-border/60">
           <CardContent className="px-4 pt-4 pb-2">
             <div className="flex items-center gap-1.5 mb-3">
@@ -935,62 +923,35 @@ function DemographicsSection({ eventId }: { eventId: string }) {
                 Top Countries
               </p>
             </div>
-            <div style={{ height: Math.max(120, countries.length * 40) }}>
+            <div style={{ height: Math.max(120, countryBars.length * 40) }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={countries} layout="vertical" barSize={18}>
+                <BarChart data={countryBars} layout="vertical" barSize={18}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false}
                          allowDecimals={false} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} tickLine={false}
-                         axisLine={false} width={72} />
-                  <Tooltip {...TIP_STYLE}
-                    formatter={(v: any) => [fmt(v), "attendees"]} />
+                         axisLine={false} width={80} />
+                  <Tooltip
+                    {...TIP_STYLE}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0].payload;
+                      return (
+                        <div style={TIP_STYLE.contentStyle} className="px-3 py-2 space-y-0.5">
+                          <p className="text-xs font-semibold text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{fmt(p.count)} attendees · {p.pct}%</p>
+                          {p.name === "Unknown" && (
+                            <p className="text-[10px] text-amber-600 max-w-[180px]">
+                              Unknown includes attendees who haven&apos;t shared their location yet.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
                   <Bar dataKey="count" name="Attendees" fill="#c4417a" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Attendee list with location badges — first 12 */}
-      {confirmed.length > 0 && (
-        <Card className="border-border/60">
-          <CardContent className="px-4 pt-4 pb-3">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Attendee Locations
-              </p>
-              {total > 12 && (
-                <span className="text-[10px] text-muted-foreground">
-                  Showing 12 of {fmt(total)}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              {confirmed.slice(0, 12).map((a: any, i: number) => {
-                const user    = a.user ?? a;
-                const name    = user?.displayName ?? user?.username ?? "Attendee";
-                const city    = user?.city?.trim();
-                const country = user?.country?.trim();
-                const loc     = [city, country].filter(Boolean).join(", ") || "Location unknown";
-                const hasLoc  = !!(city || country);
-                return (
-                  <div key={user?.id ?? i}
-                    className="flex items-center justify-between rounded-xl bg-muted/30 px-3 py-2">
-                    <span className="truncate text-xs font-medium text-foreground max-w-[55%]">
-                      {name}
-                    </span>
-                    <span className={cn(
-                      "shrink-0 text-[10px] flex items-center gap-1",
-                      hasLoc ? "text-muted-foreground" : "text-muted-foreground/50 italic"
-                    )}>
-                      {hasLoc && <MapPin className="h-2.5 w-2.5 shrink-0" />}
-                      {loc}
-                    </span>
-                  </div>
-                );
-              })}
             </div>
           </CardContent>
         </Card>

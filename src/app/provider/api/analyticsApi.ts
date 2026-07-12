@@ -47,6 +47,28 @@ export const analyticsApi = createApi({
             query: (eventId) => `/v1/analytics/events/${eventId}/social`,
             providesTags: (_, __, id) => [{ type: "Analytics", id: `social-${id}` }],
         }),
+
+        // ── Location analytics ───────────────────────────────────────────────
+
+        /**
+         * GET /v1/analytics/overview/locations
+         * Overview location clustering across all organizer events.
+         * Response: { totalAttendees, byCity[{city, count, percentage}], byCountry[...] }
+         */
+        getOverviewLocationAnalytics: builder.query<any, void>({
+            query: () => "/v1/analytics/overview/locations",
+            providesTags: [{ type: "Analytics", id: "overview-locations" }],
+        }),
+
+        /**
+         * GET /v1/analytics/events/:id/locations
+         * Per-event location breakdown for the individual event analytics page.
+         * Response: { eventId, totalAttendees, byCity[{city, count, percentage}], byCountry[...] }
+         */
+        getEventLocationAnalytics: builder.query<any, string>({
+            query: (eventId) => `/v1/analytics/events/${eventId}/locations`,
+            providesTags: (_, __, id) => [{ type: "Analytics", id: `locations-${id}` }],
+        }),
     }),
 });
 
@@ -57,4 +79,6 @@ export const {
     useGetEventPostcardAnalyticsQuery,
     useGetEventRevenueAnalyticsQuery,
     useGetEventSocialAnalyticsQuery,
+    useGetOverviewLocationAnalyticsQuery,
+    useGetEventLocationAnalyticsQuery,
 } = analyticsApi;

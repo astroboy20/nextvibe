@@ -28,11 +28,26 @@ export const userApi = createApi({
                     body: { role }
                 }
             }
-        })
+        }),
+
+        /**
+         * PATCH /v1/users/me
+         * Syncs city + country to the backend once per session after location resolves.
+         * Uses the existing profile update endpoint — city and country are optional fields.
+         */
+        updateMe: build.mutation<any, { city?: string; country?: string }>({
+            query(body) {
+                return {
+                    url: "/v1/users/me",
+                    method: "PATCH",
+                    body,
+                }
+            }
+        }),
 
 
 
     })
 })
 
-export const { useGetUserQuery, useSwitchRoleMutation } = userApi
+export const { useGetUserQuery, useSwitchRoleMutation, useUpdateMeMutation } = userApi
