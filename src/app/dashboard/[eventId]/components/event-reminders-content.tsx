@@ -17,6 +17,10 @@ import {
   Send,
   XCircle,
   BarChart2,
+  Upload,
+  Copy,
+  Check,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,9 +29,11 @@ import {
   useToggleReminderMutation,
   useDeleteReminderMutation,
   useGetReminderLogsQuery,
+  useImportCsvRemindersMutation,
   ReminderTiming,
   RsvpStatus,
   ReminderTemplate,
+  CsvImportResponse,
 } from "@/app/provider/api/reminderApi";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -603,6 +609,358 @@ function ReminderCard({
   );
 }
 
+// ─── CSV Import Panel ─────────────────────────────────────────────────────────
+
+interface CsvImportPanelProps {
+  eventId: string;
+  onImportSuccess?: () => void;
+}
+function CsvImportPanel({ eventId, onImportSuccess }: CsvImportPanelProps) {
+  const [open, setOpen] = useState(false);
+  const [timing, setTiming] = useState<ReminderTiming | "">("");
+  const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [result, setResult] = useState<CsvImportResponse | null>(null);
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [importCsv, { isLoading }] = useImportCsvRemindersMutation();
+
+  function handleFileSelect(selected: File | null) {
+    if (!selected) return;
+    if (!selected.name.endsWith(".csv")) {
+      toast.error("Only .csv files are supported");
+      return;
+    }
+    setFile(selected);
+    setResult(null);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = e.dataTransfer.files[0] ?? null;
+    handleFileSelect(dropped);
+  }
+
+  async function handleUpload() {
+    if (!file) {
+      toast.error("Please select a CSV file first");
+      return;
+    }
+    if (!timing) {
+      toast.error("Please select a reminder interval");
+      return;
+    }
+    try {
+      const res = await importCsv({ eventId, timing, file }).unwrap();
+      setResult(res);
+      toast.success(`Import complete — ${res.added} reminder${res.added !== 1 ? "s" : ""} added`);
+      onImportSuccess?.();
+    } catch (err: any) {
+      const raw =
+        err?.data?.error?.message ??
+        err?.data?.message ??
+        err?.message ??
+        "CSV import failed";
+      toast.error(Array.isArray(raw) ? raw[0] : raw);
+    }
+  }
+
+  async function copyEmail(email: string) {
+    await navigator.clipboard.writeText(email);
+    setCopiedEmail(email);
+    setTimeout(() => setCopiedEmail(null), 2000);
+  }
+
+  async function copyAllEmails(emails: string[]) {
+    await navigator.clipboard.writeText(emails.join(", "));
+    toast.success("All unmatched emails copied");
+  }
+
+  const canImport = !!file && !!timing;
+
+  return (
+    <div className="rounded-xl border border-border overflow-hidden">
+      {/* Header toggle */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-3 py-2.5 text-sm hover:bg-muted/40 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+          <Upload className="h-4 w-4 text-primary" />
+          CSV Attendee Import
+          {(file || timing) && (
+            <span className="flex items-center gap-1">
+              {file && (
+                <span className="rounded-full bg-green-500/15 text-green-600 text-[10px] px-1.5 py-0.5">
+                  File ready
+                </span>
+              )}
+              {timing && (
+                <span className="rounded-full bg-primary/10 text-primary text-[10px] px-1.5 py-0.5">
+                  {TIMINGS.find((t) => t.value === timing)?.label}
+                </span>
+              )}
+            </span>
+          )}
+        </span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
+      </button>
+
+      {open && (
+        <div className="border-t border-border px-3 pb-4 pt-3 space-y-4">
+
+          {/* Two steps side-by-side on sm+, stacked on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            {/* Step 1 — Upload file */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <span className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                  file ? "bg-green-500 text-white" : "bg-primary/15 text-primary"
+                )}>
+                  {file ? <Check className="h-3 w-3" /> : "1"}
+                </span>
+                <span className="text-xs font-medium text-foreground">Upload CSV file</span>
+              </div>
+
+              {file ? (
+                <div className="flex items-center justify-between rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 shrink-0 text-green-600" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="shrink-0 ml-2 text-[11px] text-primary hover:underline underline-offset-2"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-3 py-5 cursor-pointer transition-colors",
+                    dragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50 hover:bg-muted/30"
+                  )}
+                >
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground text-center">
+                    Drop CSV here or{" "}
+                    <span className="text-primary font-medium">browse</span>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">.csv files only</p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  handleFileSelect(e.target.files?.[0] ?? null);
+                  // Reset so same file can be re-selected after change
+                  e.target.value = "";
+                }}
+              />
+
+              <p className="text-[10px] text-muted-foreground">
+                CSV must have{" "}
+                <span className="font-mono text-foreground">name</span> and{" "}
+                <span className="font-mono text-foreground">email</span> columns.
+              </p>
+            </div>
+
+            {/* Step 2 — Pick interval */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <span className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                  timing ? "bg-green-500 text-white" : "bg-primary/15 text-primary"
+                )}>
+                  {timing ? <Check className="h-3 w-3" /> : "2"}
+                </span>
+                <span className="text-xs font-medium text-foreground">Choose reminder interval</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-1.5">
+                {TIMINGS.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTiming(t.value)}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors",
+                      timing === t.value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border hover:border-primary/40 hover:bg-muted/30 text-foreground"
+                    )}
+                  >
+                    <span className="text-xs font-medium">{t.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{t.description}</span>
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 font-mono text-[10px]">
+                  EMAIL
+                </span>
+                Delivery channel is always email.
+              </p>
+            </div>
+          </div>
+
+          {/* Import button — full width, shows what's missing inline */}
+          <div className="space-y-1.5">
+            <Button
+              size="sm"
+              disabled={!canImport || isLoading}
+              onClick={handleUpload}
+              className="w-full h-9 rounded-lg bg-[#531342] hover:bg-[#531342]/90 disabled:opacity-60 text-white text-xs"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Importing…
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Upload className="h-3.5 w-3.5" />
+                  Import CSV
+                </span>
+              )}
+            </Button>
+            {!canImport && (
+              <p className="text-center text-[10px] text-muted-foreground">
+                {!file && !timing
+                  ? "Select a file and an interval to continue"
+                  : !file
+                  ? "Select a CSV file to continue"
+                  : "Choose a reminder interval to continue"}
+              </p>
+            )}
+          </div>
+
+          {/* Result summary */}
+          {result && (
+            <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] px-3 py-3">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                  <p className="text-xs font-semibold text-foreground">{result.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setResult(null)}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  title="Dismiss"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {[
+                  { label: "Total rows", value: result.totalRows },
+                  { label: "Reminders added", value: result.added, color: "text-green-600" },
+                  { label: "Skipped (duplicate)", value: result.skipped, color: "text-amber-600" },
+                  { label: "Unmatched accounts", value: result.unmatched, color: "text-muted-foreground" },
+                  { label: "Invites sent", value: result.inviteSent, color: "text-primary" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">{label}</span>
+                    <span className={cn("text-[11px] font-semibold", color ?? "text-foreground")}>
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Persistence note */}
+              <div className="flex items-start gap-1.5 rounded-lg bg-muted/40 px-2.5 py-2">
+                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  This is a one-time import report — it clears on refresh. The{" "}
+                  <span className="font-medium text-foreground">{result.added}</span> scheduled reminder
+                  {result.added !== 1 ? "s are" : " is"} saved on the server and visible in{" "}
+                  <span className="font-medium text-foreground">Delivery Logs</span> below.
+                </p>
+              </div>
+
+              {/* Unmatched emails list */}
+              {result.unmatchedEmails.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                      Unmatched emails ({result.unmatchedEmails.length})
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => copyAllEmails(result.unmatchedEmails)}
+                      className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy all
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    These emails have no account — invitation emails were sent to them.
+                  </p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {result.unmatchedEmails.map((email) => (
+                      <div
+                        key={email}
+                        className="flex items-center justify-between rounded-lg border border-border bg-background px-2 py-1"
+                      >
+                        <span className="text-[11px] text-foreground truncate mr-2">{email}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyEmail(email)}
+                          className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                          title="Copy email"
+                        >
+                          {copiedEmail === email ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Delivery Logs Panel ──────────────────────────────────────────────────────
 
 interface LogsPanelProps {
@@ -867,6 +1225,9 @@ export default function EventRemindersContent({
           </div>
         </div>
       ))}
+
+      {/* CSV Import */}
+      <CsvImportPanel eventId={eventId} onImportSuccess={() => setShowLogs(true)} />
 
       {/* Delivery logs toggle */}
       <div className="pt-1">

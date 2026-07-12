@@ -1,0 +1,16 @@
+name,email
+Alex Johnson,alex.johnson@example.com
+Maria Garcia,maria.garcia@example.com
+James Okafor,james.okafor@example.com
+Priya Patel,priya.patel@example.com
+Liam Nguyen,liam.nguyen@example.com
+Sofía Torres,sofia.torres@example.com
+Ethan Brown,ethan.brown@example.com
+Aisha Diallo,aisha.diallo@example.com
+Noah Kim,noah.kim@example.com
+Fatima Al-Hassan,fatima.alhassan@example.com
+invalid-row-no-email,
+,missingnameonly@example.com
+duplicate.test@example.com,duplicate.test@example.com
+unregistered.user1@gmail.com,unregistered.user1@gmail.com
+unregistered.user2@gmail.com,unregistered.user2@gmail.com

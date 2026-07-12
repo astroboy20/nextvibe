@@ -62,6 +62,16 @@ export interface UpsertReminderPayload {
   enabled?: boolean;
 }
 
+export interface CsvImportResponse {
+  message: string;
+  totalRows: number;
+  added: number;
+  skipped: number;
+  unmatched: number;
+  unmatchedEmails: string[];
+  inviteSent: number;
+}
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export const reminderApi = createApi({
@@ -130,6 +140,27 @@ export const reminderApi = createApi({
       transformResponse: (res: any) => res?.data ?? res,
       providesTags: (_, __, eventId) => [{ type: "ReminderLogs", id: eventId }],
     }),
+
+    /** POST /v1/events/:eventId/reminders/import-csv?timing=...&channel=EMAIL */
+    importCsvReminders: builder.mutation<
+      CsvImportResponse,
+      { eventId: string; timing: ReminderTiming; file: File }
+    >({
+      query: ({ eventId, timing, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/v1/events/${eventId}/reminders/import-csv?timing=${timing}&channel=EMAIL`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      transformResponse: (res: any) => res?.data ?? res,
+      // Refresh delivery logs after import so new pending records appear immediately
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "ReminderLogs", id: eventId },
+      ],
+    }),
   }),
 });
 
@@ -139,4 +170,5 @@ export const {
   useToggleReminderMutation,
   useDeleteReminderMutation,
   useGetReminderLogsQuery,
+  useImportCsvRemindersMutation,
 } = reminderApi;
