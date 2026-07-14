@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,6 @@ const LoginContent = () => {
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
   const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
@@ -98,10 +97,15 @@ const LoginContent = () => {
         : (validFrom ?? "/events");
 
       await handlePostAuth(() => {
-        router.push(destination);
+        window.location.href = destination;
       });
     } catch (error: any) {
-      toast(error?.data?.message || "Login Error");
+      const msg =
+        error?.data?.error?.message ||
+        error?.data?.message ||
+        error?.message ||
+        "Login failed. Please try again.";
+      toast.error(msg);
     }
   };
 
@@ -116,13 +120,13 @@ const LoginContent = () => {
           onConfirm={(ids) => {
             const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
             confirmMerge(ids, () => {
-              router.push(validFrom ? from : "/events");
+              window.location.href = validFrom ? from! : "/events";
             });
           }}
           onSkip={() => {
             const validFrom = from && from.startsWith("/") && !from.startsWith("/auth");
             skipMerge(() => {
-              router.push(validFrom ? from : "/events");
+              window.location.href = validFrom ? from! : "/events";
             });
           }}
         />

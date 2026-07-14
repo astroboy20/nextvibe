@@ -92,10 +92,13 @@ export const authApi = createApi({
                 }
             }
         }),
-        getOrganizerEvents: build.query<any, string>({
-            query(organizerId) {
+        getOrganizerEvents: build.query<any, { organizerId: string; page?: number; limit?: number }>({
+            query({ organizerId, page = 1, limit = 10 }) {
+                const p = new URLSearchParams();
+                p.set("page", String(page));
+                p.set("limit", String(limit));
                 return {
-                    url: `/v1/events/organizer/${organizerId}`,
+                    url: `/v1/events/organizer/${organizerId}?${p.toString()}`,
                     method: "GET",
                 }
             }

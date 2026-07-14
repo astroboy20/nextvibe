@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,7 +39,6 @@ const registerSchema = z.object({
 type FormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const from = searchParams.get("from") || null;
@@ -84,9 +83,15 @@ export default function RegisterContent() {
 
       // Always send new users to onboarding — they have no vibes yet
       const next = validFrom ? encodeURIComponent(validFrom) : encodeURIComponent("/events");
-      await handlePostAuth(() => router.replace(`/onboarding/vibes?next=${next}`));
+      await handlePostAuth(() => { window.location.href = `/onboarding/vibes?next=${next}`; });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      const msg =
+        error?.data?.error?.message ||
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong. Please try again.";
+      toast.error(msg);
     }
   };
 
@@ -98,11 +103,11 @@ export default function RegisterContent() {
           isLoading={isMerging}
           onConfirm={(ids) => {
             const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
-            confirmMerge(ids, () => router.replace(validFrom ? decodedFrom! : "/events"));
+            confirmMerge(ids, () => { window.location.href = validFrom ? decodedFrom! : "/events"; });
           }}
           onSkip={() => {
             const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth");
-            skipMerge(() => router.replace(validFrom ? decodedFrom! : "/events"));
+            skipMerge(() => { window.location.href = validFrom ? decodedFrom! : "/events"; });
           }}
         />
       )}

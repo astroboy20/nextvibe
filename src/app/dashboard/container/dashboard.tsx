@@ -1,13 +1,15 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { Calendar, ChevronRight, Plus, MapPin, Users, Info } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetUserQuery, useGetOrganizerEventsQuery } from "@/app/provider/api/authApi";
 import { formatDate } from "@/hooks/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetOverviewLocationAnalyticsQuery } from "@/app/provider/api/analyticsApi";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface DashboardEvent {
   id: string;
@@ -118,22 +120,90 @@ function AudienceLocationCard() {
   );
 }
 
+// ─── Pagination bar ───────────────────────────────────────────────────────────
+const PAGE_LIMIT = 10;
+
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+    .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
+      acc.push(p);
+      return acc;
+    }, []);
+
+  return (
+    <div className="flex items-center justify-center gap-2 pt-4 pb-2">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span key={`ellipsis-${i}`} className="px-1 text-sm text-muted-foreground">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p as number)}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
+              page === p
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-foreground hover:bg-muted"
+            )}
+          >
+            {p}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const [page, setPage] = useState(1);
   const { data: currentUser, isLoading: isLoadingUser } = useGetUserQuery();
   const organizerId = currentUser?.data?.id;
+  const displayName =
+    currentUser?.data?.displayName ?? currentUser?.data?.username ?? null;
 
   const { data: eventsData, isLoading: isLoadingEvents } = useGetOrganizerEventsQuery(
-    organizerId,
+    { organizerId: organizerId!, page, limit: PAGE_LIMIT },
     { skip: !organizerId }
   );
 
   const events: DashboardEvent[] = Array.isArray(eventsData?.data)
     ? eventsData.data
     : eventsData?.data?.events ?? eventsData?.data?.data ?? [];
-  const isLoading = isLoadingUser || isLoadingEvents;
+  const meta = eventsData?.data?.meta ?? eventsData?.meta;
+  const totalPages =
+    meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / PAGE_LIMIT) : 1);
+  // Only block the whole page on the very first load (no data yet).
+  // On page changes we already have data so we just overlay a skeleton.
+  const isFirstLoad = isLoadingUser || (isLoadingEvents && !eventsData);
 
-  if (isLoading) {
+  if (isFirstLoad) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3, 4].map((i) => (
@@ -149,6 +219,15 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-5 pb-25">
+      {/* Greeting */}
+      {displayName && (
+        <div className="pt-1">
+          <p className="text-xl font-bold text-foreground">
+            Hi, {displayName} 👋
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -174,7 +253,7 @@ const Dashboard = () => {
       {/* Overview audience location — only renders when data exists */}
       <AudienceLocationCard />
 
-      {events.length === 0 ? (
+      {events.length === 0 && !isLoadingEvents ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
             <Calendar className="h-8 w-8 text-primary" />
@@ -190,52 +269,75 @@ const Dashboard = () => {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {events.map((event, index) => (
-            <Link href={`/dashboard/${event?.id}`} key={event?.id}>
-              <div
-                className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-card animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <Image
-                  src={
-                    event?.flierUrl ||
-                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop"
-                  }
-                  alt={event?.name}
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 rounded-xl object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">
-                    {event?.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {formatDate(event?.startsAt)}
-                  </p>
-                  {event?.locationName && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {event?.locationName}
-                    </p>
-                  )}
+        <>
+          {isLoadingEvents ? (
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+                  <Skeleton className="h-16 w-16 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full shrink-0" />
                 </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      event?.status === "PUBLISHED"
-                        ? "bg-green-500/10 text-green-600"
-                        : "bg-amber-500/10 text-amber-600"
-                    }`}
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {events.map((event, index) => (
+                <Link href={`/dashboard/${event?.id}`} key={event?.id}>
+                  <div
+                    className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-card animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {event?.status}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+                    <Image
+                      src={
+                        event?.flierUrl ||
+                        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop"
+                      }
+                      alt={event?.name}
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">
+                        {event?.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {formatDate(event?.startsAt)}
+                      </p>
+                      {event?.locationName && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {event?.locationName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          event?.status === "PUBLISHED"
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-amber-500/10 text-amber-600"
+                        }`}
+                      >
+                        {event?.status}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          />
+        </>
       )}
     </div>
   );
