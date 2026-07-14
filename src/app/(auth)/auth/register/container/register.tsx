@@ -24,6 +24,7 @@ import PasswordField from "../component/password-field";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 const registerSchema = z.object({
@@ -39,6 +40,7 @@ const registerSchema = z.object({
 type FormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterContent() {
+  useRedirectIfAuthenticated();
   const searchParams = useSearchParams();
 
   const from = searchParams.get("from") || null;
@@ -230,13 +232,18 @@ export default function RegisterContent() {
 
             <Button
               type="submit"
-              disabled={isLoading || googleLoading || !form.watch("acceptedTerms")}
+              disabled={isLoading || googleLoading || isMerging || !form.watch("acceptedTerms")}
               className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Creating account...
+                </span>
+              ) : isMerging ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving your progress...
                 </span>
               ) : (
                 "Submit"
