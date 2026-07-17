@@ -33,6 +33,13 @@
  *           event{likes,shares,comments},
  *           postcards{totalPostcards,totalLikes,totalShares,totalComments,avgLikesPerPostcard},
  *           combined{totalLikes,totalShares,totalComments} }
+ *
+ * GET /v1/analytics/events/:id/games
+ *   data: { eventId, totalSessions, totalPlayers, totalWinners, engagementRate,
+ *           sessions[{id,title,status,startsAt,playerCount}],
+ *           winners[{rewardId, user{id,username,displayName,avatarUrl},
+ *                    session{id,title}, reward{rank,type,title,value},
+ *                    isClaimed, claimedAt, awardedAt}] }
  */
 
 import { use, useState } from "react";
@@ -42,7 +49,7 @@ import {
   ArrowLeft, BarChart3, Users, DollarSign, Tag,
   Image as ImageIcon, Heart, Share2, MessageCircle,
   CheckCheck, Ticket, ChevronDown, MapPin, Gamepad2,
-  RefreshCw, AlertCircle, TrendingUp, Info,
+  RefreshCw, AlertCircle, TrendingUp, Info, Trophy,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +64,7 @@ import {
   useGetEventRevenueAnalyticsQuery,
   useGetEventSocialAnalyticsQuery,
   useGetEventLocationAnalyticsQuery,
+  useGetEventGameAnalyticsQuery,
 } from "@/app/provider/api/analyticsApi";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -382,6 +390,150 @@ function RevenueSection({ eventId }: { eventId: string }) {
                   <Legend iconSize={9} wrapperStyle={{ fontSize: 11 }} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─── Section 2b: Gamification (uses /analytics/events/:id/games) ─────────────
+// Verified real shape (Gamification Analytics — Frontend Implementation Guide):
+// data.totalSessions   → number
+// data.totalPlayers    → number   — unique players who played a round, spectators excluded
+// data.totalWinners    → number   — total rewards distributed across all sessions
+// data.engagementRate  → number   — already a %, e.g. 72.5 → render "72.5%"
+// data.sessions[]      → { id, title, status, startsAt, playerCount }
+// data.winners[]       → { rewardId, user{id,username,displayName,avatarUrl},
+//                          session{id,title}, reward{rank,type,title,value},
+//                          isClaimed, claimedAt, awardedAt }
+//
+// winners arrive sorted by awardedAt ascending; re-sorted here by reward.rank
+// so 1st/2nd/3rd group naturally. reward.value is a string — CASH gets a ₦
+// prefix, everything else (VOUCHER/ITEM/etc.) is shown as-is.
+function GamesAnalyticsSection({ eventId }: { eventId: string }) {
+  const { data, isLoading, isError, refetch } = useGetEventGameAnalyticsQuery(eventId);
+
+  if (isLoading) return <SectionSkeleton />;
+  if (isError)   return <SectionError onRetry={refetch} />;
+
+  const d               = data?.data ?? {};
+  const totalSessions   = d.totalSessions  ?? 0;
+  const totalPlayers    = d.totalPlayers   ?? 0;
+  const totalWinners    = d.totalWinners   ?? 0;
+  const engagementRate  = d.engagementRate ?? 0;
+  const sessions: any[] = Array.isArray(d.sessions) ? d.sessions : [];
+  const winners: any[]  = Array.isArray(d.winners)  ? d.winners  : [];
+
+  if (totalSessions === 0)
+    return <Empty icon={Gamepad2} message="No game sessions have been run for this event yet." />;
+
+  const statusStyle: Record<string, string> = {
+    ACTIVE:    "bg-green-500/10 text-green-600",
+    UNLOCKED:  "bg-blue-500/10 text-blue-600",
+    PENDING:   "bg-amber-500/10 text-amber-600",
+    ENDED:     "bg-muted text-muted-foreground",
+    CANCELLED: "bg-destructive/10 text-destructive",
+  };
+
+  const fmtRewardValue = (reward: any) => {
+    const value = reward?.value ?? "";
+    if (reward?.type !== "CASH") return value;
+    const n = Number(value);
+    return `₦${Number.isFinite(n) ? n.toLocaleString() : value}`;
+  };
+
+  const rankedWinners = [...winners].sort(
+    (a: any, b: any) => (a.reward?.rank ?? 0) - (b.reward?.rank ?? 0),
+  );
+  const medals = ["🥇", "🥈", "🥉"];
+
+  return (
+    <div className="space-y-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <KPICard label="Sessions"   value={fmt(totalSessions)}     icon={Gamepad2}   color="#ea580c" />
+        <KPICard label="Players"    value={fmt(totalPlayers)}      icon={Users}      color={BRAND} />
+        <KPICard label="Winners"    value={fmt(totalWinners)}      icon={Trophy}     color="#f59e0b" />
+        <KPICard label="Engagement" value={`${engagementRate}%`}   icon={TrendingUp} color="#16a34a"
+                 sub="of confirmed RSVPs played" />
+      </div>
+
+      {/* Per-session breakdown */}
+      {sessions.length > 0 && (
+        <Card className="border-border/60">
+          <CardContent className="px-4 pt-4 pb-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Sessions
+            </p>
+            <div className="space-y-2">
+              {sessions.map((s: any) => (
+                <div key={s.id}
+                  className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2.5">
+                  <span className="truncate text-xs font-medium text-foreground">{s.title}</span>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {fmt(s.playerCount)} players
+                    </span>
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      statusStyle[s.status] ?? "bg-muted text-muted-foreground",
+                    )}>
+                      {s.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Winners table */}
+      {rankedWinners.length > 0 && (
+        <Card className="border-border/60">
+          <CardContent className="px-4 pt-4 pb-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Winners
+            </p>
+            <div className="space-y-2">
+              {rankedWinners.map((w: any, i: number) => {
+                const name = w.user?.displayName ?? w.user?.username ?? "Unknown";
+                const rank = w.reward?.rank ?? i + 1;
+                return (
+                  <div key={w.rewardId ?? i}
+                    className="flex items-start gap-2.5 rounded-2xl bg-muted/30 p-2.5">
+                    <span className="mt-0.5 w-5 shrink-0 text-center text-sm">
+                      {medals[rank - 1] ?? (
+                        <span className="text-xs font-bold text-muted-foreground">#{rank}</span>
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-foreground">{name}</p>
+                          <p className="truncate text-[10px] text-muted-foreground mt-0.5">
+                            {w.session?.title ?? "—"}
+                            {w.reward?.title && <> · {w.reward.title}</>}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs font-bold" style={{ color: BRAND }}>
+                            {fmtRewardValue(w.reward)}
+                          </p>
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            w.isClaimed ? "text-green-600" : "text-amber-600",
+                          )}>
+                            {w.isClaimed ? "Claimed" : "Unclaimed"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -1034,6 +1186,12 @@ const SECTIONS: {
     label: "Revenue & Tickets",
     icon: <DollarSign className="h-4 w-4" />,
     Component: RevenueSection,
+  },
+  {
+    id: "games",
+    label: "Gamification",
+    icon: <Gamepad2 className="h-4 w-4" />,
+    Component: GamesAnalyticsSection,
   },
   {
     id: "social",

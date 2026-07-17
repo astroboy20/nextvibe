@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,88 @@ import { cn } from "@/lib/utils";
 import { Check, Edit2, RefreshCw, Plus, Trash2 } from "lucide-react";
 import { Question } from "../game-creation-wizard";
 import { Badge } from "@/components/ui/badge";
+
+// ── Read-only grid preview for word puzzles ──────────────────────────────────
+// Highlights every placed word (green) and the word currently being edited
+// (brand purple), so organizers can see the actual puzzle layout — not just
+// the flat clue/answer list — while creating it.
+function WordPuzzleGridPreview({
+  grid,
+  words,
+  activeWordId,
+}: {
+  grid: string[][];
+  words: { id: string; startCell: [number, number] | null; endCell: [number, number] | null }[];
+  activeWordId: string | null;
+}) {
+  const rows = grid.length;
+  const cols = grid[0]?.length ?? 0;
+
+  const cellFlags = useMemo(() => {
+    const flags = new Map<string, { active: boolean }>();
+    for (const w of words) {
+      if (!w.startCell || !w.endCell) continue;
+      const [r1, c1] = w.startCell;
+      const [r2, c2] = w.endCell;
+      const dr = Math.sign(r2 - r1);
+      const dc = Math.sign(c2 - c1);
+      const maxSteps = Math.max(rows, cols) + 1;
+      let r = r1, c = c1, steps = 0;
+      while (steps <= maxSteps) {
+        const key = `${r}-${c}`;
+        const active = w.id === activeWordId || flags.get(key)?.active === true;
+        flags.set(key, { active });
+        if (r === r2 && c === c2) break;
+        r += dr; c += dc; steps++;
+      }
+    }
+    return flags;
+  }, [words, activeWordId, rows, cols]);
+
+  if (!rows || !cols) return null;
+
+  const cellSize = cols > 12 ? "h-6 w-6 text-[10px]" : cols > 8 ? "h-7 w-7 text-xs" : "h-8 w-8 text-xs";
+
+  return (
+    <Card className="border-border/60">
+      <CardContent className="p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-muted-foreground">Puzzle Grid Preview</p>
+          <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> placed</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#531342]" /> editing</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <div
+            className="inline-grid gap-0.5 mx-auto"
+            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          >
+            {grid.map((row, rIdx) =>
+              row.map((letter, cIdx) => {
+                const flag = cellFlags.get(`${rIdx}-${cIdx}`);
+                return (
+                  <div
+                    key={`${rIdx}-${cIdx}`}
+                    className={cn(
+                      "flex items-center justify-center rounded-md font-bold",
+                      cellSize,
+                      !flag && "bg-muted text-foreground",
+                      flag && !flag.active && "bg-emerald-500/15 text-emerald-700",
+                      flag?.active && "bg-[#531342] text-white"
+                    )}
+                  >
+                    {letter}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface StepFourProps {
   roundIndex: number;
@@ -82,6 +165,19 @@ const StepFour = ({
           </Button>
         )}
       </div>
+
+      {/* Grid preview — word puzzles only, once the AI has placed words on a grid */}
+      {gameType === "word-puzzle" && questions[0]?.wordPuzzleMeta?.grid?.length ? (
+        <WordPuzzleGridPreview
+          grid={questions[0].wordPuzzleMeta.grid}
+          words={questions.map((q) => ({
+            id: q.id,
+            startCell: q.wordPuzzleMeta?.startCell ?? null,
+            endCell: q.wordPuzzleMeta?.endCell ?? null,
+          }))}
+          activeWordId={editingQuestion}
+        />
+      ) : null}
 
       {/* Empty state */}
       {questions.length === 0 && (
