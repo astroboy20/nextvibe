@@ -295,7 +295,11 @@ export function GameCreationWizard({
         if (contentMode === "ai") {
           if (!aiPrompt.topic.trim())
             return "Please enter a topic for AI generation.";
-          if (!aiPrompt.count || aiPrompt.count <= 0)
+          // Word puzzles always generate a single shared grid — no count to ask for.
+          if (
+            aiPrompt.gameType !== "WORD_PUZZLE" &&
+            (!aiPrompt.count || aiPrompt.count <= 0)
+          )
             return "Please enter a valid question count.";
           if (!aiPrompt.gameType) return "Please select a game type.";
           // activityTiming is always derived from phase — no need to validate it here
@@ -307,6 +311,13 @@ export function GameCreationWizard({
           return `Round ${
             activeRoundIdx + 1
           } has no questions. Please add or generate content.`;
+        if (roundsData[activeRoundIdx].gameType === "word-puzzle") {
+          for (const q of roundsData[activeRoundIdx].questions) {
+            if (!q.wordPuzzleMeta?.word?.trim() && !q.correctAnswer?.trim())
+              return `Round ${activeRoundIdx + 1}: every hidden word needs an answer.`;
+          }
+          return "";
+        }
         for (const q of roundsData[activeRoundIdx].questions) {
           if (!q.question.trim())
             return `Round ${activeRoundIdx + 1}: all questions must have text.`;
@@ -352,7 +363,15 @@ export function GameCreationWizard({
       | "DURING_EVENT"
       | "POST_EVENT"
       | "BOTH";
-    const promptToSend = { ...aiPrompt, activityTiming: resolvedTiming };
+    // Word puzzles are always a single shared grid — the backend expects count: 1
+    // (1 grid = 1 puzzle item), so there's nothing for the organizer to choose here.
+    const resolvedCount =
+      aiPrompt.gameType === "WORD_PUZZLE" ? 1 : aiPrompt.count;
+    const promptToSend = {
+      ...aiPrompt,
+      count: resolvedCount,
+      activityTiming: resolvedTiming,
+    };
 
     // Validate with the resolved prompt
     const validationErrors: string[] = [];

@@ -161,7 +161,7 @@ const StepThree = ({
         <div className="space-y-3 rounded-xl border border-border p-4 bg-muted/20">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Prompt</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5 col-span-2">
+            <div className={cn("space-y-1.5", selectedGameType === "word-puzzle" ? "col-span-2" : "")}>
               <Label className="text-xs">Topic <span className="text-destructive">*</span></Label>
               <Input
                 value={aiPrompt.topic}
@@ -170,21 +170,25 @@ const StepThree = ({
                 className="h-10"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Number of Questions <span className="text-destructive">*</span></Label>
-              <Input
-                type="number"
-                min={1}
-                max={20}
-                value={aiPrompt.count === null ? "" : aiPrompt.count}
-                onChange={(e) => updateField("count", e.target.value === "" ? null : Number(e.target.value))}
-                placeholder="e.g. 5"
-                className="h-10"
-              />
-            </div>
+            {selectedGameType !== "word-puzzle" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Number of Questions <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={aiPrompt.count === null ? "" : aiPrompt.count}
+                  onChange={(e) => updateField("count", e.target.value === "" ? null : Number(e.target.value))}
+                  placeholder="e.g. 5"
+                  className="h-10"
+                />
+              </div>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Tip: Be specific — "Lagos street food" beats "food".
+            {selectedGameType === "word-puzzle"
+              ? 'Tip: Be specific — the AI will hide several words from this topic in a single puzzle grid.'
+              : 'Tip: Be specific — "Lagos street food" beats "food".'}
           </p>
         </div>
       )}
