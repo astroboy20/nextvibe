@@ -48,6 +48,12 @@ export const analyticsApi = createApi({
             providesTags: (_, __, id) => [{ type: "Analytics", id: `social-${id}` }],
         }),
 
+        /** GET /analytics/events/:id/games — gamification session & winner analytics */
+        getEventGameAnalytics: builder.query<any, string>({
+            query: (eventId) => `/v1/analytics/events/${eventId}/games`,
+            providesTags: (_, __, id) => [{ type: "Analytics", id: `games-${id}` }],
+        }),
+
         // ── Location analytics ───────────────────────────────────────────────
 
         /**
@@ -79,6 +85,7 @@ export const {
     useGetEventPostcardAnalyticsQuery,
     useGetEventRevenueAnalyticsQuery,
     useGetEventSocialAnalyticsQuery,
+    useGetEventGameAnalyticsQuery,
     useGetOverviewLocationAnalyticsQuery,
     useGetEventLocationAnalyticsQuery,
 } = analyticsApi;

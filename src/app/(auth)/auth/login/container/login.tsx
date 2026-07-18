@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/app/provider/api/authApi";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 const loginSchema = z.object({
@@ -35,6 +36,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginContent = () => {
+  useRedirectIfAuthenticated();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -210,13 +212,18 @@ const LoginContent = () => {
 
           <Button
             type="submit"
-            disabled={isLoading || googleLoading}
+            disabled={isLoading || googleLoading || isMerging}
             className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium transition-colors"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Logging in...
+              </span>
+            ) : isMerging ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving your progress...
               </span>
             ) : (
               "Login"
