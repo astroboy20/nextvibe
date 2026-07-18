@@ -18,6 +18,7 @@ import {
   Sparkles,
   MapPin,
   Loader2,
+  Shield,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -73,13 +74,24 @@ const Settings = () => {
             <CardTitle className="text-lg">App Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
+            {/* <button
+              className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
+              onClick={() => router.push("/settings/privacy")}
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Privacy Preferences</span>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button> */}
+
             <button
               className="flex w-full items-center justify-between rounded-lg p-3 hover:bg-muted transition-colors"
               onClick={() => router.push("/privacy")}
             >
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Privacy & Security</span>
+                <span className="font-medium">Privacy Policy</span>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
