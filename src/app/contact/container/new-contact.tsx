@@ -42,7 +42,7 @@ const contactInfo = [
   {
     icon: Mail,
     label: "Email",
-    value: "hello@mynextvibe.co,",
+    value: "hello@mynextvibe.com",
     sub: "General inquiries",
   },
   { icon: MapPin, label: "Office", value: "Lagos, Nigeria", sub: "" },
