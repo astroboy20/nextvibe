@@ -52,13 +52,21 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
     return q.timeLimitSecs && q.timeLimitSecs > 0 ? Math.max(acc, q.timeLimitSecs) : acc;
   }, 60);
 
+  // The wizard/backend submit word puzzles as a single wrapper — { grid, hiddenWords, points } —
+  // not one element per word. Unwrap it so the rest of this function sees a flat word list.
+  const wrapper =
+    questions.length === 1 && Array.isArray(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
+      ? questions[0]
+      : null;
+  const flatEntries: any[] = wrapper ? wrapper.hiddenWords : questions;
+
   // Extract canonical word from whichever field the API provides
   const extractWord = (q: any): string =>
     ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
 
   // Deduplicate
   const seenWords = new Set<string>();
-  const rawWords: { word: string; clue: string; q: any }[] = questions
+  const rawWords: { word: string; clue: string; q: any }[] = flatEntries
     .map((q) => ({ word: extractWord(q), clue: q.text ?? q.clue ?? q.word ?? q.correctAnswer ?? "", q }))
     .filter(({ word }) => {
       if (!word) return false;
@@ -66,6 +74,20 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
       seenWords.add(word);
       return true;
     });
+
+  // ── Backend already provided a fully-formed grid — use it verbatim ─────────
+  if (wrapper) {
+    const hiddenWords: HiddenWord[] = rawWords
+      .filter(({ q }) => q.startCell && q.endCell)
+      .map(({ word, clue, q }) => ({
+        word,
+        clue,
+        startCell: [q.startCell[0], q.startCell[1]],
+        endCell: [q.endCell[0], q.endCell[1]],
+        direction: q.direction ?? "HORIZONTAL",
+      }));
+    return { grid: wrapper.grid as string[][], hiddenWords, timeLimitSecs };
+  }
 
   // ── Case 1: backend provided coordinates ─────────────────────────────────
   const hasCoords = rawWords.every(({ q }) => q.startCell && q.endCell);
@@ -427,10 +449,7 @@ function PublicWordPuzzlePlayer({
         setTimeLeft(0);
         setExpired(true);
         clearInterval(interval);
-        const answers = questions.map((q) => {
-          const w = ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
-          return foundWords.has(w) ? w : "";
-        });
+        const answers = hiddenWords.map((hw) => (foundWords.has(hw.word) ? hw.word : ""));
         onAllComplete(answers);
       } else {
         setTimeLeft(left);
@@ -443,10 +462,7 @@ function PublicWordPuzzlePlayer({
   const handleWordFound = (word: string) => setFoundWords((prev) => new Set([...prev, word]));
 
   const handleSubmit = () => {
-    const answers = questions.map((q) => {
-      const w = ((q.word ?? q.correctAnswer ?? q.text ?? "") as string).toUpperCase().replace(/\s+/g, "");
-      return foundWords.has(w) ? w : "";
-    });
+    const answers = hiddenWords.map((hw) => (foundWords.has(hw.word) ? hw.word : ""));
     onAllComplete(answers);
   };
 
