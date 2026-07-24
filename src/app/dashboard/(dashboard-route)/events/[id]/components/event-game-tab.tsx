@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Trophy,
   Play,
@@ -12,6 +14,7 @@ import {
   HelpCircle,
   Puzzle,
   MessageSquare,
+  MessageCircleQuestion,
   Zap,
   ChevronRight,
   Loader2,
@@ -27,6 +30,7 @@ import {
   useJoinGameSessionMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
+  useGetRoundResponsesQuery,
   useGetGameSessionQuery,
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
@@ -39,13 +43,14 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
   "word-puzzle": <Puzzle className="h-5 w-5" />,
   "two-truths": <MessageSquare className="h-5 w-5" />,
   "this-or-that": <Zap className="h-5 w-5" />,
+  feedback: <MessageCircleQuestion className="h-5 w-5" />,
 };
 
 const mapType = (t: string): GameType =>
@@ -54,6 +59,7 @@ const mapType = (t: string): GameType =>
   WORD_PUZZLE: "word-puzzle",
   TWO_TRUTHS_ONE_LIE: "two-truths",
   THIS_OR_THAT: "this-or-that",
+  FEEDBACK: "feedback",
 }[t] ?? "trivia") as GameType);
 
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
@@ -681,7 +687,100 @@ function WordPuzzleRoundPlayer({
 
 
 
-function SessionLeaderboard({ sessionId }: { sessionId: string }) {
+function FeedbackRoundPlayer({
+  questions,
+  onAllComplete,
+  initialAnswers,
+}: {
+  questions: any[];
+  onAllComplete: (answers: string[]) => void;
+  initialAnswers?: string[];
+}) {
+  const [answers, setAnswers] = useState<string[]>(
+    () => initialAnswers ?? questions.map(() => "")
+  );
+
+  const setAnswer = (index: number, value: string) => {
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleSubmit = () => onAllComplete(answers);
+
+  return (
+    <div className="space-y-4">
+      {questions.map((q, i) => (
+        <div key={i} className="space-y-1.5">
+          <Label className="text-sm font-medium text-foreground">{q.text}</Label>
+          <Textarea
+            value={answers[i] ?? ""}
+            onChange={(e) => setAnswer(i, e.target.value)}
+            placeholder="Type your answer…"
+            rows={3}
+          />
+        </div>
+      ))}
+      <Button
+        className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+        onClick={handleSubmit}
+      >
+        Submit Feedback
+      </Button>
+    </div>
+  );
+}
+
+function RoundResponses({ roundId, title }: { roundId: string; title?: string }) {
+  const { data, isLoading } = useGetRoundResponsesQuery(roundId);
+  const questions: string[] = data?.data?.questions ?? [];
+  const responses: any[] = data?.data?.responses ?? [];
+
+  if (isLoading)
+    return (
+      <div className="py-4 text-center">
+        <Loader2 className="h-4 w-4 animate-spin inline text-muted-foreground" />
+      </div>
+    );
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <MessageCircleQuestion className="h-3.5 w-3.5" />
+        {title ?? "Feedback"} Responses
+      </p>
+      {!responses.length ? (
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <p className="text-sm font-medium text-muted-foreground">No responses yet</p>
+        </div>
+      ) : (
+        responses.map((r: any, i: number) => (
+          <div key={r.user?.id ?? i} className="rounded-xl border border-border p-3 space-y-2">
+            <p className="text-sm font-medium">
+              {r.user?.displayName ?? r.user?.username ?? "Player"}
+            </p>
+            {questions.map((q: string, qi: number) => (
+              <div key={qi} className="text-xs">
+                <p className="text-muted-foreground">{q}</p>
+                <p className="text-foreground">{r.answers?.[qi] || "—"}</p>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function SessionLeaderboard({
+  sessionId,
+  feedbackRounds,
+}: {
+  sessionId: string;
+  feedbackRounds?: { id: string; title?: string }[];
+}) {
   const { data, isLoading } = useGetSessionLeaderboardQuery(sessionId);
   const entries: any[] = data?.data?.entries ?? [];
   const myEntry: any = data?.data?.myEntry ?? null;
@@ -695,16 +794,21 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
 
   if (!entries.length)
     return (
-      <div className="flex flex-col items-center gap-2 py-6 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-          <Trophy className="h-5 w-5 text-muted-foreground/50" />
+      <div className="space-y-4">
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+            <Trophy className="h-5 w-5 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">
+            No scores yet
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Scores will appear once players submit answers
+          </p>
         </div>
-        <p className="text-sm font-medium text-muted-foreground">
-          No scores yet
-        </p>
-        <p className="text-xs text-muted-foreground/60">
-          Scores will appear once players submit answers
-        </p>
+        {feedbackRounds?.map((r) => (
+          <RoundResponses key={r.id} roundId={r.id} title={r.title} />
+        ))}
       </div>
     );
 
@@ -770,6 +874,9 @@ function SessionLeaderboard({ sessionId }: { sessionId: string }) {
           </div>
         );
       })}
+      {feedbackRounds?.map((r) => (
+        <RoundResponses key={r.id} roundId={r.id} title={r.title} />
+      ))}
     </div>
   );
 }
@@ -922,6 +1029,60 @@ function RoundPlayer({
         />
       );
     }
+  }
+
+  // ── Feedback: delegate entirely to the text-answer player ──────────────────
+  if (gameType === "feedback") {
+    if (finalScore !== null) {
+      // fall through to the thank-you screen below
+    } else if (waitingForResult) {
+      // auto-submit is in flight — show the submitting spinner below
+    } else {
+      return (
+        <FeedbackRoundPlayer
+          questions={questions}
+          initialAnswers={
+            savedState?.answers ? (savedState.answers as string[]) : undefined
+          }
+          onAllComplete={async (feedbackAnswers) => {
+            setWaitingForResult(true);
+            const timeTakenMs = Date.now() - totalStartTime;
+            const result = await onSubmit(round.id, feedbackAnswers, timeTakenMs);
+            if (result.ok) {
+              setFinalScore(0);
+              onComplete?.(0);
+            } else {
+              try {
+                sessionStorage.setItem(
+                  `game_answers:${round.id}`,
+                  JSON.stringify({
+                    answers: feedbackAnswers,
+                    currentQ: 0,
+                    startTime: Date.now() - timeTakenMs,
+                  })
+                );
+              } catch { /* ignore */ }
+              setWaitingForResult(false);
+            }
+          }}
+        />
+      );
+    }
+  }
+
+  // ── Feedback: thank-you screen (no score/rank/leaderboard) ────────────────
+  if (gameType === "feedback" && finalScore !== null) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
+          <CheckCircle2 className="h-10 w-10 text-primary" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-foreground">Thanks for your feedback!</p>
+          <p className="text-sm text-muted-foreground">Your answers have been submitted.</p>
+        </div>
+      </div>
+    );
   }
 
   const advance = async (
@@ -1415,7 +1576,12 @@ function SessionCard({
               />
             </button>
             {showLeaderboard === session.id && (
-              <SessionLeaderboard sessionId={session.id} />
+              <SessionLeaderboard
+                sessionId={session.id}
+                feedbackRounds={(session.rounds ?? [])
+                  .filter((r: any) => mapType(r.gameType) === "feedback")
+                  .map((r: any) => ({ id: r.id, title: r.title }))}
+              />
             )}
           </div>
         )}
