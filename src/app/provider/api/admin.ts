@@ -17,7 +17,7 @@ export interface IAdminCoupon {
     discountType: 'PERCENTAGE' | 'FIXED';
     discountValue: number;
     usageLimit: number | null;
-    usedCount: number;
+    usageCount: number;
     expiresAt: string | null;
     isActive: boolean;
     description?: string;
@@ -27,15 +27,15 @@ export interface IAdminCoupon {
 
 export interface IAdminCouponRedemption {
     id: string;
-    userId: string;
-    userName?: string;
-    userEmail?: string;
-    redeemedAt: string;
-    discountApplied: number;
+    type: string;
+    finalAmount: number;
+    couponDiscountAmount: number;
+    paidAt: string | null;
+    organizer: { id: string; displayName?: string; email: string };
 }
 
 export interface IAdminCouponDetail extends IAdminCoupon {
-    redemptions: IAdminCouponRedemption[];
+    payments: IAdminCouponRedemption[];
 }
 
 export interface ICreateAdminCouponInput {

@@ -76,7 +76,7 @@ import { format } from "date-fns";
 function couponStatus(coupon: IAdminCoupon) {
   if (!coupon.isActive) return "inactive";
   if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return "expired";
-  if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return "maxed";
+  if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) return "maxed";
   return "active";
 }
 
@@ -163,7 +163,7 @@ function CouponDetailSheet({
                 <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                   <BarChart2 className="w-3 h-3 text-primary" /> Redemptions
                 </p>
-                <p className="text-2xl font-bold tabular-nums text-primary">{coupon.usedCount}</p>
+                <p className="text-2xl font-bold tabular-nums text-primary">{coupon.usageCount}</p>
                 {coupon.usageLimit && (
                   <p className="text-xs text-muted-foreground">of {coupon.usageLimit} limit</p>
                 )}
@@ -213,28 +213,28 @@ function CouponDetailSheet({
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4" /> Recent Redemptions
               </h3>
-              {!coupon.redemptions || coupon.redemptions.length === 0 ? (
+              {!coupon.payments || coupon.payments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6 border rounded-lg">
                   No redemptions yet.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {coupon.redemptions.map((r: IAdminCouponRedemption) => (
+                  {coupon.payments.map((r: IAdminCouponRedemption) => (
                     <div
                       key={r.id}
                       className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                     >
                       <div>
-                        <p className="font-medium">{r.userName ?? r.userEmail ?? r.userId}</p>
-                        {r.userEmail && r.userName && (
-                          <p className="text-xs text-muted-foreground">{r.userEmail}</p>
+                        <p className="font-medium">{r.organizer.displayName ?? r.organizer.email}</p>
+                        {r.organizer.email && r.organizer.displayName && (
+                          <p className="text-xs text-muted-foreground">{r.organizer.email}</p>
                         )}
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-emerald-600">
-                          −${r.discountApplied}
+                          −${r.couponDiscountAmount}
                         </p>
-                        <p className="text-xs text-muted-foreground">{fmtDate(r.redeemedAt)}</p>
+                        <p className="text-xs text-muted-foreground">{fmtDate(r.paidAt)}</p>
                       </div>
                     </div>
                   ))}
@@ -470,7 +470,7 @@ export default function CouponsPage() {
   const total = result?.total ?? 0;
   const active = coupons.filter((c: IAdminCoupon) => couponStatus(c) === "active").length;
   const totalRedemptions = coupons.reduce(
-    (sum: number, c: IAdminCoupon) => sum + (c.usedCount ?? 0),
+    (sum: number, c: IAdminCoupon) => sum + (c.usageCount ?? 0),
     0
   );
 
@@ -594,7 +594,7 @@ export default function CouponsPage() {
                           </span>
                         </td>
                         <td className="py-3 pr-4 text-muted-foreground">
-                          <span className="font-medium text-foreground">{coupon.usedCount ?? 0}</span>
+                          <span className="font-medium text-foreground">{coupon.usageCount ?? 0}</span>
                           {coupon.usageLimit ? (
                             <span> / {coupon.usageLimit}</span>
                           ) : (
@@ -691,7 +691,7 @@ export default function CouponsPage() {
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Uses</p>
                           <p className="font-medium">
-                            {coupon.usedCount ?? 0}
+                            {coupon.usageCount ?? 0}
                             {coupon.usageLimit ? (
                               <span className="text-muted-foreground"> / {coupon.usageLimit}</span>
                             ) : (
