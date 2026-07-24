@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import {
   Plus,
   Edit2,
@@ -12,6 +13,8 @@ import {
   DollarSign,
   AlertTriangle,
   Loader2,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,8 +40,156 @@ import {
   useCreateTicketMutation,
   useDeleteTicketMutation,
   useUpdateTicketMutation,
+  useUploadIntentMutation,
 } from "@/app/provider/api/eventApi";
 import { toast } from "sonner";
+
+// ── Ticket-image upload helpers ──────────────────────────────────────────────
+const MAX_TICKET_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ACCEPTED_TICKET_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+interface TicketImageUploadState {
+  status: "idle" | "uploading" | "done" | "error";
+  progress: number;
+  url: string | null;
+}
+
+const TICKET_IMAGE_IDLE: TicketImageUploadState = {
+  status: "idle",
+  progress: 0,
+  url: null,
+};
+
+function TicketImageUploader({
+  currentUrl,
+  onUrlChange,
+  uploadIntent,
+}: {
+  currentUrl: string | null;
+  onUrlChange: (url: string | null) => void;
+  uploadIntent: ReturnType<typeof useUploadIntentMutation>[0];
+}) {
+  const [upload, setUpload] = useState<TicketImageUploadState>(
+    currentUrl ? { status: "done", progress: 100, url: currentUrl } : TICKET_IMAGE_IDLE
+  );
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (!ACCEPTED_TICKET_IMAGE_TYPES.includes(file.type)) {
+      toast.warning("Please upload a PNG, JPEG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_TICKET_IMAGE_SIZE) {
+      toast.warning("Image must be 5 MB or less.");
+      return;
+    }
+
+    setUpload({ status: "uploading", progress: 0, url: null });
+
+    try {
+      const intent = await uploadIntent({
+        filename: file.name,
+        contentType: file.type,
+        folder: "ticket-tiers",
+      }).unwrap();
+
+      // PUT raw file bytes directly to the presigned URL (no auth header, no FormData)
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", intent.data.uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable)
+            setUpload((prev) => ({
+              ...prev,
+              progress: Math.round((e.loaded * 100) / e.total),
+            }));
+        };
+        xhr.onload = () =>
+          xhr.status >= 200 && xhr.status < 300
+            ? resolve()
+            : reject(new Error(`Upload failed: ${xhr.status}`));
+        xhr.onerror = () => reject(new Error("Upload network error"));
+        xhr.send(file);
+      });
+
+      setUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+      onUrlChange(intent.data.fileUrl);
+    } catch {
+      setUpload({ status: "error", progress: 0, url: null });
+      toast.error("Image upload failed. Please try again.");
+    }
+  };
+
+  const handleRemove = () => {
+    setUpload(TICKET_IMAGE_IDLE);
+    onUrlChange(null);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Ticket Image <span className="text-muted-foreground font-normal">(optional)</span></Label>
+
+      {upload.status === "done" && upload.url ? (
+        <div className="relative w-full h-28 rounded-xl overflow-hidden border border-border group">
+          <Image
+            src={upload.url}
+            alt="Ticket tier image"
+            fill
+            className="object-cover"
+          />
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Remove image"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : upload.status === "uploading" ? (
+        <div className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border border-border bg-muted/30">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">{upload.progress}%</p>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex w-full items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed border-border hover:border-[#531342] hover:bg-muted/30 transition-colors text-muted-foreground"
+        >
+          <ImageIcon className="h-4 w-4" />
+          <span className="text-sm">Upload image</span>
+        </button>
+      )}
+
+      {upload.status === "error" && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          className="w-full"
+        >
+          Retry upload
+        </Button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_TICKET_IMAGE_TYPES.join(",")}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          // reset so same file can be re-picked
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
 
 interface TicketCreatorEnhancedProps {
   eventId: string;
@@ -63,6 +214,8 @@ export function TicketCreatorEnhanced({
     ticketEndDate: "",
     ticketLink: "",
   });
+  // Tracks the uploaded image URL for the "create" form independently
+  const [newTicketImageUrl, setNewTicketImageUrl] = useState<string | null>(null);
 
   const [createTicketMutation, { isLoading: isCreatingLoading }] =
     useCreateTicketMutation();
@@ -70,6 +223,7 @@ export function TicketCreatorEnhanced({
     useUpdateTicketMutation();
   const [deleteTicketMutation, { isLoading: isDeletingLoading }] =
     useDeleteTicketMutation();
+  const [uploadIntent] = useUploadIntentMutation();
 
   const totalRevenue = eventDetails?.reduce(
     (sum: number, t: any) => sum + t.price * t.quantitySold,
@@ -93,6 +247,7 @@ export function TicketCreatorEnhanced({
         ...(newTicket.perks && { perks: newTicket.perks }),
         ...(newTicket.ticketEndDate && { ticketEndDate: newTicket.ticketEndDate }),
         ...(newTicket.ticketLink && { ticketLink: newTicket.ticketLink }),
+        ...(newTicketImageUrl && { imageUrl: newTicketImageUrl }),
       };
 
       const request = await createTicketMutation({
@@ -104,6 +259,7 @@ export function TicketCreatorEnhanced({
         setTickets((prev) => [...(prev || []), request.data]);
         toast.success("Ticket created successfully");
         setIsCreating(false);
+        setNewTicketImageUrl(null);
         setNewTicket({
           name: "",
           description: "",
@@ -133,6 +289,7 @@ export function TicketCreatorEnhanced({
         ...ticketData
       } = editingTicket;
 
+      // imageUrl is kept in ticketData (spread above); pass null explicitly to remove it
       const request = await updateTicketMutation({
         ticketData,
         eventId: eventId,
@@ -204,7 +361,10 @@ export function TicketCreatorEnhanced({
 
       {/* Add Ticket Button */}
       <div className="mb-4">
-        <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <Dialog open={isCreating} onOpenChange={(open) => {
+            setIsCreating(open);
+            if (!open) setNewTicketImageUrl(null);
+          }}>
           <DialogTrigger asChild>
             <Button
               size="sm"
@@ -303,6 +463,11 @@ export function TicketCreatorEnhanced({
                   }
                 />
               </div>
+              <TicketImageUploader
+                currentUrl={newTicketImageUrl}
+                onUrlChange={setNewTicketImageUrl}
+                uploadIntent={uploadIntent}
+              />
               <Button
                 onClick={handleCreateTicket}
                 disabled={isCreatingLoading}
@@ -332,6 +497,17 @@ export function TicketCreatorEnhanced({
                   : "border-border"
               )}
             >
+              {/* Ticket image thumbnail */}
+              {ticket.imageUrl && (
+                <div className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border mr-3">
+                  <Image
+                    src={ticket.imageUrl}
+                    alt={ticket.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{ticket.name}</span>
@@ -480,6 +656,16 @@ export function TicketCreatorEnhanced({
                             }
                           />
                         </div>
+                        <TicketImageUploader
+                          currentUrl={editingTicket.imageUrl ?? null}
+                          onUrlChange={(url) =>
+                            setEditingTicket({
+                              ...editingTicket,
+                              imageUrl: url,
+                            })
+                          }
+                          uploadIntent={uploadIntent}
+                        />
                         <div className="rounded-lg bg-muted p-3">
                           <p className="text-xs text-muted-foreground">
                             <strong>{editingTicket.quantitySold}</strong>{" "}
