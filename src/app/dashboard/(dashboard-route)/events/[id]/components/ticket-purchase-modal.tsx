@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useGetTicketsQuery } from "@/app/provider/api/eventApi";
 import { useInitiatePurchaseMutation } from "@/app/provider/api/paymentApi";
+import Image from "next/image";
 
 interface TicketItem {
   id: string;
@@ -127,8 +128,9 @@ export function TicketPurchaseModal({
           </p>
         </div>
 
-        {/* Scrollable list */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2.5 min-h-0">
+        <div className="overflow-y-auto overscroll-contain">
+           {/* Scrollable list */}
+        <div className="flex-1  px-4 py-3 space-y-2.5 min-h-0">
           {isLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -166,10 +168,12 @@ export function TicketPurchaseModal({
                       onClick={() => setSelectedId(ticket.id)}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={ticket.imageUrl}
                         alt={ticket.name}
-                        className="w-full h-36 object-cover block"
+                        width={400}
+                        height={144}
+                        className="w-full h-auto object-contain"
                       />
                     </button>
                   )}
@@ -278,6 +282,9 @@ export function TicketPurchaseModal({
             </Button>
           </div>
         )}
+        </div>
+
+       
       </DialogContent>
     </Dialog>
   );
