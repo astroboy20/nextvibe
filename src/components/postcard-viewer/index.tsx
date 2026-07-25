@@ -44,6 +44,9 @@ export interface PostcardMediaItem {
   id?: string;
   mediaUrl?: string | null;
   mediaType?: string | null;
+  /** Vibetag overlay URL — set when canvas baking was skipped (large file).
+   *  The viewer renders this as a CSS layer on top of the video. */
+  vibeTagOverlayUrl?: string | null;
 }
 
 export interface PostcardData {
@@ -177,6 +180,7 @@ export function VideoPlayer({
   active = true,
   onSingleTap,
   onDoubleTap,
+  vibeTagOverlayUrl,
 }: {
   src: string;
   active?: boolean;
@@ -184,6 +188,8 @@ export function VideoPlayer({
   onSingleTap?: () => void;
   /** Called when the user double-taps the video (like) */
   onDoubleTap?: () => void;
+  /** Optional vibetag overlay image to show on top of the video */
+  vibeTagOverlayUrl?: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // Videos start muted so autoplay is permitted by browsers.
@@ -192,14 +198,23 @@ export function VideoPlayer({
   // one-way `muted` prop which cannot be toggled after mount.
   const [muted, setMuted] = useState(true);
   const [buffering, setBuffering] = useState(true);
+  // Show a one-time "tap to unmute" hint so users know there's sound
+  const [showUnmuteHint, setShowUnmuteHint] = useState(true);
   const lastTapRef = useRef<number>(0);
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmuteHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Apply the initial muted state to the DOM element on mount
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
     vid.muted = true;
+    // Auto-hide the unmute hint after 3 seconds
+    unmuteHintTimerRef.current = setTimeout(() => setShowUnmuteHint(false), 3000);
+    return () => {
+      if (unmuteHintTimerRef.current)
+        clearTimeout(unmuteHintTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -236,15 +251,19 @@ export function VideoPlayer({
         const next = !vid.muted;
         vid.muted = next;
         setMuted(next);
+        // Hide the unmute hint once user has interacted
+        setShowUnmuteHint(false);
+        if (unmuteHintTimerRef.current) clearTimeout(unmuteHintTimerRef.current);
         onSingleTap?.();
       }, 300);
     }
   };
 
-  // Cleanup timer on unmount
+  // Cleanup timers on unmount
   useEffect(
     () => () => {
       if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      if (unmuteHintTimerRef.current) clearTimeout(unmuteHintTimerRef.current);
     },
     []
   );
@@ -271,7 +290,27 @@ export function VideoPlayer({
         onPlaying={() => setBuffering(false)}
         className="w-full h-full object-contain"
       />
-      <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-10">
+      {/* VibeTag overlay — shown when the video has a CSS overlay (baking skipped) */}
+      {vibeTagOverlayUrl && (
+        <div className="absolute inset-0 pointer-events-none z-10">
+          <img
+            src={vibeTagOverlayUrl}
+            alt="VibeTag"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      {/* Unmute hint — fades out after 3s or on first tap */}
+      {showUnmuteHint && muted && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none animate-in fade-in duration-300">
+          <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2">
+            <VolumeX className="h-4 w-4 text-white" />
+            <span className="text-white text-xs font-medium">Tap to unmute</span>
+          </div>
+        </div>
+      )}
+      {/* Mute / unmute icon badge */}
+      <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-20">
         {muted ? (
           <VolumeX className="h-4 w-4 text-white" />
         ) : (
@@ -870,6 +909,7 @@ export function PostcardViewer({
                       src={m.mediaUrl!}
                       active={i === activeIndex}
                       onDoubleTap={triggerLikeAnimation}
+                      vibeTagOverlayUrl={m.vibeTagOverlayUrl}
                     />
                   ) : (
                     <div className="w-full h-full" onClick={handleImageTap}>

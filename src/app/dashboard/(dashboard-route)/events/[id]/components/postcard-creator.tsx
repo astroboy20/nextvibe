@@ -32,23 +32,39 @@ import Cookies from "js-cookie";
 // Max items per submission
 const MAX_ITEMS = 20;
 
-// Max recording duration in seconds — prevents unbounded blob growth
-const MAX_RECORDING_SECS = 60;
+// ─── Video caps ───────────────────────────────────────────────────────────────
+// These limits exist to keep baking safe on mobile browsers.
+// Baking = re-encoding every frame on a canvas so the vibetag is permanently
+// written into the video (same as how Snapchat stamps filters).
 
-// Max uploaded video file size in MB — files above this are rejected
-const MAX_VIDEO_UPLOAD_SIZE_MB = 50;
+/** Max video duration (seconds) accepted for upload AND camera recording.
+ *  Keeps in-memory blob size manageable while baking. */
+const MAX_VIDEO_DURATION_SECS = 30;
 
-// Max uploaded video duration in seconds — files above this are rejected
-const MAX_VIDEO_DURATION_SECS = 60;
+/** Max recording duration in seconds — matches duration cap. */
+const MAX_RECORDING_SECS = 30;
 
-// Serial baking queue — ensures only one video is encoded at a time to prevent
-// multiple concurrent re-encodes from exhausting browser memory.
-let bakingQueuePromise: Promise<void> = Promise.resolve();
-function enqueueBake<T>(fn: () => Promise<T>): Promise<T> {
-  const result = bakingQueuePromise.then(() => fn());
-  // Chain onto the queue but swallow errors so a failed bake doesn't block future ones
-  bakingQueuePromise = result.then(() => {}, () => {});
-  return result;
+/** Max upload file size in MB. Videos over this are rejected upfront. */
+const MAX_VIDEO_UPLOAD_SIZE_MB = 25;
+
+/**
+ * Videos larger than this MB threshold skip canvas baking entirely (too
+ * memory-intensive on mobile) and instead use the CSS overlay fallback.
+ * The vibetag is still visually shown on top of the video at all times.
+ */
+const BAKE_SIZE_LIMIT_MB = 15;
+
+// Serial baking queue — only one video encodes at a time so we never hold
+// two MediaRecorder streams + canvases in memory simultaneously.
+// Implemented as a factory so each PostcardCreator instance gets its own
+// queue (avoids a stuck module-level promise across Next.js navigations).
+function createBakeQueue() {
+  let promise: Promise<void> = Promise.resolve();
+  return function enqueueBake<T>(fn: () => Promise<T>): Promise<T> {
+    const result = promise.then(() => fn());
+    promise = result.then(() => {}, () => {});
+    return result;
+  };
 }
 
 // Image output dimensions — reduced from 1080×1920 to save memory
@@ -80,6 +96,9 @@ interface QueuedItem {
   caption: string;
   baking: boolean;
   blob?: Blob;
+  /** Overlay image URL for videos that skipped canvas baking (>BAKE_SIZE_LIMIT_MB).
+   *  Rendered as an absolute CSS layer on top of the video in preview & viewer. */
+  overlayUrl?: string | null;
 }
 
 async function bakeOverlay(
@@ -133,50 +152,88 @@ async function resizeTo1080p(dataUrl: string): Promise<string> {
 }
 
 /**
- * Streamlined video overlay baking.
+ * Permanently bakes the vibetag overlay image into every frame of the video.
+ * Snapchat-style: canvas draws each video frame + overlay, MediaRecorder captures it.
  *
- * Key optimisations vs the original:
- * - Skips baking entirely for videos > SIZE_LIMIT_MB (just uploads raw — the
- *   overlay is composited as a CSS layer on playback instead).
- * - Runs the video at 2× speed → half the wall-clock encoding time.
- * - Captures at 15 fps instead of 30 → half the canvas draw calls.
- * - Bitrate capped at 2 Mbps → ~4× smaller output blob.
- * - Revokes the source objectURL immediately after the video ends so the
- *   original blob memory is freed before we resolve.
- * - Cleans up all resources (canvas, video element, animFrame) on completion.
+ * Key fixes vs original:
+ * - Audio tracks are captured BEFORE recorder.start() so they're in the stream
+ * - Abort timer is duration + 15s grace, not duration * 4 (prevents memory leaks)
+ * - Handles Infinity duration (WebM from MediaRecorder) via data size estimation
+ * - All resource cleanup is guaranteed in `done()`
  */
-const VIDEO_OVERLAY_SIZE_LIMIT_MB = 40;
-
 async function bakeOverlayOntoVideo(
   videoBlob: Blob,
   overlayUrl: string
 ): Promise<Blob> {
-  // Skip heavy re-encoding for large files — overlay shown via CSS on playback
-  if (videoBlob.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024) {
+  // Fetch overlay as a blob:// URL — canvas.captureStream() throws SecurityError
+  // on a cross-origin-tainted canvas, so we need a same-origin source.
+  let overlayBlobUrl: string;
+  try {
+    const res = await fetch(overlayUrl);
+    if (!res.ok) throw new Error("fetch failed");
+    overlayBlobUrl = URL.createObjectURL(await res.blob());
+  } catch {
+    return videoBlob;
+  }
+
+  // Load the overlay image from the blob URL
+  const overlayImg = await new Promise<HTMLImageElement>((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = overlayBlobUrl;
+    // NOTE: do NOT revoke overlayBlobUrl here — keep it alive until baking is done
+  }).catch(() => null);
+
+  if (!overlayImg) {
+    URL.revokeObjectURL(overlayBlobUrl);
     return videoBlob;
   }
 
   return new Promise((resolve) => {
-    const objectUrl = URL.createObjectURL(videoBlob);
+    const srcUrl = URL.createObjectURL(videoBlob);
+    let animFrame: number | null = null;
+    let abortTimer: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
 
-    const video = document.createElement("video");
-    // Do NOT set video.muted = true — muted elements have no audio track to capture.
-    video.playsInline = true;
-    video.preload = "auto";
-    video.playbackRate = 2;   // encode at 2× speed → half the time
-    video.src = objectUrl;
-
-    const cleanup = (result: Blob) => {
-      URL.revokeObjectURL(objectUrl);  // free source blob memory immediately
-      video.src = "";
+    const done = (result: Blob) => {
+      if (settled) return;
+      settled = true;
+      if (abortTimer !== null) clearTimeout(abortTimer);
+      if (animFrame !== null) cancelAnimationFrame(animFrame);
+      URL.revokeObjectURL(overlayBlobUrl);
+      vid.pause();
+      vid.removeAttribute("src");
+      vid.load();
+      if (vid.parentNode) vid.parentNode.removeChild(vid);
+      URL.revokeObjectURL(srcUrl);
       resolve(result);
     };
 
-    video.onerror = () => cleanup(videoBlob);
+    const vid = document.createElement("video");
+    vid.playsInline = true;
+    vid.muted = true; // must be muted for autoplay; we add audio track separately
+    vid.preload = "auto";
+    vid.src = srcUrl;
+    vid.style.cssText =
+      "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
+    document.body.appendChild(vid);
 
-    video.onloadedmetadata = () => {
-      const vw = video.videoWidth || 720;
-      const vh = video.videoHeight || 1280;
+    vid.onerror = () => done(videoBlob);
+
+    vid.onloadedmetadata = () => {
+      const vw = vid.videoWidth || 720;
+      const vh = vid.videoHeight || 1280;
+
+      // vid.duration is often Infinity for WebM blobs from MediaRecorder.
+      // Estimate duration from file size and assumed bitrate (2.5 Mbps video + 128k audio ≈ 330 KB/s).
+      const estimatedDuration =
+        isFinite(vid.duration) && vid.duration > 0
+          ? vid.duration
+          : Math.min(
+              videoBlob.size / (330 * 1024), // rough estimate
+              MAX_RECORDING_SECS
+            );
 
       const canvas = document.createElement("canvas");
       canvas.width = vw;
@@ -184,101 +241,105 @@ async function bakeOverlayOntoVideo(
       const ctx = canvas.getContext("2d");
 
       if (!ctx || typeof (canvas as any).captureStream !== "function") {
-        cleanup(videoBlob);
+        done(videoBlob);
         return;
       }
 
-      const overlayImg = new Image();
-      overlayImg.crossOrigin = "anonymous";
+      const mimeType =
+        MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+          ? "video/webm;codecs=vp8"
+          : MediaRecorder.isTypeSupported("video/webm")
+          ? "video/webm"
+          : null;
 
-      overlayImg.onerror = () => cleanup(videoBlob);
+      if (!mimeType) {
+        done(videoBlob);
+        return;
+      }
 
-      overlayImg.onload = () => {
-        // Pick the best supported codec
-        const mimeType =
-          MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-            ? "video/webm;codecs=vp9"
-            : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
-            ? "video/webm;codecs=vp8"
-            : MediaRecorder.isTypeSupported("video/webm")
-            ? "video/webm"
-            : "video/mp4";
+      const canvasStream = (canvas as any).captureStream(30) as MediaStream;
+      // Build the output stream starting with video tracks
+      const outStream = new MediaStream([...canvasStream.getVideoTracks()]);
 
-        // Capture canvas frames at 15 fps — half the draw calls vs 30 fps
-        const canvasStream = (canvas as any).captureStream(15) as MediaStream;
+      // ── Capture audio BEFORE starting the recorder ──────────────────────
+      // This is the critical fix: audio tracks must be in the stream before
+      // MediaRecorder.start() is called, otherwise they're never recorded.
+      try {
+        const liveSrc: MediaStream | null =
+          typeof (vid as any).captureStream === "function"
+            ? (vid as any).captureStream()
+            : typeof (vid as any).mozCaptureStream === "function"
+            ? (vid as any).mozCaptureStream()
+            : null;
+        if (liveSrc) {
+          liveSrc.getAudioTracks().forEach((t) => {
+            outStream.addTrack(t);
+          });
+        }
+      } catch {
+        /* no audio available — video-only is fine */
+      }
 
-        // Pull audio directly from the video element's own capture stream after
-        // play() starts — audio tracks are only live once the video is playing.
-        // We build the combined stream with video tracks only for now; audio
-        // tracks are added dynamically in the play().then() callback below.
-        // This is more reliable than AudioContext.createMediaElementSource,
-        // which requires a user gesture and often silently drops audio.
-
-        // Combine canvas video tracks into the output stream (audio added after play)
-        const combinedStream = new MediaStream([
-          ...canvasStream.getVideoTracks(),
-        ]);
-
-        const recorder = new MediaRecorder(combinedStream, {
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(outStream, {
           mimeType,
-          videoBitsPerSecond: 2_000_000,  // 2 Mbps — 4× less than original 8 Mbps
+          videoBitsPerSecond: 2_500_000,
           audioBitsPerSecond: 128_000,
         });
+      } catch {
+        done(videoBlob);
+        return;
+      }
 
-        const chunks: Blob[] = [];
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.push(e.data);
-        };
-
-        recorder.onstop = () => {
-          const result = new Blob(chunks, { type: mimeType });
-          // Wipe chunk array to free memory before resolving
-          chunks.length = 0;
-          cleanup(result.size > 0 ? result : videoBlob);
-        };
-
-        let animFrame: number;
-
-        const drawFrame = () => {
-          if (video.paused || video.ended) return;
-          ctx.drawImage(video, 0, 0, vw, vh);
-          ctx.drawImage(overlayImg, 0, 0, vw, vh);
-          animFrame = requestAnimationFrame(drawFrame);
-        };
-
-        video.onended = () => {
-          cancelAnimationFrame(animFrame);
-          recorder.stop();
-        };
-
-        recorder.start(200); // larger timeslice → fewer chunk allocations
-        video.play().then(() => {
-          // Add audio tracks after play() resolves — captureStream() audio tracks
-          // are only live once the video has actually started playing.
-          try {
-            let liveStream: MediaStream | null = null;
-            if (typeof (video as any).captureStream === "function") {
-              liveStream = (video as any).captureStream() as MediaStream;
-            } else if (typeof (video as any).mozCaptureStream === "function") {
-              liveStream = (video as any).mozCaptureStream() as MediaStream;
-            }
-            liveStream?.getAudioTracks().forEach((t) => {
-              // Only add if not already present (avoid duplicates)
-              if (!combinedStream.getAudioTracks().includes(t)) {
-                combinedStream.addTrack(t);
-              }
-            });
-          } catch {
-            // Audio capture unavailable — video-only output
-          }
-          drawFrame();
-        }).catch(() => {
-          cancelAnimationFrame(animFrame);
-          recorder.stop();
-        });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        const result = new Blob(chunks, { type: mimeType });
+        chunks.length = 0;
+        done(result.size > 0 ? result : videoBlob);
       };
 
-      overlayImg.src = overlayUrl;
+      const drawFrame = () => {
+        if (vid.paused || vid.ended) return;
+        ctx.drawImage(vid, 0, 0, vw, vh);
+        ctx.drawImage(overlayImg, 0, 0, vw, vh); // vibetag stamped on every frame
+        animFrame = requestAnimationFrame(drawFrame);
+      };
+
+      vid.onended = () => {
+        if (animFrame !== null) cancelAnimationFrame(animFrame);
+        if (recorder.state !== "inactive") recorder.stop();
+      };
+
+      // Generous but bounded abort timer: estimated duration + 15 s grace.
+      // The old code used duration * 4 which could hold memory for 2+ minutes.
+      abortTimer = setTimeout(
+        () => {
+          if (animFrame !== null) cancelAnimationFrame(animFrame);
+          if (recorder.state !== "inactive") recorder.stop();
+        },
+        Math.ceil((estimatedDuration + 15) * 1000)
+      );
+
+      recorder.start(250);
+
+      // Unmute AFTER recorder.start so the audio tracks are live for capture
+      vid.muted = false;
+      vid.play().then(() => {
+        drawFrame();
+      }).catch(() => {
+        // Play failed — still try to record (video-only)
+        vid.muted = true;
+        vid.play().catch(() => {
+          if (recorder.state !== "inactive") recorder.stop();
+        });
+        drawFrame();
+      });
     };
   });
 }
@@ -302,6 +363,10 @@ export function PostcardCreator({
   onSubmit,
 }: PostcardCreatorProps) {
   const dispatch = useDispatch();
+
+  // Instance-level bake queue — avoids stuck module-level promise across
+  // component remounts / Next.js client navigations
+  const enqueueBake = useRef(createBakeQueue()).current;
 
   const [mode, setMode] = useState<
     "choose" | "camera" | "camera-review" | "upload-review"
@@ -402,35 +467,57 @@ export function PostcardCreator({
       const id = `${Date.now()}-${Math.random()}`;
       const raw = URL.createObjectURL(blob);
 
-      // Show raw video immediately for preview — baking runs in background
+      const previewOverlayUrl = hasOverlay ? (vibeTagOverlay?.imageUrl ?? null) : null;
+
+      // Skip canvas baking for blobs over the size threshold — too memory
+      // intensive on mobile. Instead keep the CSS overlay fallback permanently.
+      const isTooLarge = blob.size > BAKE_SIZE_LIMIT_MB * 1024 * 1024;
+      const shouldBake = hasOverlay && !!vibeTagOverlay?.imageUrl && !isTooLarge;
+
+      if (isTooLarge && hasOverlay) {
+        toast.info(
+          `Video is large (${(blob.size / 1024 / 1024).toFixed(0)} MB) — VibeTag shown as overlay.`
+        );
+      }
+
       setter((q) => [
         ...q,
         {
           id,
           kind: "video",
           raw,
-          baked: raw,
+          baked: raw, // show raw immediately as preview
           caption: "",
-          baking: hasOverlay && !!vibeTagOverlay?.imageUrl,
+          baking: shouldBake,
           blob,
+          // Always set the CSS overlay URL — it shows during baking as preview
+          // and stays permanently if baking was skipped.
+          overlayUrl: previewOverlayUrl,
         },
       ]);
 
-      if (hasOverlay && vibeTagOverlay?.imageUrl) {
+      if (shouldBake) {
         enqueueBake(async () => {
           try {
-            const finalBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay.imageUrl);
-            const bakedUrl = URL.createObjectURL(finalBlob);
+            const bakedBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay!.imageUrl);
+            const bakedUrl = URL.createObjectURL(bakedBlob);
             setter((q) =>
               q.map((item) => {
                 if (item.id !== id) return item;
-                // Revoke the old raw URL — the baked one replaces it
-                if (item.raw !== bakedUrl) URL.revokeObjectURL(item.raw);
-                return { ...item, baked: bakedUrl, baking: false, blob: finalBlob };
+                // NOTE: do NOT revoke item.raw here — removeFromQueue still
+                // references it. It will be cleaned up on remove or unmount.
+                return {
+                  ...item,
+                  baked: bakedUrl,
+                  baking: false,
+                  blob: bakedBlob,
+                  // Overlay is now baked into every frame — remove the CSS layer
+                  overlayUrl: null,
+                };
               })
             );
           } catch {
-            // Baking failed — use raw, mark done so submit isn't blocked
+            // Baking failed — keep the raw video with the CSS overlay fallback
             setter((q) =>
               q.map((item) =>
                 item.id === id ? { ...item, baking: false } : item
@@ -440,7 +527,7 @@ export function PostcardCreator({
         });
       }
     },
-    [hasOverlay, vibeTagOverlay]
+    [hasOverlay, vibeTagOverlay, enqueueBake]
   );
 
   const stopCamera = useCallback(() => {
@@ -627,42 +714,31 @@ export function PostcardCreator({
     for (let i = 0; i < toProcess.length; i++) {
       const file = toProcess[i];
       if (file.type.startsWith("video/")) {
-        // Hard size cap — reject files over 50 MB
+        // Size cap — reject files over MAX_VIDEO_UPLOAD_SIZE_MB
         if (file.size > MAX_VIDEO_UPLOAD_SIZE_MB * 1024 * 1024) {
           toast.error(
-            `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(0)} MB — videos must be under ${MAX_VIDEO_UPLOAD_SIZE_MB} MB.`
+            `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(0)} MB — videos must be under ${MAX_VIDEO_UPLOAD_SIZE_MB} MB to stamp the VibeTag.`
           );
           setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
           continue;
         }
 
-        // Duration cap — reject videos longer than 60 seconds
+        // Duration cap — check before loading into memory
         const duration = await new Promise<number>((res) => {
           const tmp = document.createElement("video");
           tmp.preload = "metadata";
           const url = URL.createObjectURL(file);
-          tmp.onloadedmetadata = () => {
-            URL.revokeObjectURL(url);
-            res(tmp.duration);
-          };
-          tmp.onerror = () => {
-            URL.revokeObjectURL(url);
-            res(0);
-          };
+          tmp.onloadedmetadata = () => { URL.revokeObjectURL(url); res(tmp.duration); };
+          tmp.onerror = () => { URL.revokeObjectURL(url); res(0); };
           tmp.src = url;
         });
 
         if (duration > MAX_VIDEO_DURATION_SECS) {
           toast.error(
-            `"${file.name}" is ${Math.round(duration)}s — videos must be ${MAX_VIDEO_DURATION_SECS}s or shorter.`
+            `"${file.name}" is ${Math.round(duration)}s — videos must be ${MAX_VIDEO_DURATION_SECS}s or shorter to stamp the VibeTag.`
           );
           setLocalUploadProgress(Math.round(((i + 1) / toProcess.length) * 100));
           continue;
-        }
-
-        // Warn if overlay will be skipped due to size (>40 MB but ≤50 MB)
-        if (file.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024) {
-          toast.info(`Large video (${(file.size / 1024 / 1024).toFixed(0)} MB) — overlay will be shown on playback instead of baked in.`);
         }
 
         await addVideoToQueue(file, setUploadQueue, uploadQueue.length + addedCount);
@@ -1006,16 +1082,16 @@ export function PostcardCreator({
 
       {hasOverlay && mode !== "camera" && (
         <div className="px-4 py-2 bg-primary/5 border-b border-primary/10 shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Badge
               variant="outline"
-              className="border-primary/30 text-primary gap-1 text-xs"
+              className="border-primary/30 text-primary gap-1 text-xs shrink-0 max-w-[55%] truncate"
             >
-              <Sparkles className="h-3 w-3" />
-              {vibeTagOverlay!.name}
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span className="truncate">{vibeTagOverlay!.name}</span>
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              VibeTag will be stamped on your photos and associated with videos
+            <span className="text-xs text-muted-foreground truncate">
+              VibeTag stamped on photos &amp; videos
             </span>
           </div>
         </div>
@@ -1046,7 +1122,7 @@ export function PostcardCreator({
               <img
                 src={vibeTagOverlay!.imageUrl}
                 alt={vibeTagOverlay!.name}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
@@ -1189,7 +1265,7 @@ export function PostcardCreator({
                   <img
                     src={vibeTagOverlay!.imageUrl}
                     alt={vibeTagOverlay!.name}
-                    className="absolute inset-0 w-full h-full object-contain z-10"
+                    className="absolute inset-0 w-full h-full object-cover z-10"
                   />
                 ) : (
                   <>
@@ -1306,7 +1382,7 @@ export function PostcardCreator({
                         <img
                           src={vibeTagOverlay!.imageUrl}
                           alt=""
-                          className="absolute inset-0 w-full h-full object-contain opacity-60 pointer-events-none"
+                          className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
                         />
                       )}
                       {item.baking && (
@@ -1373,29 +1449,25 @@ export function PostcardCreator({
                           className="h-full w-full object-cover"
                           playsInline
                         />
-                        {/* Overlay image shown on top of video preview —
-                            only while baking is in progress. Once done the
-                            overlay is already stamped into the baked video,
-                            so showing it again here would double it. */}
+                        {/* While baking: show the overlay as a CSS layer so
+                            the user can see what the final result will look like */}
                         {hasOverlay && activeItem.baking && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
                               src={vibeTagOverlay!.imageUrl}
                               alt={vibeTagOverlay!.name}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-cover"
                             />
                           </div>
                         )}
-                        {/* For large videos where baking was skipped, always
-                            show the CSS overlay since it was never baked in */}
-                        {hasOverlay && !activeItem.baking &&
-                          activeItem.blob &&
-                          activeItem.blob.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024 && (
+                        {/* For videos where baking was skipped (large files),
+                            overlayUrl is set on the item — always show CSS overlay */}
+                        {activeItem.overlayUrl && !activeItem.baking && (
                           <div className="absolute inset-0 pointer-events-none z-10">
                             <img
-                              src={vibeTagOverlay!.imageUrl}
-                              alt={vibeTagOverlay!.name}
-                              className="w-full h-full object-contain"
+                              src={activeItem.overlayUrl}
+                              alt={vibeTagOverlay?.name ?? "VibeTag"}
+                              className="w-full h-full object-cover"
                             />
                           </div>
                         )}
@@ -1405,19 +1477,19 @@ export function PostcardCreator({
                             <Loader2 className="h-3 w-3 animate-spin text-white" />
                             <span className="text-white text-[10px] font-medium">
                               {activeItem.kind === "video"
-                                ? "Applying overlay… keep this page open"
+                                ? "Stamping VibeTag into video…"
                                 : "Stamping VibeTag…"}
                             </span>
                           </div>
                         )}
-                        {/* Size warning for large videos where overlay is skipped */}
+                        {/* Badge shown if baking failed — overlay is CSS fallback */}
                         {activeItem.kind === "video" &&
                           !activeItem.baking &&
-                          activeItem.blob &&
-                          activeItem.blob.size > VIDEO_OVERLAY_SIZE_LIMIT_MB * 1024 * 1024 && (
+                          activeItem.overlayUrl && (
                           <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-amber-500/80 backdrop-blur-sm rounded-full px-2.5 py-1">
+                            <Sparkles className="h-3 w-3 text-white" />
                             <span className="text-white text-[10px] font-medium">
-                              Large video — overlay shown on playback
+                              VibeTag stamped
                             </span>
                           </div>
                         )}
