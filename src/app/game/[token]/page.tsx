@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Trophy, Play, Loader2, CheckCircle2, XCircle,
-  Timer, Share2, HelpCircle, Puzzle, MessageSquare, Zap, UserRound,
+  Timer, Share2, HelpCircle, Puzzle, MessageSquare, MessageCircleQuestion, Zap, UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,16 +25,17 @@ import { GameScoreShare } from "@/app/dashboard/(dashboard-route)/events/[id]/co
 import { toast } from "sonner";
 import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/lib/anonymous-game";
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 
 const mapType = (t: string): GameType =>
-  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS_ONE_LIE: "two-truths", THIS_OR_THAT: "this-or-that" }[t] ?? "trivia") as GameType;
+  ({ TRIVIA: "trivia", WORD_PUZZLE: "word-puzzle", TWO_TRUTHS_ONE_LIE: "two-truths", THIS_OR_THAT: "this-or-that", FEEDBACK: "feedback" }[t] ?? "trivia") as GameType;
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
   "word-puzzle": <Puzzle className="h-5 w-5" />,
   "two-truths": <MessageSquare className="h-5 w-5" />,
   "this-or-that": <Zap className="h-5 w-5" />,
+  feedback: <MessageCircleQuestion className="h-5 w-5" />,
 };
 
 // ── Word Puzzle Grid (shared with dashboard) ─────────────────────────────────
@@ -502,6 +505,49 @@ function PublicWordPuzzlePlayer({
   );
 }
 
+// ── Feedback Player: open-ended text answers, no scoring ─────────────────────
+function PublicFeedbackPlayer({
+  questions,
+  onAllComplete,
+}: {
+  questions: any[];
+  onAllComplete: (answers: string[]) => void;
+}) {
+  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
+
+  const setAnswer = (index: number, value: string) => {
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleSubmit = () => onAllComplete(answers);
+
+  return (
+    <div className="space-y-4">
+      {questions.map((q, i) => (
+        <div key={i} className="space-y-1.5">
+          <Label className="text-sm font-medium text-foreground">{q.text}</Label>
+          <Textarea
+            value={answers[i] ?? ""}
+            onChange={(e) => setAnswer(i, e.target.value)}
+            placeholder="Type your answer…"
+            rows={3}
+          />
+        </div>
+      ))}
+      <Button
+        className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
+        onClick={handleSubmit}
+      >
+        Submit Feedback
+      </Button>
+    </div>
+  );
+}
+
 // ── Round Player ─────────────────────────────────────────────────────────────
 function PublicRoundPlayer({
   round,
@@ -605,6 +651,45 @@ function PublicRoundPlayer({
           }
         }}
       />
+    );
+  }
+
+  // ── Feedback: delegate to text-answer player ──────────────────────────────
+  if (gameType === "feedback" && finalScore === null) {
+    return (
+      <PublicFeedbackPlayer
+        questions={questions}
+        onAllComplete={async (feedbackAnswers) => {
+          const result = await onSubmit(round.id, feedbackAnswers, Date.now() - totalStartTime);
+          if (result.ok) {
+            setFinalScore(0);
+          }
+        }}
+      />
+    );
+  }
+
+  // ── Feedback: thank-you screen (no score/rank/leaderboard) ────────────────
+  if (gameType === "feedback" && finalScore !== null) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10 text-center animate-fade-in">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
+          <CheckCircle2 className="h-10 w-10 text-primary" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-foreground">Thanks for your feedback!</p>
+          <p className="text-sm text-muted-foreground">Your answers have been submitted.</p>
+        </div>
+        {onFinish && (
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={onFinish}
+          >
+            Done
+          </Button>
+        )}
+      </div>
     );
   }
 

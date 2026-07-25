@@ -371,6 +371,12 @@ export const eventsApi = createApi({
       providesTags: ["Games"],
     }),
 
+    /** GET /v1/game-rounds/:roundId/responses — organizer only: free-text responses for a FEEDBACK round */
+    getRoundResponses: builder.query<any, string>({
+      query: (roundId) => `/v1/game-rounds/${roundId}/responses`,
+      providesTags: ["Games"],
+    }),
+
     /** GET /v1/games/t/:token — public: get game session by viral share token */
     getGameSessionByToken: builder.query<any, string>({
       query: (token) => `/v1/games/t/${token}`,
@@ -643,6 +649,7 @@ export const {
   useJoinGameSessionMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
+  useGetRoundResponsesQuery,
   useGetGameSessionQuery,
   useGetGameRoundParticipationQuery,
   useCheckinEventMutation,

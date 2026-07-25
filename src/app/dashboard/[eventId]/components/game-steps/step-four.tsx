@@ -127,11 +127,14 @@ const StepFour = ({
     const newId = `q-${Date.now()}`;
     const isWordPuzzle = gameType === "word-puzzle";
     const isThisOrThat = gameType === "this-or-that";
+    const isFeedback = gameType === "feedback";
     const optionCount = gameType === "two-truths" ? 3 : 4;
     setQuestions((prev: Question[]) => [
       ...prev,
       isWordPuzzle
         ? { id: newId, question: "", clue: "", correctAnswer: "", timeLimitSecs: 15, points: 10 }
+        : isFeedback
+        ? { id: newId, question: "", timeLimitSecs: 30 }
         : isThisOrThat
         ? { id: newId, question: "", options: ["True", "False"], correctAnswerIndex: 0, correctAnswer: "True", timeLimitSecs: 15, points: 5 }
         : { id: newId, question: "", options: Array(optionCount).fill(""), correctAnswerIndex: 0, correctAnswer: "", timeLimitSecs: 15, points: 10 },

@@ -7,6 +7,7 @@ import {
   HelpCircle,
   Puzzle,
   MessageSquare,
+  MessageCircleQuestion,
   Zap,
   ArrowLeft,
   ArrowRight,
@@ -23,9 +24,9 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 
-export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 export type GameTypeOrEmpty = "" | GameType;
-export type ApiGameType = "TRIVIA" | "WORD_PUZZLE" | "TWO_TRUTHS_ONE_LIE" | "THIS_OR_THAT";
+export type ApiGameType = "TRIVIA" | "WORD_PUZZLE" | "TWO_TRUTHS_ONE_LIE" | "THIS_OR_THAT" | "FEEDBACK";
 export type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -100,6 +101,7 @@ const GAMETYPE_TO_API: Record<GameType, ApiGameType> = {
   "word-puzzle": "WORD_PUZZLE",
   "two-truths": "TWO_TRUTHS_ONE_LIE",
   "this-or-that": "THIS_OR_THAT",
+  feedback: "FEEDBACK",
 };
 
 export const gameTypeConfig: Record<
@@ -125,6 +127,11 @@ export const gameTypeConfig: Record<
     icon: <Zap className="h-5 w-5" />,
     label: "True or False",
     description: "Fact-check statements",
+  },
+  feedback: {
+    icon: <MessageCircleQuestion className="h-5 w-5" />,
+    label: "Feedback",
+    description: "Open-ended questions, no scoring",
   },
 };
 
@@ -739,6 +746,23 @@ export function GameCreationWizard({
               orderIndex: i,
               config: { questions: [{ grid, hiddenWords, points: totalPoints }] },
               rewardTiers: rewardTierPayload,
+            };
+          }
+
+          if (r.gameType === "feedback") {
+            // Open-ended questions — no options, no correct answer, no rewards possible.
+            return {
+              title: r.title || `Round ${i + 1}`,
+              description: r.description,
+              gameType: GAMETYPE_TO_API[r.gameType],
+              orderIndex: i,
+              config: {
+                questions: r.questions.map((q) => ({
+                  text: q.question,
+                  timeLimitSecs: q.timeLimitSecs,
+                })),
+              },
+              rewardTiers: [],
             };
           }
 
