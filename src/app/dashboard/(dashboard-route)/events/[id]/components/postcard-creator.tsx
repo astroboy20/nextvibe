@@ -39,20 +39,20 @@ const MAX_ITEMS = 20;
 
 /** Max video duration (seconds) accepted for upload AND camera recording.
  *  Keeps in-memory blob size manageable while baking. */
-const MAX_VIDEO_DURATION_SECS = 35;
+const MAX_VIDEO_DURATION_SECS = 125;
 
 /** Max recording duration in seconds — matches duration cap. */
 const MAX_RECORDING_SECS = 35;
 
 /** Max upload file size in MB. Videos over this are rejected upfront. */
-const MAX_VIDEO_UPLOAD_SIZE_MB = 51;
+const MAX_VIDEO_UPLOAD_SIZE_MB = 151;
 
 /**
  * Videos larger than this MB threshold skip canvas baking entirely (too
  * memory-intensive on mobile) and instead use the CSS overlay fallback.
  * The vibetag is still visually shown on top of the video at all times.
  */
-const BAKE_SIZE_LIMIT_MB = 51;
+const BAKE_SIZE_LIMIT_MB = 151;
 
 // Serial baking queue — only one video encodes at a time so we never hold
 // two MediaRecorder streams + canvases in memory simultaneously.
