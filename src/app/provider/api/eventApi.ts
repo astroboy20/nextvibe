@@ -600,6 +600,113 @@ export const eventsApi = createApi({
       providesTags: (_, __, eventId) => [{ type: "Event", id: `game-status-${eventId}` }],
     }),
 
+    // ── Event Tags ────────────────────────────────────────────────────────────
+    /** POST /v1/events/:id/tags/add — add vibe tags to an event (organizer only, locked once started) */
+    addEventTags: builder.mutation<any, { eventId: string; tagIds: string[] }>({
+      query: ({ eventId, tagIds }) => ({
+        url: `/v1/events/${eventId}/tags/add`,
+        method: "POST",
+        body: { tagIds },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+    }),
+
+    /** POST /v1/events/:id/tags/remove — remove vibe tags from an event (organizer only, locked once started) */
+    removeEventTags: builder.mutation<any, { eventId: string; tagIds: string[] }>({
+      query: ({ eventId, tagIds }) => ({
+        url: `/v1/events/${eventId}/tags/remove`,
+        method: "POST",
+        body: { tagIds },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
+    }),
+
+    // ── Game Session CRUD ─────────────────────────────────────────────────────
+    /** GET /v1/game-sessions/:id/edit-policy — check if game content is still editable */
+    getGameSessionEditPolicy: builder.query<
+      { editable: boolean; reason?: string },
+      string
+    >({
+      query: (sessionId) => `/v1/game-sessions/${sessionId}/edit-policy`,
+      providesTags: (_, __, id) => [{ type: "Games", id: `policy-${id}` }],
+    }),
+
+    /** PATCH /v1/game-sessions/:id — update session-level fields */
+    updateGameSession: builder.mutation<
+      any,
+      { sessionId: string; data: { title?: string; maxWinners?: number; gameDuration?: number } }
+    >({
+      query: ({ sessionId, data }) => ({
+        url: `/v1/game-sessions/${sessionId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    // ── Round management ──────────────────────────────────────────────────────
+    /** POST /v1/game-sessions/:id/rounds — add a new round */
+    addGameRound: builder.mutation<any, { sessionId: string; data: any }>({
+      query: ({ sessionId, data }) => ({
+        url: `/v1/game-sessions/${sessionId}/rounds`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    /** PATCH /v1/game-rounds/:id — update a round */
+    updateGameRound: builder.mutation<
+      any,
+      { roundId: string; data: { title?: string; gameType?: string; config?: any; orderIndex?: number } }
+    >({
+      query: ({ roundId, data }) => ({
+        url: `/v1/game-rounds/${roundId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    /** DELETE /v1/game-rounds/:id — delete a round */
+    deleteGameRound: builder.mutation<any, string>({
+      query: (roundId) => ({
+        url: `/v1/game-rounds/${roundId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    // ── Reward Tier management ────────────────────────────────────────────────
+    /** POST /v1/game-sessions/:id/reward-tiers — add a reward tier */
+    addGameRewardTier: builder.mutation<any, { sessionId: string; data: any }>({
+      query: ({ sessionId, data }) => ({
+        url: `/v1/game-sessions/${sessionId}/reward-tiers`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    /** PATCH /v1/game-reward-tiers/:id — update a reward tier */
+    updateGameRewardTier: builder.mutation<any, { tierId: string; data: any }>({
+      query: ({ tierId, data }) => ({
+        url: `/v1/game-reward-tiers/${tierId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
+    /** DELETE /v1/game-reward-tiers/:id — delete a reward tier */
+    deleteGameRewardTier: builder.mutation<any, string>({
+      query: (tierId) => ({
+        url: `/v1/game-reward-tiers/${tierId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Games"],
+    }),
+
     /**
      * GET /v1/organizer-payments/publish-preview/:eventId
      * Returns valid plan options + prices before publishing.
@@ -677,4 +784,14 @@ export const {
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
   useMergeAnonymousSessionsMutation,
+  useAddEventTagsMutation,
+  useRemoveEventTagsMutation,
+  useGetGameSessionEditPolicyQuery,
+  useUpdateGameSessionMutation,
+  useAddGameRoundMutation,
+  useUpdateGameRoundMutation,
+  useDeleteGameRoundMutation,
+  useAddGameRewardTierMutation,
+  useUpdateGameRewardTierMutation,
+  useDeleteGameRewardTierMutation,
 } = eventsApi;

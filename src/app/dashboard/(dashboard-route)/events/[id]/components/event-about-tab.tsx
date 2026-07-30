@@ -13,6 +13,7 @@ import {
   Loader2,
   Video,
 } from "lucide-react";
+import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { useToggleFollowMutation } from "@/app/provider/api/socialApi";
@@ -132,6 +133,9 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Add to Calendar */}
+      <AddToCalendarButton event={event} />
 
       <div>
         <h3 className="font-semibold text-foreground mb-2">About</h3>

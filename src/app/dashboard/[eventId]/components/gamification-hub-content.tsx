@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,8 @@ import {
   ChevronDown,
   ChevronUp,
   LockKeyhole,
+  Edit2,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameCreationWizard } from "./game-creation-wizard";
@@ -36,6 +39,8 @@ import {
   useUpdateGameStatusMutation,
   useUpdateRoundStatusMutation,
   useGetSessionLeaderboardQuery,
+  useGetGameSessionEditPolicyQuery,
+  useUpdateGameSessionMutation,
 } from "@/app/provider/api/eventApi";
 import { useInitiateAdditionalGamePaymentMutation } from "@/app/provider/api/organizerPaymentApi";
 import { toast } from "sonner";
@@ -49,6 +54,7 @@ interface GameProps {
   roundId?: string;
   eventStartsAt?: string;
   eventStatus?: string;
+  hasPayment?: boolean;
   eventPlan?: {
     gamesIncluded: number;
     gamesUsed: number;
@@ -119,6 +125,168 @@ function PhaseBadge({ phase }: { phase: EventPhase }) {
     <Badge variant="outline" className={className}>
       {label}
     </Badge>
+  );
+}
+
+/**
+ * Edit-policy-aware dialog for editing a game session's title/settings.
+ * Fetches GET /game-sessions/:id/edit-policy on mount.
+ * If editable: false — shows read-only banner. Always shows the disclaimer.
+ */
+function EditGameSessionDialog({
+  session,
+  open,
+  onOpenChange,
+  isPaymentLocked,
+}: {
+  session: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPaymentLocked: boolean;
+}) {
+  const { data: policyData, isLoading: isPolicyLoading } =
+    useGetGameSessionEditPolicyQuery(session.id, { skip: !open });
+  const [updateGameSession, { isLoading: isSaving }] =
+    useUpdateGameSessionMutation();
+
+  const policy = policyData as { editable: boolean; reason?: string } | undefined;
+  // Locked if payment has been made (client-side) OR backend says not editable
+  const isEditable =
+    !isPaymentLocked &&
+    !isPolicyLoading &&
+    (policy?.editable !== false);
+
+  const [title, setTitle] = useState(session.title ?? "");
+  const [maxWinners, setMaxWinners] = useState<string>(
+    String(session.maxWinners ?? "")
+  );
+  const [gameDuration, setGameDuration] = useState<string>(
+    String(session.gameDuration ?? "")
+  );
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setTitle(session.title ?? "");
+      setMaxWinners(String(session.maxWinners ?? ""));
+      setGameDuration(String(session.gameDuration ?? ""));
+    }
+  }, [open, session]);
+
+  const handleSave = async () => {
+    try {
+      const data: Record<string, any> = {};
+      if (title.trim()) data.title = title.trim();
+      if (maxWinners) data.maxWinners = Number(maxWinners);
+      if (gameDuration) data.gameDuration = Number(gameDuration);
+
+      await updateGameSession({ sessionId: session.id, data }).unwrap();
+      toast.success("Game session updated.");
+      onOpenChange(false);
+    } catch (err: any) {
+      const msg = err?.data?.message ?? "Failed to update game session.";
+      // Show the lock message defensively (could have become locked between load and save)
+      toast.error(msg);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md w-[95%]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit2 className="h-4 w-4" />
+            Edit Game Session
+          </DialogTitle>
+        </DialogHeader>
+
+        {isPolicyLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Always-visible disclaimer */}
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
+              <p>Games cannot be edited after payment has been made.</p>
+            </div>
+
+            {/* Lock banner — payment lock takes priority, then API policy */}
+            {isPaymentLocked ? (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700">
+                <LockKeyhole className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <p>Games cannot be edited after payment has been made.</p>
+              </div>
+            ) : !isEditable && policy?.reason ? (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700">
+                <LockKeyhole className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <p>{policy.reason}</p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="gs-title">Title</Label>
+              <Input
+                id="gs-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={!isEditable}
+                placeholder="Session title"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="gs-max-winners">Max Winners</Label>
+                <Input
+                  id="gs-max-winners"
+                  type="number"
+                  min={1}
+                  value={maxWinners}
+                  onChange={(e) => setMaxWinners(e.target.value)}
+                  disabled={!isEditable}
+                  placeholder="e.g. 5"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gs-duration">Duration (min)</Label>
+                <Input
+                  id="gs-duration"
+                  type="number"
+                  min={1}
+                  value={gameDuration}
+                  onChange={(e) => setGameDuration(e.target.value)}
+                  disabled={!isEditable}
+                  placeholder="e.g. 45"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-[#531342] hover:bg-[#531342]/90 text-white"
+                disabled={!isEditable || isSaving}
+                onClick={handleSave}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -195,12 +363,14 @@ export function GamificationHubContent({
   eventStartsAt,
   eventStatus,
   eventPlan,
+  hasPayment = false,
 }: GameProps) {
   const [activePhase, setActivePhase] = useState<
     "all" | "pre-event" | "main-event" | "post-event"
   >("all");
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [editingSession, setEditingSession] = useState<any | null>(null);
   const [unlockingGameId, setUnlockingGameId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
@@ -323,6 +493,12 @@ export function GamificationHubContent({
 
   return (
     <div>
+      {/* Permanent disclaimer — always visible */}
+      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 mb-4 text-xs text-amber-700">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <p>Games cannot be edited after payment has been made.</p>
+      </div>
+
       {/* Add Game */}
       <div className="mb-4">
         <Button
@@ -508,9 +684,20 @@ export function GamificationHubContent({
 
                 {/* Session-level controls */}
                 <div className="flex items-center gap-1 shrink-0">
+                  {/* Edit button — only for pending sessions with no payment yet */}
+                  {game.mappedStatus === "pending" && !hasPayment && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      title="Edit session"
+                      onClick={() => setEditingSession(game)}
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {game.mappedStatus === "pending" && (
                     <>
-                      {/* Over-quota — needs additional-game payment to unlock */}
                       {game.isLocked ? (
                         <Button
                           size="sm"
@@ -527,7 +714,6 @@ export function GamificationHubContent({
                           Unlock
                         </Button>
                       ) : (
-                        /* Within quota — organizer just needs to start it */
                         <Button
                           size="sm"
                           className="h-8 gap-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs"
@@ -653,6 +839,16 @@ export function GamificationHubContent({
           );
         })}
       </div>
+
+      {/* Edit Game Session Dialog */}
+      {editingSession && (
+        <EditGameSessionDialog
+          session={editingSession}
+          open={!!editingSession}
+          isPaymentLocked={hasPayment}
+          onOpenChange={(open) => { if (!open) setEditingSession(null); }}
+        />
+      )}
 
       {/* Unlock Game Dialog */}
       <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>

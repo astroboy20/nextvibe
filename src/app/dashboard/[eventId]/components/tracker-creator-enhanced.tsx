@@ -15,6 +15,7 @@ import {
   Loader2,
   ImageIcon,
   X,
+  Lock,
 } from "lucide-react";
 import {
   Dialog,
@@ -280,36 +281,39 @@ export function TicketCreatorEnhanced({
     if (!editingTicket) return;
 
     try {
-      const {
-        id,
-        eventId: _eid,
-        createdAt,
-        saleEndsAt,
-        quantitySold,
-        ...ticketData
-      } = editingTicket;
-
-      // imageUrl is kept in ticketData (spread above); pass null explicitly to remove it
+      // Per backend rules: PATCH /events/:id/tickets/:ticketId now ONLY accepts imageUrl.
+      // All other fields (name, price, quantity, perks, etc.) are locked after creation.
       const request = await updateTicketMutation({
-        ticketData,
+        ticketData: { imageUrl: editingTicket.imageUrl ?? null },
         eventId: eventId,
-        ticketId: id,
+        ticketId: editingTicket.id,
       }).unwrap();
 
       if (request?.success) {
         setTickets(
-          tickets.map((t) => (t.id === editingTicket.id ? editingTicket : t))
+          tickets.map((t) => (t.id === editingTicket.id ? { ...t, imageUrl: editingTicket.imageUrl } : t))
         );
-        toast.success("Ticket updated successfully");
+        toast.success("Ticket image updated successfully");
         setEditingTicket(null);
       }
-    } catch (error) {
-      toast.error("Failed to update ticket. Please try again.");
+    } catch (error: any) {
+      const msg =
+        error?.data?.message ??
+        "Failed to update ticket. Please try again.";
+      toast.error(msg);
     }
   };
 
   const handleDeleteTicket = async () => {
     if (!deletingTicketId) return;
+
+    // Per backend rules: DELETE only works if quantitySold === 0
+    const ticketToCheck = tickets?.find((t) => t.id === deletingTicketId);
+    if (ticketToCheck && (ticketToCheck.quantitySold ?? 0) > 0) {
+      toast.error("Cannot delete a ticket tier that has already sold tickets.");
+      setDeletingTicketId(null);
+      return;
+    }
 
     try {
       const request = await deleteTicketMutation({
@@ -322,8 +326,11 @@ export function TicketCreatorEnhanced({
         setTickets(tickets.filter((t) => t.id !== deletingTicketId));
         setDeletingTicketId(null);
       }
-    } catch (error) {
-      toast.error("Failed to delete ticket. Please try again.");
+    } catch (error: any) {
+      const msg =
+        error?.data?.message ??
+        "Failed to delete ticket. Please try again.";
+      toast.error(msg);
     }
   };
 
@@ -561,101 +568,33 @@ export function TicketCreatorEnhanced({
                     </DialogHeader>
                     {editingTicket && (
                       <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
+                        {/* Locked-fields notice */}
+                        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700">
+                          <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <p>
+                            Ticket tiers can&apos;t be edited after creation. Only the image can be changed.
+                            To change price, quantity, or perks, delete this tier and create a new one
+                            (only possible if no tickets have been sold yet).
+                          </p>
+                        </div>
+
+                        {/* Read-only fields */}
+                        <div className="space-y-2 opacity-60 pointer-events-none select-none">
                           <Label>Ticket Name</Label>
-                          <Input
-                            placeholder="e.g., Regular, VIP, Early Bird"
-                            value={editingTicket.name}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                name: e.target.value,
-                              })
-                            }
-                          />
+                          <Input value={editingTicket.name} readOnly />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Input
-                            placeholder="Enter a description for the ticket?"
-                            value={editingTicket.description}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                description: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Perks</Label>
-                          <Input
-                            placeholder="What's included?"
-                            value={editingTicket.perks || ""}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                perks: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 opacity-60 pointer-events-none select-none">
                           <div className="space-y-2">
                             <Label>Price (₦)</Label>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={editingTicket.price}
-                              onChange={(e) =>
-                                setEditingTicket({
-                                  ...editingTicket,
-                                  price: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                            />
+                            <Input value={editingTicket.price} readOnly />
                           </div>
                           <div className="space-y-2">
                             <Label>Quantity</Label>
-                            <Input
-                              type="number"
-                              placeholder="Unlimited"
-                              value={editingTicket.quantity}
-                              onChange={(e) =>
-                                setEditingTicket({
-                                  ...editingTicket,
-                                  quantity: parseInt(e.target.value) || 0,
-                                })
-                              }
-                            />
+                            <Input value={editingTicket.quantity || "∞"} readOnly />
                           </div>
                         </div>
-                        {/* <div className="space-y-2">
-                          <Label>Payment Link</Label>
-                          <Input
-                            placeholder="https://payment-link.com"
-                            value={editingTicket.ticketLink || ""}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                ticketLink: e.target.value,
-                              })
-                            }
-                          />
-                        </div> */}
-                        <div className="space-y-2">
-                          <Label>Ticket End Date</Label>
-                          <Input
-                            type="datetime-local"
-                            value={editingTicket.ticketEndDate || ""}
-                            onChange={(e) =>
-                              setEditingTicket({
-                                ...editingTicket,
-                                ticketEndDate: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
+
+                        {/* Editable: image only */}
                         <TicketImageUploader
                           currentUrl={editingTicket.imageUrl ?? null}
                           onUrlChange={(url) =>
@@ -687,7 +626,7 @@ export function TicketCreatorEnhanced({
                             {isUpdatingLoading ? (
                               <Loader2 className="animate-spin" />
                             ) : (
-                              "Save Changes"
+                              "Save Image"
                             )}
                           </Button>
                         </DialogFooter>
@@ -742,21 +681,25 @@ export function TicketCreatorEnhanced({
             <AlertDialogDescription>
               Are you sure you want to delete the{" "}
               <strong>&quot;{ticketToDelete?.name}&quot;</strong> ticket type?
-              {ticketToDelete && ticketToDelete.quantitySold > 0 && (
+              {ticketToDelete && (ticketToDelete.quantitySold ?? 0) > 0 ? (
                 <span className="block mt-2 text-destructive font-medium">
-                  Warning: {ticketToDelete.quantitySold} tickets have already
-                  been sold!
+                  Cannot delete: {ticketToDelete.quantitySold} ticket
+                  {ticketToDelete.quantitySold !== 1 ? "s have" : " has"} already been sold.
+                  Deletion is only allowed before any sales occur.
+                </span>
+              ) : (
+                <span className="block mt-1 text-muted-foreground">
+                  This action cannot be undone.
                 </span>
               )}
-              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTicket}
-              disabled={isDeletingLoading}
-              className="bg-red-500 text-destructive-foreground hover:bg-red-500/90"
+              disabled={isDeletingLoading || (ticketToDelete ? (ticketToDelete.quantitySold ?? 0) > 0 : false)}
+              className="bg-red-500 text-destructive-foreground hover:bg-red-500/90 disabled:opacity-50"
             >
               {isDeletingLoading ? (
                 <Loader2 className="animate-spin h-4 w-4" />

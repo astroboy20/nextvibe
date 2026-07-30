@@ -18,6 +18,11 @@ import {
   StopCircle,
   ChevronDown,
   Bell,
+  Edit2,
+  Lock,
+  Plus,
+  Loader2,
+  Video,
 } from "lucide-react";
 import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
@@ -34,15 +39,609 @@ import {
   useGetEventDetailsQuery,
   useGetGamesQuery,
   useUpdateEventStatusMutation,
+  useUpdateEventMutation,
+  useAddEventTagsMutation,
+  useRemoveEventTagsMutation,
+  useGetVibeTagsQuery,
+  useUploadIntentMutation,
 } from "@/app/provider/api/eventApi";
-import { AccessKeyDisplay } from "@/components/private-event-guard";
+import { useDispatch } from "react-redux";
+import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useGetRemindersQuery } from "@/app/provider/api/reminderApi";
+import { AccessKeyDisplay } from "@/components/private-event-guard";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns true when the event has already started (startsAt <= now) */
+function isEventStarted(startsAt?: string | null): boolean {
+  if (!startsAt) return false;
+  return new Date(startsAt).getTime() <= Date.now();
+}
+
+// ── Event Edit Modal ──────────────────────────────────────────────────────────
+
+type UploadState = {
+  status: "idle" | "uploading" | "done" | "error";
+  progress: number;
+  url: string | null;
+};
+const UPLOAD_IDLE: UploadState = { status: "idle", progress: 0, url: null };
+
+const MAX_FLIER_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 350 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+
+function uploadFileToCDN(
+  file: File,
+  uploadUrl: string,
+  onProgress?: (pct: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable)
+          onProgress(Math.round((e.loaded * 100) / e.total));
+      };
+    }
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed: ${xhr.status}`));
+    xhr.onerror = () => reject(new Error("Upload network error"));
+    xhr.send(file);
+  });
+}
+
+function EventEditModal({
+  event,
+  open,
+  onOpenChange,
+}: {
+  event: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const dispatch = useDispatch();
+  const [updateEvent, { isLoading: isSaving }] = useUpdateEventMutation();
+  const [uploadIntent] = useUploadIntentMutation();
+
+  // Hide the app header while modal is open
+  useEffect(() => {
+    dispatch(setHideHeader(open));
+    return () => { dispatch(setHideHeader(false)); };
+  }, [open, dispatch]);
+
+  // Once the event has started, ALL editing is disabled
+  const locked = isEventStarted(event?.startsAt);
+
+  const [form, setForm] = useState({
+    name: event?.name ?? "",
+    description: event?.description ?? "",
+    locationName: event?.locationName ?? "",
+    virtualLink: event?.virtualLink ?? "",
+    capacity: event?.capacity ? String(event.capacity) : "",
+    startsAt: event?.startsAt
+      ? new Date(event.startsAt).toISOString().slice(0, 16)
+      : "",
+    endsAt: event?.endsAt
+      ? new Date(event.endsAt).toISOString().slice(0, 16)
+      : "",
+  });
+
+  const [flierUpload, setFlierUpload] = useState<UploadState>(
+    event?.flierUrl
+      ? { status: "done", progress: 100, url: event.flierUrl }
+      : UPLOAD_IDLE
+  );
+  const [videoUpload, setVideoUpload] = useState<UploadState>(
+    event?.promoVideoUrl
+      ? { status: "done", progress: 100, url: event.promoVideoUrl }
+      : UPLOAD_IDLE
+  );
+
+  const flierInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: event?.name ?? "",
+        description: event?.description ?? "",
+        locationName: event?.locationName ?? "",
+        virtualLink: event?.virtualLink ?? "",
+        capacity: event?.capacity ? String(event.capacity) : "",
+        startsAt: event?.startsAt
+          ? new Date(event.startsAt).toISOString().slice(0, 16)
+          : "",
+        endsAt: event?.endsAt
+          ? new Date(event.endsAt).toISOString().slice(0, 16)
+          : "",
+      });
+      setFlierUpload(
+        event?.flierUrl
+          ? { status: "done", progress: 100, url: event.flierUrl }
+          : UPLOAD_IDLE
+      );
+      setVideoUpload(
+        event?.promoVideoUrl
+          ? { status: "done", progress: 100, url: event.promoVideoUrl }
+          : UPLOAD_IDLE
+      );
+    }
+  }, [open, event]);
+
+  const handleFlierChange = async (file: File) => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.warning("Please upload a PNG, JPEG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_FLIER_SIZE) {
+      toast.warning("Flyer must be 10 MB or less.");
+      return;
+    }
+    setFlierUpload({ status: "uploading", progress: 0, url: null });
+    try {
+      const intent = await uploadIntent({
+        filename: file.name,
+        contentType: file.type,
+        folder: "events",
+      }).unwrap();
+      await uploadFileToCDN(file, intent.data.uploadUrl, (pct) =>
+        setFlierUpload((p) => ({ ...p, progress: pct }))
+      );
+      setFlierUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+    } catch {
+      setFlierUpload({ status: "error", progress: 0, url: null });
+      toast.error("Flyer upload failed. Please try again.");
+    }
+  };
+
+  const handleVideoChange = async (file: File) => {
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast.warning("Please upload an MP4, MOV, or WebM file.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.warning("Video must be 350 MB or less.");
+      return;
+    }
+    setVideoUpload({ status: "uploading", progress: 0, url: null });
+    try {
+      const intent = await uploadIntent({
+        filename: file.name,
+        contentType: file.type,
+        folder: "events",
+      }).unwrap();
+      await uploadFileToCDN(file, intent.data.uploadUrl, (pct) =>
+        setVideoUpload((p) => ({ ...p, progress: pct }))
+      );
+      setVideoUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+    } catch {
+      setVideoUpload({ status: "error", progress: 0, url: null });
+      toast.error("Video upload failed. Please try again.");
+    }
+  };
+
+  const anyUploading =
+    flierUpload.status === "uploading" || videoUpload.status === "uploading";
+
+  const handleSave = async () => {
+    if (anyUploading) {
+      toast.warning("Please wait for uploads to finish.");
+      return;
+    }
+    try {
+      const payload: Record<string, any> = {};
+      if (form.name) payload.name = form.name;
+      if (form.description) payload.description = form.description;
+      if (form.locationName) payload.locationName = form.locationName;
+      if (form.virtualLink) payload.virtualLink = form.virtualLink;
+      if (form.capacity) payload.capacity = Number(form.capacity);
+      if (form.startsAt) payload.startsAt = new Date(form.startsAt).toISOString();
+      if (form.endsAt) payload.endsAt = new Date(form.endsAt).toISOString();
+      // Always include media URLs — null means "remove", a string means "set/replace"
+      payload.flierUrl = flierUpload.url ?? null;
+      payload.promoVideoUrl = videoUpload.url ?? null;
+
+      await updateEvent({ eventId: event.id, data: payload }).unwrap();
+      toast.success("Event updated.");
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to update event.");
+    }
+  };
+
+  const showLocation =
+    event?.mode === "ONSITE" || event?.mode === "HYBRID" || !event?.mode;
+  const showVirtualLink =
+    event?.mode === "VIRTUAL" || event?.mode === "HYBRID";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-md w-[95%] max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit2 className="h-4 w-4" />
+            Edit Event
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Full-lock banner */}
+          {locked && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700">
+              <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p>This event has already started. All editing is now locked.</p>
+            </div>
+          )}
+
+          {/* ── Event Name ──────────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label htmlFor="ev-name">Event Name</Label>
+            <Input
+              id="ev-name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              disabled={locked}
+              placeholder="Event name"
+            />
+          </div>
+
+          {/* ── Description ─────────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label htmlFor="ev-desc">Description</Label>
+            <Textarea
+              id="ev-desc"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              disabled={locked}
+              placeholder="Describe your event"
+              rows={3}
+            />
+          </div>
+
+          {/* ── Start Date & Time ───────────────────────────────── */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              Start Date &amp; Time
+              {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
+            <Input
+              type="datetime-local"
+              value={form.startsAt}
+              onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+              disabled={locked}
+            />
+          </div>
+
+          {/* ── Location / virtual link ──────────────────────────── */}
+          {showLocation && (
+            <div className="space-y-2">
+              <Label htmlFor="ev-location">Location</Label>
+              <Input
+                id="ev-location"
+                value={form.locationName}
+                onChange={(e) => setForm({ ...form, locationName: e.target.value })}
+                disabled={locked}
+                placeholder="Venue name or address"
+              />
+            </div>
+          )}
+
+          {showVirtualLink && (
+            <div className="space-y-2">
+              <Label htmlFor="ev-virtual">Meeting Link</Label>
+              <Input
+                id="ev-virtual"
+                value={form.virtualLink}
+                onChange={(e) => setForm({ ...form, virtualLink: e.target.value })}
+                disabled={locked}
+                placeholder="https://meet.example.com/..."
+              />
+            </div>
+          )}
+
+          {/* ── Event Flyer ─────────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              Event Flyer
+              {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
+
+            {flierUpload.status === "uploading" ? (
+              <div className="flex flex-col items-center justify-center gap-2 w-full h-24 rounded-xl border border-border bg-muted/30">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{flierUpload.progress}%</p>
+              </div>
+            ) : flierUpload.url ? (
+              <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border">
+                <Image src={flierUpload.url} alt="Event flyer" fill className="object-cover" />
+                {!locked && (
+                  <div className="absolute inset-x-0 bottom-0 flex gap-2 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                    <button
+                      type="button"
+                      onClick={() => flierInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs py-1.5 transition-colors"
+                    >
+                      <ImageIcon className="h-3 w-3" /> Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlierUpload(UPLOAD_IDLE);
+                        if (flierInputRef.current) flierInputRef.current.value = "";
+                      }}
+                      className="flex items-center justify-center gap-1 rounded-lg bg-red-500/70 hover:bg-red-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 transition-colors"
+                    >
+                      <X className="h-3 w-3" /> Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              !locked && (
+                <button
+                  type="button"
+                  onClick={() => flierInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed border-border hover:border-[#531342] hover:bg-muted/30 active:bg-muted/50 transition-colors text-muted-foreground"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  <span className="text-sm">Upload flyer</span>
+                </button>
+              )
+            )}
+
+            {flierUpload.status === "error" && (
+              <Button type="button" variant="outline" size="sm" onClick={() => flierInputRef.current?.click()} className="w-full">
+                Retry upload
+              </Button>
+            )}
+            <input
+              ref={flierInputRef}
+              type="file"
+              accept={ACCEPTED_IMAGE_TYPES.join(",")}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFlierChange(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          {/* ── Promotional Video ────────────────────────────────── */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              Promotional Video
+              {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
+
+            {videoUpload.status === "uploading" ? (
+              <div className="flex flex-col items-center justify-center gap-2 w-full h-24 rounded-xl border border-border bg-muted/30">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{videoUpload.progress}%</p>
+              </div>
+            ) : videoUpload.url ? (
+              <div className="relative w-full rounded-xl overflow-hidden border border-border bg-black">
+                <video src={videoUpload.url} controls className="w-full max-h-40 object-contain" />
+                {!locked && (
+                  <div className="absolute inset-x-0 bottom-0 flex gap-2 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs py-1.5 transition-colors"
+                    >
+                      <Video className="h-3 w-3" /> Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVideoUpload(UPLOAD_IDLE);
+                        if (videoInputRef.current) videoInputRef.current.value = "";
+                      }}
+                      className="flex items-center justify-center gap-1 rounded-lg bg-red-500/70 hover:bg-red-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 transition-colors"
+                    >
+                      <X className="h-3 w-3" /> Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              !locked && (
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed border-border hover:border-[#531342] hover:bg-muted/30 active:bg-muted/50 transition-colors text-muted-foreground"
+                >
+                  <Video className="h-4 w-4" />
+                  <span className="text-sm">Upload video</span>
+                </button>
+              )
+            )}
+
+            {videoUpload.status === "error" && (
+              <Button type="button" variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} className="w-full">
+                Retry upload
+              </Button>
+            )}
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept={ACCEPTED_VIDEO_TYPES.join(",")}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleVideoChange(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          {/* ── Actions ─────────────────────────────────────────── */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-[#531342] hover:bg-[#531342]/90 text-white"
+              disabled={locked || isSaving || anyUploading}
+              onClick={handleSave}
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : anyUploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading...
+                </span>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Event Tags Editor ─────────────────────────────────────────────────────────
+
+function EventTagsEditor({ event }: { event: any }) {
+  const locked = isEventStarted(event?.startsAt);
+
+  const { data: vibeTagsData } = useGetVibeTagsQuery(
+    { eventId: event?.id },
+    { skip: !event?.id }
+  );
+  const [addTags, { isLoading: isAdding }] = useAddEventTagsMutation();
+  const [removeTags, { isLoading: isRemoving }] = useRemoveEventTagsMutation();
+
+  const allTags: any[] = vibeTagsData?.data ?? [];
+  // Tags currently attached to the event
+  const eventTagIds: string[] = (event?.tags ?? event?.vibeTags ?? []).map(
+    (t: any) => t.id ?? t
+  );
+
+  const handleRemove = async (tagId: string) => {
+    try {
+      await removeTags({ eventId: event.id, tagIds: [tagId] }).unwrap();
+      toast.success("Tag removed.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to remove tag.");
+    }
+  };
+
+  const handleAdd = async (tagId: string) => {
+    try {
+      await addTags({ eventId: event.id, tagIds: [tagId] }).unwrap();
+      toast.success("Tag added.");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to add tag.");
+    }
+  };
+
+  if (!allTags.length && !eventTagIds.length) {
+    return (
+      <p className="text-xs text-muted-foreground text-center py-4">
+        No tags available. Create vibe tags in the VibeTag Studio first.
+      </p>
+    );
+  }
+
+  const attachedTags = allTags.filter((t) => eventTagIds.includes(t.id));
+  const availableTags = allTags.filter((t) => !eventTagIds.includes(t.id));
+
+  return (
+    <div className="space-y-3">
+      {locked && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700">
+          <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <p>Tag editing is locked once the event has started.</p>
+        </div>
+      )}
+
+      {/* Attached tags — chips with ✕ */}
+      {attachedTags.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Active Tags
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {attachedTags.map((tag) => (
+              <div
+                key={tag.id}
+                className="flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs"
+              >
+                <span>{tag.name}</span>
+                {!locked && (
+                  <button
+                    onClick={() => handleRemove(tag.id)}
+                    disabled={isRemoving}
+                    className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                    aria-label={`Remove tag ${tag.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Available tags — add picker */}
+      {!locked && availableTags.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Add Tags
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => handleAdd(tag.id)}
+                disabled={isAdding}
+                className="flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-[#531342] hover:text-[#531342] transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                {tag.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attachedTags.length === 0 && availableTags.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-2">
+          No vibe tags found. Create some in the VibeTag Studio.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function EventHeaderSkeleton() {
   return (
@@ -97,6 +696,7 @@ export default function OrganizerDashboard({
   const [updateEventStatus, { isLoading: isUpdatingStatus }] =
     useUpdateEventStatusMutation();
   const [showQR, setShowQR] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [confirmStatus, setConfirmStatus] = useState<
     "PUBLISHED" | "CANCELLED" | "ENDED" | null
   >(null);
@@ -393,10 +993,10 @@ export default function OrganizerDashboard({
                 </Button>
                 <Button
                   className={`flex-1 rounded-xl text-white ${confirmStatus === "ENDED"
-                      ? "bg-red-500 hover:bg-red-600"
-                      : confirmStatus === "CANCELLED"
-                        ? "bg-gray-500 hover:bg-gray-600"
-                        : "bg-[#531342] hover:bg-[#531342]/90"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : confirmStatus === "CANCELLED"
+                      ? "bg-gray-500 hover:bg-gray-600"
+                      : "bg-[#531342] hover:bg-[#531342]/90"
                     }`}
                   onClick={() =>
                     confirmStatus && handleStatusUpdate(confirmStatus)
@@ -450,7 +1050,54 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )}
 
-                  {isLoading ? (
+
+          {isLoading ? (
+            <DashboardCardSkeleton />
+          ) : (
+            <EventDashboardCard
+              title="Edit Event"
+              icon={<Edit2 className="h-4 w-4" />}
+              badge={
+                isEventStarted(event?.startsAt) ? (
+                  <Badge variant="outline" className="border-red-400 text-red-500 text-xs gap-1">
+                    <Lock className="h-3 w-3" />
+                    Locked
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-green-500 text-green-600 text-xs">
+                    Editable
+                  </Badge>
+                )
+              }
+            >
+              <div className="space-y-3">
+                {isEventStarted(event?.startsAt) ? (
+                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                    <p className="text-sm text-muted-foreground">
+                      This event has already started. All editing is now locked.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Update name, description, date &amp; time, flyer, promo video, location, or capacity.
+                    All editing locks the moment the event starts.
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  className="w-full gap-1.5 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white disabled:opacity-50"
+                  disabled={isEventStarted(event?.startsAt)}
+                  onClick={() => setShowEditModal(true)}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  {isEventStarted(event?.startsAt) ? "Editing Locked" : "Edit Event"}
+                </Button>
+              </div>
+            </EventDashboardCard>
+          )}
+
+
+          {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
             <EventDashboardCard
@@ -471,6 +1118,38 @@ export default function OrganizerDashboard({
                 eventStatus={event?.status}
               />
             </EventDashboardCard>
+          )}
+
+          {isLoading ? (
+            <DashboardCardSkeleton />
+          ) : (
+            <EventDashboardCard
+              title="Event Tags"
+              icon={<Tag className="h-4 w-4" />}
+              badge={
+                isEventStarted(event?.startsAt) ? (
+                  <Badge variant="outline" className="border-red-400 text-red-500 text-xs gap-1">
+                    <Lock className="h-3 w-3" />
+                    Locked
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+                    {(event?.tags ?? event?.vibeTags ?? []).length} Tags
+                  </Badge>
+                )
+              }
+            >
+              <EventTagsEditor event={event} />
+            </EventDashboardCard>
+          )}
+
+          {/* Edit Event Modal */}
+          {event && (
+            <EventEditModal
+              event={event}
+              open={showEditModal}
+              onOpenChange={setShowEditModal}
+            />
           )}
 
           {isLoading ? (
@@ -528,6 +1207,7 @@ export default function OrganizerDashboard({
                 eventStartsAt={event?.startsAt}
                 eventStatus={event?.status}
                 eventPlan={event?.eventPlan ?? null}
+                hasPayment={totalTicketsSold > 0}
               />
             </EventDashboardCard>
           )}
@@ -694,9 +1374,9 @@ export default function OrganizerDashboard({
                 {/* Quick KPI strip from event details */}
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: "RSVPs",    value: rsvpCount,        color: "text-[#531342]" },
-                    { label: "Tickets",  value: totalTicketsSold, color: "text-green-600" },
-                    { label: "Games",    value: liveGameCount,    color: "text-purple-600" },
+                    { label: "RSVPs", value: rsvpCount, color: "text-[#531342]" },
+                    { label: "Tickets", value: totalTicketsSold, color: "text-green-600" },
+                    { label: "Games", value: liveGameCount, color: "text-purple-600" },
                   ].map(({ label, value, color }) => (
                     <div key={label} className="rounded-xl bg-muted/50 p-2.5 text-center">
                       <p className={`font-display text-lg font-bold ${color}`}>{value}</p>
