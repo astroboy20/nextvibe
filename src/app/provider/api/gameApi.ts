@@ -4,11 +4,49 @@ import { GenerateTriviaResponse, GenerateTriviaRequest, GenerateWordPuzzleRespon
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
+export type RewardType =
+    | "CASH" | "COUPON" | "MERCHANDISE" | "FREE_TICKET" | "BADGE" | "POINTS" | "OTHER";
+
+export interface RewardTier {
+    id: string;
+    rank: number;
+    type: RewardType;
+    title: string | null;
+    description: string | null;
+    value: string | null;
+}
+
+export interface Reward {
+    id: string;
+    gameSessionId: string;
+    gameRoundId: string | null;
+    userId: string;
+    rewardTierId: string;
+    isClaimed: boolean;
+    claimedAt: string | null;
+    createdAt: string;
+    rewardTier: RewardTier;
+    gameSession: {
+        id: string;
+        title: string | null;
+        event: { id: string; name: string } | null;
+    };
+}
+
+export interface RewardsResponse {
+    success: boolean;
+    data: Reward[];
+}
+
+export interface ClaimRewardResponse {
+    success: boolean;
+    data: Reward;
+}
 
 export const gamesApi = createApi({
     reducerPath: "gamesApi",
     baseQuery: baseQueryWithReauth,
-    tagTypes: ["Game", "LeaderBoard"],
+    tagTypes: ["Game", "LeaderBoard", "Rewards"],
     keepUnusedDataFor: 300,
     endpoints: (build) => ({
 
@@ -123,6 +161,22 @@ export const gamesApi = createApi({
             query: (gameId) => `/games/${gameId}/leaderboard`,
             providesTags: ["LeaderBoard"],
         }),
+
+        // =======================
+        // Rewards (redemption)
+        // =======================
+        getMyRewards: build.query<RewardsResponse, void>({
+            query: () => "/v1/my/rewards",
+            providesTags: ["Rewards"],
+        }),
+
+        claimReward: build.mutation<ClaimRewardResponse, string>({
+            query: (rewardId) => ({
+                url: `/v1/rewards/${rewardId}/claim`,
+                method: "POST",
+            }),
+            invalidatesTags: ["Rewards"],
+        }),
     }),
 });
 
@@ -142,4 +196,6 @@ export const {
     usePlayGameMutation,
     useShareGameMutation,
     useGetLeaderBoardQuery,
+    useGetMyRewardsQuery,
+    useClaimRewardMutation,
 } = gamesApi;
