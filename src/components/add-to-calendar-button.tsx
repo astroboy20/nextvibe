@@ -50,7 +50,7 @@ function buildGoogleCalendarLink(event: CalendarEvent): string {
 
 function getIcsUrl(eventId: string): string {
   const base = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  return `${base}/events/${eventId}/calendar.ics`;
+  return `${base}/v1/events/${eventId}/calendar.ics`;
 }
 
 interface AddToCalendarButtonProps {
