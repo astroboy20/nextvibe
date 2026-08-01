@@ -42,9 +42,12 @@ import {
   useUpdateEventMutation,
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
-  useGetVibeTagsQuery,
   useUploadIntentMutation,
 } from "@/app/provider/api/eventApi";
+import {
+  useGetVibeTagsQuery as useGetDiscoverTagsQuery,
+  useCreateDiscoverTagMutation,
+} from "@/app/provider/api/discoverApi";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useGetRemindersQuery } from "@/app/provider/api/reminderApi";
@@ -532,25 +535,32 @@ function EventEditModal({
 function EventTagsEditor({ event }: { event: any }) {
   const locked = isEventStarted(event?.startsAt);
 
-  const { data: vibeTagsData } = useGetVibeTagsQuery(
-    { eventId: event?.id },
-    { skip: !event?.id }
-  );
+  // GET /v1/discover/tags — public, returns all available tags for the picker
+  const { data: discoverTagsData } = useGetDiscoverTagsQuery();
   const [addTags, { isLoading: isAdding }] = useAddEventTagsMutation();
   const [removeTags, { isLoading: isRemoving }] = useRemoveEventTagsMutation();
+  const [createTag, { isLoading: isCreating }] = useCreateDiscoverTagMutation();
 
-  const allTags: any[] = vibeTagsData?.data ?? [];
+  // Text input for searching / creating a new tag
+  const [tagInput, setTagInput] = useState("");
+  // Track which specific tag is currently being removed
+  const [removingTagId, setRemovingTagId] = useState<string | null>(null);
+
+  const allTags: any[] = discoverTagsData ?? [];
   // Tags currently attached to the event
   const eventTagIds: string[] = (event?.tags ?? event?.vibeTags ?? []).map(
     (t: any) => t.id ?? t
   );
 
   const handleRemove = async (tagId: string) => {
+    setRemovingTagId(tagId);
     try {
       await removeTags({ eventId: event.id, tagIds: [tagId] }).unwrap();
       toast.success("Tag removed.");
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to remove tag.");
+    } finally {
+      setRemovingTagId(null);
     }
   };
 
@@ -563,16 +573,40 @@ function EventTagsEditor({ event }: { event: any }) {
     }
   };
 
-  if (!allTags.length && !eventTagIds.length) {
-    return (
-      <p className="text-xs text-muted-foreground text-center py-4">
-        No tags available. Create vibe tags in the VibeTag Studio first.
-      </p>
-    );
-  }
+  // Create a brand-new tag then immediately add it to the event
+  const handleCreateAndAdd = async () => {
+    const name = tagInput.trim();
+    if (!name) return;
+    try {
+      const newTag = await createTag({ name }).unwrap();
+      if (!newTag?.id) {
+        toast.error("Could not get tag ID from server. Please try again.");
+        return;
+      }
+      await addTags({ eventId: event.id, tagIds: [newTag.id] }).unwrap();
+      toast.success(`Tag "${newTag.name}" created and added.`);
+      setTagInput("");
+    } catch (err: any) {
+      toast.error(err?.data?.message ?? "Failed to create tag.");
+    }
+  };
 
   const attachedTags = allTags.filter((t) => eventTagIds.includes(t.id));
   const availableTags = allTags.filter((t) => !eventTagIds.includes(t.id));
+
+  // Tags visible in the picker — filtered by what the user has typed
+  const filteredAvailable = tagInput
+    ? availableTags.filter((t) =>
+        t.name.toLowerCase().includes(tagInput.toLowerCase())
+      )
+    : availableTags;
+
+  // Only show "create" option when the typed name doesn't match any existing tag exactly
+  const showCreateOption =
+    tagInput.trim() &&
+    !allTags.some(
+      (t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()
+    );
 
   return (
     <div className="space-y-3">
@@ -599,11 +633,15 @@ function EventTagsEditor({ event }: { event: any }) {
                 {!locked && (
                   <button
                     onClick={() => handleRemove(tag.id)}
-                    disabled={isRemoving}
-                    className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                    disabled={removingTagId === tag.id}
+                    className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                     aria-label={`Remove tag ${tag.name}`}
                   >
-                    <X className="h-3 w-3" />
+                    {removingTagId === tag.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <X className="h-3 w-3" />
+                    )}
                   </button>
                 )}
               </div>
@@ -612,31 +650,60 @@ function EventTagsEditor({ event }: { event: any }) {
         </div>
       )}
 
-      {/* Available tags — add picker */}
-      {!locked && availableTags.length > 0 && (
+      {/* Search / add picker */}
+      {!locked && (
         <div>
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Add Tags
           </p>
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => handleAdd(tag.id)}
-                disabled={isAdding}
-                className="flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-[#531342] hover:text-[#531342] transition-colors"
-              >
+          <Input
+            placeholder="Search or create a tag..."
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            className="mb-2 h-8 text-sm"
+          />
+
+          {/* Filtered available tags */}
+          {filteredAvailable.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {filteredAvailable.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => {
+                    handleAdd(tag.id);
+                    setTagInput("");
+                  }}
+                  disabled={isAdding}
+                  className="flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-[#531342] hover:text-[#531342] transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                  {tag.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* "Create new tag" option — only when no exact match */}
+          {showCreateOption && (
+            <button
+              onClick={handleCreateAndAdd}
+              disabled={isCreating || isAdding}
+              className="flex items-center gap-1.5 rounded-full border border-dashed border-[#531342] px-3 py-1 text-xs text-[#531342] hover:bg-[#531342]/5 transition-colors disabled:opacity-50"
+            >
+              {isCreating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
                 <Plus className="h-3 w-3" />
-                {tag.name}
-              </button>
-            ))}
-          </div>
+              )}
+              Create &ldquo;{tagInput.trim()}&rdquo;
+            </button>
+          )}
         </div>
       )}
 
-      {attachedTags.length === 0 && availableTags.length === 0 && (
+      {attachedTags.length === 0 && availableTags.length === 0 && !tagInput && (
         <p className="text-xs text-muted-foreground text-center py-2">
-          No vibe tags found. Create some in the VibeTag Studio.
+          No tags found. Type a name above to create one.
         </p>
       )}
     </div>

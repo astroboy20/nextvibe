@@ -79,6 +79,29 @@ export const discoverApi = createApi({
     }),
 
     /**
+     * POST /v1/discover/tags  — auth required
+     * Creates a new tag. Returns the new tag with its real id.
+     * The backend may wrap the response as { data: { id, name, slug } } or
+     * return the tag directly — transformResponse unwraps either shape.
+     */
+    createDiscoverTag: builder.mutation<
+      { id: string; name: string; slug: string },
+      { name: string }
+    >({
+      query: (body) => ({
+        url: "/v1/discover/tags",
+        method: "POST",
+        body,
+      }),
+      // Unwrap { data: tag } or { success, data: tag } or a bare tag object
+      transformResponse: (res: any) => {
+        const tag = res?.data ?? res;
+        return { id: tag.id, name: tag.name, slug: tag.slug ?? "" };
+      },
+      invalidatesTags: ["VibeTags"],
+    }),
+
+    /**
      * GET /v1/discover/events  — auth required for personalisation
      * Returns personalised event feed sorted by interest match + optional geo.
      */
@@ -105,5 +128,6 @@ export const discoverApi = createApi({
 export const {
   useGetVibeTagsQuery,
   useSaveUserVibesMutation,
+  useCreateDiscoverTagMutation,
   useGetDiscoverFeedQuery,
 } = discoverApi;
