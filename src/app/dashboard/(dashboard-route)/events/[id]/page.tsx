@@ -328,7 +328,7 @@ function EventPage({
               opacity: videoOpacity,
               transition: `opacity ${FADE_MS}ms ease`,
             }}
-            className="absolute inset-0 h-full w-full object-cover object-center"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         )}
 
@@ -344,7 +344,7 @@ function EventPage({
           }}
           height={100}
           width={100}
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="absolute inset-0 h-full w-full object-cover object-top"
         />
 
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />

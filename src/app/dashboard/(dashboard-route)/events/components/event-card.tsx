@@ -156,7 +156,7 @@ export const EventCard = memo(function EventCard({
             playsInline
             preload="none"
             style={{ opacity: videoOpacity, transition: `opacity ${FADE_MS}ms ease` }}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         )}
         {image && (
@@ -167,7 +167,7 @@ export const EventCard = memo(function EventCard({
             height={192}
             loading="lazy"
             style={{ opacity: flierOpacity, transition: `opacity ${FADE_MS}ms ease` }}
-            className="absolute inset-0 h-full w-full object-cover object-center"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
