@@ -3,12 +3,28 @@ import { IGalleryItem } from "@/types/event.type";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
+// ── Withdrawal types ──────────────────────────────────────────────────────────
+export interface WithdrawalRecord {
+  id: string;
+  eventId: string;
+  organizerId: string;
+  amount: string;
+  currency: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
+  requestedAt: string;
+  processedAt: string | null;
+  notes: string | null;
+}
+
 export const eventsApi = createApi({
   reducerPath: "eventsApi",
 
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games", "PublishPreview"],
+  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games", "PublishPreview", "Withdrawals"],
   keepUnusedDataFor: 300, // cache for 5 minutes — avoids re-fetching on every mount/navigation
 
   endpoints: (builder) => ({
@@ -717,6 +733,62 @@ export const eventsApi = createApi({
       providesTags: (_, __, eventId) => [{ type: "PublishPreview", id: eventId }],
     }),
 
+    // ── Postcard Swap ─────────────────────────────────────────────────────────
+    /**
+     * POST /v1/postcards/:id/swap
+     * Replace an existing postcard with new media (used when the 20-media cap is hit).
+     * :id is the postcard being REPLACED (not the event).
+     * Body is identical to createPostcards.
+     * Response is the newly created postcard with a brand-new id.
+     */
+    swapPostcard: builder.mutation<
+      any,
+      {
+        postcardId: string;
+        eventId: string;
+        vibeTagId?: string;
+        caption?: string;
+        media: { fileKey: string; mediaType: string; mediaUrl?: string }[];
+      }
+    >({
+      query: ({ postcardId, eventId, vibeTagId, caption, media }) => ({
+        url: `/v1/postcards/${postcardId}/swap`,
+        method: "POST",
+        body: { eventId, vibeTagId, caption, media },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
+    // ── Withdrawal Requests ───────────────────────────────────────────────────
+    /**
+     * POST /v1/events/:eventId/withdrawals
+     * Request payout of ticket revenue. Organizer only, event must be ENDED.
+     * Do NOT send amount — it's calculated server-side.
+     */
+    requestWithdrawal: builder.mutation<
+      { data: WithdrawalRecord },
+      { eventId: string; bankName: string; accountNumber: string; accountName: string }
+    >({
+      query: ({ eventId, bankName, accountNumber, accountName }) => ({
+        url: `/v1/events/${eventId}/withdrawals`,
+        method: "POST",
+        body: { bankName, accountNumber, accountName },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Withdrawals", id: eventId }],
+    }),
+
+    /**
+     * GET /v1/events/:eventId/withdrawals
+     * List all withdrawal records for the event, most recent first. Organizer only.
+     */
+    getWithdrawals: builder.query<
+      { data: WithdrawalRecord[] },
+      string
+    >({
+      query: (eventId) => `/v1/events/${eventId}/withdrawals`,
+      providesTags: (_, __, eventId) => [{ type: "Withdrawals", id: eventId }],
+    }),
+
   }),
 });
 
@@ -794,4 +866,7 @@ export const {
   useAddGameRewardTierMutation,
   useUpdateGameRewardTierMutation,
   useDeleteGameRewardTierMutation,
+  useSwapPostcardMutation,
+  useRequestWithdrawalMutation,
+  useGetWithdrawalsQuery,
 } = eventsApi;

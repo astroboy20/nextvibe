@@ -1234,6 +1234,7 @@ export default function OrganizerDashboard({
               <TicketCreatorEnhanced
                 eventId={eventId}
                 eventDetails={event?.ticketTiers}
+                eventStatus={event?.status}
               />
             </EventDashboardCard>
           )}

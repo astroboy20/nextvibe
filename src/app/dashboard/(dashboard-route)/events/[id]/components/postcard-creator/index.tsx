@@ -2,10 +2,10 @@
 "use client";
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, X, Camera, Plus, Loader2 } from "lucide-react";
+import { Sparkles, X, Camera, Plus, Loader2, Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useCreatePostcardsMutation } from "@/app/provider/api/eventApi";
+import { useCreatePostcardsMutation, useSwapPostcardMutation } from "@/app/provider/api/eventApi";
 import { setHideHeader } from "@/app/provider/slices/ui-slice";
 import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
@@ -25,7 +25,7 @@ const PostcardChooseView = lazy(() => import("./postcard-choose-view").then((m) 
 const PostcardCameraView = lazy(() => import("./postcard-camera-view").then((m) => ({ default: m.PostcardCameraView })));
 const PostcardReviewView = lazy(() => import("./postcard-review-view").then((m) => ({ default: m.PostcardReviewView })));
 
-export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay, vibeTagId, eventName = "Event", eventId, onClose, onSubmit }: PostcardCreatorProps) {
+export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay, vibeTagId, eventName = "Event", eventId, onClose, onSubmit, swapPostcardId, swapLikeCount = 0, swapCommentCount = 0 }: PostcardCreatorProps) {
   const dispatch = useDispatch();
   const enqueueBake = useRef(createBakeQueue()).current;
   const [mode, setMode] = useState<"choose"|"camera"|"camera-review"|"upload-review">("choose");
@@ -58,6 +58,10 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
   useEffect(() => { dispatch(setHideHeader(true)); return () => { dispatch(setHideHeader(false)); }; }, [dispatch]);
 
   const [createPostcards] = useCreatePostcardsMutation();
+  const [swapPostcard] = useSwapPostcardMutation();
+  const isSwapMode = !!swapPostcardId;
+  const [showSwapConfirm, setShowSwapConfirm] = useState(false);
+  const pendingSwapQueueRef = useRef<QueuedItem[] | null>(null);
   const hasOverlay = !!vibeTagOverlay?.imageUrl;
   const hasUnsavedWork = mode !== "choose" || cameraQueue.length > 0 || uploadQueue.length > 0;
   useBeforeUnload(hasUnsavedWork);
@@ -246,6 +250,14 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
     if (!ready.length) return;
     if (!eventId) { toast.error("Event ID missing."); return; }
     if (!Cookies.get("accessToken")) { pendingQueueRef.current = queue; setShowAuthSheet(true); return; }
+
+    // In swap mode, show a confirmation before proceeding (likes/comments will be lost)
+    if (isSwapMode && !showSwapConfirm) {
+      pendingSwapQueueRef.current = queue;
+      setShowSwapConfirm(true);
+      return;
+    }
+
     setIsSubmitting(true); setSubmitProgress(0); setSubmitStage("uploading");
     try {
       const formData = new FormData();
@@ -276,15 +288,29 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
       }));
       if (!uploadedItems.length) { toast.error("Upload failed - no file keys returned."); return; }
       setSubmitStage("saving"); setSubmitProgress(90);
-      await createPostcards({ eventId, vibeTagId, media: uploadedItems, caption }).unwrap();
+
+      if (isSwapMode && swapPostcardId) {
+        await swapPostcard({ postcardId: swapPostcardId, eventId, vibeTagId, media: uploadedItems, caption }).unwrap();
+      } else {
+        await createPostcards({ eventId, vibeTagId, media: uploadedItems, caption }).unwrap();
+      }
+
       setSubmitProgress(100);
       await new Promise((r) => setTimeout(r, 300));
-      toast.success(`${ready.length} item${ready.length > 1 ? "s" : ""} posted!`);
+      toast.success(isSwapMode ? "Postcard replaced successfully!" : `${ready.length} item${ready.length > 1 ? "s" : ""} posted!`);
       ready.forEach((item) => onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption }));
       onClose?.();
     } catch (err: any) {
-      toast.error(err?.data?.message ?? err?.message ?? "Failed to post. Please try again.");
-    } finally { setIsSubmitting(false); setSubmitProgress(0); }
+      const msg = err?.data?.message ?? err?.message ?? "Failed to post. Please try again.";
+      // Helpful error messages for swap-specific cases
+      if (isSwapMode && err?.status === 403) {
+        toast.error("You can only replace your own postcards.");
+      } else if (isSwapMode && err?.status === 404) {
+        toast.error("The postcard you're replacing no longer exists.");
+      } else {
+        toast.error(msg);
+      }
+    } finally { setIsSubmitting(false); setSubmitProgress(0); setShowSwapConfirm(false); pendingSwapQueueRef.current = null; }
   };
 
   const handleDownload = (item: QueuedItem) => {
@@ -337,7 +363,7 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
         </button>
         <div className="flex flex-col items-center">
           <h2 className={cn("font-semibold text-sm", mode === "camera" ? "text-white" : "text-foreground")}>
-            {mode === "camera" ? (cameraMode === "video" ? "Record Video" : "Take Photo") : mode === "camera-review" ? "Camera Captures" : mode === "upload-review" ? "Uploaded Media" : "Create Postcard"}
+            {mode === "camera" ? (cameraMode === "video" ? "Record Video" : "Take Photo") : mode === "camera-review" ? "Camera Captures" : mode === "upload-review" ? "Uploaded Media" : isSwapMode ? "Replace Postcard" : "Create Postcard"}
           </h2>
           {mode === "camera" && <span className="text-white/60 text-[10px]">{isRecording ? `Recording ${formatTime(recordingSeconds)}` : `${cameraQueue.length}/${MAX_ITEMS} captured`}</span>}
           {(mode === "camera-review" || mode === "upload-review") && activeQueue.length > 0 && <span className="text-muted-foreground text-[10px]">{activeQueue.length}/{MAX_ITEMS} item{activeQueue.length > 1 ? "s" : ""}</span>}
@@ -434,6 +460,52 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
           if (pendingQueueRef.current) { handleSubmitAll(pendingQueueRef.current); pendingQueueRef.current = null; }
         }}
       />
+
+      {/* Swap confirmation dialog */}
+      {showSwapConfirm && (
+        <div className="fixed inset-0 z-[200001] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-xl space-y-4">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-foreground text-base">Replace this postcard?</h3>
+              <p className="text-sm text-muted-foreground">
+                This will permanently delete the existing postcard and all its activity:
+              </p>
+            </div>
+            <div className="flex gap-4 rounded-xl bg-destructive/10 border border-destructive/20 p-3">
+              <div className="flex flex-col items-center gap-0.5">
+                <Heart className="h-4 w-4 text-destructive" />
+                <span className="text-xs font-semibold text-destructive">{swapLikeCount}</span>
+                <span className="text-[10px] text-muted-foreground">likes</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <MessageCircle className="h-4 w-4 text-destructive" />
+                <span className="text-xs font-semibold text-destructive">{swapCommentCount}</span>
+                <span className="text-[10px] text-muted-foreground">comments</span>
+              </div>
+              <p className="text-xs text-destructive/80 self-center ml-1">
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowSwapConfirm(false); pendingSwapQueueRef.current = null; }}
+                className="flex-1 rounded-xl border border-border py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const q = pendingSwapQueueRef.current;
+                  if (q) handleSubmitAll(q);
+                }}
+                className="flex-1 rounded-xl bg-destructive py-3 text-sm font-semibold text-white hover:bg-destructive/90 transition-colors"
+              >
+                Replace
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

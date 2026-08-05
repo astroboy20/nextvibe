@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Tag, Heart, MessageCircle, Sparkles, ImageOff, Loader2 } from "lucide-react";
+import { Camera, Tag, Heart, MessageCircle, Sparkles, ImageOff, Loader2, RefreshCw } from "lucide-react";
 import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import Cookies from "js-cookie";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" ;
 
@@ -203,6 +204,39 @@ export function EventVibeTagsTab({
     }
   };
 
+  // ── Swap state ────────────────────────────────────────────────────────────
+  const [showSwapPicker, setShowSwapPicker] = useState(false);
+  const [swapPostcardId, setSwapPostcardId] = useState<string | undefined>(undefined);
+  const [swapLikeCount, setSwapLikeCount] = useState(0);
+  const [swapCommentCount, setSwapCommentCount] = useState(0);
+
+  // Fetch the current user's postcards for the swap picker
+  const currentUserId = typeof window !== "undefined" && Cookies.get("accessToken") ? "me" : null;
+  const { data: myPostcardsData } = useGetEventPostcardsQuery(
+    { eventId: eventId ?? "", limit: 50 },
+    { skip: !eventId || !currentUserId }
+  );
+  const myPostcardsRaw: any[] = myPostcardsData?.data?.data ?? myPostcardsData?.data ?? [];
+
+  const handleCreatePostcard = () => {
+    if (!activeTag) return;
+    // Check if the cap is hit — show swap picker instead of normal creator
+    if (myPostcardsRaw.length >= 20) {
+      setShowSwapPicker(true);
+    } else {
+      setSwapPostcardId(undefined);
+      setShowCreator(true);
+    }
+  };
+
+  const handlePickSwapTarget = (postcard: any) => {
+    setSwapPostcardId(postcard.id);
+    setSwapLikeCount(postcard.likeCount ?? 0);
+    setSwapCommentCount(postcard.commentCount ?? 0);
+    setShowSwapPicker(false);
+    setShowCreator(true);
+  };
+
   return (
     <>
       {showCreator && (
@@ -212,12 +246,89 @@ export function EventVibeTagsTab({
           vibeTagId={activeTag?.id}
           eventName={eventName}
           eventId={eventId}
-          onClose={() => setShowCreator(false)}
+          onClose={() => { setShowCreator(false); setSwapPostcardId(undefined); }}
           onSubmit={() => {
-            toast.success("Your memory has been added to the event gallery");
+            toast.success(swapPostcardId ? "Postcard replaced!" : "Your memory has been added to the event gallery");
             setShowCreator(false);
+            setSwapPostcardId(undefined);
           }}
+          swapPostcardId={swapPostcardId}
+          swapLikeCount={swapLikeCount}
+          swapCommentCount={swapCommentCount}
         />
+      )}
+
+      {/* Swap picker bottom sheet */}
+      {showSwapPicker && (
+        <div className="fixed inset-0 z-[100001] flex flex-col bg-background" style={{ height: "100dvh" }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <button
+              onClick={() => setShowSwapPicker(false)}
+              className="p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <span className="text-sm font-medium">Cancel</span>
+            </button>
+            <div className="text-center">
+              <h2 className="font-semibold text-sm">Replace a Postcard</h2>
+              <p className="text-[11px] text-muted-foreground">You&apos;ve hit the 20-postcard limit</p>
+            </div>
+            <div className="w-16" />
+          </div>
+          <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-amber-600 shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Pick a postcard to replace with your new one. Its likes and comments will be removed.
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {myPostcardsRaw.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10">
+                <ImageOff className="h-8 w-8 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">No postcards found to replace.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {myPostcardsRaw.map((postcard: any) => {
+                  const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL ?? "http://minio-production-5cff.up.railway.app:443/nextvibe";
+                  const firstMedia = postcard?.media?.[0];
+                  const src = firstMedia?.mediaUrl
+                    ? firstMedia.mediaUrl
+                    : firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : "";
+                  const isVideo = firstMedia?.mediaType === "VIDEO";
+                  if (!src) return null;
+                  return (
+                    <div
+                      key={postcard.id}
+                      className="relative aspect-[3/4] overflow-hidden rounded-2xl cursor-pointer ring-2 ring-transparent hover:ring-destructive transition-all"
+                      onClick={() => handlePickSwapTarget(postcard)}
+                    >
+                      {isVideo ? (
+                        <video src={src} muted playsInline className="h-full w-full object-cover" />
+                      ) : (
+                        <img src={src} alt="Postcard" className="h-full w-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <div className="flex items-center gap-2 text-white/80">
+                          <span className="flex items-center gap-0.5 text-xs">
+                            <Heart className="h-3 w-3 fill-current" />
+                            {postcard.likeCount ?? 0}
+                          </span>
+                          <span className="flex items-center gap-0.5 text-xs">
+                            <MessageCircle className="h-3 w-3" />
+                            {postcard.commentCount ?? 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <div className="space-y-6 animate-fade-in">
@@ -312,7 +423,7 @@ export function EventVibeTagsTab({
               }
               onClick={() => {
                 if (!activeTag) return;
-                setShowCreator(true);
+                handleCreatePostcard();
               }}
             >
               <Camera className="h-4 w-4" />
