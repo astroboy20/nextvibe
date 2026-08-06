@@ -130,7 +130,9 @@ function EventEditModal({
   // Hide the app header while modal is open
   useEffect(() => {
     dispatch(setHideHeader(open));
-    return () => { dispatch(setHideHeader(false)); };
+    return () => {
+      dispatch(setHideHeader(false));
+    };
   }, [open, dispatch]);
 
   // Once the event has started, ALL editing is disabled
@@ -212,7 +214,11 @@ function EventEditModal({
       await uploadFileToCDN(file, intent.data.uploadUrl, (pct) =>
         setFlierUpload((p) => ({ ...p, progress: pct }))
       );
-      setFlierUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+      setFlierUpload({
+        status: "done",
+        progress: 100,
+        url: intent.data.fileUrl,
+      });
     } catch {
       setFlierUpload({ status: "error", progress: 0, url: null });
       toast.error("Flyer upload failed. Please try again.");
@@ -238,7 +244,11 @@ function EventEditModal({
       await uploadFileToCDN(file, intent.data.uploadUrl, (pct) =>
         setVideoUpload((p) => ({ ...p, progress: pct }))
       );
-      setVideoUpload({ status: "done", progress: 100, url: intent.data.fileUrl });
+      setVideoUpload({
+        status: "done",
+        progress: 100,
+        url: intent.data.fileUrl,
+      });
     } catch {
       setVideoUpload({ status: "error", progress: 0, url: null });
       toast.error("Video upload failed. Please try again.");
@@ -260,7 +270,8 @@ function EventEditModal({
       if (form.locationName) payload.locationName = form.locationName;
       if (form.virtualLink) payload.virtualLink = form.virtualLink;
       if (form.capacity) payload.capacity = Number(form.capacity);
-      if (form.startsAt) payload.startsAt = new Date(form.startsAt).toISOString();
+      if (form.startsAt)
+        payload.startsAt = new Date(form.startsAt).toISOString();
       if (form.endsAt) payload.endsAt = new Date(form.endsAt).toISOString();
       // Always include media URLs — null means "remove", a string means "set/replace"
       payload.flierUrl = flierUpload.url ?? null;
@@ -276,8 +287,7 @@ function EventEditModal({
 
   const showLocation =
     event?.mode === "ONSITE" || event?.mode === "HYBRID" || !event?.mode;
-  const showVirtualLink =
-    event?.mode === "VIRTUAL" || event?.mode === "HYBRID";
+  const showVirtualLink = event?.mode === "VIRTUAL" || event?.mode === "HYBRID";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -319,7 +329,9 @@ function EventEditModal({
             <Textarea
               id="ev-desc"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               disabled={locked}
               placeholder="Describe your event"
               rows={3}
@@ -347,7 +359,9 @@ function EventEditModal({
               <Input
                 id="ev-location"
                 value={form.locationName}
-                onChange={(e) => setForm({ ...form, locationName: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, locationName: e.target.value })
+                }
                 disabled={locked}
                 placeholder="Venue name or address"
               />
@@ -360,7 +374,9 @@ function EventEditModal({
               <Input
                 id="ev-virtual"
                 value={form.virtualLink}
-                onChange={(e) => setForm({ ...form, virtualLink: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, virtualLink: e.target.value })
+                }
                 disabled={locked}
                 placeholder="https://meet.example.com/..."
               />
@@ -377,11 +393,18 @@ function EventEditModal({
             {flierUpload.status === "uploading" ? (
               <div className="flex flex-col items-center justify-center gap-2 w-full h-24 rounded-xl border border-border bg-muted/30">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{flierUpload.progress}%</p>
+                <p className="text-xs text-muted-foreground">
+                  {flierUpload.progress}%
+                </p>
               </div>
             ) : flierUpload.url ? (
               <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border">
-                <Image src={flierUpload.url} alt="Event flyer" fill className="object-cover" />
+                <Image
+                  src={flierUpload.url}
+                  alt="Event flyer"
+                  fill
+                  className="object-cover"
+                />
                 {!locked && (
                   <div className="absolute inset-x-0 bottom-0 flex gap-2 p-2 bg-gradient-to-t from-black/70 to-transparent">
                     <button
@@ -395,7 +418,8 @@ function EventEditModal({
                       type="button"
                       onClick={() => {
                         setFlierUpload(UPLOAD_IDLE);
-                        if (flierInputRef.current) flierInputRef.current.value = "";
+                        if (flierInputRef.current)
+                          flierInputRef.current.value = "";
                       }}
                       className="flex items-center justify-center gap-1 rounded-lg bg-red-500/70 hover:bg-red-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 transition-colors"
                     >
@@ -418,7 +442,13 @@ function EventEditModal({
             )}
 
             {flierUpload.status === "error" && (
-              <Button type="button" variant="outline" size="sm" onClick={() => flierInputRef.current?.click()} className="w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => flierInputRef.current?.click()}
+                className="w-full"
+              >
                 Retry upload
               </Button>
             )}
@@ -445,11 +475,17 @@ function EventEditModal({
             {videoUpload.status === "uploading" ? (
               <div className="flex flex-col items-center justify-center gap-2 w-full h-24 rounded-xl border border-border bg-muted/30">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{videoUpload.progress}%</p>
+                <p className="text-xs text-muted-foreground">
+                  {videoUpload.progress}%
+                </p>
               </div>
             ) : videoUpload.url ? (
               <div className="relative w-full rounded-xl overflow-hidden border border-border bg-black">
-                <video src={videoUpload.url} controls className="w-full max-h-40 object-contain" />
+                <video
+                  src={videoUpload.url}
+                  controls
+                  className="w-full max-h-40 object-contain"
+                />
                 {!locked && (
                   <div className="absolute inset-x-0 bottom-0 flex gap-2 p-2 bg-gradient-to-t from-black/70 to-transparent">
                     <button
@@ -463,7 +499,8 @@ function EventEditModal({
                       type="button"
                       onClick={() => {
                         setVideoUpload(UPLOAD_IDLE);
-                        if (videoInputRef.current) videoInputRef.current.value = "";
+                        if (videoInputRef.current)
+                          videoInputRef.current.value = "";
                       }}
                       className="flex items-center justify-center gap-1 rounded-lg bg-red-500/70 hover:bg-red-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 transition-colors"
                     >
@@ -486,7 +523,13 @@ function EventEditModal({
             )}
 
             {videoUpload.status === "error" && (
-              <Button type="button" variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} className="w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => videoInputRef.current?.click()}
+                className="w-full"
+              >
                 Retry upload
               </Button>
             )}
@@ -505,7 +548,11 @@ function EventEditModal({
 
           {/* ── Actions ─────────────────────────────────────────── */}
           <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -756,7 +803,11 @@ interface OrganizerDashboardProps {
 export default function OrganizerDashboard({
   eventId,
 }: OrganizerDashboardProps) {
-  const { data: eventDetails, isLoading, refetch: refetchEvent } = useGetEventDetailsQuery(eventId);
+  const {
+    data: eventDetails,
+    isLoading,
+    refetch: refetchEvent,
+  } = useGetEventDetailsQuery(eventId);
   const { data: gamesData } = useGetGamesQuery(eventId);
   const { data: remindersData = [] } = useGetRemindersQuery(eventId);
   const templates = remindersData;
@@ -798,14 +849,24 @@ export default function OrganizerDashboard({
     if (navigator.share && event?.flierUrl) {
       setIsSharing(true);
       try {
-        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(event.flierUrl)}`;
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(
+          event.flierUrl
+        )}`;
         const res = await fetch(proxyUrl);
         if (res.ok) {
           const blob = await res.blob();
-          const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-          const file = new File([blob], `${event?.name ?? "event"}-flier.${ext}`, {
-            type: blob.type || "image/jpeg",
-          });
+          const ext = blob.type.includes("png")
+            ? "png"
+            : blob.type.includes("webp")
+            ? "webp"
+            : "jpg";
+          const file = new File(
+            [blob],
+            `${event?.name ?? "event"}-flier.${ext}`,
+            {
+              type: blob.type || "image/jpeg",
+            }
+          );
           if (navigator.canShare?.({ files: [file] })) {
             try {
               await navigator.share({
@@ -845,7 +906,7 @@ export default function OrganizerDashboard({
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        await navigator.clipboard.writeText(eventUrl).catch(() => { });
+        await navigator.clipboard.writeText(eventUrl).catch(() => {});
         toast.success("Link copied to clipboard");
       }
     }
@@ -860,8 +921,8 @@ export default function OrganizerDashboard({
         status === "PUBLISHED"
           ? "Event published! It's now live."
           : status === "ENDED"
-            ? "Event marked as ended."
-            : "Event cancelled."
+          ? "Event marked as ended."
+          : "Event cancelled."
       );
       setConfirmStatus(null);
     } catch (err: any) {
@@ -1038,16 +1099,16 @@ export default function OrganizerDashboard({
                   {confirmStatus === "ENDED"
                     ? "End Event?"
                     : confirmStatus === "CANCELLED"
-                      ? "Cancel Event?"
-                      : "Publish Event?"}
+                    ? "Cancel Event?"
+                    : "Publish Event?"}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground">
                 {confirmStatus === "ENDED"
                   ? "This will mark the event as ended. This action cannot be undone."
                   : confirmStatus === "CANCELLED"
-                    ? "This will cancel the event. Attendees will be notified. This action cannot be undone."
-                    : "This will publish your event and make it visible to attendees."}
+                  ? "This will cancel the event. Attendees will be notified. This action cannot be undone."
+                  : "This will publish your event and make it visible to attendees."}
               </p>
               <div className="flex gap-3">
                 <Button
@@ -1059,12 +1120,13 @@ export default function OrganizerDashboard({
                   Go Back
                 </Button>
                 <Button
-                  className={`flex-1 rounded-xl text-white ${confirmStatus === "ENDED"
-                    ? "bg-red-500 hover:bg-red-600"
-                    : confirmStatus === "CANCELLED"
+                  className={`flex-1 rounded-xl text-white ${
+                    confirmStatus === "ENDED"
+                      ? "bg-red-500 hover:bg-red-600"
+                      : confirmStatus === "CANCELLED"
                       ? "bg-gray-500 hover:bg-gray-600"
                       : "bg-[#531342] hover:bg-[#531342]/90"
-                    }`}
+                  }`}
                   onClick={() =>
                     confirmStatus && handleStatusUpdate(confirmStatus)
                   }
@@ -1091,10 +1153,7 @@ export default function OrganizerDashboard({
         <div className="space-y-4">
           {/* Private event access key panel */}
           {!isLoading && event?.isPublic === false && event?.accessKey && (
-            <AccessKeyDisplay
-              accessKey={event.accessKey}
-              eventId={eventId}
-            />
+            <AccessKeyDisplay accessKey={event.accessKey} eventId={eventId} />
           )}
 
           {isLoading ? (
@@ -1117,7 +1176,6 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )}
 
-
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
@@ -1126,12 +1184,18 @@ export default function OrganizerDashboard({
               icon={<Edit2 className="h-4 w-4" />}
               badge={
                 isEventStarted(event?.startsAt) ? (
-                  <Badge variant="outline" className="border-red-400 text-red-500 text-xs gap-1">
+                  <Badge
+                    variant="outline"
+                    className="border-red-400 text-red-500 text-xs gap-1"
+                  >
                     <Lock className="h-3 w-3" />
                     Locked
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="border-green-500 text-green-600 text-xs">
+                  <Badge
+                    variant="outline"
+                    className="border-green-500 text-green-600 text-xs"
+                  >
                     Editable
                   </Badge>
                 )
@@ -1146,8 +1210,9 @@ export default function OrganizerDashboard({
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Update name, description, date &amp; time, flyer, promo video, location, or capacity.
-                    All editing locks the moment the event starts.
+                    Update name, description, date &amp; time, flyer, promo
+                    video, location, or capacity. All editing locks the moment
+                    the event starts.
                   </p>
                 )}
                 <Button
@@ -1157,12 +1222,13 @@ export default function OrganizerDashboard({
                   onClick={() => setShowEditModal(true)}
                 >
                   <Edit2 className="h-3.5 w-3.5" />
-                  {isEventStarted(event?.startsAt) ? "Editing Locked" : "Edit Event"}
+                  {isEventStarted(event?.startsAt)
+                    ? "Editing Locked"
+                    : "Edit Event"}
                 </Button>
               </div>
             </EventDashboardCard>
           )}
-
 
           {isLoading ? (
             <DashboardCardSkeleton />
@@ -1195,12 +1261,18 @@ export default function OrganizerDashboard({
               icon={<Tag className="h-4 w-4" />}
               badge={
                 isEventStarted(event?.startsAt) ? (
-                  <Badge variant="outline" className="border-red-400 text-red-500 text-xs gap-1">
+                  <Badge
+                    variant="outline"
+                    className="border-red-400 text-red-500 text-xs gap-1"
+                  >
                     <Lock className="h-3 w-3" />
                     Locked
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="text-xs bg-[#531342]/10 text-[#531342] font-semibold">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+                  >
                     {(event?.tags ?? event?.vibeTags ?? []).length} Tags
                   </Badge>
                 )
@@ -1316,12 +1388,12 @@ export default function OrganizerDashboard({
                     event?.status === "PUBLISHED"
                       ? "border-green-500 text-green-600"
                       : event?.status === "LIVE"
-                        ? "border-green-500 text-green-600 animate-pulse"
-                        : event?.status === "ENDED"
-                          ? "border-gray-400 text-gray-500"
-                          : event?.status === "CANCELLED"
-                            ? "border-red-400 text-red-500"
-                            : "border-amber-500 text-amber-600"
+                      ? "border-green-500 text-green-600 animate-pulse"
+                      : event?.status === "ENDED"
+                      ? "border-gray-400 text-gray-500"
+                      : event?.status === "CANCELLED"
+                      ? "border-red-400 text-red-500"
+                      : "border-amber-500 text-amber-600"
                   }
                 >
                   {event?.status ?? "DRAFT"}
@@ -1332,57 +1404,57 @@ export default function OrganizerDashboard({
                 {event?.status === "DRAFT" && (
                   <div className="rounded-xl border border-border p-4">
                     <p className="text-sm text-muted-foreground">
-                      Your event is a draft. Use the &quot;Publish Your Event&quot; section
-                      below to choose a plan and publish.
+                      Your event is a draft. Use the &quot;Publish Your
+                      Event&quot; section below to choose a plan and publish.
                     </p>
                   </div>
                 )}
 
                 {(event?.status === "PUBLISHED" ||
                   event?.status === "LIVE") && (
-                    <div className="space-y-2">
-                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
-                        <p className="text-sm text-muted-foreground">
-                          Mark the event as ended once it&apos;s over. Rewards
-                          will be distributed automatically.
-                        </p>
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10"
-                          onClick={() => setConfirmStatus("ENDED")}
-                          disabled={isUpdatingStatus}
-                        >
-                          <StopCircle className="h-4 w-4" />
-                          End Event
-                        </Button>
-                      </div>
-                      <div className="rounded-xl border border-gray-300 bg-muted/30 p-4 space-y-3">
-                        <p className="text-sm text-muted-foreground">
-                          Cancel the event. Attendees will be notified.
-                        </p>
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2 rounded-xl border-gray-400 text-gray-500 hover:bg-gray-100"
-                          onClick={() => setConfirmStatus("CANCELLED")}
-                          disabled={isUpdatingStatus}
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Cancel Event
-                        </Button>
-                      </div>
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Mark the event as ended once it&apos;s over. Rewards
+                        will be distributed automatically.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10"
+                        onClick={() => setConfirmStatus("ENDED")}
+                        disabled={isUpdatingStatus}
+                      >
+                        <StopCircle className="h-4 w-4" />
+                        End Event
+                      </Button>
                     </div>
-                  )}
+                    <div className="rounded-xl border border-gray-300 bg-muted/30 p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Cancel the event. Attendees will be notified.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 rounded-xl border-gray-400 text-gray-500 hover:bg-gray-100"
+                        onClick={() => setConfirmStatus("CANCELLED")}
+                        disabled={isUpdatingStatus}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Cancel Event
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {(event?.status === "ENDED" ||
                   event?.status === "CANCELLED") && (
-                    <div className="rounded-xl border border-border p-4 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        This event has been{" "}
-                        {event?.status === "ENDED" ? "ended" : "cancelled"} and
-                        cannot be modified.
-                      </p>
-                    </div>
-                  )}
+                  <div className="rounded-xl border border-border p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      This event has been{" "}
+                      {event?.status === "ENDED" ? "ended" : "cancelled"} and
+                      cannot be modified.
+                    </p>
+                  </div>
+                )}
               </div>
             </EventDashboardCard>
           )}
@@ -1422,8 +1494,6 @@ export default function OrganizerDashboard({
             </EventDashboardCard>
           )} */}
 
-
-
           {/* Analytics — quick snapshot + link to full page */}
           {!isLoading && (
             <EventDashboardCard
@@ -1442,20 +1512,43 @@ export default function OrganizerDashboard({
                 {/* Quick KPI strip from event details */}
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: "RSVPs", value: rsvpCount, color: "text-[#531342]" },
-                    { label: "Tickets", value: totalTicketsSold, color: "text-green-600" },
-                    { label: "Games", value: liveGameCount, color: "text-purple-600" },
+                    {
+                      label: "RSVPs",
+                      value: rsvpCount,
+                      color: "text-[#531342]",
+                    },
+                    {
+                      label: "Tickets",
+                      value: totalTicketsSold,
+                      color: "text-green-600",
+                    },
+                    {
+                      label: "Games",
+                      value: liveGameCount,
+                      color: "text-purple-600",
+                    },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="rounded-xl bg-muted/50 p-2.5 text-center">
-                      <p className={`font-display text-lg font-bold ${color}`}>{value}</p>
-                      <p className="text-[10px] text-muted-foreground">{label}</p>
+                    <div
+                      key={label}
+                      className="rounded-xl bg-muted/50 p-2.5 text-center"
+                    >
+                      <p className={`font-display text-lg font-bold ${color}`}>
+                        {value}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {label}
+                      </p>
                     </div>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Revenue, vibe-tags, postcards, social velocity &amp; audience demographics on the full page.
+                  Revenue, vibe-tags, postcards, social velocity &amp; audience
+                  demographics on the full page.
                 </p>
-                <Link href={`/dashboard/${eventId}/analytics`} className="block">
+                <Link
+                  href={`/dashboard/${eventId}/analytics`}
+                  className="block"
+                >
                   <Button className="w-full rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white gap-2">
                     <BarChart3 className="h-4 w-4" />
                     View Full Analytics
@@ -1468,7 +1561,11 @@ export default function OrganizerDashboard({
           {isLoading ? (
             <DashboardCardSkeleton />
           ) : (
-            <PaymentModule eventId={eventId} eventStatus={event?.status} onPublished={refetchEvent} />
+            <PaymentModule
+              eventId={eventId}
+              eventStatus={event?.status}
+              onPublished={refetchEvent}
+            />
           )}
 
           {/* {isLoading ? (
