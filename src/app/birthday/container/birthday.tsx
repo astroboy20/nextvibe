@@ -83,7 +83,7 @@ const features = [
 
 const included = [
   "Pre-event VibeTag (custom designed)",
-  "Unlimited postcards from every guest",
+  "Postcards from every guest",
   "Full gamification suite with live leaderboards",
   "VibePod guest social layer",
   "Permanent Pulse gallery",
@@ -235,7 +235,7 @@ export default function BirthdayFunnel() {
             </span>
 
             <h1 className="font-display text-5xl font-extrabold leading-[1.03] md:text-7xl lg:text-8xl">
-              Your birthday deserves
+              Your event deserves
               <br />
               <span className="text-gradient">more than 9 photos.</span>
             </h1>
