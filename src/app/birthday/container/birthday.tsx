@@ -197,106 +197,137 @@ export default function BirthdayFunnel() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="container mx-auto flex h-14 items-center justify-between px-4 md:h-16">
           <Image
             src="/logos/new/logo_black_text.png"
             alt="NextVibe"
-            width={120}
-            height={48}
-            className="h-12 w-auto"
+            width={100}
+            height={40}
+            className="h-8 w-auto md:h-10"
           />
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm font-semibold text-primary sm:inline">
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
               {spotsLeft} spots left
             </span>
-            <Button size="sm" variant="hero" onClick={scrollToFunnel}>
-              Claim ₦5,000
+            <Button size="sm" onClick={scrollToFunnel}>
+              Claim spot
             </Button>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-vibe-plum-light via-background to-vibe-pink/10" />
-        <div className="absolute -left-10 top-10 size-64 rounded-full bg-vibe-purple/20 blur-3xl" />
-        <div className="absolute -right-10 bottom-0 size-64 rounded-full bg-vibe-cyan/20 blur-3xl" />
-
-        <div className="container mx-auto relative px-4 py-14 md:py-20">
+      <section className="border-b border-border/50 py-12 md:py-20 lg:py-32">
+        <div className="container mx-auto max-w-4xl px-4">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center"
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex flex-col items-center gap-6 text-center md:gap-10"
           >
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-              <Cake className="size-4" />
-              First 1,000 birthdays only — 50% off
-            </span>
-
-            <h1 className="font-display text-5xl font-extrabold leading-[1.03] md:text-7xl lg:text-8xl">
-              Your event deserves
-              <br />
-              <span className="text-gradient">more than 9 photos.</span>
-            </h1>
-
-            <p className="max-w-2xl text-xl leading-relaxed text-muted-foreground md:text-2xl">
-              NextVibe turns your party into a memory bank — every guest
-              capturing, playing and posting under one VibeTag. Set it up in 4
-              minutes.
-            </p>
-
-            <div className="flex flex-col items-center gap-2">
-              <p className="font-display text-3xl font-bold md:text-4xl">
-                <span className="text-muted-foreground line-through">
-                  ₦10,000
-                </span>{" "}
-                <span className="text-primary">₦5,000</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                One event. Everything included. No card saved.
-              </p>
-            </div>
-
-            <Button
-              variant="hero"
-              size="xl"
-              onClick={scrollToFunnel}
-              className="w-full sm:w-auto"
+            <motion.span
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary"
             >
-              Secure My Spot
-              <ArrowRight className="size-5" />
-            </Button>
+              <Cake className="size-3.5" />
+              Limited to first 1,000 hosts
+            </motion.span>
 
-            {/* Urgency block */}
-            <div className="w-full max-w-xl rounded-2xl bg-card p-5 shadow-card">
-              <div className="flex items-center justify-center gap-2 text-sm font-semibold text-primary">
-                <Clock className="size-4" />
-                Offer closes in
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="max-w-3xl text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl"
+            >
+              Your birthday deserves more than 9 photos
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base"
+            >
+              NextVibe turns your party into a memory bank. Every guest captures, plays, and posts under one VibeTag. Setup takes 4 minutes.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex flex-col items-center gap-3"
+            >
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-medium text-muted-foreground line-through md:text-xl">
+                  ₦10,000
+                </span>
+                <span className="text-3xl font-bold text-primary md:text-4xl">
+                  ₦5,000
+                </span>
               </div>
-              <div className="mt-3 grid grid-cols-4 gap-2">
+              <p className="text-xs text-muted-foreground">
+                One event · Everything included · No card needed
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+            >
+              <Button
+                size="lg"
+                onClick={scrollToFunnel}
+                className="w-full sm:w-auto"
+              >
+                Secure my spot
+                <ArrowRight className="size-4" />
+              </Button>
+            </motion.div>
+
+            {/* Urgency card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+              className="mt-6 w-full max-w-md rounded-xl border border-border bg-card p-4 md:mt-8 md:p-6"
+            >
+              <div className="mb-4 flex items-center justify-center gap-2 text-xs font-medium text-primary">
+                <Clock className="size-3.5" />
+                Offer ends in
+              </div>
+              <div className="grid grid-cols-4 gap-2">
                 {[
                   { v: days, l: "Days" },
                   { v: hours, l: "Hrs" },
                   { v: minutes, l: "Min" },
                   { v: seconds, l: "Sec" },
-                ].map((t) => (
-                  <div key={t.l} className="rounded-xl bg-secondary/60 py-3">
-                    <p className="font-display text-2xl font-bold md:text-3xl">
+                ].map((t, i) => (
+                  <motion.div
+                    key={t.l}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.9 + i * 0.05, duration: 0.3 }}
+                    className="rounded-lg border border-border bg-secondary/40 py-2.5"
+                  >
+                    <p className="text-xl font-bold tabular-nums md:text-2xl">
                       {String(t.v).padStart(2, "0")}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t.l}</p>
-                  </div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {t.l}
+                    </p>
+                  </motion.div>
                 ))}
               </div>
               <Progress value={claimedPct} className="mt-4" />
-              <p className="mt-2 text-sm text-muted-foreground">
-                {SPOTS_TAKEN} of {SPOTS_TOTAL} spots claimed — only{" "}
-                <span className="font-semibold text-primary">
-                  {spotsLeft} left
-                </span>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{spotsLeft}</span> of {SPOTS_TOTAL} spots remaining
               </p>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -304,350 +335,406 @@ export default function BirthdayFunnel() {
       {/* Funnel */}
       <section
         id="funnel"
-        className="border-y border-border/50 bg-secondary/40 py-20 md:py-28"
+        className="border-b border-border/50 bg-secondary/20 py-12 md:py-20 lg:py-32"
       >
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-2xl">
-            <h2 className="text-center font-display text-4xl font-bold md:text-5xl">
-              Secure your spot in <span className="text-gradient">4 steps</span>
-            </h2>
+        <div className="container mx-auto max-w-lg px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+            className="mb-8 text-center text-xl font-bold md:mb-12 md:text-2xl"
+          >
+            Secure your spot in 4 steps
+          </motion.h2>
 
-            <div className="mt-8 flex items-center gap-2">
-              {[1, 2, 3, 4].map((s) => (
-                <div
-                  key={s}
-                  className={cn(
-                    "h-2 flex-1 rounded-full transition-colors",
-                    step >= s ? "bg-primary" : "bg-border"
-                  )}
-                />
-              ))}
-            </div>
-            <p className="mt-3 text-center text-sm text-muted-foreground">
-              Step {step} of 4
-            </p>
+          <div className="mb-4 flex items-center gap-2">
+            {[1, 2, 3, 4].map((s) => (
+              <motion.div
+                key={s}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: s * 0.1, duration: 0.3 }}
+                className={cn(
+                  "h-1 flex-1 rounded-full transition-colors origin-left",
+                  step >= s ? "bg-primary" : "bg-border"
+                )}
+              />
+            ))}
+          </div>
+          <p className="mb-6 text-center text-xs text-muted-foreground">
+            Step {step} of 4
+          </p>
 
-            <div className="mt-8 rounded-3xl bg-card p-6 shadow-elevated md:p-10">
-              {step === 1 && (
-                <div className="flex flex-col gap-6">
-                  <h3 className="font-display text-2xl font-bold md:text-3xl">
-                    What are you celebrating?
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {categories.map((c) => {
-                      const Icon = c.icon;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => pickCategory(c.id)}
-                          className={cn(
-                            "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary hover:shadow-card-hover",
-                            category === c.id && "border-primary bg-primary/5"
-                          )}
-                        >
-                          <Icon className="size-6 text-primary" />
-                          <span className="font-semibold">{c.label}</span>
-                          {c.note && (
-                            <span className="text-xs font-medium text-primary">
-                              {c.note}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-xl border border-border bg-card p-5 md:p-8"
+          >
+            {step === 1 && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">
+                  What are you celebrating?
+                </h3>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {categories.map((c, i) => {
+                    const Icon = c.icon;
+                    return (
+                      <motion.button
+                        key={c.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.05, duration: 0.3 }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={() => pickCategory(c.id)}
+                        className={cn(
+                          "flex flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-center transition-all hover:border-primary hover:bg-primary/5",
+                          category === c.id && "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        )}
+                      >
+                        <Icon className="size-5 text-primary" />
+                        <span className="text-xs font-medium">{c.label}</span>
+                        {c.note && (
+                          <span className="text-[10px] font-medium text-primary">
+                            {c.note}
+                          </span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
-              {step === 2 && (
-                <form onSubmit={submitDetails} className="flex flex-col gap-6">
-                  <h3 className="font-display text-2xl font-bold md:text-3xl">
-                    Where do we send your VibeTag?
-                  </h3>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="funnel-name">Your name</Label>
-                    <Input
-                      id="funnel-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Similoluwa"
-                      className="h-14 text-base"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="funnel-email">Email</Label>
-                    <Input
-                      id="funnel-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      className="h-14 text-base"
-                    />
-                  </div>
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setStep(1)}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="hero"
-                      size="lg"
-                      className="flex-1"
-                    >
-                      Continue
-                      <ArrowRight className="size-5" />
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {step === 3 && (
-                <form onSubmit={submitDate} className="flex flex-col gap-6">
-                  <h3 className="font-display text-2xl font-bold md:text-3xl">
-                    When is the party?
-                  </h3>
-                  <p className="text-muted-foreground">
-                    We time your setup reminders and event-day support around
-                    this date.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="funnel-date">Event date</Label>
-                    <Input
-                      id="funnel-date"
-                      type="date"
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      className="h-14 text-base"
-                    />
-                  </div>
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setStep(2)}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="hero"
-                      size="lg"
-                      className="flex-1"
-                    >
-                      Continue
-                      <ArrowRight className="size-5" />
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {step === 4 && (
-                <div className="flex flex-col gap-6">
-                  <h3 className="font-display text-2xl font-bold md:text-3xl">
-                    Confirm and lock ₦5,000
-                  </h3>
-                  <div className="flex flex-col gap-3 rounded-2xl bg-secondary/60 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">Celebration</span>
-                      <span className="font-semibold capitalize">
-                        {categories.find((c) => c.id === category)?.label ??
-                          "Birthday"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">Email</span>
-                      <span className="truncate font-semibold">{email}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">Event date</span>
-                      <span className="font-semibold">{eventDate}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-                      <span className="text-muted-foreground">Total today</span>
-                      <span className="font-display text-2xl font-bold text-primary">
-                        ₦5,000
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {included.map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="size-4" />
-                        </div>
-                        <p>{i}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="hero"
-                    size="xl"
-                    onClick={pay}
-                    disabled={submitting}
-                  >
-                    {submitting
-                      ? "Reserving..."
-                      : "Pay ₦5,000 & Secure My Spot"}
-                  </Button>
-                  <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <ShieldCheck className="size-4" />
-                    Secure local checkout via Ercaspay
-                  </p>
+            {step === 2 && (
+              <form onSubmit={submitDetails} className="space-y-5">
+                <h3 className="text-lg font-semibold">
+                  Where do we send your VibeTag?
+                </h3>
+                <div className="space-y-1.5">
+                  <Label htmlFor="funnel-name" className="text-xs">Your name</Label>
+                  <Input
+                    id="funnel-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Similoluwa"
+                    className="h-11 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="funnel-email" className="text-xs">Email</Label>
+                  <Input
+                    id="funnel-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="h-11 text-sm"
+                  />
+                </div>
+                <div className="flex gap-2.5">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStep(3)}
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setStep(1)}
+                    className="w-24"
                   >
                     Back
                   </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="flex-1"
+                  >
+                    Continue
+                    <ArrowRight className="size-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
-          </div>
+              </form>
+            )}
+
+            {step === 3 && (
+              <form onSubmit={submitDate} className="space-y-5">
+                <div>
+                  <h3 className="text-lg font-semibold">When is the party?</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    We'll time your setup reminders and event-day support around this date.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="funnel-date" className="text-xs">Event date</Label>
+                  <Input
+                    id="funnel-date"
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="h-11 text-sm"
+                  />
+                </div>
+                <div className="flex gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setStep(2)}
+                    className="w-24"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="flex-1"
+                  >
+                    Continue
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-5">
+                <h3 className="text-lg font-semibold">
+                  Confirm and lock ₦5,000
+                </h3>
+                
+                <div className="space-y-2.5 rounded-lg border border-border bg-secondary/20 p-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Celebration</span>
+                    <span className="font-medium capitalize">
+                      {categories.find((c) => c.id === category)?.label ?? "Birthday"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Email</span>
+                    <span className="truncate font-medium">{email}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Event date</span>
+                    <span className="font-medium">{eventDate}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border pt-2.5">
+                    <span className="text-xs text-muted-foreground">Total today</span>
+                    <span className="text-xl font-bold text-primary">₦5,000</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {included.map((i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="size-2.5" />
+                      </div>
+                      <p className="text-xs leading-relaxed">{i}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  size="lg"
+                  onClick={pay}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting ? "Reserving..." : "Pay ₦5,000 & secure my spot"}
+                </Button>
+
+                <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <ShieldCheck className="size-3.5" />
+                  Secure checkout via Ercaspay
+                </p>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep(3)}
+                  className="mx-auto"
+                >
+                  Back
+                </Button>
+              </div>
+            )}
+          </motion.div>
         </div>
       </section>
 
-      {/* Value */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-4xl font-bold md:text-6xl">
-              What ₦5,000{" "}
-              <span className="text-gradient">actually gets you</span>
+      {/* Features */}
+      <section className="py-12 md:py-20 lg:py-32">
+        <div className="container mx-auto max-w-5xl px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+            className="mb-10 text-center md:mb-16"
+          >
+            <h2 className="text-xl font-bold md:text-3xl">
+              What ₦5,000 gets you
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground md:text-xl">
+            <p className="mt-2 text-xs text-muted-foreground md:text-sm">
               The full stack. No add-ons, no upsells, no watermark.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-2">
-            {features.map((f) => {
+          <div className="grid gap-4 md:grid-cols-2 md:gap-5">
+            {features.map((f, i) => {
               const Icon = f.icon;
               return (
-                <div
+                <motion.div
                   key={f.title}
-                  className="flex gap-4 rounded-2xl bg-card p-6 shadow-card"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                  className="flex gap-3.5 rounded-lg border border-border bg-card p-4 md:p-5"
                 >
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="size-6" />
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-primary">
+                    <Icon className="size-4.5" />
                   </div>
-                  <div>
-                    <h3 className="font-display text-xl font-bold">
-                      {f.title}
-                    </h3>
-                    <p className="mt-1 text-muted-foreground">{f.desc}</p>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold">{f.title}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {f.desc}
+                    </p>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Social proof */}
-      <section className="border-y border-border/50 bg-secondary/40 py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <h2 className="text-center font-display text-4xl font-bold md:text-6xl">
-            Hosts who <span className="text-gradient">already vibed</span>
-          </h2>
-          <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <div
+      {/* Testimonials */}
+      <section className="border-y border-border/50 bg-secondary/20 py-12 md:py-20 lg:py-32">
+        <div className="container mx-auto max-w-5xl px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+            className="mb-10 text-center text-xl font-bold md:mb-16 md:text-3xl"
+          >
+            Hosts who already vibed
+          </motion.h2>
+          <div className="grid gap-4 md:grid-cols-3 md:gap-5">
+            {testimonials.map((t, i) => (
+              <motion.div
                 key={t.name}
-                className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-card"
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: i * 0.15, duration: 0.5 }}
+                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 md:p-5"
               >
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="size-5 fill-primary text-primary"
-                    />
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.15 + idx * 0.05, duration: 0.3 }}
+                    >
+                      <Star className="size-3.5 fill-primary text-primary" />
+                    </motion.div>
                   ))}
                 </div>
-                <p className="text-lg italic">"{t.quote}"</p>
-                <div>
-                  <p className="font-bold text-primary">— {t.name}</p>
-                  <p className="text-sm text-muted-foreground">{t.role}</p>
+                <p className="text-xs italic leading-relaxed text-foreground">
+                  "{t.quote}"
+                </p>
+                <div className="mt-1">
+                  <p className="text-xs font-semibold text-primary">— {t.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.role}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-2xl">
-            <h2 className="text-center font-display text-4xl font-bold md:text-5xl">
-              Quick answers
-            </h2>
-            <Accordion type="single" collapsible className="mt-10">
-              {faqs.map((f) => (
-                <AccordionItem key={f.q} value={f.q}>
-                  <AccordionTrigger className="text-left text-lg font-semibold">
+      <section className="py-12 md:py-20 lg:py-32">
+        <div className="container mx-auto max-w-2xl px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+            className="mb-8 text-center text-xl font-bold md:mb-12 md:text-2xl"
+          >
+            Quick answers
+          </motion.h2>
+          <Accordion type="single" collapsible className="space-y-2">
+            {faqs.map((f, i) => (
+              <motion.div
+                key={f.q}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: i * 0.08, duration: 0.4 }}
+              >
+                <AccordionItem
+                  value={f.q}
+                  className="rounded-lg border border-border bg-card px-4"
+                >
+                  <AccordionTrigger className="text-left text-xs font-medium hover:no-underline md:text-sm">
                     {f.q}
                   </AccordionTrigger>
-                  <AccordionContent className="text-base text-muted-foreground">
+                  <AccordionContent className="text-xs leading-relaxed text-muted-foreground">
                     {f.a}
                   </AccordionContent>
                 </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
+              </motion.div>
+            ))}
+          </Accordion>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="pb-20 md:pb-28">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 rounded-3xl bg-gradient-vibe p-8 text-center shadow-elevated md:p-12">
-            <h2 className="font-display text-4xl font-extrabold text-primary-foreground md:text-5xl">
-              {spotsLeft} spots. Then it's ₦10,000.
+      <section className="pb-12 md:pb-20 lg:pb-32">
+        <div className="container mx-auto max-w-2xl px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center gap-5 rounded-xl border border-primary/30 bg-primary p-8 text-center md:gap-6 md:p-10"
+          >
+            <h2 className="text-xl font-bold text-primary-foreground md:text-2xl">
+              {spotsLeft} spots left. Then it's ₦10,000.
             </h2>
-            <p className="text-lg text-primary-foreground/90 md:text-xl">
-              Lock founder pricing for your next celebration. Setup takes 4
-              minutes.
+            <p className="text-xs text-primary-foreground/80 md:text-sm">
+              Lock founder pricing for your next celebration. Setup takes 4 minutes.
             </p>
             <Button
               variant="secondary"
-              size="xl"
+              size="lg"
               onClick={scrollToFunnel}
               className="w-full sm:w-auto"
             >
-              Secure My Spot
-              <ArrowRight className="size-5" />
+              Secure my spot
+              <ArrowRight className="size-4" />
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Sticky mobile CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-border/50 bg-background/95 p-3 backdrop-blur md:hidden">
+      {/* Mobile sticky CTA */}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-border bg-background p-3 md:hidden">
         <div className="min-w-0">
-          <p className="font-display text-lg font-bold leading-none text-primary">
-            ₦5,000
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {spotsLeft} spots left
-          </p>
+          <p className="text-sm font-bold leading-none text-primary">₦5,000</p>
+          <p className="text-[10px] text-muted-foreground">{spotsLeft} left</p>
         </div>
-        <Button
-          variant="hero"
-          size="lg"
-          className="flex-1"
-          onClick={scrollToFunnel}
-        >
-          Secure My Spot
+        <Button size="lg" className="flex-1" onClick={scrollToFunnel}>
+          Secure my spot
         </Button>
       </div>
     </div>
