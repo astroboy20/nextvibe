@@ -243,7 +243,7 @@ export default function BirthdayFunnel() {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="max-w-3xl text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl"
             >
-              Your birthday deserves more than 9 photos
+              Your event deserves more than 9 photos
             </motion.h1>
 
             <motion.p
@@ -464,7 +464,7 @@ export default function BirthdayFunnel() {
                 <div>
                   <h3 className="text-lg font-semibold">When is the party?</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    We'll time your setup reminders and event-day support around this date.
+                    We&apos;ll time your setup reminders and event-day support around this date.
                   </p>
                 </div>
                 <div className="space-y-1.5">
@@ -648,7 +648,7 @@ export default function BirthdayFunnel() {
                   ))}
                 </div>
                 <p className="text-xs italic leading-relaxed text-foreground">
-                  "{t.quote}"
+                  &quot;{t.quote}"
                 </p>
                 <div className="mt-1">
                   <p className="text-xs font-semibold text-primary">— {t.name}</p>
