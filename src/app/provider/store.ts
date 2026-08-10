@@ -20,6 +20,7 @@ import { pledgeApi } from "./api/pledgeApi";
 import { discoverApi } from "./api/discoverApi";
 import { launchApi } from "./api/launchApi";
 import { analyticsApi } from "./api/analyticsApi";
+import { campaignApi } from "./api/campaignApi";
 
 export const store = configureStore({
     reducer: {
@@ -44,6 +45,7 @@ export const store = configureStore({
         [discoverApi.reducerPath]: discoverApi.reducer,
         [launchApi.reducerPath]: launchApi.reducer,
         [analyticsApi.reducerPath]: analyticsApi.reducer,
+        [campaignApi.reducerPath]: campaignApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -61,7 +63,8 @@ export const store = configureStore({
             pledgeApi.middleware,
             discoverApi.middleware,
             launchApi.middleware,
-            analyticsApi.middleware
+            analyticsApi.middleware,
+            campaignApi.middleware,
         )
     }
 })

@@ -6,6 +6,20 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true, // Skip type checking during dev
   },
 
+  async headers() {
+    return [
+      {
+        source: "/birthday",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;",
+          },
+        ],
+      },
+    ];
+  },
+
   // Redirect old /dashboard/* paths to new clean paths for back-compat
   async redirects() {
     return [
