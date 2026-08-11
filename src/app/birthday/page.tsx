@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import BirthdayFunnel from "./container/birthday";
 
 export default function BirthdayPage() {
-  return <BirthdayFunnel />;
+  return (
+    <Suspense fallback={null}>
+      <BirthdayFunnel />
+    </Suspense>
+  );
 }
