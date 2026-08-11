@@ -6,19 +6,48 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { format } from "date-fns";
 import {
-  Cake, Tag, Gamepad2, Camera, Users, BarChart3, Check, Star,
-  Sparkles, ShieldCheck, ArrowRight, Clock, Heart, Music, Briefcase, PartyPopper,
-  Play, Timer, Smartphone, Link2, Archive, Lock, Images, MessageSquareHeart,
-  Loader2, CalendarIcon,
+  Cake,
+  Tag,
+  Gamepad2,
+  Camera,
+  Users,
+  BarChart3,
+  Check,
+  Star,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  Clock,
+  Heart,
+  Music,
+  Briefcase,
+  PartyPopper,
+  Play,
+  Timer,
+  Smartphone,
+  Link2,
+  Archive,
+  Lock,
+  Images,
+  MessageSquareHeart,
+  Loader2,
+  CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -46,11 +75,36 @@ interface TierDef {
 }
 
 const TIERS: TierDef[] = [
-  { id: "MICRO", label: "Micro", capacity: "Up to 50 guests", tagline: "Intimate gathering" },
-  { id: "SMALL", label: "Small", capacity: "Up to 200 guests", tagline: "Most popular" },
-  { id: "MEDIUM", label: "Medium", capacity: "Up to 500 guests", tagline: "Mid-size event" },
-  { id: "LARGE", label: "Large", capacity: "Up to 1,000 guests", tagline: "Big celebration" },
-  { id: "ENTERPRISE", label: "Enterprise", capacity: "1,000+ guests", tagline: "Mega event" },
+  {
+    id: "MICRO",
+    label: "Micro",
+    capacity: "Up to 50 guests",
+    tagline: "Intimate gathering",
+  },
+  {
+    id: "SMALL",
+    label: "Small",
+    capacity: "Up to 200 guests",
+    tagline: "Most popular",
+  },
+  {
+    id: "MEDIUM",
+    label: "Medium",
+    capacity: "Up to 500 guests",
+    tagline: "Mid-size event",
+  },
+  {
+    id: "LARGE",
+    label: "Large",
+    capacity: "Up to 1,000 guests",
+    tagline: "Big celebration",
+  },
+  {
+    id: "ENTERPRISE",
+    label: "Enterprise",
+    capacity: "1,000+ guests",
+    tagline: "Mega event",
+  },
 ];
 
 function formatNaira(amount: number) {
@@ -75,9 +129,24 @@ const proofStrip = [
 ];
 
 const steps = [
-  { n: "01", title: "Create your birthday Vibe", desc: "Set up the celebration and customise the experience in a few minutes.", icon: Cake },
-  { n: "02", title: "Share one VibeTag", desc: "Send one simple tag or link to guests before and during the birthday.", icon: Tag },
-  { n: "03", title: "Keep every memory together", desc: "Guest photos, videos, postcards and interactions land in one organised memory bank.", icon: Images },
+  {
+    n: "01",
+    title: "Create your birthday Vibe",
+    desc: "Set up the celebration and customise the experience in a few minutes.",
+    icon: Cake,
+  },
+  {
+    n: "02",
+    title: "Share one VibeTag",
+    desc: "Send one simple tag or link to guests before and during the birthday.",
+    icon: Tag,
+  },
+  {
+    n: "03",
+    title: "Keep every memory together",
+    desc: "Guest photos, videos, postcards and interactions land in one organised memory bank.",
+    icon: Images,
+  },
 ];
 
 const hostBenefits = [
@@ -97,17 +166,47 @@ const guestBenefits = [
 ];
 
 const features = [
-  { icon: Camera, title: "Permanent birthday gallery", brand: "NextVibePulse", desc: "Every guest photo, video and postcard stays together in one lasting memory bank." },
-  { icon: Tag, title: "One memorable sharing tag", brand: "VibeTags", desc: "Replace scattered WhatsApp uploads and forgotten hashtags with one trackable tag." },
-  { icon: Gamepad2, title: "Birthday trivia", brand: "NextVibePilot", desc: "Build excitement with questions like \"How well do you know the celebrant?\"" },
-  { icon: Users, title: "Guest conversations", brand: "VibePod", desc: "Give guests a place to meet and interact before the celebration begins." },
-  { icon: BarChart3, title: "Event insights", brand: "Analytics", desc: "See participation and engagement from the people who joined the Vibe." },
-  { icon: ShieldCheck, title: "Founder pricing", brand: "Secured Spot", desc: "Lock the promotional ₦5,000 price for this birthday package, per the offer terms." },
+  {
+    icon: Camera,
+    title: "Permanent birthday gallery",
+    brand: "NextVibePulse",
+    desc: "Every guest photo, video and postcard stays together in one lasting memory bank.",
+  },
+  {
+    icon: Tag,
+    title: "One memorable sharing tag",
+    brand: "VibeTags",
+    desc: "Replace scattered WhatsApp uploads and forgotten hashtags with one trackable tag.",
+  },
+  {
+    icon: Gamepad2,
+    title: "Birthday trivia",
+    brand: "NextVibePilot",
+    desc: 'Build excitement with questions like "How well do you know the celebrant?"',
+  },
+  {
+    icon: Users,
+    title: "Guest conversations",
+    brand: "VibePod",
+    desc: "Give guests a place to meet and interact before the celebration begins.",
+  },
+  {
+    icon: BarChart3,
+    title: "Event insights",
+    brand: "Analytics",
+    desc: "See participation and engagement from the people who joined the Vibe.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Founder pricing",
+    brand: "Secured Spot",
+    desc: "Lock the promotional ₦5,000 price for this birthday package, per the offer terms.",
+  },
 ];
 
 const included = [
   "Pre-event VibeTag (custom designed)",
-  "Unlimited postcards from every guest",
+  "Postcards from every guest",
   "Full gamification suite with live leaderboards",
   "VibePod guest social layer",
   "Permanent Pulse gallery",
@@ -124,24 +223,81 @@ const offerFacts = [
 ];
 
 const testimonials = [
-  { name: "Femi A.", role: "30th birthday host", location: "Lekki, Lagos", quote: "I collected 214 photos from my guests. The previous year, I only received nine through WhatsApp.", initials: "FA" },
-  { name: "Adaeze O.", role: "Surprise party host", location: "Yaba, Lagos", quote: "The trivia had everybody screaming. Best ₦5,000 I have ever spent on a party.", initials: "AO" },
-  { name: "Zainab M.", role: "Twins' birthday host", location: "Ikoyi, Lagos", quote: "Setup took four minutes. The gallery still makes me cry every time I open it.", initials: "ZM" },
+  {
+    name: "Femi A.",
+    role: "30th birthday host",
+    location: "Lekki, Lagos",
+    quote:
+      "I collected 214 photos from my guests. The previous year, I only received nine through WhatsApp.",
+    initials: "FA",
+  },
+  {
+    name: "Adaeze O.",
+    role: "Surprise party host",
+    location: "Yaba, Lagos",
+    quote:
+      "The trivia had everybody screaming. Best ₦5,000 I have ever spent on a party.",
+    initials: "AO",
+  },
+  {
+    name: "Zainab M.",
+    role: "Twins' birthday host",
+    location: "Ikoyi, Lagos",
+    quote:
+      "Setup took four minutes. The gallery still makes me cry every time I open it.",
+    initials: "ZM",
+  },
 ];
 
 const faqs = [
-  { q: "What exactly do I pay for?", a: "One full NextVibe birthday package — VibeTag, postcards, trivia, VibePod and analytics — at ₦5,000 instead of ₦10,000." },
-  { q: "Why is it 50% off?", a: "We are onboarding our first 1,000 paying hosts. You get founder pricing, we get real celebrations to grow with." },
-  { q: "When does the price go back up?", a: "The moment the 1,000th spot is claimed, or at the deadline shown on this page — whichever comes first." },
-  { q: "Do I need my event date now?", a: "An approximate date is enough. It lets us time your setup reminders and event-day support." },
-  { q: "Do guests need to pay or install anything?", a: "No. They open your VibeTag link in any browser and start capturing." },
-  { q: "Is my birthday gallery private?", a: "Yes. Your gallery is tied to your VibeTag and only people with the link can view or contribute." },
-  { q: "How do guests join?", a: "You share one VibeTag link — on WhatsApp, an invite card or a QR code at the venue. One tap and they are in." },
-  { q: "Can guests upload videos?", a: "Yes. Photos and short videos are both supported as postcards." },
-  { q: "Is there an upload or guest limit?", a: "Guests are based on the pricing tier. Each guest can add up to 20 postcards per event so the gallery stays browsable." },
-  { q: "What happens to the gallery after the birthday?", a: "It stays live as your permanent memory bank — you keep access and can revisit or download it later." },
-  { q: "Can I change my event date?", a: "Yes. Reply to your confirmation email and we will move your date at no extra cost." },
-  { q: "What is the cancellation or refund policy?", a: "Cancel before your VibeTag is designed and we refund in full. After setup begins we can move your date instead." },
+  {
+    q: "What exactly do I pay for?",
+    a: "One full NextVibe birthday package — VibeTag, postcards, trivia, VibePod and analytics — at ₦5,000 instead of ₦10,000.",
+  },
+  {
+    q: "Why is it 50% off?",
+    a: "We are onboarding our first 1,000 paying hosts. You get founder pricing, we get real celebrations to grow with.",
+  },
+  {
+    q: "When does the price go back up?",
+    a: "The moment the 1,000th spot is claimed, or at the deadline shown on this page — whichever comes first.",
+  },
+  {
+    q: "Do I need my event date now?",
+    a: "An approximate date is enough. It lets us time your setup reminders and event-day support.",
+  },
+  {
+    q: "Do guests need to pay or install anything?",
+    a: "No. They open your VibeTag link in any browser and start capturing.",
+  },
+  {
+    q: "Is my birthday gallery private?",
+    a: "Yes. Your gallery is tied to your VibeTag and only people with the link can view or contribute.",
+  },
+  {
+    q: "How do guests join?",
+    a: "You share one VibeTag link — on WhatsApp, an invite card or a QR code at the venue. One tap and they are in.",
+  },
+  {
+    q: "Can guests upload videos?",
+    a: "Yes. Photos and short videos are both supported as postcards.",
+  },
+  {
+    q: "Is there an upload or guest limit?",
+    a: "Guests are based on the pricing tier. Each guest can add up to 20 postcards per event so the gallery stays browsable.",
+  },
+  {
+    q: "What happens to the gallery after the birthday?",
+    a: "It stays live as your permanent memory bank — you keep access and can revisit or download it later.",
+  },
+  {
+    q: "Can I change my event date?",
+    a: "Yes. Reply to your confirmation email and we will move your date at no extra cost.",
+  },
+  {
+    q: "What is the cancellation or refund policy?",
+    a: "Cancel before your VibeTag is designed and we refund in full. After setup begins we can move your date instead.",
+  },
 ];
 
 // ─── Countdown hook ───────────────────────────────────────────────────────────
@@ -166,10 +322,15 @@ export default function BirthdayFunnel() {
   const { days, hours, minutes, seconds } = useCountdown(DEADLINE);
 
   // ── Live stats via RTK Query ──────────────────────────────────────────────
-  const { data: stats } = useGetBirthdayStatsQuery(undefined, { pollingInterval: 60_000 });
-  const spotsLeft = stats?.spotsRemaining ?? (SPOTS_TOTAL - 736);
+  const { data: stats } = useGetBirthdayStatsQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const spotsLeft = stats?.spotsRemaining ?? SPOTS_TOTAL - 736;
   const signedUp = stats?.signedUp ?? 736;
-  const claimedPct = useMemo(() => Math.min(100, (signedUp / SPOTS_TOTAL) * 100), [signedUp]);
+  const claimedPct = useMemo(
+    () => Math.min(100, (signedUp / SPOTS_TOTAL) * 100),
+    [signedUp]
+  );
   const isFull = stats?.isFull ?? false;
 
   // ── Funnel state ──────────────────────────────────────────────────────────
@@ -188,15 +349,17 @@ export default function BirthdayFunnel() {
   const [showStickyCta, setShowStickyCta] = useState(false);
 
   // ── RTK mutations ─────────────────────────────────────────────────────────
-  const [triggerQuote, { isFetching: quoteLoading }] = useLazyGetBirthdayQuoteQuery();
-  const [signupBirthday, { isLoading: submitting }] = useSignupBirthdayMutation();
+  const [triggerQuote, { isFetching: quoteLoading }] =
+    useLazyGetBirthdayQuoteQuery();
+  const [signupBirthday, { isLoading: submitting }] =
+    useSignupBirthdayMutation();
 
   useEffect(() => {
     const el = heroRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => setShowStickyCta(!entry.isIntersecting),
-      { rootMargin: "-80px 0px 0px 0px" },
+      { rootMargin: "-80px 0px 0px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -246,14 +409,25 @@ export default function BirthdayFunnel() {
     if (!selectedTier || !email || !eventDate) return;
     const eventDateStr = format(eventDate, "yyyy-MM-dd");
     try {
-      const res = await signupBirthday({ email, tier: selectedTier, eventDate: eventDateStr }).unwrap();
+      const res = await signupBirthday({
+        email,
+        tier: selectedTier,
+        eventDate: eventDateStr,
+      }).unwrap();
       localStorage.setItem("bday_paymentId", res.paymentId);
       window.location.href = res.checkoutUrl;
     } catch (err: unknown) {
-      const e = err as { status?: number; data?: { message?: string }; message?: string };
-      if (e?.status === 409) toast.error("This email already has a confirmed spot.");
-      else if (e?.status === 400) toast.error("All 1,000 spots have been claimed!");
-      else toast.error(e?.data?.message ?? e?.message ?? "Something went wrong.");
+      const e = err as {
+        status?: number;
+        data?: { message?: string };
+        message?: string;
+      };
+      if (e?.status === 409)
+        toast.error("This email already has a confirmed spot.");
+      else if (e?.status === 400)
+        toast.error("All 1,000 spots have been claimed!");
+      else
+        toast.error(e?.data?.message ?? e?.message ?? "Something went wrong.");
     }
   };
 
@@ -262,7 +436,6 @@ export default function BirthdayFunnel() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
-
       {/* 1. Minimal navigation */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm">
         <div className="w-full flex h-16 items-center justify-between px-4">
@@ -304,22 +477,31 @@ export default function BirthdayFunnel() {
             </h1>
 
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-              Collect every photo, video, message and moment from your birthday in one private
-              memory bank. Your guests join with one VibeTag — no app download required.
+              Collect every photo, video, message and moment from your birthday
+              in one private memory bank. Your guests join with one VibeTag — no
+              app download required.
             </p>
 
             <div className="flex flex-col items-center gap-1">
               <p className="text-2xl font-bold md:text-3xl">
-                <span className="text-muted-foreground line-through">₦10,000</span>{" "}
+                <span className="text-muted-foreground line-through">
+                  ₦10,000
+                </span>{" "}
                 <span className="text-primary">₦5,000</span>
               </p>
               <p className="text-sm text-muted-foreground">
-                One birthday event. Everything included. No guest payment required.
+                One birthday event. Everything included. No guest payment
+                required.
               </p>
             </div>
 
             <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-              <Button size="lg" onClick={scrollToFunnel} disabled={isFull} className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                onClick={scrollToFunnel}
+                disabled={isFull}
+                className="w-full sm:w-auto"
+              >
                 {CTA_LABEL}
                 <ArrowRight className="size-5" />
               </Button>
@@ -338,15 +520,19 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 3. Product video */}
-      <section id="video" className="border-t border-border/50 bg-secondary/30 py-10 md:py-14">
+      <section
+        id="video"
+        className="border-t border-border/50 bg-secondary/30 py-10 md:py-14"
+      >
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-2xl font-bold leading-tight md:text-4xl">
               See how NextVibe brings every birthday memory together
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
-              From guest photos and video messages to birthday trivia and postcards, see how one
-              VibeTag turns your celebration into a memory bank.
+              From guest photos and video messages to birthday trivia and
+              postcards, see how one VibeTag turns your celebration into a
+              memory bank.
             </p>
 
             <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sm">
@@ -376,9 +562,13 @@ export default function BirthdayFunnel() {
                 <iframe
                   className={cn(
                     "absolute inset-0 size-full transition-opacity duration-300",
-                    videoPlaying ? "opacity-100" : "pointer-events-none opacity-0",
+                    videoPlaying
+                      ? "opacity-100"
+                      : "pointer-events-none opacity-0"
                   )}
-                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${videoPlaying ? 1 : 0}&rel=0&modestbranding=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
+                    videoPlaying ? 1 : 0
+                  }&rel=0&modestbranding=1`}
                   title="NextVibe product tour"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -402,10 +592,16 @@ export default function BirthdayFunnel() {
             </div>
 
             <p className="mt-3 text-sm text-muted-foreground">
-              Watch the {VIDEO_DURATION}-minute product tour — no signup required.
+              Watch the {VIDEO_DURATION}-minute product tour — no signup
+              required.
             </p>
 
-            <Button size="lg" onClick={scrollToFunnel} disabled={isFull} className="mt-5 w-full sm:w-auto">
+            <Button
+              size="lg"
+              onClick={scrollToFunnel}
+              disabled={isFull}
+              className="mt-5 w-full sm:w-auto"
+            >
               {CTA_LABEL} — ₦5,000
               <ArrowRight className="size-5" />
             </Button>
@@ -420,9 +616,14 @@ export default function BirthdayFunnel() {
             {proofStrip.map((p) => {
               const Icon = p.icon;
               return (
-                <div key={p.label} className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm">
+                <div
+                  key={p.label}
+                  className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm"
+                >
                   <Icon className="size-5 shrink-0 text-primary" />
-                  <p className="text-sm font-semibold leading-snug">{p.label}</p>
+                  <p className="text-sm font-semibold leading-snug">
+                    {p.label}
+                  </p>
                 </div>
               );
             })}
@@ -440,9 +641,14 @@ export default function BirthdayFunnel() {
             {steps.map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.n} className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm">
+                <div
+                  key={s.n}
+                  className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
+                >
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl font-extrabold text-primary/30">{s.n}</span>
+                    <span className="text-3xl font-extrabold text-primary/30">
+                      {s.n}
+                    </span>
                     <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="size-5" />
                     </div>
@@ -467,12 +673,23 @@ export default function BirthdayFunnel() {
           </h2>
           <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
             {[
-              { title: "For the birthday host", icon: Cake, items: hostBenefits },
-              { title: "For your guests", icon: MessageSquareHeart, items: guestBenefits },
+              {
+                title: "For the birthday host",
+                icon: Cake,
+                items: hostBenefits,
+              },
+              {
+                title: "For your guests",
+                icon: MessageSquareHeart,
+                items: guestBenefits,
+              },
             ].map((col) => {
               const Icon = col.icon;
               return (
-                <div key={col.title} className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-sm">
+                <div
+                  key={col.title}
+                  className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-sm"
+                >
                   <div className="flex items-center gap-3">
                     <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="size-5" />
@@ -513,16 +730,23 @@ export default function BirthdayFunnel() {
             {features.map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="flex gap-4 rounded-2xl bg-card p-6 shadow-sm">
+                <div
+                  key={f.title}
+                  className="flex gap-4 rounded-2xl bg-card p-6 shadow-sm"
+                >
                   <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon className="size-6" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">
                       {f.title}{" "}
-                      <span className="text-sm font-semibold text-primary">— {f.brand}</span>
+                      <span className="text-sm font-semibold text-primary">
+                        — {f.brand}
+                      </span>
                     </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {f.desc}
+                    </p>
                   </div>
                 </div>
               );
@@ -539,13 +763,21 @@ export default function BirthdayFunnel() {
           </h2>
           <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-4 md:grid-cols-3">
             {testimonials.map((t) => (
-              <div key={t.name} className="flex h-full flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm">
+              <div
+                key={t.name}
+                className="flex h-full flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
+              >
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="size-4 fill-primary text-primary" />
+                    <Star
+                      key={i}
+                      className="size-4 fill-primary text-primary"
+                    />
                   ))}
                 </div>
-                <p className="flex-1 text-sm italic leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
+                <p className="flex-1 text-sm italic leading-relaxed">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
                 <div className="flex items-center gap-3 border-t border-border pt-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
                     {t.initials}
@@ -576,7 +808,9 @@ export default function BirthdayFunnel() {
           <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm md:p-8">
               <p className="text-3xl font-bold">
-                <span className="text-muted-foreground line-through">₦10,000</span>{" "}
+                <span className="text-muted-foreground line-through">
+                  ₦10,000
+                </span>{" "}
                 <span className="text-primary">₦5,000</span>
               </p>
               <ul className="flex flex-col gap-3">
@@ -607,7 +841,10 @@ export default function BirthdayFunnel() {
                   { v: minutes, l: "Min" },
                   { v: seconds, l: "Sec" },
                 ].map((t) => (
-                  <div key={t.l} className="rounded-xl bg-secondary/60 py-3 text-center">
+                  <div
+                    key={t.l}
+                    className="rounded-xl bg-secondary/60 py-3 text-center"
+                  >
                     <p className="text-2xl font-bold tabular-nums md:text-3xl">
                       {String(t.v).padStart(2, "0")}
                     </p>
@@ -618,7 +855,9 @@ export default function BirthdayFunnel() {
               <Progress value={claimedPct} />
               <p className="text-sm text-muted-foreground">
                 {signedUp} of {SPOTS_TOTAL} spots claimed — only{" "}
-                <span className="font-semibold text-primary">{spotsLeft} left</span>
+                <span className="font-semibold text-primary">
+                  {spotsLeft} left
+                </span>
               </p>
               <div className="flex flex-col gap-2">
                 {included.map((item) => (
@@ -628,7 +867,12 @@ export default function BirthdayFunnel() {
                   </div>
                 ))}
               </div>
-              <Button size="lg" onClick={scrollToFunnel} disabled={isFull} className="mt-auto">
+              <Button
+                size="lg"
+                onClick={scrollToFunnel}
+                disabled={isFull}
+                className="mt-auto"
+              >
                 {CTA_LABEL}
                 <ArrowRight className="size-5" />
               </Button>
@@ -638,15 +882,18 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 10. Reservation form */}
-      <section id="funnel" className="border-y border-border/50 bg-secondary/40 py-10 md:py-14">
+      <section
+        id="funnel"
+        className="border-y border-border/50 bg-secondary/40 py-10 md:py-14"
+      >
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-2xl">
             <h2 className="text-center text-2xl font-bold md:text-4xl">
               Secure your birthday Vibe in four quick steps
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted-foreground">
-              You do not need every event detail ready. Start now and complete the remaining setup
-              later.
+              You do not need every event detail ready. Start now and complete
+              the remaining setup later.
             </p>
 
             <div className="mt-6 flex items-center gap-2">
@@ -655,17 +902,17 @@ export default function BirthdayFunnel() {
                   key={s}
                   className={cn(
                     "h-2 flex-1 rounded-full transition-colors",
-                    step >= s ? "bg-primary" : "bg-border",
+                    step >= s ? "bg-primary" : "bg-border"
                   )}
                 />
               ))}
             </div>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Step {step} of {totalSteps} · Occasion → size → your details → date → payment
+              Step {step} of {totalSteps} · Occasion → size → your details →
+              date → payment
             </p>
 
             <div className="mt-6 rounded-3xl bg-card p-6 shadow-sm md:p-8">
-
               {/* Step 1 — Category (identical to template) */}
               {step === 1 && (
                 <div className="flex flex-col gap-5">
@@ -677,7 +924,9 @@ export default function BirthdayFunnel() {
                     onClick={() => pickCategory("birthday")}
                     className={cn(
                       "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all hover:-translate-y-1 hover:shadow-sm",
-                      category === "birthday" ? "border-primary bg-primary/5" : "border-border bg-background",
+                      category === "birthday"
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-background"
                     )}
                   >
                     <Cake className="size-7 text-primary" />
@@ -689,7 +938,11 @@ export default function BirthdayFunnel() {
                     </div>
                   </button>
 
-                  <Button size="lg" onClick={() => pickCategory(category)} disabled={isFull}>
+                  <Button
+                    size="lg"
+                    onClick={() => pickCategory(category)}
+                    disabled={isFull}
+                  >
                     Continue
                     <ArrowRight className="size-5" />
                   </Button>
@@ -715,11 +968,14 @@ export default function BirthdayFunnel() {
                               onClick={() => pickCategory(c.id)}
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
-                                category === c.id && "border-primary bg-primary/5",
+                                category === c.id &&
+                                  "border-primary bg-primary/5"
                               )}
                             >
                               <Icon className="size-5 text-primary" />
-                              <span className="text-sm font-semibold">{c.label}</span>
+                              <span className="text-sm font-semibold">
+                                {c.label}
+                              </span>
                             </button>
                           );
                         })}
@@ -731,9 +987,12 @@ export default function BirthdayFunnel() {
               {/* Step 2 — Tier selection (new, keeps same card style) */}
               {step === 2 && (
                 <div className="flex flex-col gap-5">
-                  <h3 className="text-xl font-bold md:text-2xl">Pick your event size</h3>
+                  <h3 className="text-xl font-bold md:text-2xl">
+                    Pick your event size
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Tier determines your deposit amount and locks in your package.
+                    Tier determines your deposit amount and locks in your
+                    package.
                   </p>
                   <div className="flex flex-col gap-3">
                     {TIERS.map((t) => (
@@ -744,12 +1003,16 @@ export default function BirthdayFunnel() {
                         onClick={() => pickTier(t.id)}
                         className={cn(
                           "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm",
-                          selectedTier === t.id ? "border-primary bg-primary/5" : "border-border bg-background",
+                          selectedTier === t.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-background"
                         )}
                       >
                         <div>
                           <p className="font-bold">{t.label}</p>
-                          <p className="text-sm text-muted-foreground">{t.capacity}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {t.capacity}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           {t.tagline && (
@@ -766,7 +1029,12 @@ export default function BirthdayFunnel() {
                       </button>
                     ))}
                   </div>
-                  <Button type="button" variant="outline" size="lg" onClick={() => setStep(1)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setStep(1)}
+                  >
                     Back
                   </Button>
                 </div>
@@ -782,7 +1050,9 @@ export default function BirthdayFunnel() {
                     <div className="inline-flex items-baseline gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
                       <span>{formatNaira(tierQuote.amountDue)} deposit</span>
                       <span className="opacity-50">·</span>
-                      <span className="text-xs line-through opacity-60">{formatNaira(tierQuote.baseAmount)} full price</span>
+                      <span className="text-xs line-through opacity-60">
+                        {formatNaira(tierQuote.baseAmount)} full price
+                      </span>
                     </div>
                   )}
                   <div className="flex flex-col gap-2">
@@ -807,7 +1077,12 @@ export default function BirthdayFunnel() {
                     />
                   </div>
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Button type="button" variant="outline" size="lg" onClick={() => setStep(2)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      onClick={() => setStep(2)}
+                    >
                       Back
                     </Button>
                     <Button type="submit" size="lg" className="flex-1">
@@ -825,8 +1100,8 @@ export default function BirthdayFunnel() {
                     When is the party?
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    An approximate date is fine — we time your reminders and event-day support
-                    around it.
+                    An approximate date is fine — we time your reminders and
+                    event-day support around it.
                   </p>
                   <div className="flex flex-col gap-2">
                     <Label>Event date</Label>
@@ -837,11 +1112,13 @@ export default function BirthdayFunnel() {
                           variant="outline"
                           className={cn(
                             "h-14 w-full justify-start text-left text-base font-normal",
-                            !eventDate && "text-muted-foreground",
+                            !eventDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-3 size-5 shrink-0" />
-                          {eventDate ? format(eventDate, "dd MMMM yyyy") : "Select a date"}
+                          {eventDate
+                            ? format(eventDate, "dd MMMM yyyy")
+                            : "Select a date"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -862,7 +1139,12 @@ export default function BirthdayFunnel() {
                     </Popover>
                   </div>
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Button type="button" variant="outline" size="lg" onClick={() => setStep(3)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      onClick={() => setStep(3)}
+                    >
                       Back
                     </Button>
                     <Button type="submit" size="lg" className="flex-1">
@@ -877,28 +1159,40 @@ export default function BirthdayFunnel() {
               {step === 5 && (
                 <div className="flex flex-col gap-5">
                   <h3 className="text-xl font-bold md:text-2xl">
-                    Confirm and lock {tierQuote ? formatNaira(tierQuote.amountDue) : "₦5,000"}
+                    Confirm and lock{" "}
+                    {tierQuote ? formatNaira(tierQuote.amountDue) : "₦5,000"}
                   </h3>
                   <div className="flex flex-col gap-3 rounded-2xl bg-secondary/60 p-4">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Celebration</span>
+                      <span className="text-sm text-muted-foreground">
+                        Celebration
+                      </span>
                       <span className="text-sm font-semibold capitalize">
-                        {categories.find((c) => c.id === category)?.label ?? "Birthday"}
+                        {categories.find((c) => c.id === category)?.label ??
+                          "Birthday"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Package size</span>
+                      <span className="text-sm text-muted-foreground">
+                        Package size
+                      </span>
                       <span className="text-sm font-semibold">
                         {TIERS.find((t) => t.id === selectedTier)?.label} —{" "}
                         {TIERS.find((t) => t.id === selectedTier)?.capacity}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <span className="truncate text-sm font-semibold">{email}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Email
+                      </span>
+                      <span className="truncate text-sm font-semibold">
+                        {email}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Event date</span>
+                      <span className="text-sm text-muted-foreground">
+                        Event date
+                      </span>
                       <span className="text-sm font-semibold">
                         {eventDate ? format(eventDate, "dd MMMM yyyy") : "—"}
                       </span>
@@ -906,7 +1200,9 @@ export default function BirthdayFunnel() {
                     {tierQuote && (
                       <>
                         <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-                          <span className="text-sm text-muted-foreground">Full price</span>
+                          <span className="text-sm text-muted-foreground">
+                            Full price
+                          </span>
                           <span className="text-sm font-semibold text-muted-foreground line-through">
                             {formatNaira(tierQuote.baseAmount)}
                           </span>
@@ -932,25 +1228,43 @@ export default function BirthdayFunnel() {
                       </div>
                     ))}
                   </div>
-                  <Button size="lg" onClick={pay} disabled={submitting || isFull} className="w-full">
+                  <Button
+                    size="lg"
+                    onClick={pay}
+                    disabled={submitting || isFull}
+                    className="w-full"
+                  >
                     {submitting ? (
-                      <><Loader2 className="size-4 animate-spin" /> Redirecting to checkout…</>
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> Redirecting
+                        to checkout…
+                      </>
                     ) : isFull ? (
                       "Campaign fully booked"
                     ) : (
-                      <>Pay {tierQuote ? formatNaira(tierQuote.amountDue) : "deposit"} &amp; secure my birthday Vibe</>
+                      <>
+                        Pay{" "}
+                        {tierQuote
+                          ? formatNaira(tierQuote.amountDue)
+                          : "deposit"}{" "}
+                        &amp; secure my birthday Vibe
+                      </>
                     )}
                   </Button>
                   <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <ShieldCheck className="size-4" />
                     Secure local checkout via Ercaspay
                   </p>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setStep(4)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStep(4)}
+                  >
                     Back
                   </Button>
                 </div>
               )}
-
             </div>
           </div>
         </div>
@@ -987,8 +1301,8 @@ export default function BirthdayFunnel() {
               Your birthday happens once. Keep more than nine photos from it.
             </h2>
             <p className="text-base text-primary-foreground/90 md:text-lg">
-              Bring every photo, video, message and guest interaction together in one birthday
-              memory bank.
+              Bring every photo, video, message and guest interaction together
+              in one birthday memory bank.
             </p>
             <p className="text-2xl font-bold text-primary-foreground">
               <span className="line-through opacity-70">₦10,000</span> ₦5,000
@@ -996,7 +1310,13 @@ export default function BirthdayFunnel() {
             <p className="text-sm text-primary-foreground/90">
               {spotsLeft} spots left · closes in {days}d {hours}h {minutes}m
             </p>
-            <Button variant="secondary" size="lg" onClick={scrollToFunnel} disabled={isFull} className="w-full sm:w-auto">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={scrollToFunnel}
+              disabled={isFull}
+              className="w-full sm:w-auto"
+            >
               {CTA_LABEL}
               <ArrowRight className="size-5" />
             </Button>
@@ -1008,15 +1328,23 @@ export default function BirthdayFunnel() {
       {showStickyCta && (
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-border/50 bg-background/95 p-3 backdrop-blur md:hidden">
           <div className="min-w-0">
-            <p className="text-lg font-bold leading-none text-primary">₦5,000</p>
-            <p className="truncate text-xs text-muted-foreground">{spotsLeft} spots left</p>
+            <p className="text-lg font-bold leading-none text-primary">
+              ₦5,000
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {spotsLeft} spots left
+            </p>
           </div>
-          <Button size="lg" className="flex-1" onClick={scrollToFunnel} disabled={isFull}>
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={scrollToFunnel}
+            disabled={isFull}
+          >
             {isFull ? "Fully booked" : "Secure my spot"}
           </Button>
         </div>
       )}
-
     </div>
   );
 }
