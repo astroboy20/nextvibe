@@ -1008,7 +1008,7 @@ export default function BirthdayFunnel() {
                   ))}
                 </div>
                 <p className="text-xs italic leading-relaxed text-foreground">
-                  &quot;{t.quote}"
+                  &quot;{t.quote}&quot;
                 </p>
                 <div className="mt-1">
                   <p className="text-xs font-semibold text-primary">— {t.name}</p>
