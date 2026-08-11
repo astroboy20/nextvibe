@@ -284,7 +284,7 @@ const faqs = [
   },
   {
     q: "Is there an upload or guest limit?",
-    a: "Guests are based on the pricing tier. Each guest can add up to 20 postcards per event so the gallery stays browsable.",
+    a: "The number of guests is based on the pricing tier. Each guest can add up to 20 postcards per event so the gallery stays browsable.",
   },
   {
     q: "What happens to the gallery after the birthday?",
@@ -471,7 +471,7 @@ export default function BirthdayFunnel() {
             </span>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight md:text-6xl lg:text-7xl">
-              Your birthday deserves
+              Your birthday celebration deserves
               <br />
               more than 9 photos
             </h1>
