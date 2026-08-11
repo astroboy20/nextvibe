@@ -63,7 +63,7 @@ import {
 const SPOTS_TOTAL = 1000;
 const DEADLINE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 const YOUTUBE_ID = "pAJ23LBFBOQ";
-const VIDEO_DURATION = "2";
+const VIDEO_DURATION = "3";
 const CTA_LABEL = "Secure my birthday Vibe";
 
 // ─── Tier definitions ─────────────────────────────────────────────────────────
@@ -450,7 +450,7 @@ export default function BirthdayFunnel() {
             <span className="hidden text-sm font-semibold text-primary sm:inline">
               {spotsLeft} spots left
             </span>
-            <Button size="sm" onClick={scrollToFunnel} disabled={isFull}>
+            <Button size="default" onClick={scrollToFunnel} disabled={isFull}>
               {isFull ? "Fully booked" : "Secure my spot"}
             </Button>
           </div>
@@ -459,7 +459,7 @@ export default function BirthdayFunnel() {
 
       {/* 2. Hero */}
       <section ref={heroRef} className="relative overflow-hidden">
-        <div className="w-full relative px-4 pb-10 pt-12 md:px-8 md:pb-12 md:pt-16 lg:px-16">
+        <div className="w-full relative px-4 pb-16 pt-16 md:px-8 md:pb-20 md:pt-24 lg:px-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -522,7 +522,7 @@ export default function BirthdayFunnel() {
       {/* 3. Product video */}
       <section
         id="video"
-        className="border-t border-border/50 bg-secondary/30 py-10 md:py-14"
+        className="border-t border-border/50 bg-secondary/30 py-16 md:py-24"
       >
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-4xl text-center">
@@ -566,9 +566,8 @@ export default function BirthdayFunnel() {
                       ? "opacity-100"
                       : "pointer-events-none opacity-0"
                   )}
-                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
-                    videoPlaying ? 1 : 0
-                  }&rel=0&modestbranding=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${videoPlaying ? 1 : 0
+                    }&rel=0&modestbranding=1`}
                   title="NextVibe product tour"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -610,7 +609,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 4. Quick proof strip */}
-      <section className="border-y border-border/50 py-6">
+      <section className="border-y border-border/50 py-10 md:py-14">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {proofStrip.map((p) => {
@@ -632,7 +631,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 5. How it works */}
-      <section className="py-10 md:py-14">
+      <section className="py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
             How NextVibe works
@@ -666,7 +665,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 6. Benefits split */}
-      <section className="border-y border-border/50 bg-secondary/40 py-10 md:py-14">
+      <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
             Why everyone joins in
@@ -714,7 +713,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 7. Everything included */}
-      <section className="py-10 md:py-14">
+      <section className="py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-2xl font-bold md:text-4xl">
@@ -756,7 +755,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 8. Testimonials */}
-      <section className="border-y border-border/50 bg-secondary/40 py-10 md:py-14">
+      <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <h2 className="text-center text-2xl font-bold md:text-4xl">
             Hosts who already vibed
@@ -796,7 +795,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 9. Pricing + urgency */}
-      <section className="py-10 md:py-14">
+      <section className="py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-2xl font-bold md:text-4xl">
@@ -884,7 +883,7 @@ export default function BirthdayFunnel() {
       {/* 10. Reservation form */}
       <section
         id="funnel"
-        className="border-y border-border/50 bg-secondary/40 py-10 md:py-14"
+        className="border-y border-border/50 bg-secondary/40 py-16 md:py-24"
       >
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-2xl">
@@ -969,7 +968,7 @@ export default function BirthdayFunnel() {
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
                                 category === c.id &&
-                                  "border-primary bg-primary/5"
+                                "border-primary bg-primary/5"
                               )}
                             >
                               <Icon className="size-5 text-primary" />
@@ -1076,16 +1075,17 @@ export default function BirthdayFunnel() {
                       className="h-14 text-base"
                     />
                   </div>
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row ">
                     <Button
                       type="button"
                       variant="outline"
                       size="lg"
                       onClick={() => setStep(2)}
+                      className="w-full sm:w-auto sm:flex-1"
                     >
                       Back
                     </Button>
-                    <Button type="submit" size="lg" className="flex-1">
+                    <Button type="submit" size="lg" className="w-full sm:w-auto sm:flex-1">
                       Continue
                       <ArrowRight className="size-5" />
                     </Button>
@@ -1271,7 +1271,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 11. FAQ */}
-      <section className="py-10 md:py-14">
+      <section className="py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-2xl">
             <h2 className="text-center text-2xl font-bold md:text-4xl">
@@ -1294,7 +1294,7 @@ export default function BirthdayFunnel() {
       </section>
 
       {/* 12. Final CTA */}
-      <section className="pb-12 md:pb-16">
+      <section className="pb-20 md:pb-28">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 rounded-3xl border border-primary/30 bg-primary p-8 text-center md:p-12">
             <h2 className="text-2xl font-extrabold text-primary-foreground md:text-4xl">
