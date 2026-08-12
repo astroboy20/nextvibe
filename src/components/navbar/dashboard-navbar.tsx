@@ -23,26 +23,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  notificationLabel,
+  notificationDot,
+  hasActorPrefix,
+} from "@/utils/notification-copy";
 
-// ── notification type → label / color ────────────────────────────────────────
-function notifMeta(type: string) {
-  switch (type) {
-    case "like":
-      return { label: "liked your postcard", dot: "bg-[hsl(330,70%,55%)]" };
-    case "comment":
-      return { label: "commented on your postcard", dot: "bg-[hsl(195,100%,42%)]" };
-    case "follow":
-      return { label: "started following you", dot: "bg-[hsl(280,60%,50%)]" };
-    case "rsvp":
-      return { label: "RSVP'd to your event", dot: "bg-[hsl(316,62%,20%)]" };
-    case "game":
-      return { label: "challenged you to a game", dot: "bg-[hsl(195,100%,42%)]" };
-    case "reward":
-      return { label: "sent you a reward", dot: "bg-[hsl(330,70%,55%)]" };
-    default:
-      return { label: type, dot: "bg-muted-foreground" };
-  }
-}
+// Copy now lives in @/utils/notification-copy so this and the notifications
+// page can't drift, and so an unrecognised type never renders as a raw enum.
 
 // ── notification item ─────────────────────────────────────────────────────────
 function NotifItem({
@@ -55,8 +43,10 @@ function NotifItem({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const meta = notifMeta(notif.type);
   const actor = notif.actor?.displayName ?? notif.actor?.username ?? "Someone";
+  const label = notificationLabel(notif);
+  const dot = notificationDot(notif.type);
+  const showActor = hasActorPrefix(notif);
 
   const handleClick = () => {
     if (!notif.isRead) onRead(notif.id);
@@ -92,7 +82,7 @@ function NotifItem({
         <span
           className={cn(
             "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background",
-            meta.dot
+            dot
           )}
         />
       </div>
@@ -100,10 +90,10 @@ function NotifItem({
       {/* Text */}
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug flex items-center gap-1">
-          <span className="font-semibold truncate">{actor}</span>{" "}
-          <span className="text-muted-foreground truncate">
-            { meta.label === "FOLLOW" ? "started following you" : meta.label }
-          </span>
+          {showActor && (
+            <span className="font-semibold truncate">{actor}</span>
+          )}
+          <span className="text-muted-foreground truncate">{label}</span>
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}

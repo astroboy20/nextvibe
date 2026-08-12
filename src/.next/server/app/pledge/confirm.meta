@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/pledge/layout,_N_T_/pledge/confirm/layout,_N_T_/pledge/confirm/page,_N_T_/pledge/confirm"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/pledge/confirm/__PAGE__",
+    "/pledge/confirm",
+    "/pledge",
+    "/_index",
+    "/_head"
+  ]
+}

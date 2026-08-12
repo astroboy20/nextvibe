@@ -1,0 +1,18 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/dashboard/layout,_N_T_/dashboard/(dashboard-route)/layout,_N_T_/dashboard/(dashboard-route)/profile/layout,_N_T_/dashboard/(dashboard-route)/profile/edit/layout,_N_T_/dashboard/(dashboard-route)/profile/edit/page,_N_T_/dashboard/profile/edit"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/dashboard/!KGRhc2hib2FyZC1yb3V0ZSk/profile/edit/__PAGE__",
+    "/dashboard/!KGRhc2hib2FyZC1yb3V0ZSk/profile/edit",
+    "/dashboard/!KGRhc2hib2FyZC1yb3V0ZSk/profile",
+    "/dashboard/!KGRhc2hib2FyZC1yb3V0ZSk",
+    "/dashboard",
+    "/_index",
+    "/_head"
+  ]
+}

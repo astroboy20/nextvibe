@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/use-cases/layout,_N_T_/use-cases/weddings/layout,_N_T_/use-cases/weddings/page,_N_T_/use-cases/weddings"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/use-cases/weddings/__PAGE__",
+    "/use-cases/weddings",
+    "/use-cases",
+    "/_index",
+    "/_head"
+  ]
+}

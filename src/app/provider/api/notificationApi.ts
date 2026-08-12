@@ -2,14 +2,40 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
 export interface NotificationActor {
+  /** The API has always returned this (see the backend's `select`), but the
+   *  type omitted it — so `actor.id`, used to route to the actor's profile,
+   *  failed typecheck while working fine at runtime. */
+  id: string;
   username: string;
   avatarUrl?: string;
   displayName?: string;
 }
 
+/**
+ * Mirrors the backend `NotificationType` enum — **uppercase**.
+ * This was previously typed as lowercase ("like", "comment"), which is why the
+ * rendering switches never matched and notifications displayed as raw enums.
+ */
+export type NotificationTypeValue =
+  | "FOLLOW"
+  | "LIKE"
+  | "COMMENT"
+  | "TAG"
+  | "RSVP"
+  | "GAME_RESULT"
+  | "EVENT_REMINDER"
+  | "CHECK_IN"
+  | "PAYMENT_CONFIRMED"
+  | "PAYMENT_FAILED"
+  | "EVENT_PUBLISHED"
+  | "TICKET_PURCHASED"
+  | "GAME_UNLOCKED"
+  | "VIBETAG_ACTIVATED";
+
 export interface Notification {
   id: string;
-  type: "like" | "comment" | "follow" | "rsvp" | "game" | "reward" | string;
+  /** Widened with `string` so an unrecognised new type can't crash rendering. */
+  type: NotificationTypeValue | string;
   actor: NotificationActor;
   targetType?: string;
   targetId?: string;

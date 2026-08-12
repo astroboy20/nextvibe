@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/party-photo-sharing/layout,_N_T_/party-photo-sharing/page,_N_T_/party-photo-sharing"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/party-photo-sharing/__PAGE__",
+    "/party-photo-sharing",
+    "/_index",
+    "/_head"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/onboarding/layout,_N_T_/onboarding/vibes/layout,_N_T_/onboarding/vibes/page,_N_T_/onboarding/vibes"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/onboarding/vibes/__PAGE__",
+    "/onboarding/vibes",
+    "/onboarding",
+    "/_index",
+    "/_head"
+  ]
+}

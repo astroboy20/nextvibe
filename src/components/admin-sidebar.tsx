@@ -14,6 +14,7 @@ import {
   TrendingUp,
   LayoutDashboard,
   Activity,
+  Banknote,
 } from "lucide-react";
 import { NewLogo } from "./logo";
 
@@ -22,6 +23,7 @@ const adminRoutes = [
   { href: "/admin/stats", label: "Stats", icon: Activity },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
+  { href: "/admin/payouts", label: "Payouts", icon: Banknote },
   { href: "/admin/events", label: "Events", icon: Zap },
   { href: "/admin/postcards", label: "Postcards", icon: ImageIcon },
   { href: "/admin/game-sessions", label: "Game Sessions", icon: Gamepad2 },

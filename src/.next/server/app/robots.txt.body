@@ -1,0 +1,13 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /(app)/
+Disallow: /onboarding/
+Disallow: /purchase/
+Disallow: /check-verification/
+Disallow: /game/
+Disallow: /test-juicyway/
+
+Sitemap: https://mynextvibe.com/sitemap.xml

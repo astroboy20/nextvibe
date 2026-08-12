@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(admin)/layout,_N_T_/(admin)/admin/layout,_N_T_/(admin)/admin/coupons/layout,_N_T_/(admin)/admin/coupons/page,_N_T_/admin/coupons"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KGFkbWluKQ/admin/coupons/__PAGE__",
+    "/!KGFkbWluKQ/admin/coupons",
+    "/!KGFkbWluKQ/admin",
+    "/!KGFkbWluKQ",
+    "/_index",
+    "/_head"
+  ]
+}

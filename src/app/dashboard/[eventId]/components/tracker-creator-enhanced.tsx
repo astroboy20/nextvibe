@@ -43,7 +43,7 @@ import {
   useUpdateTicketMutation,
   useUploadIntentMutation,
 } from "@/app/provider/api/eventApi";
-import { WithdrawalSection } from "@/app/dashboard/(dashboard-route)/events/[id]/components/withdrawal-section";
+import { PayoutSection } from "@/app/dashboard/(dashboard-route)/events/[id]/components/payout-section";
 import { toast } from "sonner";
 
 // ── Ticket-image upload helpers ──────────────────────────────────────────────
@@ -714,13 +714,10 @@ export function TicketCreatorEnhanced({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Withdrawal — only visible once the event has ended */}
+      {/* Earnings — only visible once the event has ended */}
       {eventStatus === "ENDED" && (
         <div className="mt-4 pt-4 border-t border-border">
-          <WithdrawalSection
-            eventId={eventId}
-            ticketTiers={eventDetails ?? []}
-          />
+          <PayoutSection ticketTiers={eventDetails ?? []} />
         </div>
       )}
     </div>

@@ -21,6 +21,7 @@ import { discoverApi } from "./api/discoverApi";
 import { launchApi } from "./api/launchApi";
 import { analyticsApi } from "./api/analyticsApi";
 import { campaignApi } from "./api/campaignApi";
+import { payoutApi } from "./api/payoutApi";
 
 export const store = configureStore({
     reducer: {
@@ -46,6 +47,7 @@ export const store = configureStore({
         [launchApi.reducerPath]: launchApi.reducer,
         [analyticsApi.reducerPath]: analyticsApi.reducer,
         [campaignApi.reducerPath]: campaignApi.reducer,
+        [payoutApi.reducerPath]: payoutApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -65,6 +67,7 @@ export const store = configureStore({
             launchApi.middleware,
             analyticsApi.middleware,
             campaignApi.middleware,
+            payoutApi.middleware,
         )
     }
 })
