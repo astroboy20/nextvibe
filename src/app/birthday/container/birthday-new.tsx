@@ -74,7 +74,6 @@ interface TierDef {
   tagline: string;
 }
 
-
 const TIERS: TierDef[] = [
   {
     id: "MICRO",
@@ -239,7 +238,7 @@ const testimonials = [
     initials: "DA",
   },
   {
-    name: "Olajumoke",
+    name: "Olayinka",
     role: "Birthday host",
     location: "",
     date: "12/07/2026",
@@ -247,7 +246,7 @@ const testimonials = [
     logo: null as string | null,
     quote:
       "I had such an amazing birthday experience with my community! 💜 It was so much fun bringing everyone together, and the giveaway made it even more exciting. Huge thanks to nextvibe for making the experience possible. 🎉 I can't wait to create more amazing memories like this!",
-    initials: "OJ",
+    initials: "OL",
   },
 ];
 
@@ -521,7 +520,7 @@ export default function BirthdayFunnel() {
                 className="w-full sm:w-auto"
               >
                 <Play className="size-5" />
-                Watch how NextVibe works
+                Watch how Nextvibe works
               </Button>
             </div>
           </motion.div>
@@ -621,6 +620,9 @@ export default function BirthdayFunnel() {
       {/* 4. Quick proof strip */}
       <section className="border-y border-border/50 py-10 md:py-14">
         <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl my-8">
+            Perks
+          </h2>
           <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {proofStrip.map((p) => {
               const Icon = p.icon;
@@ -644,7 +646,7 @@ export default function BirthdayFunnel() {
       <section className="py-16 md:py-24">
         <div className="w-full px-4 md:px-8 lg:px-16">
           <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
-            How NextVibe works
+            How Nextvibe works
           </h2>
           <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
             {steps.map((s) => {
