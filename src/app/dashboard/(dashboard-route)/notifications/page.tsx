@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";
+import { notificationText } from "@/utils/notification-copy";
 
 function notificationIcon(type: string) {
   switch (type) {
@@ -31,18 +32,9 @@ function notificationIcon(type: string) {
   }
 }
 
-function notificationText(n: Notification): string {
-  if (n.message) return n.message;
-  switch (n.type) {
-    case "like":    return `${n.actor.username} liked your postcard`;
-    case "comment": return `${n.actor.username} commented on your postcard`;
-    case "follow":  return `${n.actor.username} started following you`;
-    case "rsvp":    return `${n.actor.username} RSVP'd to your event`;
-    case "game":    return `${n.actor.username} joined your game`;
-    case "reward":  return `You received a reward!`;
-    default:        return `New notification from ${n.actor.username}`;
-  }
-}
+// Wording comes from @/utils/notification-copy, shared with the navbar dropdown.
+// The previous switch matched lowercase ("like") while the API sends the Prisma
+// enum uppercase ("LIKE"), so every notification fell through to the default.
 
 function NotificationItem({ notification }: { notification: Notification }) {
   const router = useRouter();
