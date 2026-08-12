@@ -149,7 +149,7 @@ const steps = [
     title: "Keep every memory together",
     desc: "Guest photos, videos, postcards and interactions land in one organised memory bank.",
     icon: Images,
-    video: "/vibe-post-3.mp4",
+    video: "/vibe-post-4.mp4",
   },
 ];
 
