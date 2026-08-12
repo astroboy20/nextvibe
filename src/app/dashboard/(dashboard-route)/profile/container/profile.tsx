@@ -259,7 +259,7 @@ const Profile = () => {
                   </Card>
                 </Link>
 
-                <Link href="/dashboard/earnings">
+                <Link href="/earnings">
                   <Card className="overflow-hidden border-emerald-600/20 bg-linear-to-br from-emerald-600/10 to-accent/10 hover:shadow-card transition-all">
                     <CardContent className="p-4 flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600/20">

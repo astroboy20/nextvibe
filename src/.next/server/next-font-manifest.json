@@ -1,0 +1,238 @@
+{
+  "app": {
+    "[project]/src/app/(admin)/admin/analytics/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/coupons/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/events/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/events/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/game-sessions/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/payments/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/payouts/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/postcards/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/stats/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/users/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/users/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(admin)/admin/vibetags/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/earnings/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/events/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/events/[id]/postcards/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/events/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/messages/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/notifications/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/postcards/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/profile/edit/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/profile/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/rewards/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/settings/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/social/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(app)/users/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(auth)/auth/forgot-password/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(auth)/auth/login/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(auth)/auth/register/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(auth)/auth/reset-password/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/(auth)/verify-email/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/_not-found/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/about/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/alternatives/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/birthday/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/birthday/verify/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/check-verification/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/contact/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/events/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/events/[id]/postcards/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/events/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/help/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/messages/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/notifications/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/postcards/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/profile/edit/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/profile/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/settings/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/settings/privacy/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/social/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/(dashboard-route)/user/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/[eventId]/analytics/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/[eventId]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/event/[singleEvent]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/event/create/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/dashboard/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/event-memory-app/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/faq/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/game/[token]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/how-it-works/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/launch/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/onboarding/vibes/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/organizer/payment/verify/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/party-photo-sharing/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/pledge/confirm/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/pledge/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/postcard/[id]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/pricing/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/privacy/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/purchase/[purchaseId]/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/terms/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/test-juicyway/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/use-cases/birthday-parties/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/use-cases/corporate-events/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/use-cases/festivals/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ],
+    "[project]/src/app/use-cases/weddings/page": [
+      "static/media/f141b5b7abe57afc-s.p.0de3c900.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

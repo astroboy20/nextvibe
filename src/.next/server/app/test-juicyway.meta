@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/test-juicyway/layout,_N_T_/test-juicyway/page,_N_T_/test-juicyway"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/test-juicyway/__PAGE__",
+    "/test-juicyway",
+    "/_index",
+    "/_head"
+  ]
+}

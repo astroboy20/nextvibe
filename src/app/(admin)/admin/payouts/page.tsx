@@ -27,7 +27,7 @@ import {
   type AdminPayout,
   type PayoutStatus,
 } from "@/app/provider/api/payoutApi";
-import { PAYOUT_STATUS_CONFIG } from "@/app/dashboard/(dashboard-route)/earnings/components/payout-status";
+import { PAYOUT_STATUS_CONFIG } from "@/app/(app)/earnings/components/payout-status";
 import {
   PayoutActionDialog,
   type PayoutAction,

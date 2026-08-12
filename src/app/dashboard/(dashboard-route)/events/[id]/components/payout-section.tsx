@@ -98,7 +98,7 @@ export function PayoutSection({ ticketTiers = [] }: PayoutSectionProps) {
           asChild
           className="w-full gap-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
         >
-          <Link href="/dashboard/earnings">
+          <Link href="/earnings">
             {hasAvailable ? "Withdraw earnings" : "View earnings"}
             <ArrowRight className="h-4 w-4" />
           </Link>
