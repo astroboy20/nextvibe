@@ -4,6 +4,19 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
 
 // ── Withdrawal types ──────────────────────────────────────────────────────────
+/**
+ * @deprecated Superseded by the payout system in `./payoutApi`.
+ *
+ * The old flow recomputed payout as the gross sum of an event's completed
+ * purchases on every request, never subtracting what had already been paid — so
+ * the same revenue could be requested repeatedly. It also had no admin path to
+ * approve or mark a request paid, and typed bank details in per request with no
+ * support for non-Nigerian accounts.
+ *
+ * Use `useGetBalancesQuery` / `useRequestPayoutMutation` from `./payoutApi`.
+ * Nothing references these any more; they remain only until the backend's
+ * `withdrawals` table is confirmed empty and dropped.
+ */
 export interface WithdrawalRecord {
   id: string;
   eventId: string;
@@ -759,11 +772,11 @@ export const eventsApi = createApi({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
-    // ── Withdrawal Requests ───────────────────────────────────────────────────
+    // ── Withdrawal Requests (DEPRECATED) ──────────────────────────────────────
     /**
+     * @deprecated Use `useRequestPayoutMutation` from `./payoutApi` instead.
+     *
      * POST /v1/events/:eventId/withdrawals
-     * Request payout of ticket revenue. Organizer only, event must be ENDED.
-     * Do NOT send amount — it's calculated server-side.
      */
     requestWithdrawal: builder.mutation<
       { data: WithdrawalRecord },
@@ -778,8 +791,9 @@ export const eventsApi = createApi({
     }),
 
     /**
+     * @deprecated Use `useGetMyPayoutsQuery` from `./payoutApi` instead.
+     *
      * GET /v1/events/:eventId/withdrawals
-     * List all withdrawal records for the event, most recent first. Organizer only.
      */
     getWithdrawals: builder.query<
       { data: WithdrawalRecord[] },

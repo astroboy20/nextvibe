@@ -18,6 +18,7 @@ import {
   Eye,
   LayoutDashboard,
   Play,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -252,6 +253,23 @@ const Profile = () => {
                           Dashboard
                         </h3>
                         <p className="text-base ">Manage your events</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/dashboard/earnings">
+                  <Card className="overflow-hidden border-emerald-600/20 bg-linear-to-br from-emerald-600/10 to-accent/10 hover:shadow-card transition-all">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600/20">
+                        <Banknote className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground text-2l">
+                          Earnings
+                        </h3>
+                        <p className="text-base ">Balance and payouts</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </CardContent>
