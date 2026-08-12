@@ -134,18 +134,21 @@ const steps = [
     title: "Create your birthday Vibe",
     desc: "Set up the celebration and customise the experience in a few minutes.",
     icon: Cake,
+    video: "/creation-1.mp4",
   },
   {
     n: "02",
     title: "Share one VibeTag",
     desc: "Send one simple tag or link to guests before and during the birthday.",
     icon: Tag,
+    video: "/qrcode-2.mp4",
   },
   {
     n: "03",
     title: "Keep every memory together",
     desc: "Guest photos, videos, postcards and interactions land in one organised memory bank.",
     icon: Images,
+    video: "/vibe-post-3.mp4",
   },
 ];
 
@@ -224,28 +227,26 @@ const offerFacts = [
 
 const testimonials = [
   {
-    name: "Femi A.",
-    role: "30th birthday host",
-    location: "Lekki, Lagos",
+    name: "Delightsome Asolo",
+    role: "Event Organiser",
+    location: "AWS Student Community Day",
+    date: "26/06/2026",
+    image: null as string | null,
+    logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
     quote:
-      "I collected 214 photos from my guests. The previous year, I only received nine through WhatsApp.",
-    initials: "FA",
+      "We planned AWS Student Community Day with over 500 attendees in mind and NextVibe served as an all-in-one event management solution for us. The gamification feature we used on the event day was the perfect combination of seamless and fun. I particularly had fun watching our audience climb up the leaderboard. Thank you to the team at NextVibe.",
+    initials: "DA",
   },
   {
-    name: "Adaeze O.",
-    role: "Surprise party host",
-    location: "Yaba, Lagos",
+    name: "Olajumoke",
+    role: "Birthday host",
+    location: "",
+    date: "12/07/2026",
+    image: "/olajumoke.jpg",
+    logo: null as string | null,
     quote:
-      "The trivia had everybody screaming. Best ₦5,000 I have ever spent on a party.",
-    initials: "AO",
-  },
-  {
-    name: "Zainab M.",
-    role: "Twins' birthday host",
-    location: "Ikoyi, Lagos",
-    quote:
-      "Setup took four minutes. The gallery still makes me cry every time I open it.",
-    initials: "ZM",
+      "I had such an amazing birthday experience with my community! 💜 It was so much fun bringing everyone together, and the giveaway made it even more exciting. Huge thanks to nextvibe for making the experience possible. 🎉 I can't wait to create more amazing memories like this!",
+    initials: "OJ",
   },
 ];
 
@@ -340,8 +341,11 @@ export default function BirthdayFunnel() {
   const [showOtherTypes, setShowOtherTypes] = useState(false);
   const [selectedTier, setSelectedTier] = useState<CampaignTier | null>(null);
   const [tierQuote, setTierQuote] = useState<TierQuote | null>(null);
+  const [isGift, setIsGift] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [giftEmail, setGiftEmail] = useState("");
+  const [giftName, setGiftName] = useState("");
   const [eventDate, setEventDate] = useState<Date | undefined>(undefined);
   const [videoPlaying, setVideoPlaying] = useState(false);
 
@@ -391,6 +395,10 @@ export default function BirthdayFunnel() {
     e.preventDefault();
     if (!email.includes("@") || !name.trim()) {
       toast.error("Add your name and a real email so we can send your VibeTag");
+      return;
+    }
+    if (isGift && (!giftEmail.includes("@") || !giftName.trim())) {
+      toast.error("Add the recipient's name and a valid email for the gift");
       return;
     }
     setStep(4);
@@ -654,8 +662,15 @@ export default function BirthdayFunnel() {
                   </div>
                   <h3 className="text-lg font-bold">{s.title}</h3>
                   <p className="text-sm text-muted-foreground">{s.desc}</p>
-                  <div className="mt-1 flex aspect-[4/3] items-center justify-center rounded-xl bg-secondary/60">
-                    <Icon className="size-10 text-primary/30" />
+                  <div className="mt-1 overflow-hidden rounded-xl bg-secondary/60">
+                    <video
+                      src={s.video}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="h-auto w-full object-cover"
+                    />
                   </div>
                 </div>
               );
@@ -760,7 +775,7 @@ export default function BirthdayFunnel() {
           <h2 className="text-center text-2xl font-bold md:text-4xl">
             Hosts who already vibed
           </h2>
-          <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-4 md:grid-cols-3">
+          <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-4 md:grid-cols-2">
             {testimonials.map((t) => (
               <div
                 key={t.name}
@@ -778,15 +793,34 @@ export default function BirthdayFunnel() {
                   &ldquo;{t.quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3 border-t border-border pt-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
-                    {t.initials}
-                  </div>
-                  <div>
+                  {/* Avatar — photo if available, else initials */}
+                  {t.image ? (
+                    <Image
+                      src={t.image}
+                      alt={t.name}
+                      width={44}
+                      height={44}
+                      className="size-11 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+                      {t.initials}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-primary">{t.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t.role} · {t.location}
+                      {t.role}{t.location ? ` · ${t.location}` : ""} · {t.date}
                     </p>
                   </div>
+                  {/* Logo if available */}
+                  {t.logo && (
+                    <img
+                      src={t.logo}
+                      alt={t.location}
+                      className="h-6 w-auto shrink-0 object-contain opacity-70"
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -1054,6 +1088,8 @@ export default function BirthdayFunnel() {
                       </span>
                     </div>
                   )}
+
+                  {/* Your details */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="funnel-name">Your name</Label>
                     <Input
@@ -1065,7 +1101,7 @@ export default function BirthdayFunnel() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="funnel-email">Email</Label>
+                    <Label htmlFor="funnel-email">Your email</Label>
                     <Input
                       id="funnel-email"
                       type="email"
@@ -1075,7 +1111,72 @@ export default function BirthdayFunnel() {
                       className="h-14 text-base"
                     />
                   </div>
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row ">
+
+                  {/* Gift toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setIsGift((v) => !v)}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
+                      isGift
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-background",
+                    )}
+                  >
+                    <div>
+                      <p className="font-semibold text-sm">🎁 This is a gift</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Send the VibeTag to someone else's birthday
+                      </p>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors",
+                        isGift
+                          ? "border-primary bg-primary"
+                          : "border-border bg-secondary",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block h-4 w-4 rounded-full bg-white shadow transition-transform",
+                          isGift ? "translate-x-5" : "translate-x-0.5",
+                        )}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Recipient fields — shown when gift is toggled on */}
+                  {isGift && (
+                    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/20 p-4">
+                      <p className="text-sm font-semibold text-primary">
+                        Recipient details
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="gift-name">Recipient&apos;s name</Label>
+                        <Input
+                          id="gift-name"
+                          value={giftName}
+                          onChange={(e) => setGiftName(e.target.value)}
+                          placeholder="Temi"
+                          className="h-14 text-base"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="gift-email">Recipient&apos;s email</Label>
+                        <Input
+                          id="gift-email"
+                          type="email"
+                          value={giftEmail}
+                          onChange={(e) => setGiftEmail(e.target.value)}
+                          placeholder="temi@email.com"
+                          className="h-14 text-base"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
                     <Button
                       type="button"
                       variant="outline"
@@ -1138,6 +1239,8 @@ export default function BirthdayFunnel() {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
                     <Button
                       type="button"
@@ -1147,7 +1250,7 @@ export default function BirthdayFunnel() {
                     >
                       Back
                     </Button>
-                    <Button type="submit" size="lg" className="flex-1">
+                    <Button type="submit" size="lg"  className="w-full sm:w-auto sm:flex-1">
                       Continue
                       <ArrowRight className="size-5" />
                     </Button>
