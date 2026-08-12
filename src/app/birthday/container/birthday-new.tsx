@@ -74,6 +74,7 @@ interface TierDef {
   tagline: string;
 }
 
+
 const TIERS: TierDef[] = [
   {
     id: "MICRO",
@@ -574,8 +575,9 @@ export default function BirthdayFunnel() {
                       ? "opacity-100"
                       : "pointer-events-none opacity-0"
                   )}
-                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${videoPlaying ? 1 : 0
-                    }&rel=0&modestbranding=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
+                    videoPlaying ? 1 : 0
+                  }&rel=0&modestbranding=1`}
                   title="NextVibe product tour"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -810,7 +812,8 @@ export default function BirthdayFunnel() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-primary">{t.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t.role}{t.location ? ` · ${t.location}` : ""} · {t.date}
+                      {t.role}
+                      {t.location ? ` · ${t.location}` : ""} · {t.date}
                     </p>
                   </div>
                   {/* Logo if available */}
@@ -1002,7 +1005,7 @@ export default function BirthdayFunnel() {
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
                                 category === c.id &&
-                                "border-primary bg-primary/5"
+                                  "border-primary bg-primary/5"
                               )}
                             >
                               <Icon className="size-5 text-primary" />
@@ -1120,7 +1123,7 @@ export default function BirthdayFunnel() {
                       "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
                       isGift
                         ? "border-primary bg-primary/5"
-                        : "border-border bg-background",
+                        : "border-border bg-background"
                     )}
                   >
                     <div>
@@ -1134,13 +1137,13 @@ export default function BirthdayFunnel() {
                         "flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors",
                         isGift
                           ? "border-primary bg-primary"
-                          : "border-border bg-secondary",
+                          : "border-border bg-secondary"
                       )}
                     >
                       <span
                         className={cn(
                           "block h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          isGift ? "translate-x-5" : "translate-x-0.5",
+                          isGift ? "translate-x-5" : "translate-x-0.5"
                         )}
                       />
                     </div>
@@ -1163,7 +1166,9 @@ export default function BirthdayFunnel() {
                         />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Label htmlFor="gift-email">Recipient&apos;s email</Label>
+                        <Label htmlFor="gift-email">
+                          Recipient&apos;s email
+                        </Label>
                         <Input
                           id="gift-email"
                           type="email"
@@ -1186,7 +1191,11 @@ export default function BirthdayFunnel() {
                     >
                       Back
                     </Button>
-                    <Button type="submit" size="lg" className="w-full sm:w-auto sm:flex-1">
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full sm:w-auto sm:flex-1"
+                    >
                       Continue
                       <ArrowRight className="size-5" />
                     </Button>
@@ -1240,7 +1249,6 @@ export default function BirthdayFunnel() {
                     </Popover>
                   </div>
 
-
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
                     <Button
                       type="button"
@@ -1250,7 +1258,11 @@ export default function BirthdayFunnel() {
                     >
                       Back
                     </Button>
-                    <Button type="submit" size="lg"  className="w-full sm:w-auto sm:flex-1">
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full sm:w-auto sm:flex-1"
+                    >
                       Continue
                       <ArrowRight className="size-5" />
                     </Button>
