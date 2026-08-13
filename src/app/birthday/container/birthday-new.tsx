@@ -32,6 +32,8 @@ import {
   MessageSquareHeart,
   Loader2,
   CalendarIcon,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1406,6 +1408,35 @@ export default function BirthdayFunnel() {
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-8">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold md:text-4xl">Contact Us</h2>
+            <p className="mt-3 text-base text-muted-foreground">
+              Have questions? Reach out to us via phone or WhatsApp.
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <a
+                href="tel:+1234567890"
+                className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-3 text-base font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                <Phone className="size-5" />
+                Call: +234 705 177 0030
+              </a>
+              <a
+                href="https://wa.me/2347051770030?text=Hi%20NextVibe%2C%20I%20have%20a%20question!"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-3 text-base font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                <MessageCircle className="size-5" />
+                WhatsApp: +234 705 177 0030
+              </a>
+            </div>
           </div>
         </div>
       </section>
