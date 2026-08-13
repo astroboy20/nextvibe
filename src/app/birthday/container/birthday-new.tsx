@@ -1421,7 +1421,7 @@ export default function BirthdayFunnel() {
             </p>
             <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <a
-                href="tel:+1234567890"
+                href="tel:+234 705 177 0030"
                 className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-3 text-base font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 <Phone className="size-5" />
