@@ -11,6 +11,23 @@ import { PRIMARY_COLOR } from "@/utils/constants";
 import { Check, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Diverse pool of dummy person photos — each template card gets a stable random pick
+const DUMMY_PERSON_POOL = [
+  "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=300&q=80&auto=format&fit=crop", // woman smiling outdoors
+  "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=300&q=80&auto=format&fit=crop",   // man portrait
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80&auto=format&fit=crop", // woman portrait
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80&auto=format&fit=crop", // man smiling
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&q=80&auto=format&fit=crop", // woman laughing
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&q=80&auto=format&fit=crop", // man casual
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80&auto=format&fit=crop", // woman fashion
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&q=80&auto=format&fit=crop", // man street
+];
+
+/** Pick a stable dummy photo for each template based on its index */
+function getDummyBg(index: number): string {
+  return DUMMY_PERSON_POOL[index % DUMMY_PERSON_POOL.length];
+}
+
 const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
   all:         { label: "All",        emoji: "✨" },
   birthday:    { label: "Birthday",   emoji: "🎂" },
@@ -110,7 +127,7 @@ export default function Templates() {
         </button>
 
         {/* Template cards */}
-        {filtered.map((temp) => {
+        {filtered.map((temp, index) => {
           const isSelected = temp.id === selectedTemplate?.id;
           return (
             <button
@@ -122,12 +139,27 @@ export default function Templates() {
               )}
               style={{ aspectRatio: "3/4" }}
             >
+              {/* Dummy person background — stable per card, rotates through the pool */}
+              <img
+                src={getDummyBg(index)}
+                alt="Preview background"
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+
+              {/* Vibetag frame overlaid at 75% opacity so the dummy person bleeds through */}
               <img
                 src={temp.mock}
                 alt={temp.name}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ opacity: 0.75 }}
                 loading="lazy"
               />
+
+              {/* "Preview" pill so users know the background is just a dummy */}
+              <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5">
+                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-wide">Preview</p>
+              </div>
 
               {/* bottom label */}
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-2">
