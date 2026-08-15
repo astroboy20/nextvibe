@@ -28,7 +28,9 @@ const PUBLIC_ROUTES = [
   "/launch",
   "/pledge",
   "/onboarding",
-  "/birthday"
+  "/birthday",
+  "/birthday/verify",
+  "/campaigns/birthday"
 ];
 
 // Admin-only routes — protected by admin_accessToken

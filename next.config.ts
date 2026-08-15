@@ -56,6 +56,10 @@ const nextConfig: NextConfig = {
       { source: "/use-cases/festivals",        destination: "/use-cases/festivals" },
       { source: "/use-cases/corporate-events", destination: "/use-cases/corporate-events" },
 
+      // Campaign routes — /campaigns/birthday/* → /birthday/*
+      { source: "/campaigns/birthday/verify", destination: "/birthday/verify" },
+      { source: "/campaigns/birthday",        destination: "/birthday" },
+
       // Core public pages
       { source: "/about",       destination: "/about" },
       { source: "/how-it-works",destination: "/how-it-works" },
