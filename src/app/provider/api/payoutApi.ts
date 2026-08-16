@@ -174,6 +174,21 @@ export interface PayoutListResponse {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
+/** A Nigerian bank as Paystack knows it. `code` is what the API needs. */
+export interface Bank {
+  code: string;
+  name: string;
+  slug: string;
+}
+
+/** The bank's own answer to "who owns this account number?". */
+export interface ResolvedAccount {
+  accountNumber: string;
+  accountName: string;
+  bankCode: string;
+  bankName: string;
+}
+
 /** Every backend response is wrapped by the global ResponseInterceptor. */
 type Envelope<T> = { success: boolean; data: T };
 
@@ -225,6 +240,34 @@ export const payoutApi = createApi({
       keepUnusedDataFor: 3600,
     }),
 
+    /**
+     * GET /v1/payout-accounts/banks
+     * Nigerian banks from Paystack. Picking from this list is what removes the
+     * need to type a bank code at all.
+     */
+    getBanks: builder.query<Envelope<Bank[]>, { country?: string } | void>({
+      query: (params) =>
+        `/v1/payout-accounts/banks${params?.country ? `?country=${params.country}` : ""}`,
+      // Changes at most a few times a year.
+      keepUnusedDataFor: 3600,
+    }),
+
+    /**
+     * GET /v1/payout-accounts/resolve-account
+     * Asks the bank who owns an account number, so the name can be confirmed
+     * before saving. A lazy query — it fires when the number is complete, not
+     * on every keystroke.
+     */
+    resolveAccount: builder.query<
+      Envelope<ResolvedAccount>,
+      { accountNumber: string; bankCode: string }
+    >({
+      query: ({ accountNumber, bankCode }) =>
+        `/v1/payout-accounts/resolve-account?accountNumber=${encodeURIComponent(
+          accountNumber,
+        )}&bankCode=${encodeURIComponent(bankCode)}`,
+    }),
+
     getPayoutAccounts: builder.query<
       Envelope<PayoutAccount[]>,
       { currency?: string } | void
@@ -241,7 +284,8 @@ export const payoutApi = createApi({
         rail: PayoutRail;
         currency: string;
         country: string;
-        accountName: string;
+        /** Ignored for NIGERIAN_BANK — the server uses the bank's own record. */
+        accountName?: string;
         details: Record<string, string>;
         isDefault?: boolean;
       }
@@ -391,6 +435,8 @@ export const {
   useGetBalancesQuery,
   useGetStatementQuery,
   useGetSupportedPayoutOptionsQuery,
+  useGetBanksQuery,
+  useLazyResolveAccountQuery,
   useGetPayoutAccountsQuery,
   useCreatePayoutAccountMutation,
   useSetDefaultPayoutAccountMutation,
