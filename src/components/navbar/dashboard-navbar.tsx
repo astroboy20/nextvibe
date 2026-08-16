@@ -27,6 +27,7 @@ import {
   notificationLabel,
   notificationDot,
   hasActorPrefix,
+  notificationHref,
 } from "@/utils/notification-copy";
 
 // Copy now lives in @/utils/notification-copy so this and the notifications
@@ -48,11 +49,13 @@ function NotifItem({
   const dot = notificationDot(notif.type);
   const showActor = hasActorPrefix(notif);
 
+  const href = notificationHref(notif);
+
   const handleClick = () => {
     if (!notif.isRead) onRead(notif.id);
-    if (notif.actor?.id) {
+    if (href) {
       onClose();
-      router.push(`/users/${notif.actor.id}`);
+      router.push(href);
     }
   };
 
@@ -64,7 +67,8 @@ function NotifItem({
         !notif.isRead && "bg-primary/5"
       )}
     >
-      {/* Avatar */}
+      {/* Avatar — system notifications have no actor, so an initial would be
+          meaningless ("S" for the "Someone" fallback). Show a bell instead. */}
       <div className="relative shrink-0 mt-0.5">
         {notif.actor?.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -73,9 +77,13 @@ function NotifItem({
             alt={actor}
             className="w-8 h-8 rounded-full object-cover"
           />
-        ) : (
+        ) : notif.actor ? (
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
             {actor[0].toUpperCase()}
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <Bell className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
         )}
         {/* type dot */}

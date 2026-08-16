@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Bell, Heart, MessageCircle, UserPlus, Ticket,
   Gamepad2, Trophy, CheckCheck, Loader2,
+  CreditCard, CalendarClock, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -18,17 +19,31 @@ import {
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";
-import { notificationText } from "@/utils/notification-copy";
+import { notificationText, notificationHref } from "@/utils/notification-copy";
 
+/**
+ * Matched lowercase ("like") while the API sends the Prisma enum uppercase
+ * ("LIKE"), so every notification fell through to the generic bell — the same
+ * casing bug that made the text render as raw enums. Cases below are the real
+ * enum values, matched case-insensitively so it can't regress the same way.
+ */
 function notificationIcon(type: string) {
-  switch (type) {
-    case "like":    return <Heart className="h-4 w-4 text-red-500" />;
-    case "comment": return <MessageCircle className="h-4 w-4 text-blue-500" />;
-    case "follow":  return <UserPlus className="h-4 w-4 text-green-500" />;
-    case "rsvp":    return <Ticket className="h-4 w-4 text-amber-500" />;
-    case "game":    return <Gamepad2 className="h-4 w-4 text-purple-500" />;
-    case "reward":  return <Trophy className="h-4 w-4 text-amber-500" />;
-    default:        return <Bell className="h-4 w-4 text-muted-foreground" />;
+  switch (type?.toUpperCase()) {
+    case "LIKE":              return <Heart className="h-4 w-4 text-red-500" />;
+    case "COMMENT":           return <MessageCircle className="h-4 w-4 text-blue-500" />;
+    case "FOLLOW":
+    case "TAG":               return <UserPlus className="h-4 w-4 text-green-500" />;
+    case "RSVP":
+    case "CHECK_IN":          return <Ticket className="h-4 w-4 text-amber-500" />;
+    case "TICKET_PURCHASED":  return <Ticket className="h-4 w-4 text-emerald-600" />;
+    case "GAME_RESULT":       return <Trophy className="h-4 w-4 text-amber-500" />;
+    case "GAME_UNLOCKED":     return <Gamepad2 className="h-4 w-4 text-purple-500" />;
+    case "PAYMENT_CONFIRMED": return <CreditCard className="h-4 w-4 text-emerald-600" />;
+    case "PAYMENT_FAILED":    return <CreditCard className="h-4 w-4 text-destructive" />;
+    case "EVENT_REMINDER":
+    case "EVENT_PUBLISHED":   return <CalendarClock className="h-4 w-4 text-primary" />;
+    case "VIBETAG_ACTIVATED": return <Sparkles className="h-4 w-4 text-primary" />;
+    default:                  return <Bell className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
@@ -40,6 +55,8 @@ function NotificationItem({ notification }: { notification: Notification }) {
   const router = useRouter();
   const [markOne, { isLoading }] = useMarkOneReadMutation();
 
+  const href = notificationHref(notification);
+
   const handleClick = async () => {
     if (!notification.isRead) {
       try {
@@ -48,9 +65,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
         toast.error("Could not mark as read.");
       }
     }
-    if (notification.actor?.id) {
-      router.push(`/users/${notification.actor.id}`);
-    }
+    if (href) router.push(href);
   };
 
   return (
@@ -65,7 +80,15 @@ function NotificationItem({ notification }: { notification: Notification }) {
       <div className="relative shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={notification.actor?.avatarUrl} />
-          <AvatarFallback>{notification.actor?.username?.[0]?.toUpperCase()}</AvatarFallback>
+          {/* System notifications have no actor — an empty initial would render
+              as a blank circle, so fall back to a bell. */}
+          <AvatarFallback>
+            {notification.actor ? (
+              notification.actor.username?.[0]?.toUpperCase()
+            ) : (
+              <Bell className="h-4 w-4 text-muted-foreground" />
+            )}
+          </AvatarFallback>
         </Avatar>
         <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-background border border-border">
           {notificationIcon(notification.type)}

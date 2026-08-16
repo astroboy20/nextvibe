@@ -22,9 +22,43 @@ export type NotificationTargetType =
 export interface NotificationLike {
   type: string;
   targetType?: string | null;
-  actor?: { username?: string; displayName?: string | null } | null;
+  targetId?: string | null;
+  actor?: { id?: string; username?: string; displayName?: string | null } | null;
   /** Optional server-supplied text. Always wins when present. */
   message?: string | null;
+}
+
+/**
+ * Where tapping a notification should go.
+ *
+ * Both renderers used to navigate to the actor's profile unconditionally, which
+ * breaks now that system notifications actually reach the client — they have no
+ * actor, so the tap did nothing at all. Prefer the thing the notification is
+ * *about*; fall back to the actor; return null when there's nowhere sensible,
+ * so the caller can render it as non-interactive rather than a dead tap.
+ *
+ * Only mappings backed by a route that exists are listed. PAYMENT carries a
+ * payment id with no page to show it, so it deliberately falls through.
+ */
+export function notificationHref(n: NotificationLike): string | null {
+  const type = n.type?.toUpperCase();
+
+  // A won prize belongs on the rewards page, not on the game session — the only
+  // game route we have takes a share token, not the session id in targetId.
+  if (type === "GAME_RESULT" || type === "GAME_UNLOCKED") return "/rewards";
+
+  if (n.targetId) {
+    switch (n.targetType?.toUpperCase()) {
+      case "EVENT":
+        return `/events/${n.targetId}`;
+      case "POSTCARD":
+        return `/postcards/${n.targetId}`;
+      case "USER":
+        return `/users/${n.targetId}`;
+    }
+  }
+
+  return n.actor?.id ? `/users/${n.actor.id}` : null;
 }
 
 /** "your postcard" / "your event" — so LIKE copy isn't hardcoded to postcards. */
@@ -67,16 +101,19 @@ export function notificationLabel(n: NotificationLike): string {
       return "RSVP'd to your event";
     case "CHECK_IN":
       return "checked in to your event";
+    // Recipient is the *player*, not the organizer — sent both to winners and
+    // to everyone else once a round closes, so the wording has to suit both.
     case "GAME_RESULT":
-      return "played your game";
+      return "your game results are in";
     case "GAME_UNLOCKED":
-      return "unlocked a new game";
+      return "a game is ready to play";
     case "EVENT_REMINDER":
       return "your event is coming up";
     case "EVENT_PUBLISHED":
       return "your event is now live";
+    // Recipient is the buyer, so this is confirmation of their own purchase.
     case "TICKET_PURCHASED":
-      return "bought a ticket to your event";
+      return "your ticket is confirmed";
     case "PAYMENT_CONFIRMED":
       return "your payment was confirmed";
     case "PAYMENT_FAILED":
@@ -94,6 +131,12 @@ export function notificationLabel(n: NotificationLike): string {
  * System notifications ("your payment failed") read wrong with a name in front.
  */
 export function hasActorPrefix(n: NotificationLike): boolean {
+  // No actor, no name to prefix. This is the real guard: without it a system
+  // notification renders as "Someone your payment failed", because actorName()
+  // falls back to "Someone". The type list below is a second line of defence
+  // for types that read wrong with a name even when an actor happens to exist.
+  if (!n.actor) return false;
+
   const systemTypes = [
     "EVENT_REMINDER",
     "EVENT_PUBLISHED",
@@ -101,6 +144,8 @@ export function hasActorPrefix(n: NotificationLike): boolean {
     "PAYMENT_FAILED",
     "VIBETAG_ACTIVATED",
     "GAME_UNLOCKED",
+    "GAME_RESULT",
+    "TICKET_PURCHASED",
   ];
   return !systemTypes.includes(n.type?.toUpperCase() ?? "");
 }
