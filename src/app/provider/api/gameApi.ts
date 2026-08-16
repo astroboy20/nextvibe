@@ -16,20 +16,92 @@ export interface RewardTier {
     value: string | null;
 }
 
+/**
+ * Where a prize has got to. Replaced the `isClaimed` boolean, which couldn't
+ * tell a claim the organizer still has to action from one already handed over.
+ * WON → CLAIMED → APPROVED → FULFILLED, with REJECTED terminal off CLAIMED.
+ */
+export type RewardStatus =
+    | "WON" | "CLAIMED" | "APPROVED" | "FULFILLED" | "REJECTED";
+
+/**
+ * Ordered stages for the attendee's progress bar. REJECTED is deliberately not
+ * here — it ends the run rather than sitting on it, so it has no position.
+ *
+ * `as const` so RewardStage is the four stages and not the whole status union;
+ * that way a label map over it is checked for exhaustiveness against exactly
+ * the stages the bar renders.
+ */
+export const REWARD_STAGES = ["WON", "CLAIMED", "APPROVED", "FULFILLED"] as const;
+export type RewardStage = (typeof REWARD_STAGES)[number];
+
 export interface Reward {
     id: string;
     gameSessionId: string;
     gameRoundId: string | null;
     userId: string;
     rewardTierId: string;
-    isClaimed: boolean;
+    status: RewardStatus;
     claimedAt: string | null;
+    approvedAt: string | null;
+    fulfilledAt: string | null;
+    rejectedAt: string | null;
+    rejectionReason: string | null;
+    fulfilmentNote: string | null;
     createdAt: string;
     rewardTier: RewardTier;
     gameSession: {
         id: string;
         title: string | null;
         event: { id: string; name: string } | null;
+    };
+}
+
+interface RewardUser {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+    email?: string | null;
+}
+
+/** One call powering the whole organizer view. */
+export interface EventRewardsOverview {
+    event: { id: string; name: string };
+    sessions: { id: string; title: string | null; status: string }[];
+    availableRewards: (RewardTier & {
+        gameSessionId: string | null;
+        gameRoundId: string | null;
+        quantity: number;
+        isAwarded: boolean;
+    })[];
+    qualifiers: {
+        userId: string;
+        user: RewardUser;
+        gameSessionId: string;
+        totalScore: number;
+        sessionRank: number | null;
+        completedAt: string | null;
+    }[];
+    winners: {
+        rewardId: string;
+        user: RewardUser;
+        session: { id: string; title: string | null };
+        reward: RewardTier;
+        status: RewardStatus;
+        awardedAt: string;
+        claimedAt: string | null;
+        approvedAt: string | null;
+        fulfilledAt: string | null;
+        rejectedAt: string | null;
+        rejectionReason: string | null;
+        fulfilmentNote: string | null;
+    }[];
+    counts: {
+        awaitingReview: number;
+        awaitingHandover: number;
+        fulfilled: number;
+        unclaimed: number;
     };
 }
 
@@ -177,6 +249,49 @@ export const gamesApi = createApi({
             }),
             invalidatesTags: ["Rewards"],
         }),
+
+        // =======================
+        // Rewards (organizer)
+        // =======================
+        getEventRewardsOverview: build.query<
+            { success: boolean; data: EventRewardsOverview },
+            string
+        >({
+            query: (eventId) => `/v1/events/${eventId}/rewards/overview`,
+            providesTags: ["Rewards"],
+        }),
+
+        approveReward: build.mutation<ClaimRewardResponse, string>({
+            query: (rewardId) => ({
+                url: `/v1/rewards/${rewardId}/approve`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ["Rewards"],
+        }),
+
+        fulfilReward: build.mutation<
+            ClaimRewardResponse,
+            { rewardId: string; fulfilmentNote?: string }
+        >({
+            query: ({ rewardId, fulfilmentNote }) => ({
+                url: `/v1/rewards/${rewardId}/fulfil`,
+                method: "PATCH",
+                body: { fulfilmentNote },
+            }),
+            invalidatesTags: ["Rewards"],
+        }),
+
+        rejectReward: build.mutation<
+            ClaimRewardResponse,
+            { rewardId: string; rejectionReason: string }
+        >({
+            query: ({ rewardId, rejectionReason }) => ({
+                url: `/v1/rewards/${rewardId}/reject`,
+                method: "PATCH",
+                body: { rejectionReason },
+            }),
+            invalidatesTags: ["Rewards"],
+        }),
     }),
 });
 
@@ -198,4 +313,8 @@ export const {
     useGetLeaderBoardQuery,
     useGetMyRewardsQuery,
     useClaimRewardMutation,
+    useGetEventRewardsOverviewQuery,
+    useApproveRewardMutation,
+    useFulfilRewardMutation,
+    useRejectRewardMutation,
 } = gamesApi;

@@ -226,6 +226,22 @@ export const eventsApi = createApi({
       query: () => "/events/user",
     }),
 
+    /**
+     * GET /v1/events/me/created — events the signed-in user organizes.
+     *
+     * Note the `/v1` prefix, which most queries in this file omit. The backend
+     * sets a global `v1` prefix, so the unprefixed ones (including
+     * `getUserEvents` above, which targets a route that 404s) never reach a
+     * handler. Verified live: `/v1/events/me/created` answers 401,
+     * `/events/user` and `/v1/events/user` both 404.
+     */
+    getMyCreatedEvents: builder.query<
+      { success: boolean; data: { id: string; name: string }[] },
+      void
+    >({
+      query: () => "/v1/events/me/created",
+    }),
+
 
 
 
@@ -824,6 +840,7 @@ export const {
   useExploreQuery,
   useRecommendedEventsQuery,
   useGetUserEventsQuery,
+  useGetMyCreatedEventsQuery,
   useUploadGalleryMediaMutation,
   useGetUserGalleryMediaQuery,
   useGetPromotedGalleryItemsQuery,

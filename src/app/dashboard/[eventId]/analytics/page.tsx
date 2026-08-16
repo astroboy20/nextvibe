@@ -39,7 +39,7 @@
  *           sessions[{id,title,status,startsAt,playerCount}],
  *           winners[{rewardId, user{id,username,displayName,avatarUrl},
  *                    session{id,title}, reward{rank,type,title,value},
- *                    isClaimed, claimedAt, awardedAt}] }
+ *                    status, claimedAt, fulfilledAt, awardedAt}] }
  */
 
 import { use, useState } from "react";
@@ -407,7 +407,7 @@ function RevenueSection({ eventId }: { eventId: string }) {
 // data.sessions[]      → { id, title, status, startsAt, playerCount }
 // data.winners[]       → { rewardId, user{id,username,displayName,avatarUrl},
 //                          session{id,title}, reward{rank,type,title,value},
-//                          isClaimed, claimedAt, awardedAt }
+//                          status, claimedAt, fulfilledAt, awardedAt }
 //
 // winners arrive sorted by awardedAt ascending; re-sorted here by reward.rank
 // so 1st/2nd/3rd group naturally. reward.value is a string — CASH gets a ₦
@@ -522,11 +522,22 @@ function GamesAnalyticsSection({ eventId }: { eventId: string }) {
                           <p className="text-xs font-bold" style={{ color: BRAND }}>
                             {fmtRewardValue(w.reward)}
                           </p>
+                          {/* The API returns the full lifecycle now, not an
+                              isClaimed boolean — reading the old field here
+                              would have silently labelled every prize
+                              "Unclaimed". */}
                           <span className={cn(
                             "text-[10px] font-medium",
-                            w.isClaimed ? "text-green-600" : "text-amber-600",
+                            w.status === "FULFILLED" ? "text-green-600"
+                              : w.status === "REJECTED" ? "text-red-600"
+                              : w.status === "WON" ? "text-amber-600"
+                              : "text-blue-600",
                           )}>
-                            {w.isClaimed ? "Claimed" : "Unclaimed"}
+                            {w.status === "WON" ? "Unclaimed"
+                              : w.status === "CLAIMED" ? "Awaiting review"
+                              : w.status === "APPROVED" ? "Approved"
+                              : w.status === "FULFILLED" ? "Received"
+                              : "Declined"}
                           </span>
                         </div>
                       </div>
