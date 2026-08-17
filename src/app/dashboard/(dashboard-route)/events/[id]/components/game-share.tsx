@@ -23,6 +23,7 @@ interface GameScoreShareProps {
   rank: number;
   totalPlayers: number;
   eventName?: string;
+  eventFlierUrl?: string;
   gameType?: string;
   onClose?: () => void;
 }
@@ -33,6 +34,7 @@ export function GameScoreShare({
   rank,
   totalPlayers,
   eventName,
+  eventFlierUrl,
 }: GameScoreShareProps) {
   const [copied, setCopied] = useState(false);
 
@@ -86,6 +88,30 @@ export function GameScoreShare({
 
   const handleNativeShare = async () => {
     if (navigator.share) {
+      // Try to attach the event flier image
+      if (eventFlierUrl) {
+        try {
+          const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(eventFlierUrl)}`;
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], "event-flier.jpg", { type: blob.type || "image/jpeg" });
+            if (navigator.canShare?.({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: `I scored ${score} in ${gameName}!`,
+                text: getShareText(),
+                url: shareUrl,
+              });
+              return;
+            }
+          }
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+          // fall through to URL-only share
+        }
+      }
+
       try {
         await navigator.share({
           title: `I scored ${score} in ${gameName}!`,
@@ -95,7 +121,6 @@ export function GameScoreShare({
       } catch (err: any) {
         console.log("Share failed:", err);
         errorHandler(err)
-        // User cancelled or error
       }
     }
   };

@@ -82,6 +82,46 @@ export const VibeTags: Template[] = [
     category: "birthday",
     id: "birthday5",
   },
+  {
+    name: "Example Birthday",
+    mock: "https://res.cloudinary.com/dwhg0s0hw/image/upload/w_200,q_20,f_auto/v1742067819/nextvibe/templates/birthday/Mockup__1_kcithy.png",
+    frame:
+      "https://res.cloudinary.com/dfllpht1m/image/upload/v1786989628/Birthday_6_aug6et.png",
+    category: "birthday",
+    id: "birthday6",
+  },
+  {
+    name: "Example Birthday",
+    mock: "https://res.cloudinary.com/dwhg0s0hw/image/upload/w_200,q_20,f_auto/v1742067819/nextvibe/templates/birthday/Mockup__1_kcithy.png",
+    frame:
+      "https://res.cloudinary.com/dfllpht1m/image/upload/v1786989602/Birthday_7_oduz9u.png",
+    category: "birthday",
+    id: "birthday7",
+  },
+  {
+    name: "Example Birthday",
+    mock: "https://res.cloudinary.com/dwhg0s0hw/image/upload/w_200,q_20,f_auto/v1742067819/nextvibe/templates/birthday/Mockup__1_kcithy.png",
+    frame:
+      "https://res.cloudinary.com/dfllpht1m/image/upload/v1786989596/Birthday_8_s5gedq.png",
+    category: "birthday",
+    id: "birthday8",
+  },
+  {
+    name: "Example Birthday",
+    mock: "https://res.cloudinary.com/dwhg0s0hw/image/upload/w_200,q_20,f_auto/v1742067819/nextvibe/templates/birthday/Mockup__1_kcithy.png",
+    frame:
+      "https://res.cloudinary.com/dfllpht1m/image/upload/v1786989598/Birthday_9_tqugoj.png",
+    category: "birthday",
+    id: "birthday9",
+  },
+  {
+    name: "Example Birthday",
+    mock: "https://res.cloudinary.com/dwhg0s0hw/image/upload/w_200,q_20,f_auto/v1742067819/nextvibe/templates/birthday/Mockup__1_kcithy.png",
+    frame:
+      "https://res.cloudinary.com/dfllpht1m/image/upload/v1786989569/Birthday_10_h1vbdr.png",
+    category: "birthday",
+    id: "birthday10",
+  },
 
 
   {
@@ -148,7 +188,7 @@ export const VibeTags: Template[] = [
     category: "prom",
     id: "prom3",
   },
- 
+
 ];
 
 // export const christianFestivities: Template[] = [

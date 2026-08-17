@@ -233,6 +233,30 @@ function PostcardCard({
     e.stopPropagation();
     const shareLink = `${window.location.origin}/postcard/${postcardId}`;
     await recordShare({ targetType: "postcard", targetId: postcardId, platform: "copy" }).catch(() => {});
+
+    if (navigator.share && mediaUrl && !isVideo) {
+      try {
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(mediaUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], "postcard.jpg", { type: blob.type || "image/jpeg" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: "Check out this postcard on NextVibe",
+              text: postcard.caption ?? "Check out this postcard on NextVibe",
+              url: shareLink,
+            });
+            return;
+          }
+        }
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
+        // fall through to URL-only share
+      }
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({ title: "Check out this postcard on NextVibe", url: shareLink });
