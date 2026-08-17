@@ -166,12 +166,27 @@ export function AddPayoutAccountDialog({ open, onOpenChange, defaultCurrency }: 
     setRail(next);
     // Clear details — the previous rail's fields don't apply to the new one.
     setDetails({});
-    if (!currency && RAIL_DEFAULT_CURRENCY[next]) {
-      setCurrency(RAIL_DEFAULT_CURRENCY[next]!);
-    }
-    if (!country && RAIL_DEFAULT_COUNTRY[next]) {
-      setCountry(RAIL_DEFAULT_COUNTRY[next]!);
-    }
+
+    /**
+     * The rail's defaults win, unconditionally.
+     *
+     * These used to be guarded with `if (!currency)` / `if (!country)`, so they
+     * only ever applied to the *first* rail picked. Choosing "Nigerian bank"
+     * and then switching to "US bank account (ACH)" left the form on Nigeria
+     * and NGN — a US ACH account described as Nigerian, in naira. Picking a
+     * rail is a strong statement about where the money lands, so it has to
+     * override what the previous rail implied.
+     */
+    const railCurrency = RAIL_DEFAULT_CURRENCY[next];
+    if (railCurrency) setCurrency(railCurrency);
+
+    /**
+     * Cleared rather than left stale for rails that span countries — SEPA,
+     * Wise, PayPal, SWIFT, mobile money. Carrying the old country over would
+     * silently attach the wrong one to the new account details; an empty field
+     * forces a deliberate choice instead.
+     */
+    setCountry(RAIL_DEFAULT_COUNTRY[next] ?? "");
   };
 
   /**
@@ -325,7 +340,8 @@ export function AddPayoutAccountDialog({ open, onOpenChange, defaultCurrency }: 
                       <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Country" />
                       </SelectTrigger>
-                      <SelectContent>
+                      {/* Capped — this is the full ISO country list. */}
+                      <SelectContent className="max-h-64">
                         {COUNTRIES.map((c) => (
                           <SelectItem key={c.code} value={c.code}>
                             {c.name}
