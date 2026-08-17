@@ -255,7 +255,7 @@ function WinnerRow({ winner }: { winner: Winner }) {
 
 export function OrganizerRewards() {
   const { data: eventsData, isLoading: loadingEvents } = useGetMyCreatedEventsQuery();
-  const events: { id: string; name: string }[] = eventsData?.data ?? [];
+  const events = eventsData?.data?.data ?? [];
 
   const [selectedId, setSelectedId] = useState<string>("");
   // Default to the first event once they load, without an effect: derived

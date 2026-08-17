@@ -160,7 +160,7 @@ export default function RewardsPage() {
   // The organizer half only exists for people who actually run events, so the
   // tabs are hidden entirely for everyone else rather than shown empty.
   const { data: eventsData } = useGetMyCreatedEventsQuery();
-  const isOrganizer = (eventsData?.data?.length ?? 0) > 0;
+  const isOrganizer = (eventsData?.data?.data?.length ?? 0) > 0;
 
   const unclaimed = rewards.filter((r) => r.status === "WON");
 
