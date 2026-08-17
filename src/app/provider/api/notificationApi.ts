@@ -36,7 +36,13 @@ export interface Notification {
   id: string;
   /** Widened with `string` so an unrecognised new type can't crash rendering. */
   type: NotificationTypeValue | string;
-  actor: NotificationActor;
+  /**
+   * Null for system-generated notifications — a payment confirmation or a game
+   * reward has no "who". Nullable on the backend as of the actorId migration;
+   * before that these notifications failed to insert at all, so the client had
+   * never actually seen one.
+   */
+  actor: NotificationActor | null;
   targetType?: string;
   targetId?: string;
   isRead: boolean;

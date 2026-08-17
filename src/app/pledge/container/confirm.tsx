@@ -46,7 +46,18 @@ export default function PledgeConfirm() {
   const [trigger, { data: statusData, isLoading, error }] =
     useLazyVerifyPledgeQuery();
 
-  const status = statusData?.status;
+  /**
+   * Normalised to uppercase because the API lowercases it on the way out
+   * (`verifyPledge` returns `pledge.status.toLowerCase()`) while every
+   * comparison below is written against the Prisma enum's uppercase form.
+   * Without this, `status !== "PENDING"` was always true and
+   * `status === "COMPLETED"` always false: polling never started and the page
+   * stayed stuck on "pending" even after the payment succeeded.
+   *
+   * Normalising here rather than rewriting the comparisons keeps this correct
+   * whichever casing the endpoint sends.
+   */
+  const status = statusData?.status?.toUpperCase();
   const pledge = statusData?.pledge;
 
   // Initial fetch + poll while PENDING

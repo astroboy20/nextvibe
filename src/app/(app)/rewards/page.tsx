@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import {
   Trophy, Gift, Coins, Ticket, Package, BadgeCheck,
-  Sparkles, Loader2, CheckCircle2,
+  Sparkles, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -17,6 +17,13 @@ import {
   type Reward,
   type RewardType,
 } from "@/app/provider/api/gameApi";
+import {
+  RewardProgress,
+  RewardStatusBadge,
+  rewardStatusHint,
+} from "./components/reward-progress";
+import { OrganizerRewards } from "./components/organizer-rewards";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function rewardIcon(type: RewardType) {
   switch (type) {
@@ -70,9 +77,11 @@ function RewardCard({ reward }: { reward: Reward }) {
         <div
           className={cn(
             "shrink-0 h-11 w-11 rounded-full flex items-center justify-center",
-            reward.isClaimed
-              ? "bg-muted text-muted-foreground"
-              : "bg-primary/10 text-primary"
+            reward.status === "WON"
+              ? "bg-primary/10 text-primary"
+              : reward.status === "REJECTED"
+                ? "bg-destructive/10 text-destructive"
+                : "bg-muted text-muted-foreground"
           )}
         >
           {rewardIcon(tier.type)}
@@ -87,6 +96,7 @@ function RewardCard({ reward }: { reward: Reward }) {
             <Badge variant="secondary" className="text-[10px] shrink-0">
               {rewardTypeLabel(tier.type)}
             </Badge>
+            <RewardStatusBadge status={reward.status} />
           </div>
 
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -107,25 +117,35 @@ function RewardCard({ reward }: { reward: Reward }) {
             Won {formatDistanceToNow(new Date(reward.createdAt), { addSuffix: true })}
           </p>
 
-          {/* Action */}
-          <div className="mt-3">
-            {reward.isClaimed ? (
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
-                <CheckCircle2 className="h-4 w-4" />
-                Claimed
-                {reward.claimedAt && (
-                  <span className="text-xs font-normal text-muted-foreground">
-                    · {formatDistanceToNow(new Date(reward.claimedAt), { addSuffix: true })}
-                  </span>
-                )}
-              </span>
-            ) : (
+          {/* Where this prize has got to */}
+          <div className="mt-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+            <RewardProgress status={reward.status} />
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {rewardStatusHint(reward.status)}
+            </p>
+
+            {/* The organizer's own words, when there are any. */}
+            {reward.status === "REJECTED" && reward.rejectionReason && (
+              <p className="text-[11px] text-destructive mt-1.5">
+                &ldquo;{reward.rejectionReason}&rdquo;
+              </p>
+            )}
+            {reward.status === "FULFILLED" && reward.fulfilmentNote && (
+              <p className="text-[11px] text-foreground/80 mt-1.5">
+                {reward.fulfilmentNote}
+              </p>
+            )}
+          </div>
+
+          {/* Claiming is the only action an attendee has. */}
+          {reward.status === "WON" && (
+            <div className="mt-3">
               <Button size="sm" onClick={handleClaim} disabled={isLoading} className="gap-1.5">
                 {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Redeem Prize
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>
@@ -136,24 +156,10 @@ export default function RewardsPage() {
   const { data, isLoading, isError, refetch } = useGetMyRewardsQuery();
   const rewards: Reward[] = data?.data ?? [];
 
-  const unclaimed = rewards.filter((r) => !r.isClaimed);
+  const unclaimed = rewards.filter((r) => r.status === "WON");
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <Trophy className="h-6 w-6 text-primary" />
-        <h1 className="font-display text-2xl font-bold text-foreground">Your Rewards</h1>
-      </div>
-      <p className="text-sm text-muted-foreground mb-6">
-        Prizes you&apos;ve won from game sessions.
-        {unclaimed.length > 0 && (
-          <span className="text-primary font-medium">
-            {" "}You have {unclaimed.length} to redeem.
-          </span>
-        )}
-      </p>
-
+  const attendeeView = (
+    <>
       {/* Loading */}
       {isLoading && (
         <div className="space-y-3">
@@ -202,6 +208,46 @@ export default function RewardsPage() {
           ))}
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-center gap-2 mb-1">
+        <Trophy className="h-6 w-6 text-primary" />
+        <h1 className="font-display text-2xl font-bold text-foreground">Rewards</h1>
+      </div>
+      <p className="text-sm text-muted-foreground mb-6">
+        Prizes you&apos;ve won, and prizes you&apos;re giving out.
+        {unclaimed.length > 0 && (
+          <span className="text-primary font-medium">
+            {" "}You have {unclaimed.length} to redeem.
+          </span>
+        )}
+      </p>
+
+      {/* Both sections are always shown, like the tabs on Earnings.
+          These were previously hidden unless the user had created an event,
+          which meant an empty events list was indistinguishable from a broken
+          request — and made the organizer half undiscoverable for anyone
+          setting up their first event. Each tab owns its own empty state. */}
+      <Tabs defaultValue="mine">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="mine">
+            My rewards
+            {unclaimed.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unclaimed.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="manage">Manage</TabsTrigger>
+        </TabsList>
+        <TabsContent value="mine">{attendeeView}</TabsContent>
+        <TabsContent value="manage">
+          <OrganizerRewards />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

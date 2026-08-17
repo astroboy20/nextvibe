@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Play,
   Banknote,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -28,6 +29,7 @@ import {
   useGetUserBasicQuery,
   useGetUserActivityQuery,
 } from "@/app/provider/api/authApi";
+import { useGetMyRewardsQuery } from "@/app/provider/api/gameApi";
 import {
   PostcardViewer,
   type PostcardData,
@@ -98,6 +100,12 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("events");
   const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(null);
   const { data: currentUser, isLoading: isLoadingUser } = useGetUserQuery();
+
+  // Badge on the Rewards card. Unclaimed prizes are the only thing here that's
+  // time-sensitive, so the count is worth fetching just for the profile.
+  const { data: myRewards } = useGetMyRewardsQuery();
+  const unclaimedRewards =
+    myRewards?.data?.filter((r) => r.status === "WON").length ?? 0;
   const userId = currentUser?.data?.id;
 
   // Fetch basic user information
@@ -271,6 +279,30 @@ const Profile = () => {
                         </h3>
                         <p className="text-base ">Balance and payouts</p>
                       </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/rewards">
+                  <Card className="overflow-hidden border-amber-500/20 bg-linear-to-br from-amber-500/10 to-accent/10 hover:shadow-card transition-all">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
+                        <Trophy className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground text-2l">
+                          Rewards
+                        </h3>
+                        <p className="text-base ">Prizes you&apos;ve won</p>
+                      </div>
+                      {/* Unclaimed prizes are the whole reason to open this —
+                          surface the count so it doesn't need discovering. */}
+                      {unclaimedRewards > 0 && (
+                        <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {unclaimedRewards}
+                        </span>
+                      )}
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </CardContent>
                   </Card>

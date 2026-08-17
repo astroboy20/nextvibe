@@ -226,6 +226,37 @@ export const eventsApi = createApi({
       query: () => "/events/user",
     }),
 
+    /**
+     * GET /v1/events/me/created — events the signed-in user organizes.
+     *
+     * Note the `/v1` prefix, which most queries in this file omit. The backend
+     * sets a global `v1` prefix, so the unprefixed ones (including
+     * `getUserEvents` above, which targets a route that 404s) never reach a
+     * handler. Verified live: `/v1/events/me/created` answers 401,
+     * `/events/user` and `/v1/events/user` both 404.
+     */
+    getMyCreatedEvents: builder.query<
+      {
+        success: boolean;
+        /**
+         * Double-nested, and deliberately typed that way. The handler returns
+         * `{ data, meta }` for pagination and the global ResponseInterceptor
+         * wraps *that* in `{ success, data }` — so the array lives at
+         * `response.data.data`. Reading `response.data` gives the envelope, not
+         * a list, and `.length` on it is silently `undefined`.
+         */
+        data: {
+          data: { id: string; name: string }[];
+          meta: { total: number; page: number; limit: number; hasNext: boolean };
+        };
+      },
+      void
+    >({
+      // A high limit because this feeds an event picker, not a paged list —
+      // the default page size would hide events past the first page.
+      query: () => "/v1/events/me/created?limit=100",
+    }),
+
 
 
 
@@ -824,6 +855,7 @@ export const {
   useExploreQuery,
   useRecommendedEventsQuery,
   useGetUserEventsQuery,
+  useGetMyCreatedEventsQuery,
   useUploadGalleryMediaMutation,
   useGetUserGalleryMediaQuery,
   useGetPromotedGalleryItemsQuery,
