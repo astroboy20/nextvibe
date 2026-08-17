@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Gift, Loader2, Trophy, Users } from "lucide-react";
+import { AlertCircle, Gift, Loader2, Trophy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -254,7 +254,12 @@ function WinnerRow({ winner }: { winner: Winner }) {
 }
 
 export function OrganizerRewards() {
-  const { data: eventsData, isLoading: loadingEvents } = useGetMyCreatedEventsQuery();
+  const {
+    data: eventsData,
+    isLoading: loadingEvents,
+    isError: eventsError,
+    refetch: refetchEvents,
+  } = useGetMyCreatedEventsQuery();
   const events = eventsData?.data?.data ?? [];
 
   const [selectedId, setSelectedId] = useState<string>("");
@@ -271,6 +276,26 @@ export function OrganizerRewards() {
     return <Skeleton className="h-40 w-full rounded-xl" />;
   }
 
+  // A failed request and a genuinely empty list are different things, and
+  // saying "no events yet" for both is how a broken endpoint hides as normal
+  // behaviour. Keep them distinguishable — with a retry on the failure.
+  if (eventsError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <h3 className="font-semibold mb-1">Couldn&apos;t load your events</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          We can&apos;t tell which events are yours, so there&apos;s nothing to manage yet.
+        </p>
+        <Button variant="outline" onClick={() => refetchEvents()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -279,7 +304,7 @@ export function OrganizerRewards() {
         </div>
         <h3 className="font-semibold mb-1">No events yet</h3>
         <p className="text-sm text-muted-foreground">
-          Rewards you offer at your events will be managed here.
+          Create an event and add prizes to a game — you&apos;ll manage claims here.
         </p>
       </div>
     );

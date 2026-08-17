@@ -24,7 +24,6 @@ import {
 } from "./components/reward-progress";
 import { OrganizerRewards } from "./components/organizer-rewards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGetMyCreatedEventsQuery } from "@/app/provider/api/eventApi";
 
 function rewardIcon(type: RewardType) {
   switch (type) {
@@ -157,11 +156,6 @@ export default function RewardsPage() {
   const { data, isLoading, isError, refetch } = useGetMyRewardsQuery();
   const rewards: Reward[] = data?.data ?? [];
 
-  // The organizer half only exists for people who actually run events, so the
-  // tabs are hidden entirely for everyone else rather than shown empty.
-  const { data: eventsData } = useGetMyCreatedEventsQuery();
-  const isOrganizer = (eventsData?.data?.data?.length ?? 0) > 0;
-
   const unclaimed = rewards.filter((r) => r.status === "WON");
 
   const attendeeView = (
@@ -224,7 +218,7 @@ export default function RewardsPage() {
         <h1 className="font-display text-2xl font-bold text-foreground">Rewards</h1>
       </div>
       <p className="text-sm text-muted-foreground mb-6">
-        Prizes you&apos;ve won from game sessions.
+        Prizes you&apos;ve won, and prizes you&apos;re giving out.
         {unclaimed.length > 0 && (
           <span className="text-primary font-medium">
             {" "}You have {unclaimed.length} to redeem.
@@ -232,20 +226,28 @@ export default function RewardsPage() {
         )}
       </p>
 
-      {isOrganizer ? (
-        <Tabs defaultValue="mine">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="mine">My rewards</TabsTrigger>
-            <TabsTrigger value="manage">Manage</TabsTrigger>
-          </TabsList>
-          <TabsContent value="mine">{attendeeView}</TabsContent>
-          <TabsContent value="manage">
-            <OrganizerRewards />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        attendeeView
-      )}
+      {/* Both sections are always shown, like the tabs on Earnings.
+          These were previously hidden unless the user had created an event,
+          which meant an empty events list was indistinguishable from a broken
+          request — and made the organizer half undiscoverable for anyone
+          setting up their first event. Each tab owns its own empty state. */}
+      <Tabs defaultValue="mine">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="mine">
+            My rewards
+            {unclaimed.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unclaimed.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="manage">Manage</TabsTrigger>
+        </TabsList>
+        <TabsContent value="mine">{attendeeView}</TabsContent>
+        <TabsContent value="manage">
+          <OrganizerRewards />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
