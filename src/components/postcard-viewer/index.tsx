@@ -27,6 +27,7 @@ import {
   ImageOff,
   ChevronLeft,
   Eye,
+  Download,
 } from "lucide-react";
 import {
   useToggleLikePostcardMutation,
@@ -301,14 +302,14 @@ export function VideoPlayer({
         </div>
       )}
       {/* Unmute hint — fades out after 3s or on first tap */}
-      {showUnmuteHint && muted && (
+      {/* {showUnmuteHint && muted && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none animate-in fade-in duration-300">
           <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2">
             <VolumeX className="h-4 w-4 text-white" />
             <span className="text-white text-xs font-medium">Tap to unmute</span>
           </div>
         </div>
-      )}
+      )} */}
       {/* Mute / unmute icon badge */}
       <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm z-20">
         {muted ? (
@@ -528,6 +529,7 @@ export function PostcardViewer({
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
 
   // ─── Vertical swipe between postcards ────────────────────────────────────
@@ -750,6 +752,46 @@ export function PostcardViewer({
     }
     lastImageTapRef.current = now;
   }, [triggerLikeAnimation]);
+
+  const handleDownload = async () => {
+    const currentMedia = media[activeIndex];
+    if (!currentMedia?.mediaUrl) return;
+
+    setDownloading(true);
+    try {
+      const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("Failed to fetch media");
+
+      const blob = await res.blob();
+      const isVideo = currentMedia.mediaType === "VIDEO";
+      const ext = isVideo
+        ? blob.type.includes("webm") ? "webm" : "mp4"
+        : "png";
+
+      // Build filename: "{author}_{eventName}_{number}.{ext}"
+      const sanitise = (s: string) =>
+        s.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 40);
+      const authorPart = sanitise(resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "user");
+      const eventPart = sanitise(resolvedEventName ?? "event");
+      const number = activeIndex + 1;
+      const filename = `${authorPart}_${eventPart}_${number}.${ext}`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded!");
+    } catch {
+      toast.error("Could not download. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleShare = async () => {
     const currentMedia = media[activeIndex];
@@ -976,6 +1018,18 @@ export function PostcardViewer({
               <Loader2 className="h-6 w-6 animate-spin text-foreground" />
             ) : (
               <Send className="h-6 w-6 text-foreground" />
+            )}
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex items-center gap-1.5 disabled:opacity-50"
+            aria-label="Download"
+          >
+            {downloading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+            ) : (
+              <Download className="h-6 w-6 text-foreground" />
             )}
           </button>
           <div className="flex items-center gap-1.5  py-2 text-sm text-foreground shrink-0 ">
