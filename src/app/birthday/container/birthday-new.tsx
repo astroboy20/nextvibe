@@ -332,7 +332,7 @@ export default function BirthdayFunnel() {
   const signedUp = stats?.signedUp ?? 736;
   const claimedPct = useMemo(
     () => Math.min(100, (signedUp / SPOTS_TOTAL) * 100),
-    [signedUp]
+    [signedUp],
   );
   const isFull = stats?.isFull ?? false;
 
@@ -365,7 +365,7 @@ export default function BirthdayFunnel() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => setShowStickyCta(!entry.isIntersecting),
-      { rootMargin: "-80px 0px 0px 0px" }
+      { rootMargin: "-80px 0px 0px 0px" },
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -429,16 +429,25 @@ export default function BirthdayFunnel() {
     } catch (err: unknown) {
       const e = err as {
         status?: number;
-        data?: { error?: { code?: string; message?: string }; message?: string };
+        data?: {
+          error?: { code?: string; message?: string };
+          message?: string;
+        };
         message?: string;
       };
       // The API wraps errors as { success: false, error: { code, message } },
       // so the real reason lives at data.error.message — not data.message.
       const serverMessage = e?.data?.error?.message ?? e?.data?.message;
       if (e?.status === 409)
-        toast.error(serverMessage ?? "This email already has a confirmed spot.");
+        toast.error("This email already has a confirmed spot.");
+      else if (e?.status === 400)
+        // console.log(e)
+        // toast.error(e?.data?;
+        toast.error(e?.data?.error?.message);
       else
-        toast.error(serverMessage ?? e?.message ?? "Something went wrong.");
+        toast.error(
+          e?.data?.error?.message ?? e?.message ?? "Something went wrong.",
+        );
     }
   };
 
@@ -575,7 +584,7 @@ export default function BirthdayFunnel() {
                     "absolute inset-0 size-full transition-opacity duration-300",
                     videoPlaying
                       ? "opacity-100"
-                      : "pointer-events-none opacity-0"
+                      : "pointer-events-none opacity-0",
                   )}
                   src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
                     videoPlaying ? 1 : 0
@@ -943,7 +952,7 @@ export default function BirthdayFunnel() {
                   key={s}
                   className={cn(
                     "h-2 flex-1 rounded-full transition-colors",
-                    step >= s ? "bg-primary" : "bg-border"
+                    step >= s ? "bg-primary" : "bg-border",
                   )}
                 />
               ))}
@@ -967,7 +976,7 @@ export default function BirthdayFunnel() {
                       "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all hover:-translate-y-1 hover:shadow-sm",
                       category === "birthday"
                         ? "border-primary bg-primary/5"
-                        : "border-border bg-background"
+                        : "border-border bg-background",
                     )}
                   >
                     <Cake className="size-7 text-primary" />
@@ -1010,7 +1019,7 @@ export default function BirthdayFunnel() {
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
                                 category === c.id &&
-                                  "border-primary bg-primary/5"
+                                  "border-primary bg-primary/5",
                               )}
                             >
                               <Icon className="size-5 text-primary" />
@@ -1046,7 +1055,7 @@ export default function BirthdayFunnel() {
                           "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm",
                           selectedTier === t.id
                             ? "border-primary bg-primary/5"
-                            : "border-border bg-background"
+                            : "border-border bg-background",
                         )}
                       >
                         <div>
@@ -1128,7 +1137,7 @@ export default function BirthdayFunnel() {
                       "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
                       isGift
                         ? "border-primary bg-primary/5"
-                        : "border-border bg-background"
+                        : "border-border bg-background",
                     )}
                   >
                     <div>
@@ -1142,13 +1151,13 @@ export default function BirthdayFunnel() {
                         "flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors",
                         isGift
                           ? "border-primary bg-primary"
-                          : "border-border bg-secondary"
+                          : "border-border bg-secondary",
                       )}
                     >
                       <span
                         className={cn(
                           "block h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          isGift ? "translate-x-5" : "translate-x-0.5"
+                          isGift ? "translate-x-5" : "translate-x-0.5",
                         )}
                       />
                     </div>
@@ -1227,7 +1236,7 @@ export default function BirthdayFunnel() {
                           variant="outline"
                           className={cn(
                             "h-14 w-full justify-start text-left text-base font-normal",
-                            !eventDate && "text-muted-foreground"
+                            !eventDate && "text-muted-foreground",
                           )}
                         >
                           <CalendarIcon className="mr-3 size-5 shrink-0" />
@@ -1429,7 +1438,7 @@ export default function BirthdayFunnel() {
                 Call: +234 705 177 0030
               </a>
               <a
-               href="https://wa.me/2347051770030?text=Hi%20Nextvibe!%20👋%20I%E2%80%99m%20interested%20in%20learning%20more%20about%20your%20birthday%20celebration%20package.%20Could%20you%20please%20provide%20more%20details%20about%20the%20features%2C%20pricing%2C%20and%20how%20to%20get%20started%3F%20Looking%20forward%20to%20your%20response.%20Thank%20you!%20🎉"
+                href="https://wa.me/2347051770030?text=Hi%20Nextvibe!%20👋%20I%E2%80%99m%20interested%20in%20learning%20more%20about%20your%20birthday%20celebration%20package.%20Could%20you%20please%20provide%20more%20details%20about%20the%20features%2C%20pricing%2C%20and%20how%20to%20get%20started%3F%20Looking%20forward%20to%20your%20response.%20Thank%20you!%20🎉"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-3 text-base font-semibold text-primary transition-colors hover:bg-primary/10"
