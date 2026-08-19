@@ -429,15 +429,17 @@ export default function BirthdayFunnel() {
     } catch (err: unknown) {
       const e = err as {
         status?: number;
-        data?: { message?: string };
+        data?: { error: { message?: string } };
         message?: string;
       };
       if (e?.status === 409)
         toast.error("This email already has a confirmed spot.");
       else if (e?.status === 400)
-        toast.error("All 1,000 spots have been claimed!");
+        // console.log(e)
+        // toast.error(e?.data?;
+        toast.error(e?.data?.error?.message)
       else
-        toast.error(e?.data?.message ?? e?.message ?? "Something went wrong.");
+        toast.error(e?.data?.error?.message ?? e?.message ?? "Something went wrong.");
     }
   };
 
@@ -576,9 +578,8 @@ export default function BirthdayFunnel() {
                       ? "opacity-100"
                       : "pointer-events-none opacity-0"
                   )}
-                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
-                    videoPlaying ? 1 : 0
-                  }&rel=0&modestbranding=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${videoPlaying ? 1 : 0
+                    }&rel=0&modestbranding=1`}
                   title="NextVibe product tour"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -1009,7 +1010,7 @@ export default function BirthdayFunnel() {
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
                                 category === c.id &&
-                                  "border-primary bg-primary/5"
+                                "border-primary bg-primary/5"
                               )}
                             >
                               <Icon className="size-5 text-primary" />
@@ -1428,7 +1429,7 @@ export default function BirthdayFunnel() {
                 Call: +234 705 177 0030
               </a>
               <a
-               href="https://wa.me/2347051770030?text=Hi%20Nextvibe!%20👋%20I%E2%80%99m%20interested%20in%20learning%20more%20about%20your%20birthday%20celebration%20package.%20Could%20you%20please%20provide%20more%20details%20about%20the%20features%2C%20pricing%2C%20and%20how%20to%20get%20started%3F%20Looking%20forward%20to%20your%20response.%20Thank%20you!%20🎉"
+                href="https://wa.me/2347051770030?text=Hi%20Nextvibe!%20👋%20I%E2%80%99m%20interested%20in%20learning%20more%20about%20your%20birthday%20celebration%20package.%20Could%20you%20please%20provide%20more%20details%20about%20the%20features%2C%20pricing%2C%20and%20how%20to%20get%20started%3F%20Looking%20forward%20to%20your%20response.%20Thank%20you!%20🎉"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-3 text-base font-semibold text-primary transition-colors hover:bg-primary/10"
