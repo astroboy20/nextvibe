@@ -429,15 +429,16 @@ export default function BirthdayFunnel() {
     } catch (err: unknown) {
       const e = err as {
         status?: number;
-        data?: { message?: string };
+        data?: { error?: { code?: string; message?: string }; message?: string };
         message?: string;
       };
+      // The API wraps errors as { success: false, error: { code, message } },
+      // so the real reason lives at data.error.message — not data.message.
+      const serverMessage = e?.data?.error?.message ?? e?.data?.message;
       if (e?.status === 409)
-        toast.error("This email already has a confirmed spot.");
-      else if (e?.status === 400)
-        toast.error("All 1,000 spots have been claimed!");
+        toast.error(serverMessage ?? "This email already has a confirmed spot.");
       else
-        toast.error(e?.data?.message ?? e?.message ?? "Something went wrong.");
+        toast.error(serverMessage ?? e?.message ?? "Something went wrong.");
     }
   };
 
