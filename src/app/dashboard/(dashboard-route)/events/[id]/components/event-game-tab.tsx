@@ -354,15 +354,24 @@ function WordPuzzleGrid({
    * onPointerEnter on child elements never fires during a drag.
    */
   const cellFromPoint = useCallback((clientX: number, clientY: number): [number, number] | null => {
-    // Temporarily hide pointer-events on the grid so elementFromPoint can
-    // pierce through to the cell divs (they have touch-none so this is safe)
-    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-    if (!el) return null;
-    const rStr = el.dataset.row;
-    const cStr = el.dataset.col;
-    if (rStr === undefined || cStr === undefined) return null;
-    return [parseInt(rStr, 10), parseInt(cStr, 10)];
-  }, []);
+    // Derived from the grid's own geometry rather than by hit-testing the point.
+    // Hit-testing is unreliable here: while a pointer is captured, WebKit can
+    // return the capture target (the grid, which has no data-row) instead of the
+    // cell under the finger — so every move was discarded and the selection never
+    // grew past the cell it started on. Arithmetic has no such failure mode, is
+    // immune to anything overlaying the grid, and costs no hit test per move.
+    const el = gridRef.current;
+    if (!el || rows === 0 || cols === 0) return null;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+
+    // Clamped, so a finger that strays past the edge keeps dragging along it
+    // instead of dropping the selection.
+    const col = Math.min(cols - 1, Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * cols)));
+    const row = Math.min(rows - 1, Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * rows)));
+    return [row, col];
+  }, [rows, cols]);
 
   const applyDragHighlight = useCallback(
     (start: [number, number], end: [number, number]) => {
@@ -511,22 +520,16 @@ function WordPuzzleGrid({
         <div
           ref={gridRef}
           className="grid w-full gap-0.5 cursor-crosshair touch-none"
-          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+          style={{
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            // iOS only: suppress the long-press callout/magnifier, which can
+            // hijack a press-and-drag. `user-select: none` does not cover it.
+            WebkitTouchCallout: 'none',
+          }}
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
           onPointerCancel={onGridPointerCancel}
-          // If pointer leaves the grid entirely, commit whatever was selected
-          onPointerLeave={(e) => {
-            if (isDrawing.current && startCell.current) {
-              (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
-              isDrawing.current = false;
-              const end = currentCell.current ?? startCell.current;
-              handleSelectionComplete(startCell.current, end);
-              startCell.current = null;
-              currentCell.current = null;
-            }
-          }}
         >
           {grid.map((row, rIdx) =>
             row.map((letter, cIdx) => {
