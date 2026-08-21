@@ -729,12 +729,21 @@ export function GameCreationWizard({
           if (r.gameType === "word-puzzle") {
             // Backend scorer reads questions[0].hiddenWords[] — group all words there.
             // Grid is shared across all words in a puzzle (comes from AI wordPuzzleMeta).
-            const grid = r.questions[0]?.wordPuzzleMeta?.grid ?? [];
+            // Take the grid from whichever question actually carries one. Reading
+            // questions[0] blindly shipped `grid: []` whenever the first question
+            // was added or regenerated without grid metadata, and the player then
+            // had nothing to render.
+            const grid =
+              r.questions.find((q) => (q.wordPuzzleMeta?.grid?.length ?? 0) > 0)
+                ?.wordPuzzleMeta?.grid ?? [];
             const totalPoints = r.questions.reduce((sum, q) => sum + (q.points ?? 10), 0);
             const hiddenWords = r.questions
               .filter((q) => q.wordPuzzleMeta?.word)
               .map((q) => ({
                 word: q.wordPuzzleMeta!.word,
+                // Without the clue the player falls back to showing the word
+                // itself as its own hint, which gives the puzzle away.
+                clue: q.clue ?? q.question ?? "",
                 startCell: q.wordPuzzleMeta!.startCell,
                 endCell: q.wordPuzzleMeta!.endCell,
                 direction: q.wordPuzzleMeta!.direction,

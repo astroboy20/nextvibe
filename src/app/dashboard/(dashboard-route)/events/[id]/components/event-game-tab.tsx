@@ -95,11 +95,24 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
 
   // The wizard/backend submit word puzzles as a single wrapper — { grid, hiddenWords, points } —
   // not one element per word. Unwrap it so the rest of this function sees a flat word list.
+  // A stored grid counts only if it actually has rows. Word puzzles have shipped
+  // with `grid: []` when generation half-failed, and `Array.isArray([])` is true —
+  // so an empty grid used to sail through here and dead-end on "No grid data",
+  // even though hiddenWords[] carries the coordinates to rebuild it from.
+  const gridIsUsable = (g: any) =>
+    Array.isArray(g) && g.length > 0 && Array.isArray(g[0]) && g[0].length > 0;
+
   const wrapper =
-    questions.length === 1 && Array.isArray(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
+    questions.length === 1 && gridIsUsable(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
       ? questions[0]
       : null;
-  const flatEntries: any[] = wrapper ? wrapper.hiddenWords : questions;
+
+  // Grid unusable but the words survived — fall through to the rebuild paths below.
+  const orphanedWords =
+    !wrapper && questions.length === 1 && Array.isArray(questions[0]?.hiddenWords)
+      ? questions[0].hiddenWords
+      : null;
+  const flatEntries: any[] = wrapper ? wrapper.hiddenWords : (orphanedWords ?? questions);
 
   // Extract canonical word from whichever field the API provides
   const extractWord = (q: any): string =>
@@ -131,7 +144,10 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
   }
 
   // ── Case 1: backend provided coordinates ─────────────────────────────────
-  const hasCoords = rawWords.every(({ q }) => q.startCell && q.endCell);
+  // `every` is true for an empty array — without the length guard, a puzzle with no
+  // words took this branch and produced a 1x1 grid of random noise.
+  const hasCoords =
+    rawWords.length > 0 && rawWords.every(({ q }) => q.startCell && q.endCell);
   if (hasCoords) {
     let maxRow = 0, maxCol = 0;
     const hiddenWords: HiddenWord[] = rawWords.map(({ word, clue, q }) => {
