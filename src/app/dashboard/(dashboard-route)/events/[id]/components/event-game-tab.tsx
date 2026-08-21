@@ -498,16 +498,20 @@ function WordPuzzleGrid({
   }
 
   // Clamp cell size so large grids still fit on mobile
-  const cellSize = cols > 12 ? "h-7 w-7 text-xs" : cols > 8 ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm";
+  // Cells are sized by the grid, not fixed — a fixed size overflowed the viewport
+  // on phones at 11+ columns, and because the grid sets `touch-action: none` the
+  // scroll container around it could not be panned by touch, so those columns
+  // were unreachable and dragging over them did nothing.
+  const cellText = cols > 12 ? "text-[10px]" : cols > 10 ? "text-xs" : "text-sm";
 
   return (
     <div className="space-y-3 select-none">
       {/* Grid — all pointer events handled on the container */}
-      <div className="overflow-x-auto">
+      <div className="w-full max-w-sm mx-auto">
         <div
           ref={gridRef}
-          className="inline-grid gap-0.5 mx-auto cursor-crosshair touch-none"
-          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          className="grid w-full gap-0.5 cursor-crosshair touch-none"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
@@ -534,8 +538,8 @@ function WordPuzzleGrid({
                   data-row={rIdx}
                   data-col={cIdx}
                   className={cn(
-                    "flex items-center justify-center rounded-md font-bold touch-none",
-                    cellSize,
+                    "flex aspect-square items-center justify-center rounded-md font-bold touch-none",
+                    cellText,
                     state === "idle" && "bg-muted text-foreground",
                     state === "hovered" && "bg-[#531342]/30 text-[#531342]",
                     state === "selected" && "bg-[#531342]/50 text-white",
