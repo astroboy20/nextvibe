@@ -214,7 +214,8 @@ function PostcardCard({
     const prev = optimisticLiked;
     const prevCount = optimisticCount;
     setOptimisticLiked(!prev);
-    setOptimisticCount((c) => (prev ? c - 1 : c + 1));
+    // Clamp: never render a negative while the optimistic value is in flight.
+    setOptimisticCount((c) => Math.max(0, prev ? c - 1 : c + 1));
     try {
       const res = await toggleLikePostcard({
         eventId: postcard.event?.id ?? postcard.eventId ?? postcard.event_id ?? "",

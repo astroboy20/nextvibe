@@ -722,7 +722,9 @@ export function PostcardViewer({
     if (!postcard.id) return;
     const wasLiked = liked;
     setLiked(!wasLiked);
-    setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
+    // Clamp: the server count is authoritative, but never render a negative
+    // while the optimistic value is in flight.
+    setLikeCount((c) => Math.max(0, wasLiked ? c - 1 : c + 1));
     try {
       const result = await toggleLikeMutation({
         eventId,
@@ -732,7 +734,7 @@ export function PostcardViewer({
       if (result?.liked !== undefined) setLiked(result.liked);
     } catch {
       setLiked(wasLiked);
-      setLikeCount((c) => (wasLiked ? c + 1 : c - 1));
+      setLikeCount((c) => Math.max(0, wasLiked ? c + 1 : c - 1));
       toast.error("Could not update like.");
     }
   }, [liked, postcard.id, eventId, toggleLikeMutation]);
