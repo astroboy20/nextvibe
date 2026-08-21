@@ -765,9 +765,7 @@ export function PostcardViewer({
 
       const blob = await res.blob();
       const isVideo = currentMedia.mediaType === "VIDEO";
-      const ext = isVideo
-        ? blob.type.includes("webm") ? "webm" : "mp4"
-        : "png";
+      const ext = isVideo ? "mp4" : "png";
 
       // Build filename: "{author}_{eventName}_{number}.{ext}"
       const sanitise = (s: string) =>
