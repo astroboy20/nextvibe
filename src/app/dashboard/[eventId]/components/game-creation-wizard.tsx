@@ -426,12 +426,21 @@ export function GameCreationWizard({
         const puzzleItems: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
         rawQuestions = puzzleItems.flatMap((puzzle: any) => {
           const grid: string[][] = puzzle.grid ?? [];
-          const pointsPerWord: number = puzzle.points ?? 10;
           const hiddenWords: any[] = puzzle.hiddenWords ?? [];
+          // `puzzle.points` is the total for the whole grid, so it has to be
+          // shared across the words — not handed to each of them. Giving every
+          // word the full total made the submit step (which sums the questions)
+          // inflate the round by a factor of the word count, so word puzzles
+          // outscored every other game type on the same leaderboard.
+          const puzzleTotal: number = puzzle.points ?? 20;
+          const perWord = Math.max(
+            1,
+            Math.round(puzzleTotal / Math.max(1, hiddenWords.length)),
+          );
           return hiddenWords.map((hw: any) => ({
             ...hw,
             _grid: grid,
-            points: hw.points ?? pointsPerWord,
+            points: hw.points ?? perWord,
             timeLimitSecs: puzzle.timeLimitSecs ?? 15,
           }));
         });
