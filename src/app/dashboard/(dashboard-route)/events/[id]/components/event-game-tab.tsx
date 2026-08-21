@@ -176,6 +176,13 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
     return { grid, hiddenWords, timeLimitSecs };
   }
 
+  // No words at all — nothing was ever generated for this puzzle. Return an empty
+  // grid so the caller shows its empty state; auto-placing below would otherwise
+  // build a grid of pure random letters with nothing hidden in it.
+  if (rawWords.length === 0) {
+    return { grid: [], hiddenWords: [], timeLimitSecs };
+  }
+
   // ── Case 2: auto-place words in a generated grid ─────────────────────────
   const longestWord = rawWords.reduce((max, { word }) => Math.max(max, word.length), 0);
   const wordCount = rawWords.length;
