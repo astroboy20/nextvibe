@@ -27,6 +27,7 @@ import { useLoginMutation } from "@/app/provider/api/authApi";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -79,6 +80,7 @@ const LoginContent = () => {
         res?.data?.user?.role === "SUPER_ADMIN" ||
         res?.data?.user?.role === "ADMIN";
 
+      resetAuthRefreshState();
       await fetch("/api/auth/store-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

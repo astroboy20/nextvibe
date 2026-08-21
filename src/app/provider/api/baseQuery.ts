@@ -33,6 +33,17 @@ const rawBaseQuery = fetchBaseQuery({
 let isRefreshing = false;
 let pendingRequests: Array<{ resolve: () => void; reject: () => void }> = [];
 
+// Once a refresh comes back 401 the session is genuinely dead, and every
+// subsequent 401 would otherwise kick off its own doomed refresh — which is what
+// produced the long run of repeated `POST /api/auth/refresh 401` in the console.
+// Latch that state so the app fails fast until fresh credentials arrive.
+let refreshRejected = false;
+
+/** Called after a successful login/refresh so the app can recover. */
+export function resetAuthRefreshState() {
+  refreshRejected = false;
+}
+
 function flushQueue(succeeded: boolean) {
   const waiting = pendingRequests;
   pendingRequests = [];
@@ -94,6 +105,11 @@ export const baseQueryWithReauth: BaseQueryFn<
     return result;
   }
 
+  // Session already known dead — don't start another refresh that will 401 too.
+  if (refreshRejected) {
+    return result;
+  }
+
   // ── Another refresh is already in flight — queue this request ──────────────
   if (isRefreshing) {
     try {
@@ -113,9 +129,11 @@ export const baseQueryWithReauth: BaseQueryFn<
   try {
     // Refresh token is httpOnly — call the Next.js proxy route which reads it
     // server-side, calls the backend, and sets the new cookies in one step.
-    // Hard cap at 10 s so a hung refresh doesn't freeze the whole app.
+    // Hard cap so a hung refresh doesn't freeze the whole app. 20 s rather
+    // than 10 s: the API cold-starts on Render, and aborting too early used to
+    // strand the client with a refresh the server had already processed.
     const refreshController = new AbortController();
-    const refreshTimeout = setTimeout(() => refreshController.abort(), 10000);
+    const refreshTimeout = setTimeout(() => refreshController.abort(), 20000);
 
     let refreshRes: Response;
     try {
@@ -128,18 +146,27 @@ export const baseQueryWithReauth: BaseQueryFn<
     }
 
     if (refreshRes.ok) {
+      refreshRejected = false;
       flushQueue(true);
       // prepareHeaders will pick up the new accessToken cookie on retry
       return rawBaseQuery(args, api, extraOptions);
     }
 
-    // Refresh failed — clear session
+    // A 401/403 from the refresh route means the refresh token itself was
+    // rejected — the session is over. Any other status is a server-side blip,
+    // so keep the tokens and let the next request try again rather than
+    // logging the user out over a transient 500.
     flushQueue(false);
-    clearSessionAndRedirect(isAdminRoute);
+    if (refreshRes.status === 401 || refreshRes.status === 403) {
+      refreshRejected = true;
+      clearSessionAndRedirect(isAdminRoute);
+    }
     return result;
   } catch {
+    // Network error or the 20 s abort fired. We genuinely don't know whether the
+    // session is still valid, so don't destroy credentials that may be fine —
+    // an aborted refresh used to log people out mid-session.
     flushQueue(false);
-    clearSessionAndRedirect(isAdminRoute);
     return result;
   } finally {
     isRefreshing = false;

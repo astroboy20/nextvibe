@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { X, Loader2, Eye, EyeOff, Tag, RefreshCw, Sparkles } from "lucide-react";
+import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -109,6 +110,7 @@ export function AuthBottomSheet({
     refreshToken: string,
     isAdmin = false
   ) => {
+    resetAuthRefreshState();
     await fetch("/api/auth/store-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
