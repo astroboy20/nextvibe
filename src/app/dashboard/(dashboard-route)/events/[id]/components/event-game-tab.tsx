@@ -40,8 +40,20 @@ import { GameScoreShare } from "./game-share";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useGetUserQuery } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
+
+/** Read a persisted set of ids, tolerating absent/corrupt entries. */
+const readIdSet = (key: string): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
+};
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 
@@ -1537,8 +1549,9 @@ function SessionCard({
                   session.rounds.map((round: any) => {
                     const isRoundLive = round.status === "ACTIVE";
                     const isRoundEnded = round.status === "ENDED";
-                    // Check API hasSubmitted first, fall back to local playedRounds
-                    const alreadyPlayed = submittedRounds.has(round.id) || playedRounds.has(round.id);
+                    // submittedRounds is already the API's hasPlayed unioned
+                    // with the local cache — see its definition above.
+                    const alreadyPlayed = submittedRounds.has(round.id);
 
                     return (
                       <div
@@ -1732,6 +1745,8 @@ export function EventGamesTab({
   const [anonymousJoin] = useAnonymousJoinGameMutation();
   const [anonymousSubmit] = useAnonymousSubmitRoundMutation();
   const [anonId, setAnonId] = useState<string | null>(() => getAnonymousId());
+  // Identifies which account the local "played/joined" caches below belong to.
+  const { data: userData } = useGetUserQuery(undefined, { skip: !isLoggedIn });
 
   const [activePhase, setActivePhase] = useState<PhaseTab>("pre-event");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(
@@ -1745,39 +1760,65 @@ export function EventGamesTab({
   const [sessionDataMap, setSessionDataMap] = useState<Record<string, any>>({});
   // Holds refetch fns keyed by session id so we can invalidate on join/submit
   const sessionRefetchMap = useState<Record<string, () => void>>({})[0];
-  const [joinedSessions, setJoinedSessions] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
+  // Who these local caches belong to. They used to be keyed on the event alone,
+  // which made "already submitted" a property of the *browser* rather than of
+  // the account: sign in as someone else on the same device and you inherited
+  // the previous account's played rounds. And because localStorage is not
+  // browsing history, clearing history never cleared it either.
+  //
+  // `null` means "identity not resolved yet" — logged in but /users/me is still
+  // in flight. We deliberately neither read nor write while it's null, so a
+  // played round can't land in the wrong account's bucket.
+  const currentUserId: string | undefined = userData?.data?.id;
+  const identityKey = isLoggedIn
+    ? currentUserId
+      ? `u:${currentUserId}`
+      : null
+    : `anon:${anonId ?? "guest"}`;
+
+  const scopedKey = (prefix: string) =>
+    identityKey && eventProp?.id ? `${prefix}:${eventProp.id}:${identityKey}` : null;
+  const joinedSessionsKey = scopedKey("joinedSessions");
+  const playedRoundsKey = scopedKey("playedRounds");
+
+  const [joinedSessions, setJoinedSessions] = useState<Set<string>>(new Set());
+  // Persist played rounds so "hasPlayed" survives a page refresh. The server is
+  // still the source of truth for signed-in users (rounds[].hasPlayed); this is
+  // the only signal guests have, since their entries live in Redis under an
+  // anonymous id.
+  const [playedRounds, setPlayedRounds] = useState<Set<string>>(new Set());
+
+  // Reload both caches whenever the identity changes — sign-in, sign-out, or an
+  // account switch. Replacing the sets rather than merging is the entire point:
+  // nothing from the previous account survives the switch.
+  useEffect(() => {
+    if (!eventProp?.id) return;
+    // One-time purge of the pre-scoping keys, which were shared across accounts
+    // and are what leaves existing users stuck on "submitted".
     try {
-      const raw = localStorage.getItem(`joinedSessions:${eventProp?.id}`);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch { return new Set(); }
-  });
+      localStorage.removeItem(`playedRounds:${eventProp.id}`);
+      localStorage.removeItem(`joinedSessions:${eventProp.id}`);
+    } catch { }
+    setJoinedSessions(joinedSessionsKey ? readIdSet(joinedSessionsKey) : new Set());
+    setPlayedRounds(playedRoundsKey ? readIdSet(playedRoundsKey) : new Set());
+  }, [eventProp?.id, joinedSessionsKey, playedRoundsKey]);
 
   const markSessionJoined = (sessionId: string) => {
     setJoinedSessions((prev) => {
       const next = new Set(prev).add(sessionId);
-      try { localStorage.setItem(`joinedSessions:${eventProp?.id}`, JSON.stringify([...next])); } catch { }
+      if (joinedSessionsKey) {
+        try { localStorage.setItem(joinedSessionsKey, JSON.stringify([...next])); } catch { }
+      }
       return next;
     });
   };
 
-  // Persist played rounds in localStorage so "hasPlayed" survives page refresh.
-  // Key is scoped to the event so different events don't collide.
-  const playedRoundsKey = `playedRounds:${eventProp?.id}`;
-  const [playedRounds, setPlayedRounds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const raw = localStorage.getItem(playedRoundsKey);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-
   const markRoundPlayed = (roundId: string) => {
     setPlayedRounds((prev) => {
       const next = new Set(prev).add(roundId);
-      try { localStorage.setItem(playedRoundsKey, JSON.stringify([...next])); } catch { }
+      if (playedRoundsKey) {
+        try { localStorage.setItem(playedRoundsKey, JSON.stringify([...next])); } catch { }
+      }
       return next;
     });
   };

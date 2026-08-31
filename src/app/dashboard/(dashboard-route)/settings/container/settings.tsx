@@ -48,7 +48,11 @@ const Settings = () => {
       Cookies.remove("accessToken");
       Cookies.remove("refreshToken");
       toast.success("See you next time!");
-      router.push("/auth/login");
+      // Hard navigation, not router.push. A client-side push keeps the Redux
+      // store alive, so every RTK Query response cached under the old account
+      // — including game sessions with rounds[].hasPlayed — would be served to
+      // whoever signs in next on this device. Reloading throws all of it away.
+      window.location.href = "/auth/login";
     }
   };
 
