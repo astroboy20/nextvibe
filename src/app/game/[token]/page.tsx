@@ -57,11 +57,24 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
 
   // The wizard/backend submit word puzzles as a single wrapper — { grid, hiddenWords, points } —
   // not one element per word. Unwrap it so the rest of this function sees a flat word list.
+  // A stored grid counts only if it actually has rows. Word puzzles have shipped
+  // with `grid: []` when generation half-failed, and `Array.isArray([])` is true —
+  // so an empty grid used to sail through here and dead-end on "No grid data",
+  // even though hiddenWords[] carries the coordinates to rebuild it from.
+  const gridIsUsable = (g: any) =>
+    Array.isArray(g) && g.length > 0 && Array.isArray(g[0]) && g[0].length > 0;
+
   const wrapper =
-    questions.length === 1 && Array.isArray(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
+    questions.length === 1 && gridIsUsable(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
       ? questions[0]
       : null;
-  const flatEntries: any[] = wrapper ? wrapper.hiddenWords : questions;
+
+  // Grid unusable but the words survived — fall through to the rebuild paths below.
+  const orphanedWords =
+    !wrapper && questions.length === 1 && Array.isArray(questions[0]?.hiddenWords)
+      ? questions[0].hiddenWords
+      : null;
+  const flatEntries: any[] = wrapper ? wrapper.hiddenWords : (orphanedWords ?? questions);
 
   // Extract canonical word from whichever field the API provides
   const extractWord = (q: any): string =>
@@ -93,7 +106,10 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
   }
 
   // ── Case 1: backend provided coordinates ─────────────────────────────────
-  const hasCoords = rawWords.every(({ q }) => q.startCell && q.endCell);
+  // `every` is true for an empty array — without the length guard, a puzzle with no
+  // words took this branch and produced a 1x1 grid of random noise.
+  const hasCoords =
+    rawWords.length > 0 && rawWords.every(({ q }) => q.startCell && q.endCell);
   if (hasCoords) {
     let maxRow = 0, maxCol = 0;
     const hiddenWords: HiddenWord[] = rawWords.map(({ word, clue, q }) => {
@@ -120,6 +136,13 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
       for (let c = 0; c < cols; c++)
         if (!grid[r][c]) grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
     return { grid, hiddenWords, timeLimitSecs };
+  }
+
+  // No words at all — nothing was ever generated for this puzzle. Return an empty
+  // grid so the caller shows its empty state; auto-placing below would otherwise
+  // build a grid of pure random letters with nothing hidden in it.
+  if (rawWords.length === 0) {
+    return { grid: [], hiddenWords: [], timeLimitSecs };
   }
 
   // ── Case 2: auto-place words in a generated grid ─────────────────────────
@@ -252,13 +275,24 @@ function WordPuzzleGrid({
   }
 
   const cellFromPoint = useCallback((clientX: number, clientY: number): [number, number] | null => {
-    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-    if (!el) return null;
-    const rStr = el.dataset.row;
-    const cStr = el.dataset.col;
-    if (rStr === undefined || cStr === undefined) return null;
-    return [parseInt(rStr, 10), parseInt(cStr, 10)];
-  }, []);
+    // Derived from the grid's own geometry rather than by hit-testing the point.
+    // Hit-testing is unreliable here: while a pointer is captured, WebKit can
+    // return the capture target (the grid, which has no data-row) instead of the
+    // cell under the finger — so every move was discarded and the selection never
+    // grew past the cell it started on. Arithmetic has no such failure mode, is
+    // immune to anything overlaying the grid, and costs no hit test per move.
+    const el = gridRef.current;
+    if (!el || rows === 0 || cols === 0) return null;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+
+    // Clamped, so a finger that strays past the edge keeps dragging along it
+    // instead of dropping the selection.
+    const col = Math.min(cols - 1, Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * cols)));
+    const row = Math.min(rows - 1, Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * rows)));
+    return [row, col];
+  }, [rows, cols]);
 
   const applyDragHighlight = useCallback((start: [number, number], end: [number, number]) => {
     setCellStates((prev) => {
@@ -342,29 +376,28 @@ function WordPuzzleGrid({
 
   if (!grid.length) return <p className="text-xs text-muted-foreground text-center py-4">No grid data for this puzzle.</p>;
 
-  const cellSize = cols > 12 ? "h-7 w-7 text-xs" : cols > 8 ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm";
+  // Cells are sized by the grid, not fixed — a fixed size overflowed the viewport
+  // on phones at 11+ columns, and because the grid sets `touch-action: none` the
+  // scroll container around it could not be panned by touch, so those columns
+  // were unreachable and dragging over them did nothing.
+  const cellText = cols > 12 ? "text-[10px]" : cols > 10 ? "text-xs" : "text-sm";
 
   return (
     <div className="space-y-3 select-none">
-      <div className="overflow-x-auto">
+      <div className="w-full max-w-sm mx-auto">
         <div
           ref={gridRef}
-          className="inline-grid gap-0.5 mx-auto cursor-crosshair touch-none"
-          style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          className="grid w-full gap-0.5 cursor-crosshair touch-none"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            // iOS only: suppress the long-press callout/magnifier, which can
+            // hijack a press-and-drag. `user-select: none` does not cover it.
+            WebkitTouchCallout: 'none',
+          }}
           onPointerDown={onGridPointerDown}
           onPointerMove={onGridPointerMove}
           onPointerUp={onGridPointerUp}
           onPointerCancel={onGridPointerCancel}
-          onPointerLeave={(e) => {
-            if (isDrawing.current && startCell.current) {
-              (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
-              isDrawing.current = false;
-              const end = currentCell.current ?? startCell.current;
-              handleSelectionComplete(startCell.current, end);
-              startCell.current = null;
-              currentCell.current = null;
-            }
-          }}
         >
           {grid.map((row, rIdx) =>
             row.map((letter, cIdx) => {
@@ -375,8 +408,8 @@ function WordPuzzleGrid({
                   data-row={rIdx}
                   data-col={cIdx}
                   className={cn(
-                    "flex items-center justify-center rounded-md font-bold touch-none",
-                    cellSize,
+                    "flex aspect-square items-center justify-center rounded-md font-bold touch-none",
+                    cellText,
                     state === "idle" && "bg-muted text-foreground",
                     state === "hovered" && "bg-[#531342]/30 text-[#531342]",
                     state === "selected" && "bg-[#531342]/50 text-white",

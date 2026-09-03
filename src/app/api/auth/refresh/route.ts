@@ -25,8 +25,15 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ refreshToken }),
     });
 
+    // Distinguish "this refresh token is dead" from "the API had a bad moment".
+    // Both used to come back as 401, so a single upstream 500 or cold-start
+    // hiccup logged the user out. Only the former should end the session.
     if (!backendRes.ok) {
-      return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+      const rejected = backendRes.status === 401 || backendRes.status === 403;
+      return NextResponse.json(
+        { message: rejected ? "Refresh rejected" : "Refresh unavailable" },
+        { status: rejected ? 401 : 502 },
+      );
     }
 
     const json = await backendRes.json();
@@ -34,7 +41,8 @@ export async function POST(request: NextRequest) {
     const newRefreshToken: string = json.data?.refreshToken ?? json.refreshToken;
 
     if (!newAccessToken) {
-      return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+      // 2xx but an unusable body — that's an upstream fault, not a dead session.
+      return NextResponse.json({ message: "Refresh unavailable" }, { status: 502 });
     }
 
     const response = NextResponse.json({ accessToken: newAccessToken });
@@ -66,6 +74,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch {
-    return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+    // Couldn't reach the API at all. Leave the cookies alone — the session may
+    // well still be valid once the API is back.
+    return NextResponse.json({ message: "Refresh unavailable" }, { status: 502 });
   }
 }

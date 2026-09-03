@@ -142,7 +142,9 @@ export default function PrivacyPreferencesPage() {
       Cookies.remove("refreshToken");
 
       toast.success("Your account has been deleted. We're sorry to see you go.");
-      router.push("/auth/login");
+      // Hard navigation so the deleted account's cached API responses don't
+      // outlive it in the Redux store — see the same note in settings sign-out.
+      window.location.href = "/auth/login";
     } catch (err: any) {
       toast.error(
         err?.message || "Something went wrong. Please email privacy@nextvibe.app."

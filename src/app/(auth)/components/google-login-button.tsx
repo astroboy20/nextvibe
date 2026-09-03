@@ -8,6 +8,7 @@ import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -72,6 +73,7 @@ const GoogleLoginButtonInner = ({ onLoadingChange }: GoogleLoginButtonProps) => 
             res?.data?.user?.role === "SUPER_ADMIN" ||
             res?.data?.user?.role === "ADMIN";
 
+          resetAuthRefreshState();
           await fetch("/api/auth/store-token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

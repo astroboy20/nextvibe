@@ -426,12 +426,21 @@ export function GameCreationWizard({
         const puzzleItems: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
         rawQuestions = puzzleItems.flatMap((puzzle: any) => {
           const grid: string[][] = puzzle.grid ?? [];
-          const pointsPerWord: number = puzzle.points ?? 10;
           const hiddenWords: any[] = puzzle.hiddenWords ?? [];
+          // `puzzle.points` is the total for the whole grid, so it has to be
+          // shared across the words — not handed to each of them. Giving every
+          // word the full total made the submit step (which sums the questions)
+          // inflate the round by a factor of the word count, so word puzzles
+          // outscored every other game type on the same leaderboard.
+          const puzzleTotal: number = puzzle.points ?? 20;
+          const perWord = Math.max(
+            1,
+            Math.round(puzzleTotal / Math.max(1, hiddenWords.length)),
+          );
           return hiddenWords.map((hw: any) => ({
             ...hw,
             _grid: grid,
-            points: hw.points ?? pointsPerWord,
+            points: hw.points ?? perWord,
             timeLimitSecs: puzzle.timeLimitSecs ?? 15,
           }));
         });
@@ -729,12 +738,21 @@ export function GameCreationWizard({
           if (r.gameType === "word-puzzle") {
             // Backend scorer reads questions[0].hiddenWords[] — group all words there.
             // Grid is shared across all words in a puzzle (comes from AI wordPuzzleMeta).
-            const grid = r.questions[0]?.wordPuzzleMeta?.grid ?? [];
+            // Take the grid from whichever question actually carries one. Reading
+            // questions[0] blindly shipped `grid: []` whenever the first question
+            // was added or regenerated without grid metadata, and the player then
+            // had nothing to render.
+            const grid =
+              r.questions.find((q) => (q.wordPuzzleMeta?.grid?.length ?? 0) > 0)
+                ?.wordPuzzleMeta?.grid ?? [];
             const totalPoints = r.questions.reduce((sum, q) => sum + (q.points ?? 10), 0);
             const hiddenWords = r.questions
               .filter((q) => q.wordPuzzleMeta?.word)
               .map((q) => ({
                 word: q.wordPuzzleMeta!.word,
+                // Without the clue the player falls back to showing the word
+                // itself as its own hint, which gives the puzzle away.
+                clue: q.clue ?? q.question ?? "",
                 startCell: q.wordPuzzleMeta!.startCell,
                 endCell: q.wordPuzzleMeta!.endCell,
                 direction: q.wordPuzzleMeta!.direction,
