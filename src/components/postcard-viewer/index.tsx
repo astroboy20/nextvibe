@@ -765,7 +765,21 @@ export function PostcardViewer({
 
       const blob = await res.blob();
       const isVideo = currentMedia.mediaType === "VIDEO";
-      const ext = isVideo ? "mp4" : "png";
+      
+      // Determine extension based on actual blob type to preserve playability
+      let ext: string;
+      if (isVideo) {
+        if (blob.type.includes("webm")) {
+          ext = "webm";
+        } else if (blob.type.includes("mp4") || blob.type.includes("quicktime")) {
+          ext = "mp4";
+        } else {
+          // Fallback to checking URL if mime type is unclear
+          ext = currentMedia.mediaUrl.includes(".webm") ? "webm" : "mp4";
+        }
+      } else {
+        ext = "png";
+      }
 
       // Build filename: "{author}_{eventName}_{number}.{ext}"
       const sanitise = (s: string) =>

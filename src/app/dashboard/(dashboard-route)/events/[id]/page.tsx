@@ -33,12 +33,44 @@ const FLIER_MS = 5000;
 const FADE_MS = 700;
 
 const tabsConfig = [
-  { value: "about",    label: "About",       icon: <Info className="mr-1.5 h-4 w-4" />,       always: true  },
-  { value: "rsvp",     label: "RSVP",        icon: <Table className="mr-1.5 h-4 w-4" />,      always: true  },
-  { value: "qr",       label: "QR",          icon: <QrCode className="mr-1.5 h-4 w-4" />,     always: true  },
-  { value: "games",    label: "Games",       icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,   always: false, flag: "hasGame"    as const },
-  { value: "postcard", label: "Postcards",  icon: <Tag className="mr-1.5 h-4 w-4" />,        always: false, flag: "hasVibeTag" as const },
-  { value: "chat",     label: "Chat",        icon: <MessageCircle className="mr-1.5 h-4 w-4" />, always: true },
+  {
+    value: "about",
+    label: "About",
+    icon: <Info className="mr-1.5 h-4 w-4" />,
+    always: true,
+  },
+  {
+    value: "rsvp",
+    label: "RSVP",
+    icon: <Table className="mr-1.5 h-4 w-4" />,
+    always: true,
+  },
+  {
+    value: "qr",
+    label: "QR",
+    icon: <QrCode className="mr-1.5 h-4 w-4" />,
+    always: true,
+  },
+  {
+    value: "games",
+    label: "Games",
+    icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
+    always: false,
+    flag: "hasGame" as const,
+  },
+  {
+    value: "postcard",
+    label: "Postcards",
+    icon: <Tag className="mr-1.5 h-4 w-4" />,
+    always: false,
+    flag: "hasVibeTag" as const,
+  },
+  {
+    value: "chat",
+    label: "Chat",
+    icon: <MessageCircle className="mr-1.5 h-4 w-4" />,
+    always: true,
+  },
 ];
 
 function EventPageSkeleton({ onBack }: { onBack: () => void }) {
@@ -120,11 +152,7 @@ function EventPageSkeleton({ onBack }: { onBack: () => void }) {
   );
 }
 
-function EventPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(id);
   const router = useRouter();
@@ -160,7 +188,9 @@ function EventPage({
 
   const event = eventDetails?.data;
   const hasGame = event?.hasGame ?? false;
-  const hasVibeTag = event?.hasVibeTag ?? (Array.isArray(event?.vibeTag) && event.vibeTag.length > 0);
+  const hasVibeTag =
+    event?.hasVibeTag ??
+    (Array.isArray(event?.vibeTag) && event.vibeTag.length > 0);
 
   const visibleTabs = tabsConfig.filter(
     (t) => t.always || (t.flag === "hasGame" ? hasGame : hasVibeTag)
@@ -174,20 +204,32 @@ function EventPage({
   const [isSharing, setIsSharing] = useState(false);
 
   const handleShare = async () => {
-    const shareText = `Check out this event: ${eventDetails?.data?.name ?? "Event"}`;
+    const shareText = `Check out this event: ${
+      eventDetails?.data?.name ?? "Event"
+    }`;
 
     // Try to share with the flier image attached
     if (navigator.share && eventDetails?.data?.flierUrl) {
       setIsSharing(true);
       try {
-        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(eventDetails.data.flierUrl)}`;
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(
+          eventDetails.data.flierUrl
+        )}`;
         const res = await fetch(proxyUrl);
         if (res.ok) {
           const blob = await res.blob();
-          const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-          const file = new File([blob], `${eventDetails?.data?.name ?? "event"}-flier.${ext}`, {
-            type: blob.type || "image/jpeg",
-          });
+          const ext = blob.type.includes("png")
+            ? "png"
+            : blob.type.includes("webp")
+            ? "webp"
+            : "jpg";
+          const file = new File(
+            [blob],
+            `${eventDetails?.data?.name ?? "event"}-flier.${ext}`,
+            {
+              type: blob.type || "image/jpeg",
+            }
+          );
           if (navigator.canShare?.({ files: [file] })) {
             try {
               await navigator.share({
@@ -309,9 +351,7 @@ function EventPage({
   const isPrivate = event?.isPublic === false;
 
   if (isLoading) {
-    return (
-      <EventPageSkeleton onBack={() => router.push("/events")} />
-    );
+    return <EventPageSkeleton onBack={() => router.push("/events")} />;
   }
 
   const pageContent = (
@@ -442,10 +482,9 @@ function EventPage({
                 else p.delete("session");
                 if (roundId) p.set("round", roundId);
                 else p.delete("round");
-                router.replace(
-                  `${window.location.pathname}?${p.toString()}`,
-                  { scroll: false }
-                );
+                router.replace(`${window.location.pathname}?${p.toString()}`, {
+                  scroll: false,
+                });
               }}
             />
           </TabsContent>
@@ -488,9 +527,7 @@ function EventPage({
 import { Suspense } from "react";
 
 function EventPageFallback() {
-  return (
-    <EventPageSkeleton onBack={() => {}} />
-  );
+  return <EventPageSkeleton onBack={() => {}} />;
 }
 
 export default function EventPageWithSuspense({
