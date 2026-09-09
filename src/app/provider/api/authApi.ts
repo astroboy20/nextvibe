@@ -75,6 +75,26 @@ export const authApi = createApi({
                 }
             }
         }),
+        // Sets a password on a Google-only account, or changes an existing one.
+        // `currentPassword` is required only in the second case.
+        //
+        // The response carries a fresh token pair: changing the password
+        // invalidates every token minted beforehand, including the one this
+        // request was made with, so the caller must store the new pair or the
+        // very next request 401s.
+        setPassword: build.mutation<
+            any,
+            { newPassword: string; currentPassword?: string }
+        >({
+            query(body) {
+                return {
+                    url: "/v1/auth/password",
+                    method: "POST",
+                    body
+                }
+            },
+            invalidatesTags: ["User"],
+        }),
         getUser: build.query<any, void>({
             query() {
                 return {
@@ -181,4 +201,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation, useUpdateUserMutation, useGetPresignedUrlMutation } = authApi
+export const { useLoginMutation, useGoogleLoginMutation, useRegisterMutation, useVerifyEmailMutation, useResendverificationEmailMutation, useGetUserQuery, useGetMeQuery, useGetUserBasicQuery, useGetUserActivityQuery, useGetOrganizerEventsQuery, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation, useUpdateUserMutation, useGetPresignedUrlMutation, useSetPasswordMutation } = authApi

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, CheckCircle2, Info } from "lucide-react";
 
 import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
 import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
@@ -41,6 +41,11 @@ const LoginContent = () => {
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // Shown when the address belongs to a Google-created account with no
+  // password. A toast is the wrong shape for this: it is not a transient
+  // failure, it is an instruction the user needs to read and act on, and it
+  // carries a link. So it renders inline and persists until the next attempt.
+  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const [loginMutation, { isLoading }] = useLoginMutation();
   const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
@@ -73,6 +78,7 @@ const LoginContent = () => {
     const { email, password } = values;
 
     const body = { email, password };
+    setOauthNotice(null);
     try {
       const res = await loginMutation(body).unwrap();
 
@@ -109,6 +115,15 @@ const LoginContent = () => {
         error?.data?.message ||
         error?.message ||
         "Login failed. Please try again.";
+
+      // The backend distinguishes "wrong password" from "this account has no
+      // password because it was created with Google" — surface the second as
+      // guidance rather than as a failure.
+      if (error?.data?.error?.code === "OAUTH_ACCOUNT_NO_PASSWORD") {
+        setOauthNotice(msg);
+        return;
+      }
+
       toast.error(msg);
     }
   };
@@ -134,6 +149,20 @@ const LoginContent = () => {
             });
           }}
         />
+      )}
+      {oauthNotice && (
+        <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 mb-4">
+          <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p>{oauthNotice}</p>
+            <Link
+              href="/auth/forgot-password"
+              className="font-semibold underline underline-offset-2 hover:text-blue-700"
+            >
+              Set a password for this account
+            </Link>
+          </div>
+        </div>
       )}
       {resetSuccess && (
         <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 mb-4">
