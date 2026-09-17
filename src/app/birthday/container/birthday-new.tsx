@@ -332,7 +332,7 @@ export default function BirthdayFunnel() {
   const signedUp = stats?.signedUp ?? 736;
   const claimedPct = useMemo(
     () => Math.min(100, (signedUp / SPOTS_TOTAL) * 100),
-    [signedUp],
+    [signedUp]
   );
   const isFull = stats?.isFull ?? false;
 
@@ -365,7 +365,7 @@ export default function BirthdayFunnel() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => setShowStickyCta(!entry.isIntersecting),
-      { rootMargin: "-80px 0px 0px 0px" },
+      { rootMargin: "-80px 0px 0px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -446,7 +446,7 @@ export default function BirthdayFunnel() {
         toast.error(e?.data?.error?.message);
       else
         toast.error(
-          e?.data?.error?.message ?? e?.message ?? "Something went wrong.",
+          e?.data?.error?.message ?? e?.message ?? "Something went wrong."
         );
     }
   };
@@ -539,398 +539,6 @@ export default function BirthdayFunnel() {
         </div>
       </section>
 
-      {/* 3. Product video */}
-      <section
-        id="video"
-        className="border-t border-border/50 bg-secondary/30 py-16 md:py-24"
-      >
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2 className="text-2xl font-bold leading-tight md:text-4xl">
-              See how NextVibe brings every birthday memory together
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
-              From guest photos and video messages to birthday trivia and
-              postcards, see how one VibeTag turns your celebration into a
-              memory bank.
-            </p>
-
-            <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sm">
-              <div className="relative aspect-video w-full bg-secondary/40">
-                {!videoPlaying && (
-                  <button
-                    type="button"
-                    onClick={() => setVideoPlaying(true)}
-                    aria-label="Play the NextVibe product tour"
-                    className="group absolute inset-0 flex flex-col items-center justify-center gap-4"
-                  >
-                    <img
-                      src={`https://i.ytimg.com/vi/${YOUTUBE_ID}/maxresdefault.jpg`}
-                      alt="NextVibe birthday product tour thumbnail"
-                      className="absolute inset-0 size-full object-cover opacity-70"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-black/25" />
-                    <div className="relative flex size-20 items-center justify-center rounded-full border border-white/30 bg-white/90 text-primary shadow-sm transition-transform group-hover:scale-110">
-                      <Play className="size-8 translate-x-0.5 fill-current" />
-                    </div>
-                    <p className="relative text-lg font-bold text-white drop-shadow md:text-xl">
-                      Play the product tour
-                    </p>
-                  </button>
-                )}
-                <iframe
-                  className={cn(
-                    "absolute inset-0 size-full transition-opacity duration-300",
-                    videoPlaying
-                      ? "opacity-100"
-                      : "pointer-events-none opacity-0",
-                  )}
-                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
-                    videoPlaying ? 1 : 0
-                  }&rel=0&modestbranding=1`}
-                  title="NextVibe product tour"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  loading="lazy"
-                />
-                {videoPlaying && (
-                  <button
-                    type="button"
-                    onClick={() => setVideoPlaying(false)}
-                    aria-label="Stop video"
-                    className="absolute bottom-3 left-3 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-opacity hover:bg-black/70"
-                  >
-                    <span className="flex gap-0.5">
-                      <span className="h-3 w-1 rounded-sm bg-white" />
-                      <span className="h-3 w-1 rounded-sm bg-white" />
-                    </span>
-                    Stop
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-3 text-sm text-muted-foreground">
-              Watch the {VIDEO_DURATION}-minute product tour — no signup
-              required.
-            </p>
-
-            <Button
-              size="lg"
-              onClick={scrollToFunnel}
-              disabled={isFull}
-              className="mt-5 w-full sm:w-auto"
-            >
-              {CTA_LABEL} — ₦5,000
-              <ArrowRight className="size-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Quick proof strip */}
-      <section className="border-y border-border/50 py-10 md:py-14">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl my-8">
-            Perks
-          </h2>
-          <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {proofStrip.map((p) => {
-              const Icon = p.icon;
-              return (
-                <div
-                  key={p.label}
-                  className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm"
-                >
-                  <Icon className="size-5 shrink-0 text-primary" />
-                  <p className="text-sm font-semibold leading-snug">
-                    {p.label}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 5. How it works */}
-      <section className="py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
-            How Nextvibe works
-          </h2>
-          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
-            {steps.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div
-                  key={s.n}
-                  className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl font-extrabold text-primary/30">
-                      {s.n}
-                    </span>
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold">{s.title}</h3>
-                  <p className="text-sm text-muted-foreground">{s.desc}</p>
-                  <div className="mt-1 overflow-hidden rounded-xl bg-secondary/60">
-                    <video
-                      src={s.video}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="h-auto w-full object-cover"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Benefits split */}
-      <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
-            Why everyone joins in
-          </h2>
-          <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
-            {[
-              {
-                title: "For the birthday host",
-                icon: Cake,
-                items: hostBenefits,
-              },
-              {
-                title: "For your guests",
-                icon: MessageSquareHeart,
-                items: guestBenefits,
-              },
-            ].map((col) => {
-              const Icon = col.icon;
-              return (
-                <div
-                  key={col.title}
-                  className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                    <h3 className="text-lg font-bold">{col.title}</h3>
-                  </div>
-                  <ul className="flex flex-col gap-3">
-                    {col.items.map((item) => (
-                      <li key={item} className="flex items-start gap-3">
-                        <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="size-3" />
-                        </div>
-                        <span className="text-sm">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Everything included */}
-      <section className="py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold md:text-4xl">
-              Everything included for{" "}
-              <span className="text-primary">₦5,000</span>
-            </h2>
-            <p className="mt-3 text-base text-muted-foreground md:text-lg">
-              The full stack. No add-ons, no upsells, no watermark.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
-            {features.map((f) => {
-              const Icon = f.icon;
-              return (
-                <div
-                  key={f.title}
-                  className="flex gap-4 rounded-2xl bg-card p-6 shadow-sm"
-                >
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="size-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold">
-                      {f.title}{" "}
-                      <span className="text-sm font-semibold text-primary">
-                        — {f.brand}
-                      </span>
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {f.desc}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Testimonials */}
-      <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <h2 className="text-center text-2xl font-bold md:text-4xl">
-            Hosts who already vibed
-          </h2>
-          <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-4 md:grid-cols-2">
-            {testimonials.map((t) => (
-              <div
-                key={t.name}
-                className="flex h-full flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
-              >
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="size-4 fill-primary text-primary"
-                    />
-                  ))}
-                </div>
-                <p className="flex-1 text-sm italic leading-relaxed">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="flex items-center gap-3 border-t border-border pt-3">
-                  {/* Avatar — photo if available, else initials */}
-                  {t.image ? (
-                    <Image
-                      src={t.image}
-                      alt={t.name}
-                      width={44}
-                      height={44}
-                      className="size-11 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
-                      {t.initials}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-primary">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.role}
-                      {t.location ? ` · ${t.location}` : ""} · {t.date}
-                    </p>
-                  </div>
-                  {/* Logo if available */}
-                  {t.logo && (
-                    <img
-                      src={t.logo}
-                      alt={t.location}
-                      className="h-6 w-auto shrink-0 object-contain opacity-70"
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 9. Pricing + urgency */}
-      <section className="py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold md:text-4xl">
-              Everything your birthday needs for{" "}
-              <span className="text-primary">₦5,000</span>
-            </h2>
-          </div>
-
-          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm md:p-8">
-              <p className="text-3xl font-bold">
-                <span className="text-muted-foreground line-through">
-                  ₦10,000
-                </span>{" "}
-                <span className="text-primary">₦5,000</span>
-              </p>
-              <ul className="flex flex-col gap-3">
-                {offerFacts.map((f) => (
-                  <li key={f} className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="size-3" />
-                    </div>
-                    <span className="text-sm">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Lock className="size-4" />
-                Your gallery stays private to people with your VibeTag link.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm md:p-8">
-              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <Clock className="size-4" />
-                Offer closes in
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { v: days, l: "Days" },
-                  { v: hours, l: "Hrs" },
-                  { v: minutes, l: "Min" },
-                  { v: seconds, l: "Sec" },
-                ].map((t) => (
-                  <div
-                    key={t.l}
-                    className="rounded-xl bg-secondary/60 py-3 text-center"
-                  >
-                    <p className="text-2xl font-bold tabular-nums md:text-3xl">
-                      {String(t.v).padStart(2, "0")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{t.l}</p>
-                  </div>
-                ))}
-              </div>
-              <Progress value={claimedPct} />
-              <p className="text-sm text-muted-foreground">
-                {signedUp} of {SPOTS_TOTAL} spots claimed — only{" "}
-                <span className="font-semibold text-primary">
-                  {spotsLeft} left
-                </span>
-              </p>
-              <div className="flex flex-col gap-2">
-                {included.map((item) => (
-                  <div key={item} className="flex items-center gap-3">
-                    <Check className="size-4 shrink-0 text-primary" />
-                    <p className="text-sm">{item}</p>
-                  </div>
-                ))}
-              </div>
-              <Button
-                size="lg"
-                onClick={scrollToFunnel}
-                disabled={isFull}
-                className="mt-auto"
-              >
-                {CTA_LABEL}
-                <ArrowRight className="size-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 10. Reservation form */}
       <section
         id="funnel"
@@ -952,7 +560,7 @@ export default function BirthdayFunnel() {
                   key={s}
                   className={cn(
                     "h-2 flex-1 rounded-full transition-colors",
-                    step >= s ? "bg-primary" : "bg-border",
+                    step >= s ? "bg-primary" : "bg-border"
                   )}
                 />
               ))}
@@ -976,7 +584,7 @@ export default function BirthdayFunnel() {
                       "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all hover:-translate-y-1 hover:shadow-sm",
                       category === "birthday"
                         ? "border-primary bg-primary/5"
-                        : "border-border bg-background",
+                        : "border-border bg-background"
                     )}
                   >
                     <Cake className="size-7 text-primary" />
@@ -1019,7 +627,7 @@ export default function BirthdayFunnel() {
                               className={cn(
                                 "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
                                 category === c.id &&
-                                  "border-primary bg-primary/5",
+                                  "border-primary bg-primary/5"
                               )}
                             >
                               <Icon className="size-5 text-primary" />
@@ -1055,7 +663,7 @@ export default function BirthdayFunnel() {
                           "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm",
                           selectedTier === t.id
                             ? "border-primary bg-primary/5"
-                            : "border-border bg-background",
+                            : "border-border bg-background"
                         )}
                       >
                         <div>
@@ -1137,7 +745,7 @@ export default function BirthdayFunnel() {
                       "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
                       isGift
                         ? "border-primary bg-primary/5"
-                        : "border-border bg-background",
+                        : "border-border bg-background"
                     )}
                   >
                     <div>
@@ -1151,13 +759,13 @@ export default function BirthdayFunnel() {
                         "flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors",
                         isGift
                           ? "border-primary bg-primary"
-                          : "border-border bg-secondary",
+                          : "border-border bg-secondary"
                       )}
                     >
                       <span
                         className={cn(
                           "block h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          isGift ? "translate-x-5" : "translate-x-0.5",
+                          isGift ? "translate-x-5" : "translate-x-0.5"
                         )}
                       />
                     </div>
@@ -1236,7 +844,7 @@ export default function BirthdayFunnel() {
                           variant="outline"
                           className={cn(
                             "h-14 w-full justify-start text-left text-base font-normal",
-                            !eventDate && "text-muted-foreground",
+                            !eventDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-3 size-5 shrink-0" />
@@ -1398,6 +1006,396 @@ export default function BirthdayFunnel() {
           </div>
         </div>
       </section>
+
+      {/* 3. Product video */}
+      {/* <section
+        id="video"
+        className="border-t border-border/50 bg-secondary/30 py-16 md:py-24"
+      >
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <div className="mx-auto max-w-4xl text-center">
+            <h2 className="text-2xl font-bold leading-tight md:text-4xl">
+              See how NextVibe brings every birthday memory together
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
+              From guest photos and video messages to birthday trivia and
+              postcards, see how one VibeTag turns your celebration into a
+              memory bank.
+            </p>
+
+            <div className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sm">
+              <div className="relative aspect-video w-full bg-secondary/40">
+                {!videoPlaying && (
+                  <button
+                    type="button"
+                    onClick={() => setVideoPlaying(true)}
+                    aria-label="Play the NextVibe product tour"
+                    className="group absolute inset-0 flex flex-col items-center justify-center gap-4"
+                  >
+                    <img
+                      src={`https://i.ytimg.com/vi/${YOUTUBE_ID}/maxresdefault.jpg`}
+                      alt="NextVibe birthday product tour thumbnail"
+                      className="absolute inset-0 size-full object-cover opacity-70"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/25" />
+                    <div className="relative flex size-20 items-center justify-center rounded-full border border-white/30 bg-white/90 text-primary shadow-sm transition-transform group-hover:scale-110">
+                      <Play className="size-8 translate-x-0.5 fill-current" />
+                    </div>
+                    <p className="relative text-lg font-bold text-white drop-shadow md:text-xl">
+                      Play the product tour
+                    </p>
+                  </button>
+                )}
+                <iframe
+                  className={cn(
+                    "absolute inset-0 size-full transition-opacity duration-300",
+                    videoPlaying
+                      ? "opacity-100"
+                      : "pointer-events-none opacity-0",
+                  )}
+                  src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_ID}?autoplay=${
+                    videoPlaying ? 1 : 0
+                  }&rel=0&modestbranding=1`}
+                  title="NextVibe product tour"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                />
+                {videoPlaying && (
+                  <button
+                    type="button"
+                    onClick={() => setVideoPlaying(false)}
+                    aria-label="Stop video"
+                    className="absolute bottom-3 left-3 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-opacity hover:bg-black/70"
+                  >
+                    <span className="flex gap-0.5">
+                      <span className="h-3 w-1 rounded-sm bg-white" />
+                      <span className="h-3 w-1 rounded-sm bg-white" />
+                    </span>
+                    Stop
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm text-muted-foreground">
+              Watch the {VIDEO_DURATION}-minute product tour — no signup
+              required.
+            </p>
+
+            <Button
+              size="lg"
+              onClick={scrollToFunnel}
+              disabled={isFull}
+              className="mt-5 w-full sm:w-auto"
+            >
+              {CTA_LABEL} — ₦5,000
+              <ArrowRight className="size-5" />
+            </Button>
+          </div>
+        </div>
+      </section> */}
+
+      {/* 4. Quick proof strip */}
+      {/* <section className="border-y border-border/50 py-10 md:py-14">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl my-8">
+            Perks
+          </h2>
+          <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {proofStrip.map((p) => {
+              const Icon = p.icon;
+              return (
+                <div
+                  key={p.label}
+                  className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm"
+                >
+                  <Icon className="size-5 shrink-0 text-primary" />
+                  <p className="text-sm font-semibold leading-snug">
+                    {p.label}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section> */}
+
+      {/* 5. How it works */}
+      <section className="py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
+            How Nextvibe works
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
+            {steps.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.n}
+                  className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-extrabold text-primary/30">
+                      {s.n}
+                    </span>
+                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-5" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-bold">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground">{s.desc}</p>
+                  <div className="mt-1 overflow-hidden rounded-xl bg-secondary/60">
+                    <video
+                      src={s.video}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="h-auto w-full object-cover"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Benefits split */}
+      {/* <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
+            Why everyone joins in
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
+            {[
+              {
+                title: "For the birthday host",
+                icon: Cake,
+                items: hostBenefits,
+              },
+              {
+                title: "For your guests",
+                icon: MessageSquareHeart,
+                items: guestBenefits,
+              },
+            ].map((col) => {
+              const Icon = col.icon;
+              return (
+                <div
+                  key={col.title}
+                  className="flex flex-col gap-4 rounded-2xl bg-card p-6 shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-5" />
+                    </div>
+                    <h3 className="text-lg font-bold">{col.title}</h3>
+                  </div>
+                  <ul className="flex flex-col gap-3">
+                    {col.items.map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="size-3" />
+                        </div>
+                        <span className="text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section> */}
+
+      {/* 7. Everything included */}
+      {/* <section className="py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-bold md:text-4xl">
+              Everything included for{" "}
+              <span className="text-primary">₦5,000</span>
+            </h2>
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
+              The full stack. No add-ons, no upsells, no watermark.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.title}
+                  className="flex gap-4 rounded-2xl bg-card p-6 shadow-sm"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">
+                      {f.title}{" "}
+                      <span className="text-sm font-semibold text-primary">
+                        — {f.brand}
+                      </span>
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {f.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section> */}
+
+      {/* 8. Testimonials */}
+      {/* <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="text-center text-2xl font-bold md:text-4xl">
+            Hosts who already vibed
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-4 md:grid-cols-2">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="flex h-full flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
+              >
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="size-4 fill-primary text-primary"
+                    />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm italic leading-relaxed">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-3 border-t border-border pt-3">
+                  {t.image ? (
+                    <Image
+                      src={t.image}
+                      alt={t.name}
+                      width={44}
+                      height={44}
+                      className="size-11 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+                      {t.initials}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-primary">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.role}
+                      {t.location ? ` · ${t.location}` : ""} · {t.date}
+                    </p>
+                  </div>
+                  {t.logo && (
+                    <img
+                      src={t.logo}
+                      alt={t.location}
+                      className="h-6 w-auto shrink-0 object-contain opacity-70"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section> */}
+
+      {/* 9. Pricing + urgency */}
+      {/* <section className="py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-bold md:text-4xl">
+              Everything your birthday needs for{" "}
+              <span className="text-primary">₦5,000</span>
+            </h2>
+          </div>
+
+          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm md:p-8">
+              <p className="text-3xl font-bold">
+                <span className="text-muted-foreground line-through">
+                  ₦10,000
+                </span>{" "}
+                <span className="text-primary">₦5,000</span>
+              </p>
+              <ul className="flex flex-col gap-3">
+                {offerFacts.map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-3" />
+                    </div>
+                    <span className="text-sm">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="size-4" />
+                Your gallery stays private to people with your VibeTag link.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 shadow-sm md:p-8">
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Clock className="size-4" />
+                Offer closes in
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { v: days, l: "Days" },
+                  { v: hours, l: "Hrs" },
+                  { v: minutes, l: "Min" },
+                  { v: seconds, l: "Sec" },
+                ].map((t) => (
+                  <div
+                    key={t.l}
+                    className="rounded-xl bg-secondary/60 py-3 text-center"
+                  >
+                    <p className="text-2xl font-bold tabular-nums md:text-3xl">
+                      {String(t.v).padStart(2, "0")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{t.l}</p>
+                  </div>
+                ))}
+              </div>
+              <Progress value={claimedPct} />
+              <p className="text-sm text-muted-foreground">
+                {signedUp} of {SPOTS_TOTAL} spots claimed — only{" "}
+                <span className="font-semibold text-primary">
+                  {spotsLeft} left
+                </span>
+              </p>
+              <div className="flex flex-col gap-2">
+                {included.map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <Check className="size-4 shrink-0 text-primary" />
+                    <p className="text-sm">{item}</p>
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="lg"
+                onClick={scrollToFunnel}
+                disabled={isFull}
+                className="mt-auto"
+              >
+                {CTA_LABEL}
+                <ArrowRight className="size-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section> */}
 
       {/* 11. FAQ */}
       <section className="py-16 md:py-24">
