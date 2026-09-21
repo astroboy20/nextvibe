@@ -14,7 +14,11 @@
 /coverage
 
 # next.js
-/.next/
+# Unanchored on purpose. This was `/.next/`, which only matches the repo
+# root — so a build that ran with cwd=src produced src/.next/ and git
+# happily tracked 56MB of it. Without the leading slash it matches at
+# any depth.
+.next/
 /out/
 
 # production
