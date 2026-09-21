@@ -21,9 +21,9 @@ export default function PostcardPage({
   const dashboardUrl =
     typeof window !== "undefined"
       ? window.location.hostname === "localhost"
-        ? "http://localhost:3000/dashboard/events"
-        : `${window.location.origin}/dashboard/events`
-      : "/dashboard/events";
+        ? "http://localhost:3000/events"
+        : `${window.location.origin}/events`
+      : "/events";
 
   if (isLoading) {
     return (

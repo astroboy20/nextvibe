@@ -1,1 +1,10 @@
-export { default } from "@/app/dashboard/(dashboard-route)/settings/page";
+
+import Settings from "./container/settings";
+
+export default function SocialPage() {
+  return (
+    <main>
+      <Settings />
+    </main>
+  );
+}

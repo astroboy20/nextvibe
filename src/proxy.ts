@@ -20,10 +20,15 @@ const PUBLIC_ROUTES = [
   "/terms",
   // Events — publicly browsable (actions inside are individually auth-gated)
   "/events",
-  "/dashboard/events",
   // Postcards — publicly viewable
   "/postcards",
   "/postcard",
+  // Legacy /dashboard/* paths. These no longer resolve to a page — next.config
+  // redirects them to the bare URLs above — but middleware runs BEFORE those
+  // redirects, so they must stay listed as public. Drop them and a logged-out
+  // visitor following an old shared link is bounced to /auth/login instead of
+  // being forwarded to the page they asked for.
+  "/dashboard/events",
   "/dashboard/postcards",
   "/launch",
   "/pledge",

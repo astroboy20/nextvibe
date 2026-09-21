@@ -1,1 +1,12 @@
-export { default } from "@/app/dashboard/(dashboard-route)/messages/page";
+import Messages from "./container/messages";
+import { Suspense } from "react";
+
+export default function SocialPage() {
+  return (
+    <main>
+      <Suspense fallback={null}>
+      <Messages />
+      </Suspense>
+    </main>
+  );
+}

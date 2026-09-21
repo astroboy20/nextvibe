@@ -8,11 +8,7 @@ import {
   useGetPostcardsQuery,
   useGetEventDetailsQuery,
 } from "@/app/provider/api/eventApi";
-// Type-only import. The relative path this page shipped with pointed at
-// `(app)/events/components/postcard-grid`, which does not exist — the file
-// lives in the dashboard tree. See mytasks.md queue item 5: this page has
-// never compiled, so its fate is still undecided.
-import type { PostcardItem } from "@/app/dashboard/(dashboard-route)/events/components/postcard-grid";
+import { PostcardItem } from "../../components/postcard-grid";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -109,7 +105,7 @@ function Lightbox({ postcard, onClose }: LightboxProps) {
                   "h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                   i === activeIndex
                     ? "border-white scale-105"
-                    : "border-transparent opacity-60 hover:opacity-100",
+                    : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
                 <Image
@@ -136,7 +132,7 @@ export default function EventPostcardsPage({
   const { id } = use(params);
   const router = useRouter();
   const [selectedPostcard, setSelectedPostcard] = useState<PostcardItem | null>(
-    null,
+    null
   );
   const [page, setPage] = useState(1);
   const LIMIT = 40;
@@ -209,7 +205,7 @@ export default function EventPostcardsPage({
                     onClick={() => setSelectedPostcard(postcard)}
                     className={cn(
                       "group relative mb-3 break-inside-avoid overflow-hidden rounded-2xl bg-card shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer",
-                      "animate-fade-in",
+                      "animate-fade-in"
                     )}
                     style={{ animationDelay: `${index * 40}ms` }}
                   >

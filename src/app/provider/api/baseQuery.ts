@@ -51,12 +51,14 @@ function flushQueue(succeeded: boolean) {
 }
 
 // Routes that are publicly accessible — 401s on these should NOT redirect to login
+// These are matched against `window.location.pathname` in the browser, which
+// is always the *post*-redirect URL — so unlike the middleware's list in
+// proxy.ts, the legacy /dashboard/* spellings are genuinely unreachable here
+// and were removed rather than kept.
 const PUBLIC_PATHS = [
   "/events",
-  "/dashboard/events",
   "/postcards",
   "/postcard",
-  "/dashboard/postcards",
   "/game",
   "/purchase",
 ];

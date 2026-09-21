@@ -1,1 +1,9 @@
-export { default } from "@/app/dashboard/(dashboard-route)/social/page";
+import Social from "./container/social";
+
+export default function SocialPage() {
+  return (
+    <main>
+      <Social />
+    </main>
+  );
+}

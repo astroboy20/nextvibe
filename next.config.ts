@@ -25,6 +25,13 @@ const nextConfig: NextConfig = {
   },
 
   // Redirect old /dashboard/* paths to new clean paths for back-compat
+  // Redirects for the attendee routes that used to live under
+  // /dashboard/(dashboard-route) and now serve from (app) at bare URLs.
+  //
+  // These are not just politeness for old links. `dashboard/[eventId]` is a
+  // dynamic organizer route, so any /dashboard/* path left unredirected is
+  // swallowed by it and rendered as an event page with eventId="help" — a
+  // broken screen rather than an honest 404. Every former path needs an entry.
   async redirects() {
     return [
       { source: "/dashboard/events", destination: "/events", permanent: true },
@@ -64,6 +71,12 @@ const nextConfig: NextConfig = {
         destination: "/settings",
         permanent: true,
       },
+      {
+        source: "/dashboard/settings/privacy",
+        destination: "/settings/privacy",
+        permanent: true,
+      },
+      { source: "/dashboard/help", destination: "/help", permanent: true },
       {
         source: "/dashboard/postcards/:id",
         destination: "/postcards/:id",

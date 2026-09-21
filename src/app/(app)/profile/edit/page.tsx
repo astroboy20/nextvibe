@@ -1,1 +1,9 @@
-export { default } from "@/app/dashboard/(dashboard-route)/profile/edit/page";
+import EditProfile from "./container/edit";
+
+export default function EditProfilePage() {
+  return (
+    <>
+      <EditProfile />
+    </>
+  );
+}
