@@ -11,6 +11,18 @@ interface AnonGameStore {
   anonymousId: string;
   expiresAt: number;
   pendingSessions: AnonPendingSession[];
+  /**
+   * Event ids where the guest has already dismissed the post-score login
+   * prompt, so it is shown at most once per event rather than after every
+   * round. Values are timestamps, kept for debugging only — presence of the
+   * key is what suppresses the prompt.
+   *
+   * Lives in this store rather than its own key so it inherits the same 7-day
+   * TTL: a guest who comes back a week later is a new prospect, not a nagged
+   * one. It is also wiped by `clearAnonGameData()` after a successful merge,
+   * which is correct — once they are signed in the prompt is moot.
+   */
+  dismissedPrompts?: Record<string, number>;
 }
 
 function readStore(): AnonGameStore | null {
@@ -62,4 +74,30 @@ export function clearAnonGameData(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
   }
+}
+
+/**
+ * Has this guest already waved away the login prompt for this event?
+ *
+ * Fails open: no store, unreadable store, or a store without the field all
+ * return false, so a storage problem shows the prompt rather than silently
+ * suppressing it forever.
+ */
+export function isScorePromptDismissed(eventId: string): boolean {
+  if (!eventId) return false;
+  return Boolean(readStore()?.dismissedPrompts?.[eventId]);
+}
+
+/**
+ * Remember that the prompt was dismissed for this event.
+ *
+ * No-ops when there is no store, which can only happen if the guest never
+ * joined a game — in which case there was no score screen to dismiss.
+ */
+export function dismissScorePrompt(eventId: string): void {
+  if (!eventId) return;
+  const store = readStore();
+  if (!store) return;
+  store.dismissedPrompts = { ...store.dismissedPrompts, [eventId]: Date.now() };
+  writeStore(store);
 }

@@ -24,6 +24,7 @@ import { useGetUserQuery } from "@/app/provider/api/userApi";
 import { GameScoreShare } from "@/app/dashboard/(dashboard-route)/events/[id]/components/game-share";
 import { toast } from "sonner";
 import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/lib/anonymous-game";
+import { AnonScorePrompt } from "@/components/anon-score-prompt";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 
@@ -837,6 +838,18 @@ function PublicRoundPlayer({
             </div>
           );
         })()}
+
+        {/* The banner above stays as the quiet, always-available path. This
+            sheet is the one-shot nudge: it opens after a beat, at most once per
+            event, and remembers a dismissal. */}
+        {isAnonymous && (
+          <AnonScorePrompt
+            eventId={session?.event?.id ?? session?.eventId}
+            score={finalScore}
+            entries={entries}
+            onAuthSuccess={() => void refetchLeaderboard()}
+          />
+        )}
       </div>
     );
   }

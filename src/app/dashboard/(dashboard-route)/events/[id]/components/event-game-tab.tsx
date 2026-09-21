@@ -43,6 +43,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useGetUserQuery } from "@/app/provider/api/authApi";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
+import { AnonScorePrompt } from "@/components/anon-score-prompt";
 
 /** Read a persisted set of ids, tolerating absent/corrupt entries. */
 const readIdSet = (key: string): Set<string> => {
@@ -926,16 +927,21 @@ function SessionLeaderboard({
 function RoundPlayer({
   round,
   session,
+  eventId,
   eventName,
   eventFlierUrl,
+  isAnonymous,
   onSubmit,
   isSubmitting,
   onComplete,
 }: {
   round: any;
   session: any;
+  eventId?: string;
   eventName?: string;
   eventFlierUrl?: string;
+  /** Playing without an account — drives the post-score login prompt. */
+  isAnonymous?: boolean;
   onSubmit: (
     roundId: string,
     answers: (number | string)[],
@@ -1299,6 +1305,18 @@ function RoundPlayer({
             </div>
           );
         })()}
+
+        {/* The banner above stays as the quiet, always-available path. This
+            sheet is the one-shot nudge: it opens after a beat, at most once per
+            event, and remembers a dismissal. */}
+        {isAnonymous && (
+          <AnonScorePrompt
+            eventId={eventId}
+            score={finalScore}
+            entries={entries}
+            onAuthSuccess={() => void refetchLeaderboard()}
+          />
+        )}
       </div>
     );
   }
@@ -2069,8 +2087,10 @@ export function EventGamesTab({
           <RoundPlayer
             round={round}
             session={session}
+            eventId={eventProp?.id}
             eventName={event?.name}
             eventFlierUrl={event?.flierUrl}
+            isAnonymous={!isLoggedIn && !!anonId}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
             onComplete={(score) => {
