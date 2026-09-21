@@ -3,8 +3,6 @@ import { Metadata } from "next";
 
 import AboutContent from "./component/about";
 import { APP_NAME } from "@/utils/constants";
-import Navbar from "@/components/navbar/navbar";
-import Footer from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "About | " + APP_NAME,
@@ -14,9 +12,7 @@ export const metadata: Metadata = {
 const AboutPage = () => {
   return (
     <div className="h-screen">
-      <Navbar />
       <AboutContent />
-      <Footer />
     </div>
   );
 };

@@ -1,7 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import Navbar from "@/components/navbar/navbar";
-import Footer from "@/components/footer";
 import { JsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
@@ -82,7 +80,6 @@ export default function FestivalsPage() {
   return (
     <>
       <JsonLd data={pageSchema} />
-      <Navbar />
 
       <main className="min-h-screen pt-20 bg-white">
         {/* Hero */}
@@ -190,7 +187,6 @@ export default function FestivalsPage() {
         </section>
       </main>
 
-      <Footer />
     </>
   );
 }
