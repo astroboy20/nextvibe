@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Tag, Heart, MessageCircle, Sparkles, ImageOff, Loader2, RefreshCw } from "lucide-react";
+import {
+  Camera,
+  Tag,
+  Heart,
+  MessageCircle,
+  Sparkles,
+  ImageOff,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
 import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
 import { toast } from "sonner";
@@ -14,13 +23,17 @@ import {
   type PostcardData,
 } from "@/components/postcard-viewer";
 import {
+  isPostcardPhase,
+  type PostcardPhase,
+} from "@/types/postcards.type";
+import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
 } from "@/app/provider/api/eventApi";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Cookies from "js-cookie";
 
-type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" ;
+type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT";
 
 const TIMING_META: Record<ActivityTiming, { label: string; phase: string }> = {
   PRE_EVENT: { label: "Pre-Event", phase: "pre-event" },
@@ -51,43 +64,79 @@ const TIMING_PILL: Record<string, { label: string; color: string }> = {
 
 /** Single postcard tile — renders actual postcard media */
 function PostcardTile({
-  postcard, vibeTagMap, onLike, onClick,
+  postcard,
+  vibeTagMap,
+  onLike,
+  onClick,
 }: {
-  postcard: any; vibeTagMap: Record<string, VibeTag>; onLike: (id: string) => void; onClick: () => void;
+  postcard: any;
+  vibeTagMap: Record<string, VibeTag>;
+  onLike: (id: string) => void;
+  onClick: () => void;
 }) {
   const tag = vibeTagMap[postcard?.vibeTagId];
   const timing: string = tag?.activityTiming ?? "";
   const pill = TIMING_PILL[timing];
-  const authorName = postcard?.author?.displayName ?? postcard?.author?.username ?? "";
+  const authorName =
+    postcard?.author?.displayName ?? postcard?.author?.username ?? "";
 
-  const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL ?? "http://minio-production-5cff.up.railway.app:443/nextvibe";
+  const storageBase =
+    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+    "http://minio-production-5cff.up.railway.app:443/nextvibe";
   const mediaItems: any[] = postcard?.media ?? [];
   const firstMedia = mediaItems[0];
   const src = firstMedia?.mediaUrl
     ? firstMedia.mediaUrl
-    : firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : tag?.imageUrl ?? "";
+    : firstMedia?.storageKey
+      ? `${storageBase}/${firstMedia.storageKey}`
+      : (tag?.imageUrl ?? "");
   const isVideo = firstMedia?.mediaType === "VIDEO";
 
   if (!src) return null;
 
   return (
-    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in cursor-pointer" onClick={onClick}>
+    <div
+      className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in cursor-pointer"
+      onClick={onClick}
+    >
       {isVideo ? (
-        <video src={src} muted loop playsInline className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+        <video
+          src={src}
+          muted
+          loop
+          playsInline
+          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+        />
       ) : (
-        <img src={src} alt={tag?.name ?? "Postcard"} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+        <img
+          src={src}
+          alt={tag?.name ?? "Postcard"}
+          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+        />
       )}
       {pill && (
-        <span className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}>
+        <span
+          className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}
+        >
           {pill.label}
         </span>
       )}
       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-3">
-        {authorName && <p className="mb-1 truncate text-xs font-medium text-white">@{authorName}</p>}
+        {authorName && (
+          <p className="mb-1 truncate text-xs font-medium text-white">
+            @{authorName}
+          </p>
+        )}
         <div className="flex items-center gap-3 text-white/80">
-          <button onClick={(e) => { e.stopPropagation(); onLike(postcard?.id); }}
-            className="flex items-center gap-1 text-xs transition-colors hover:text-red-400" aria-label="Like postcard">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onLike(postcard?.id);
+            }}
+            className="flex items-center gap-1 text-xs transition-colors hover:text-red-400"
+            aria-label="Like postcard"
+          >
             <Heart className="h-3.5 w-3.5 fill-current" />
             {postcard?.likeCount ?? 0}
           </button>
@@ -103,23 +152,34 @@ function PostcardTile({
 
 /** Fetches postcards for one phase and renders the grid */
 function PhasePostcards({
-  eventId, phase, vibeTagMap, onLike, onSelect,
+  eventId,
+  phase,
+  vibeTagMap,
+  onLike,
+  onSelect,
 }: {
-  eventId: string; phase: string; vibeTagMap: Record<string, VibeTag>;
-  onLike: (id: string) => void; onSelect: (p: any) => void;
+  eventId: string;
+  phase: PostcardPhase;
+  vibeTagMap: Record<string, VibeTag>;
+  onLike: (id: string) => void;
+  onSelect: (p: any) => void;
 }) {
   const { data, isLoading } = useGetEventPostcardsQuery(
-    { eventId, phase: phase === "all" ? undefined : phase },
-    { skip: !eventId }
+    { eventId, phase },
+    { skip: !eventId },
   );
 
   const rawList: any[] = data?.data?.data ?? data?.data ?? [];
   const postcards: any[] = rawList.filter((p: any) =>
-    (p?.media ?? []).some((m: any) => !!m.mediaUrl)
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl),
   );
 
   if (isLoading) {
-    return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -127,7 +187,9 @@ function PhasePostcards({
       {postcards.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <ImageOff className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">No postcards yet for this phase.</p>
+          <p className="text-sm text-muted-foreground">
+            No postcards yet for this phase.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -154,17 +216,19 @@ export function EventVibeTagsTab({
 }: EventVibeTagsTabProps) {
   const [showCreator, setShowCreator] = useState(false);
   const [activeTiming, setActiveTiming] = useState<ActivityTiming>("PRE_EVENT");
-  const [postcardPhase, setPostcardPhase] = useState<string>("all");
-  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(null);
+  const [postcardPhase, setPostcardPhase] = useState<PostcardPhase>("all");
+  const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(
+    null,
+  );
 
   // Same query as PhasePostcards — RTK Query deduplicates the request, no extra network call
   const { data: countData } = useGetEventPostcardsQuery(
-    { eventId: eventId ?? "", phase: postcardPhase === "all" ? undefined : postcardPhase },
-    { skip: !eventId }
+    { eventId: eventId ?? "", phase: postcardPhase },
+    { skip: !eventId },
   );
   const countRaw: any[] = countData?.data?.data ?? countData?.data ?? [];
   const postcardCount = countRaw.filter((p: any) =>
-    (p?.media ?? []).some((m: any) => !!m.mediaUrl)
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl),
   ).length;
 
   const eventHasStarted = eventStartsAt
@@ -173,7 +237,11 @@ export function EventVibeTagsTab({
 
   const allTags: VibeTag[] = Array.isArray(vibeTag) ? vibeTag : [];
 
-  const timingTabs: ActivityTiming[] = ["PRE_EVENT", "DURING_EVENT", "POST_EVENT"];
+  const timingTabs: ActivityTiming[] = [
+    "PRE_EVENT",
+    "DURING_EVENT",
+    "POST_EVENT",
+  ];
 
   const resolvedTiming: ActivityTiming = activeTiming;
 
@@ -187,7 +255,7 @@ export function EventVibeTagsTab({
 
   // Build a lookup map: vibeTagId → VibeTag so tiles can resolve image + timing
   const vibeTagMap: Record<string, VibeTag> = Object.fromEntries(
-    allTags.map((t) => [t.id, t])
+    allTags.map((t) => [t.id, t]),
   );
 
   const vibeTagOverlay: VibeTagOverlay | null = activeTag?.imageUrl
@@ -206,17 +274,21 @@ export function EventVibeTagsTab({
 
   // ── Swap state ────────────────────────────────────────────────────────────
   const [showSwapPicker, setShowSwapPicker] = useState(false);
-  const [swapPostcardId, setSwapPostcardId] = useState<string | undefined>(undefined);
+  const [swapPostcardId, setSwapPostcardId] = useState<string | undefined>(
+    undefined,
+  );
   const [swapLikeCount, setSwapLikeCount] = useState(0);
   const [swapCommentCount, setSwapCommentCount] = useState(0);
 
   // Fetch the current user's postcards for the swap picker
-  const currentUserId = typeof window !== "undefined" && Cookies.get("accessToken") ? "me" : null;
+  const currentUserId =
+    typeof window !== "undefined" && Cookies.get("accessToken") ? "me" : null;
   const { data: myPostcardsData } = useGetEventPostcardsQuery(
     { eventId: eventId ?? "", limit: 50 },
-    { skip: !eventId || !currentUserId }
+    { skip: !eventId || !currentUserId },
   );
-  const myPostcardsRaw: any[] = myPostcardsData?.data?.data ?? myPostcardsData?.data ?? [];
+  const myPostcardsRaw: any[] =
+    myPostcardsData?.data?.data ?? myPostcardsData?.data ?? [];
 
   const handleCreatePostcard = () => {
     if (!activeTag) return;
@@ -246,9 +318,16 @@ export function EventVibeTagsTab({
           vibeTagId={activeTag?.id}
           eventName={eventName}
           eventId={eventId}
-          onClose={() => { setShowCreator(false); setSwapPostcardId(undefined); }}
+          onClose={() => {
+            setShowCreator(false);
+            setSwapPostcardId(undefined);
+          }}
           onSubmit={() => {
-            toast.success(swapPostcardId ? "Postcard replaced!" : "Your memory has been added to the event gallery");
+            toast.success(
+              swapPostcardId
+                ? "Postcard replaced!"
+                : "Your memory has been added to the event gallery",
+            );
             setShowCreator(false);
             setSwapPostcardId(undefined);
           }}
@@ -260,7 +339,10 @@ export function EventVibeTagsTab({
 
       {/* Swap picker bottom sheet */}
       {showSwapPicker && (
-        <div className="fixed inset-0 z-[100001] flex flex-col bg-background" style={{ height: "100dvh" }}>
+        <div
+          className="fixed inset-0 z-[100001] flex flex-col bg-background"
+          style={{ height: "100dvh" }}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <button
               onClick={() => setShowSwapPicker(false)}
@@ -270,7 +352,9 @@ export function EventVibeTagsTab({
             </button>
             <div className="text-center">
               <h2 className="font-semibold text-sm">Replace a Postcard</h2>
-              <p className="text-[11px] text-muted-foreground">You&apos;ve hit the 20-postcard limit</p>
+              <p className="text-[11px] text-muted-foreground">
+                You&apos;ve hit the 20-postcard limit
+              </p>
             </div>
             <div className="w-16" />
           </div>
@@ -278,7 +362,8 @@ export function EventVibeTagsTab({
             <div className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Pick a postcard to replace with your new one. Its likes and comments will be removed.
+                Pick a postcard to replace with your new one. Its likes and
+                comments will be removed.
               </p>
             </div>
           </div>
@@ -286,16 +371,22 @@ export function EventVibeTagsTab({
             {myPostcardsRaw.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10">
                 <ImageOff className="h-8 w-8 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">No postcards found to replace.</p>
+                <p className="text-sm text-muted-foreground">
+                  No postcards found to replace.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {myPostcardsRaw.map((postcard: any) => {
-                  const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL ?? "http://minio-production-5cff.up.railway.app:443/nextvibe";
+                  const storageBase =
+                    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+                    "http://minio-production-5cff.up.railway.app:443/nextvibe";
                   const firstMedia = postcard?.media?.[0];
                   const src = firstMedia?.mediaUrl
                     ? firstMedia.mediaUrl
-                    : firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : "";
+                    : firstMedia?.storageKey
+                      ? `${storageBase}/${firstMedia.storageKey}`
+                      : "";
                   const isVideo = firstMedia?.mediaType === "VIDEO";
                   if (!src) return null;
                   return (
@@ -305,9 +396,18 @@ export function EventVibeTagsTab({
                       onClick={() => handlePickSwapTarget(postcard)}
                     >
                       {isVideo ? (
-                        <video src={src} muted playsInline className="h-full w-full object-cover" />
+                        <video
+                          src={src}
+                          muted
+                          playsInline
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <img src={src} alt="Postcard" className="h-full w-full object-cover" />
+                        <img
+                          src={src}
+                          alt="Postcard"
+                          className="h-full w-full object-cover"
+                        />
                       )}
                       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -332,7 +432,6 @@ export function EventVibeTagsTab({
       )}
 
       <div className="space-y-6 animate-fade-in">
-
         {/* Phase tabs — controls both the vibeTag card and postcards below */}
         <Tabs
           value={resolvedTiming}
@@ -445,13 +544,23 @@ export function EventVibeTagsTab({
 
           <Tabs
             value={postcardPhase}
-            onValueChange={setPostcardPhase}
+            onValueChange={(v) =>
+              setPostcardPhase(isPostcardPhase(v) ? v : "all")
+            }
           >
             <TabsList className="w-full grid grid-cols-4 h-10">
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-              <TabsTrigger value="pre-event" className="text-xs">Pre</TabsTrigger>
-              <TabsTrigger value="main-event" className="text-xs">Main</TabsTrigger>
-              <TabsTrigger value="post-event" className="text-xs">Post</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="pre-event" className="text-xs">
+                Pre
+              </TabsTrigger>
+              <TabsTrigger value="main-event" className="text-xs">
+                Main
+              </TabsTrigger>
+              <TabsTrigger value="post-event" className="text-xs">
+                Post
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 

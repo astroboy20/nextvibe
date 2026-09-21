@@ -15,9 +15,11 @@ import {
   ProgressiveImage,
   type PostcardData,
 } from "@/components/postcard-viewer";
+import {
+  isPostcardPhase,
+  type PostcardPhase,
+} from "@/types/postcards.type";
 
-type Phase = "all" | "pre-event" | "main-event" | "post-event";
-const VALID_PHASES: Phase[] = ["all", "pre-event", "main-event", "post-event"];
 
 // ─── Grid tile ────────────────────────────────────────────────────────────────
 
@@ -89,16 +91,18 @@ export default function EventPostcardsPage({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialPhase = (): Phase => {
-    const p = searchParams.get("phase") as Phase;
-    return VALID_PHASES.includes(p) ? p : "all";
+  // The slug arrives from the URL, so it is untrusted — narrow it rather than
+  // asserting, or a hand-typed ?phase=whatever reaches the API as a 400.
+  const initialPhase = (): PostcardPhase => {
+    const p = searchParams.get("phase");
+    return isPostcardPhase(p) ? p : "all";
   };
 
   const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(
     null
   );
   const [page, setPage] = useState(1);
-  const [phase, setPhase] = useState<Phase>(initialPhase);
+  const [phase, setPhase] = useState<PostcardPhase>(initialPhase);
   const LIMIT = 40;
 
   const { data: eventDetails } = useGetEventDetailsQuery(id);
@@ -106,7 +110,7 @@ export default function EventPostcardsPage({
     eventId: id,
     page,
     limit: LIMIT,
-    ...(phase !== "all" ? { phase } : {}),
+    phase,
   });
 
   const gridItems: PostcardData[] = (
@@ -118,7 +122,7 @@ export default function EventPostcardsPage({
   const eventName = eventDetails?.data?.name ?? "Event";
 
   const handlePhaseChange = (value: string) => {
-    setPhase(value as Phase);
+    setPhase(isPostcardPhase(value) ? value : "all");
     setPage(1);
   };
 

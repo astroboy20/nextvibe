@@ -1,7 +1,10 @@
-
 import { IGalleryItem } from "@/types/event.type";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
+import {
+  phaseToTiming,
+  type PostcardPhase,
+} from "@/types/postcards.type";
 
 // ── Withdrawal types ──────────────────────────────────────────────────────────
 /**
@@ -37,18 +40,28 @@ export const eventsApi = createApi({
 
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ["Events", "Event", "Gallery", "Messages", "Games", "PublishPreview", "Withdrawals"],
+  tagTypes: [
+    "Events",
+    "Event",
+    "Gallery",
+    "Messages",
+    "Games",
+    "PublishPreview",
+    "Withdrawals",
+  ],
   keepUnusedDataFor: 300, // cache for 5 minutes — avoids re-fetching on every mount/navigation
 
   endpoints: (builder) => ({
-
-
-    getEvents: builder.query<any, { page?: number; limit?: number; isPublic?: boolean } | void>({
+    getEvents: builder.query<
+      any,
+      { page?: number; limit?: number; isPublic?: boolean } | void
+    >({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
         if (params?.limit) p.set("limit", String(params.limit));
-        if (params?.isPublic !== undefined) p.set("isPublic", String(params.isPublic));
+        if (params?.isPublic !== undefined)
+          p.set("isPublic", String(params.isPublic));
         const qs = p.toString();
         return `/v1/events${qs ? `?${qs}` : ""}`;
       },
@@ -67,28 +80,25 @@ export const eventsApi = createApi({
         method: "POST",
         body: ticketData,
       }),
-      invalidatesTags: (_, __, { eventId }) => [
-        { type: "Event", id: eventId },
-      ],
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
-    updateTicket: builder.mutation<any, { eventId: string; ticketData: any; ticketId: string }>({
+    updateTicket: builder.mutation<
+      any,
+      { eventId: string; ticketData: any; ticketId: string }
+    >({
       query: ({ eventId, ticketData, ticketId }) => ({
         url: `/v1/events/${eventId}/tickets/${ticketId}`,
         method: "PATCH",
         body: ticketData,
       }),
-      invalidatesTags: (_, __, { eventId }) => [
-        { type: "Event", id: eventId },
-      ],
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
     deleteTicket: builder.mutation<any, { eventId: string; ticketId: any }>({
       query: ({ eventId, ticketId }) => ({
         url: `/v1/events/${eventId}/tickets/${ticketId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_, __, { eventId }) => [
-        { type: "Event", id: eventId },
-      ],
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
     getTickets: builder.query<any, string>({
       query: (eventId) => `/v1/events/${eventId}/tickets`,
@@ -129,7 +139,9 @@ export const eventsApi = createApi({
     updateEvent: builder.mutation<any, { eventId: string; data: any }>({
       query: ({ eventId, data }) => {
         const filteredData = Object.fromEntries(
-          Object.entries(data).filter(([_, value]) => value !== null && value !== undefined)
+          Object.entries(data).filter(
+            ([_, value]) => value !== null && value !== undefined,
+          ),
         );
 
         return {
@@ -138,9 +150,7 @@ export const eventsApi = createApi({
           body: filteredData,
         };
       },
-      invalidatesTags: (_, __, { eventId }) => [
-        { type: "Event", id: eventId },
-      ],
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
     /** PATCH /v1/events/:id/status — DRAFT→PUBLISHED, PUBLISHED→CANCELLED or PUBLISHED→ENDED */
@@ -158,9 +168,6 @@ export const eventsApi = createApi({
         "Events",
       ],
     }),
-
-
-
 
     toggleLikeEvent: builder.mutation<any, string>({
       query: (eventId) => ({
@@ -191,7 +198,14 @@ export const eventsApi = createApi({
       }),
     }),
 
-    rsvp: builder.mutation<any, { eventId: string; status: "CONFIRMED" | "WAITLIST" | "CANCELLED"; ticketTierId?: string }>({
+    rsvp: builder.mutation<
+      any,
+      {
+        eventId: string;
+        status: "CONFIRMED" | "WAITLIST" | "CANCELLED";
+        ticketTierId?: string;
+      }
+    >({
       query: ({ eventId, status, ticketTierId }) => ({
         url: `/v1/events/${eventId}/rsvp`,
         method: "POST",
@@ -199,8 +213,6 @@ export const eventsApi = createApi({
       }),
       invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
-
-
 
     getUpcomingEvents: builder.query<any, void>({
       query: () => "/events/explore/upcoming",
@@ -247,7 +259,12 @@ export const eventsApi = createApi({
          */
         data: {
           data: { id: string; name: string }[];
-          meta: { total: number; page: number; limit: number; hasNext: boolean };
+          meta: {
+            total: number;
+            page: number;
+            limit: number;
+            hasNext: boolean;
+          };
         };
       },
       void
@@ -256,12 +273,6 @@ export const eventsApi = createApi({
       // the default page size would hide events past the first page.
       query: () => "/v1/events/me/created?limit=100",
     }),
-
-
-
-
-
-
 
     uploadGalleryMedia: builder.mutation<
       any,
@@ -293,7 +304,6 @@ export const eventsApi = createApi({
     >({
       query: () => "/events/gallery/promoted",
     }),
-
 
     sendCustomInvite: builder.mutation<
       any,
@@ -328,7 +338,6 @@ export const eventsApi = createApi({
       invalidatesTags: ["Messages"],
     }),
 
-
     playGame: builder.mutation<
       any,
       {
@@ -346,7 +355,7 @@ export const eventsApi = createApi({
 
     //Games
     createGame: builder.mutation<any, any>({
-      query: ({ body, eventId }: { body: any, eventId: string }) => ({
+      query: ({ body, eventId }: { body: any; eventId: string }) => ({
         url: `/v1/events/${eventId}/game-sessions`,
         method: "POST",
         body,
@@ -386,7 +395,7 @@ export const eventsApi = createApi({
       query: (eventId) => ({
         url: `/v1/events/${eventId}/game-sessions`,
       }),
-      providesTags: ["Games"]
+      providesTags: ["Games"],
     }),
 
     /** POST /v1/game-sessions/:sessionId/join */
@@ -451,7 +460,10 @@ export const eventsApi = createApi({
     }),
 
     /** POST /v1/games/anonymous/join/:token — no auth required */
-    anonymousJoinGame: builder.mutation<any, { token: string; anonymousId?: string }>({
+    anonymousJoinGame: builder.mutation<
+      any,
+      { token: string; anonymousId?: string }
+    >({
       query: ({ token, anonymousId }) => ({
         url: `/v1/games/anonymous/join/${token}`,
         method: "POST",
@@ -462,7 +474,12 @@ export const eventsApi = createApi({
     /** POST /v1/games/anonymous/rounds/:roundId/submit — no auth required */
     anonymousSubmitRound: builder.mutation<
       any,
-      { roundId: string; anonymousId: string; answers?: any[]; metadata?: Record<string, any> }
+      {
+        roundId: string;
+        anonymousId: string;
+        answers?: any[];
+        metadata?: Record<string, any>;
+      }
     >({
       query: ({ roundId, ...body }) => ({
         url: `/v1/games/anonymous/rounds/${roundId}/submit`,
@@ -497,7 +514,10 @@ export const eventsApi = createApi({
     }),
 
     /** GET /v1/events/:eventId/attendees */
-    getEventAttendees: builder.query<any, { eventId: string; page?: number; limit?: number }>({
+    getEventAttendees: builder.query<
+      any,
+      { eventId: string; page?: number; limit?: number }
+    >({
       query: ({ eventId, page = 1, limit = 20 }) =>
         `/v1/events/${eventId}/attendees?page=${page}&limit=${limit}`,
       providesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
@@ -520,32 +540,66 @@ export const eventsApi = createApi({
         { type: "Gallery", id: `vibetags-${eventId}` },
         { type: "PublishPreview", id: eventId },
       ],
-    }),    getVibeTags: builder.query<any, { eventId: string; activityTiming?: string }>({
+    }),
+    getVibeTags: builder.query<
+      any,
+      { eventId: string; activityTiming?: string }
+    >({
       query: ({ eventId }) => `/v1/vibe-tags?eventId=${eventId}`,
-      providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: `vibetags-${eventId}` }],
+      providesTags: (_, __, { eventId }) => [
+        { type: "Gallery", id: `vibetags-${eventId}` },
+      ],
     }),
 
-    getEventPostcards: builder.query<any, { eventId: string; phase?: string; page?: number; limit?: number }>({
-      query: ({ eventId, phase, page = 1, limit = 20 }) => {
-        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-        if (phase && phase !== "all") params.set("phase", phase);
+    /**
+     * Takes the UI's phase slug ("pre-event", "all", …) and converts it to the
+     * wire value here, so this is the single place the two vocabularies meet.
+     * Callers pass what their tabs hold and never think about the enum; "all"
+     * simply omits the param.
+     */
+    getEventPostcards: builder.query<
+      any,
+      {
+        eventId: string;
+        phase?: PostcardPhase;
+        userId?: string;
+        page?: number;
+        limit?: number;
+      }
+    >({
+      query: ({ eventId, phase, userId, page = 1, limit = 20 }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        const timing = phaseToTiming(phase);
+        if (timing) params.set("timing", timing);
+        if (userId) params.set("userId", userId);
         return `/v1/events/${eventId}/postcards?${params.toString()}`;
       },
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
-    createPostcard: builder.mutation<any, { eventId: string; image: string; caption?: string; vibeTagId?: string }>({
+    createPostcard: builder.mutation<
+      any,
+      { eventId: string; image: string; caption?: string; vibeTagId?: string }
+    >({
       query: ({ eventId, ...body }) => ({
         url: `/v1/events/${eventId}/postcards`,
         method: "POST",
         body,
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Gallery", id: eventId },
+      ],
     }),
 
     // Step 1: upload raw files, get back fileKeys
     uploadMultipleFiles: builder.mutation<
-      { success: boolean; data: { url: string; fileKey: string; mediaType: string }[] },
+      {
+        success: boolean;
+        data: { url: string; fileKey: string; mediaType: string }[];
+      },
       FormData
     >({
       query: (formData) => ({
@@ -558,14 +612,21 @@ export const eventsApi = createApi({
     // Step 2: create postcards with the returned fileKeys
     createPostcards: builder.mutation<
       any,
-      { eventId: string; caption?: string; vibeTagId?: string; media: { fileKey: string; mediaType: string; mediaUrl?: string }[] }
+      {
+        eventId: string;
+        caption?: string;
+        vibeTagId?: string;
+        media: { fileKey: string; mediaType: string; mediaUrl?: string }[];
+      }
     >({
       query: ({ eventId, vibeTagId, media, caption }) => ({
         url: "/v1/postcards",
         method: "POST",
         body: { eventId, vibeTagId, media, caption },
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Gallery", id: eventId },
+      ],
     }),
 
     /** POST /v1/postcards/:id/view — fire-and-forget view tracking */
@@ -597,7 +658,16 @@ export const eventsApi = createApi({
 
     /** POST /v1/postcards/:id/comment — add comment, returns comment with author */
     commentOnPostcard: builder.mutation<
-      { id: string; content: string; createdAt: string; author: { displayName?: string; username?: string; avatarUrl?: string | null } },
+      {
+        id: string;
+        content: string;
+        createdAt: string;
+        author: {
+          displayName?: string;
+          username?: string;
+          avatarUrl?: string | null;
+        };
+      },
       { postcardId: string; content: string }
     >({
       query: ({ postcardId, content }) => ({
@@ -626,16 +696,33 @@ export const eventsApi = createApi({
     }),
 
     /** GET /v1/postcards/event/:eventId/leaderboard — postcard leaderboard, optional ?activityTiming= */
-    getPostcardLeaderboard: builder.query<any, { eventId: string; activityTiming?: string }>({
-      query: ({ eventId, activityTiming }) => {
-        const qs = activityTiming ? `?activityTiming=${activityTiming}` : "";
+    /**
+     * The param is `timing`, not `activityTiming` — that mismatch is why the
+     * leaderboard's phase tabs silently returned the backend's default phase
+     * regardless of which tab was active.
+     */
+    getPostcardLeaderboard: builder.query<
+      any,
+      { eventId: string; phase?: PostcardPhase }
+    >({
+      query: ({ eventId, phase }) => {
+        const timing = phaseToTiming(phase);
+        const qs = timing ? `?timing=${timing}` : "";
         return `/v1/postcards/event/${eventId}/leaderboard${qs}`;
       },
       providesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
     }),
 
     // Global postcards feed — /v1/postcards (optionally filtered by eventId or userId)
-    getPostcards: builder.query<any, { page?: number; limit?: number; eventId?: string; userId?: string } | void>({
+    getPostcards: builder.query<
+      any,
+      {
+        page?: number;
+        limit?: number;
+        eventId?: string;
+        userId?: string;
+      } | void
+    >({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
@@ -651,13 +738,17 @@ export const eventsApi = createApi({
     /** GET /v1/postcards/:eventId — total memories (postcards) for an event */
     getEventMemoriesCount: builder.query<any, string>({
       query: (eventId) => `/v1/postcards/${eventId}`,
-      providesTags: (_, __, eventId) => [{ type: "Gallery", id: `memories-${eventId}` }],
+      providesTags: (_, __, eventId) => [
+        { type: "Gallery", id: `memories-${eventId}` },
+      ],
     }),
 
     /** GET /v1/events/:eventId/active-game-status — check if user is checked in and get active game info */
     getActiveGameStatus: builder.query<any, string>({
       query: (eventId) => `/v1/events/${eventId}/active-game-status`,
-      providesTags: (_, __, eventId) => [{ type: "Event", id: `game-status-${eventId}` }],
+      providesTags: (_, __, eventId) => [
+        { type: "Event", id: `game-status-${eventId}` },
+      ],
     }),
 
     // ── Event Tags ────────────────────────────────────────────────────────────
@@ -672,7 +763,10 @@ export const eventsApi = createApi({
     }),
 
     /** POST /v1/events/:id/tags/remove — remove vibe tags from an event (organizer only, locked once started) */
-    removeEventTags: builder.mutation<any, { eventId: string; tagIds: string[] }>({
+    removeEventTags: builder.mutation<
+      any,
+      { eventId: string; tagIds: string[] }
+    >({
       query: ({ eventId, tagIds }) => ({
         url: `/v1/events/${eventId}/tags/remove`,
         method: "POST",
@@ -694,7 +788,10 @@ export const eventsApi = createApi({
     /** PATCH /v1/game-sessions/:id — update session-level fields */
     updateGameSession: builder.mutation<
       any,
-      { sessionId: string; data: { title?: string; maxWinners?: number; gameDuration?: number } }
+      {
+        sessionId: string;
+        data: { title?: string; maxWinners?: number; gameDuration?: number };
+      }
     >({
       query: ({ sessionId, data }) => ({
         url: `/v1/game-sessions/${sessionId}`,
@@ -718,7 +815,15 @@ export const eventsApi = createApi({
     /** PATCH /v1/game-rounds/:id — update a round */
     updateGameRound: builder.mutation<
       any,
-      { roundId: string; data: { title?: string; gameType?: string; config?: any; orderIndex?: number } }
+      {
+        roundId: string;
+        data: {
+          title?: string;
+          gameType?: string;
+          config?: any;
+          orderIndex?: number;
+        };
+      }
     >({
       query: ({ roundId, data }) => ({
         url: `/v1/game-rounds/${roundId}`,
@@ -774,7 +879,9 @@ export const eventsApi = createApi({
      */
     getPublishPreview: builder.query<any, string>({
       query: (eventId) => `/v1/organizer-payments/publish-preview/${eventId}`,
-      providesTags: (_, __, eventId) => [{ type: "PublishPreview", id: eventId }],
+      providesTags: (_, __, eventId) => [
+        { type: "PublishPreview", id: eventId },
+      ],
     }),
 
     // ── Postcard Swap ─────────────────────────────────────────────────────────
@@ -800,7 +907,9 @@ export const eventsApi = createApi({
         method: "POST",
         body: { eventId, vibeTagId, caption, media },
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Gallery", id: eventId },
+      ],
     }),
 
     // ── Withdrawal Requests (DEPRECATED) ──────────────────────────────────────
@@ -811,14 +920,21 @@ export const eventsApi = createApi({
      */
     requestWithdrawal: builder.mutation<
       { data: WithdrawalRecord },
-      { eventId: string; bankName: string; accountNumber: string; accountName: string }
+      {
+        eventId: string;
+        bankName: string;
+        accountNumber: string;
+        accountName: string;
+      }
     >({
       query: ({ eventId, bankName, accountNumber, accountName }) => ({
         url: `/v1/events/${eventId}/withdrawals`,
         method: "POST",
         body: { bankName, accountNumber, accountName },
       }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Withdrawals", id: eventId }],
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Withdrawals", id: eventId },
+      ],
     }),
 
     /**
@@ -826,14 +942,10 @@ export const eventsApi = createApi({
      *
      * GET /v1/events/:eventId/withdrawals
      */
-    getWithdrawals: builder.query<
-      { data: WithdrawalRecord[] },
-      string
-    >({
+    getWithdrawals: builder.query<{ data: WithdrawalRecord[] }, string>({
       query: (eventId) => `/v1/events/${eventId}/withdrawals`,
       providesTags: (_, __, eventId) => [{ type: "Withdrawals", id: eventId }],
     }),
-
   }),
 });
 

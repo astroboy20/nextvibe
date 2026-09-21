@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true, // Skip type checking during dev
+    ignoreBuildErrors: false, // Skip type checking during dev
   },
 
   async headers() {
@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;",
+            value:
+              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;",
           },
         ],
       },
@@ -23,17 +24,53 @@ const nextConfig: NextConfig = {
   // Redirect old /dashboard/* paths to new clean paths for back-compat
   async redirects() {
     return [
-      { source: "/dashboard/events",              destination: "/events",        permanent: true },
-      { source: "/dashboard/events/:id",           destination: "/events/:id",    permanent: true },
-      { source: "/dashboard/events/:id/postcards", destination: "/events/:id/postcards", permanent: true },
-      { source: "/dashboard/social",               destination: "/social",        permanent: true },
-      { source: "/dashboard/messages",             destination: "/messages",      permanent: true },
-      { source: "/dashboard/notifications",        destination: "/notifications", permanent: true },
-      { source: "/dashboard/profile",              destination: "/profile",       permanent: true },
-      { source: "/dashboard/profile/edit",         destination: "/profile/edit",  permanent: true },
-      { source: "/dashboard/settings",             destination: "/settings",      permanent: true },
-      { source: "/dashboard/postcards/:id",        destination: "/postcards/:id", permanent: true },
-      { source: "/dashboard/user/:id",             destination: "/users/:id",     permanent: true },
+      { source: "/dashboard/events", destination: "/events", permanent: true },
+      {
+        source: "/dashboard/events/:id",
+        destination: "/events/:id",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/events/:id/postcards",
+        destination: "/events/:id/postcards",
+        permanent: true,
+      },
+      { source: "/dashboard/social", destination: "/social", permanent: true },
+      {
+        source: "/dashboard/messages",
+        destination: "/messages",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/notifications",
+        destination: "/notifications",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/profile",
+        destination: "/profile",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/profile/edit",
+        destination: "/profile/edit",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/settings",
+        destination: "/settings",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/postcards/:id",
+        destination: "/postcards/:id",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/user/:id",
+        destination: "/users/:id",
+        permanent: true,
+      },
     ];
   },
 
@@ -42,32 +79,38 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       // Crawl infrastructure
-      { source: "/sitemap.xml",  destination: "/sitemap.xml" },
-      { source: "/robots.txt",   destination: "/robots.txt" },
+      { source: "/sitemap.xml", destination: "/sitemap.xml" },
+      { source: "/robots.txt", destination: "/robots.txt" },
 
       // SEO landing pages — party photo sharing & event memory
       { source: "/party-photo-sharing", destination: "/party-photo-sharing" },
-      { source: "/event-memory-app",    destination: "/event-memory-app" },
-      { source: "/alternatives",        destination: "/alternatives" },
+      { source: "/event-memory-app", destination: "/event-memory-app" },
+      { source: "/alternatives", destination: "/alternatives" },
 
       // Use-case pages
-      { source: "/use-cases/weddings",         destination: "/use-cases/weddings" },
-      { source: "/use-cases/birthday-parties", destination: "/use-cases/birthday-parties" },
-      { source: "/use-cases/festivals",        destination: "/use-cases/festivals" },
-      { source: "/use-cases/corporate-events", destination: "/use-cases/corporate-events" },
+      { source: "/use-cases/weddings", destination: "/use-cases/weddings" },
+      {
+        source: "/use-cases/birthday-parties",
+        destination: "/use-cases/birthday-parties",
+      },
+      { source: "/use-cases/festivals", destination: "/use-cases/festivals" },
+      {
+        source: "/use-cases/corporate-events",
+        destination: "/use-cases/corporate-events",
+      },
 
       // Campaign routes — /campaigns/birthday/* → /birthday/*
       { source: "/campaigns/birthday/verify", destination: "/birthday/verify" },
-      { source: "/campaigns/birthday",        destination: "/birthday" },
+      { source: "/campaigns/birthday", destination: "/birthday" },
 
       // Core public pages
-      { source: "/about",       destination: "/about" },
-      { source: "/how-it-works",destination: "/how-it-works" },
-      { source: "/faq",         destination: "/faq" },
-      { source: "/pricing",     destination: "/pricing" },
-      { source: "/contact",     destination: "/contact" },
-      { source: "/privacy",     destination: "/privacy" },
-      { source: "/terms",       destination: "/terms" },
+      { source: "/about", destination: "/about" },
+      { source: "/how-it-works", destination: "/how-it-works" },
+      { source: "/faq", destination: "/faq" },
+      { source: "/pricing", destination: "/pricing" },
+      { source: "/contact", destination: "/contact" },
+      { source: "/privacy", destination: "/privacy" },
+      { source: "/terms", destination: "/terms" },
     ];
   },
 
@@ -124,7 +167,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
 };
 
 export default nextConfig;

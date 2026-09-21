@@ -21,7 +21,7 @@ export function useVibeTagStorage(eventId?: string) {
     data: vibeTagsData,
     isLoading: isLoadingVibeTags,
     refetch: refetchVibeTags,
-  } = useGetVibeTagsQuery(eventId ?? "", { skip: !eventId });
+  } = useGetVibeTagsQuery({ eventId: eventId ?? "" }, { skip: !eventId });
 
   const [createVibeTagMutation, { isLoading: isSaving }] = useCreateVibeTagMutation();
 
