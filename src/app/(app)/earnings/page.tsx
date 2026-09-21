@@ -8,7 +8,7 @@ import { Wallet } from "lucide-react";
 import {
   useGetBalancesQuery,
   type CurrencyBalance,
-} from "@/app/provider/api/payoutApi";
+} from "@/store/api/payoutApi";
 import { BalanceCard } from "./components/balance-card";
 import { PayoutAccountsManager } from "./components/payout-accounts-manager";
 import { PayoutHistory } from "./components/payout-history";

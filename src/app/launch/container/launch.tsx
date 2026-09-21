@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useWaitlistMutation } from "@/app/provider/api/launchApi";
+import { useWaitlistMutation } from "@/store/api/launchApi";
 
 function useCountdown(targetDate: Date) {
   const calculateTimeLeft = useCallback(() => {

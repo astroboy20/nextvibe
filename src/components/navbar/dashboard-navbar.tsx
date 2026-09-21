@@ -9,13 +9,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { NewLogo } from "../logo";
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 import {
   useGetNotificationsQuery,
   useMarkAllReadMutation,
   useMarkOneReadMutation,
   type Notification,
-} from "@/app/provider/api/notificationApi";
+} from "@/store/api/notificationApi";
 import { useSocket } from "@/hooks/useSocket";
 import {
   Popover,

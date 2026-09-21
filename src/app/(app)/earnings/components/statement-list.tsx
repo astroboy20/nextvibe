@@ -12,7 +12,7 @@ import {
   ScrollText,
   Clock,
 } from "lucide-react";
-import { useGetStatementQuery, type LedgerEntryType } from "@/app/provider/api/payoutApi";
+import { useGetStatementQuery, type LedgerEntryType } from "@/store/api/payoutApi";
 import { formatMoney } from "@/utils/money";
 import { cn } from "@/lib/utils";
 

@@ -15,7 +15,7 @@ import {
   useMarkAllReadMutation,
   useMarkOneReadMutation,
   type Notification,
-} from "@/app/provider/api/notificationApi";
+} from "@/store/api/notificationApi";
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";

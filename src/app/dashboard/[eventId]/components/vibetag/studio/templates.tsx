@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setTemplate, setView } from "@/app/provider/slices/canvas-slice";
-import { RootState } from "@/app/provider/store";
+import { setTemplate, setView } from "@/store/slices/canvas-slice";
+import { RootState } from "@/store/store";
 import { VibeTags } from "@/data/templates";
 import { Template } from "@/types/canvas";
 import { PRIMARY_COLOR } from "@/utils/constants";

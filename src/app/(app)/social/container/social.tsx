@@ -35,14 +35,14 @@ import {
   useRecordShareMutation,
   type PostcardItem,
   type SocialUser,
-} from "@/app/provider/api/socialApi";
-import { useStartConversationMutation } from "@/app/provider/api/messagingApi";
+} from "@/store/api/socialApi";
+import { useStartConversationMutation } from "@/store/api/messagingApi";
 import { toast } from "sonner";
 import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
   useToggleLikePostcardMutation,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import {
   PostcardViewer,
   type PostcardData,

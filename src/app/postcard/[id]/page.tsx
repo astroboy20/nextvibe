@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useGetPostcardQuery } from "@/app/provider/api/eventApi";
+import { useGetPostcardQuery } from "@/store/api/eventApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostcardViewer } from "@/components/postcard-viewer";
 

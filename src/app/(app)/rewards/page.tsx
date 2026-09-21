@@ -16,7 +16,7 @@ import {
   useClaimRewardMutation,
   type Reward,
   type RewardType,
-} from "@/app/provider/api/gameApi";
+} from "@/store/api/gameApi";
 import {
   RewardProgress,
   RewardStatusBadge,

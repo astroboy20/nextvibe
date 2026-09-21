@@ -3,12 +3,12 @@ import { GoogleLogin } from "@react-oauth/google";
 import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
-import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
-import { useGoogleLoginMutation } from "@/app/provider/api/authApi";
+import { setIsAuthenticated, setUser } from "@/store/slices/user";
+import { useGoogleLoginMutation } from "@/store/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
-import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
+import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;

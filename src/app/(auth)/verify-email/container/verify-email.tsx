@@ -11,11 +11,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useDispatch } from "react-redux";
-import { setUser } from "@/app/provider/slices/user";
+import { setUser } from "@/store/slices/user";
 import {
   useResendverificationEmailMutation,
   useVerifyEmailMutation,
-} from "@/app/provider/api/authApi";
+} from "@/store/api/authApi";
 
 type VerificationStatus = "loading" | "success" | "expired" | "error";
 

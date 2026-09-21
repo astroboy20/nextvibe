@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
-import { RootState } from "@/app/provider/store";
-import { useGetConversationsQuery } from "@/app/provider/api/messagingApi";
+import { RootState } from "@/store/store";
+import { useGetConversationsQuery } from "@/store/api/messagingApi";
 import { useSocket } from "@/hooks/useSocket";
 
 const navItems = [

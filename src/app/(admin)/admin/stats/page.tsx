@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetStatsQuery } from "@/app/provider/api/admin";
+import { useGetStatsQuery } from "@/store/api/admin";
 import { StatsCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

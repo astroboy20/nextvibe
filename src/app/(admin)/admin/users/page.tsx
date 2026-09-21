@@ -5,8 +5,8 @@ import {
   useGetUsersQuery,
   useToggleUserBanMutation,
   useUpdateUserRoleMutation,
-} from "@/app/provider/api/admin";
-import type { IAdminUser } from "@/app/provider/api/admin";
+} from "@/store/api/admin";
+import type { IAdminUser } from "@/store/api/admin";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

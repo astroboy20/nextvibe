@@ -35,12 +35,12 @@ import {
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { useGetUserQuery } from "@/app/provider/api/authApi";
+import { useGetUserQuery } from "@/store/api/authApi";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
 import { AnonScorePrompt } from "@/components/anon-score-prompt";

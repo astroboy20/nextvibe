@@ -20,7 +20,7 @@ import {
   useRejectPayoutMutation,
   useMarkPayoutFailedMutation,
   type AdminPayout,
-} from "@/app/provider/api/payoutApi";
+} from "@/store/api/payoutApi";
 import { formatMoney } from "@/utils/money";
 
 export type PayoutAction = "approve" | "paid" | "reject" | "failed";

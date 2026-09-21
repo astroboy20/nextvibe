@@ -11,9 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useGetUserBasicQuery } from "@/app/provider/api/authApi";
-import { useToggleFollowMutation, useGetMyFollowingQuery } from "@/app/provider/api/socialApi";
-import { useStartConversationMutation } from "@/app/provider/api/messagingApi";
+import { useGetUserBasicQuery } from "@/store/api/authApi";
+import { useToggleFollowMutation, useGetMyFollowingQuery } from "@/store/api/socialApi";
+import { useStartConversationMutation } from "@/store/api/messagingApi";
 
 interface UserProfilePageProps {
   params: Promise<{ id: string }>;

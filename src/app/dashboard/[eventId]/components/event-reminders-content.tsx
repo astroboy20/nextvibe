@@ -34,7 +34,7 @@ import {
   RsvpStatus,
   ReminderTemplate,
   CsvImportResponse,
-} from "@/app/provider/api/reminderApi";
+} from "@/store/api/reminderApi";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

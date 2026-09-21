@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Banknote, ArrowRight, Clock, Loader2 } from "lucide-react";
-import { useGetBalancesQuery } from "@/app/provider/api/payoutApi";
+import { useGetBalancesQuery } from "@/store/api/payoutApi";
 import { formatMoney, isPositive } from "@/utils/money";
 
 interface PayoutSectionProps {

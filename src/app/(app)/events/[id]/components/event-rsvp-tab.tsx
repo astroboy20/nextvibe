@@ -18,7 +18,7 @@ import { TicketPurchaseModal } from "./ticket-purchase-modal";
 import {
   useRsvpMutation,
   useGetEventAttendeesQuery,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import { toast } from "sonner";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Link from "next/link";

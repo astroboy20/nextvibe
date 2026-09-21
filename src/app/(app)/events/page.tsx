@@ -3,11 +3,11 @@
 import Discover from "./container/discover";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useRef, useState } from "react";
-import { setLocation, setLocationSynced } from "@/app/provider/slices/location-slice";
-import { setLocationConsentAsked } from "@/app/provider/slices/consent-slice";
+import { setLocation, setLocationSynced } from "@/store/slices/location-slice";
+import { setLocationConsentAsked } from "@/store/slices/consent-slice";
 import { useUserLocation } from "@/hooks/get-location";
 import { LocationConsentDialog } from "@/components/location-consent-dialog";
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 
 /**
  * DiscoverPage

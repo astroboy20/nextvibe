@@ -26,7 +26,7 @@ import {
   useGetBanksQuery,
   useLazyResolveAccountQuery,
   type PayoutRail,
-} from "@/app/provider/api/payoutApi";
+} from "@/store/api/payoutApi";
 import { COUNTRIES, currencyForCountry } from "@/utils/countries";
 
 /**

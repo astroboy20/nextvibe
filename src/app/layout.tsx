@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NetworkStatusBanner } from "@/components/network-status-banner";
 
 import "./globals.css";
-import ProviderWrapper from "./provider/provider";
+import ProviderWrapper from "@/store/provider";
 import Script from "next/script";
 import { GOOGLE_ANALYTICS_ID, GOOGLE_MAP_KEY } from "@/utils/constants";
 

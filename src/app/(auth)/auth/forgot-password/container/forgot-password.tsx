@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Mail, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useForgotPasswordMutation } from "@/app/provider/api/authApi";
+import { useForgotPasswordMutation } from "@/store/api/authApi";
 
 type Step = "idle" | "loading" | "success";
 

@@ -23,8 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setLocationConsent } from "@/app/provider/slices/consent-slice";
-import { setLocation, setLocationSynced } from "@/app/provider/slices/location-slice";
+import { setLocationConsent } from "@/store/slices/consent-slice";
+import { setLocation, setLocationSynced } from "@/store/slices/location-slice";
 import Link from "next/link";
 
 interface LocationConsentDialogProps {

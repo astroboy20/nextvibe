@@ -8,7 +8,7 @@ import {
   setIsFontsOpen,
   setIsPreviewOpen,
   setIsUploadImgOpen,
-} from "@/app/provider/slices/canvas-slice";
+} from "@/store/slices/canvas-slice";
 import base64ToImage from "@/utils/base64ToImg";
 
 import Fonts from "./fonts";
@@ -30,9 +30,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCanvas } from "@/hooks/use-canvas";
-import { useCreateVibeTagMutation } from "@/app/provider/api/eventApi";
+import { useCreateVibeTagMutation } from "@/store/api/eventApi";
 import { toast } from "sonner";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 interface ControlItem {

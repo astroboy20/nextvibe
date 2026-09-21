@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,8 +41,8 @@ import {
   useGetSessionLeaderboardQuery,
   useGetGameSessionEditPolicyQuery,
   useUpdateGameSessionMutation,
-} from "@/app/provider/api/eventApi";
-import { useInitiateAdditionalGamePaymentMutation } from "@/app/provider/api/organizerPaymentApi";
+} from "@/store/api/eventApi";
+import { useInitiateAdditionalGamePaymentMutation } from "@/store/api/organizerPaymentApi";
 import { toast } from "sonner";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";

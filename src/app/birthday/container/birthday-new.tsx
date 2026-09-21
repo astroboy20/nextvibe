@@ -59,7 +59,7 @@ import {
   useGetBirthdayStatsQuery,
   useLazyGetBirthdayQuoteQuery,
   useSignupBirthdayMutation,
-} from "@/app/provider/api/campaignApi";
+} from "@/store/api/campaignApi";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SPOTS_TOTAL = 1000;

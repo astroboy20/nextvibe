@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateEventMutation,
   useUploadIntentMutation,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import {
   Select,
   SelectContent,

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Lock, ArrowUpRight, Wallet } from "lucide-react";
 import { formatMoney, isPositive } from "@/utils/money";
-import type { CurrencyBalance } from "@/app/provider/api/payoutApi";
+import type { CurrencyBalance } from "@/store/api/payoutApi";
 
 interface Props {
   balance: CurrencyBalance;

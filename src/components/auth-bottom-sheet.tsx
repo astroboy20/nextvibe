@@ -13,21 +13,21 @@
 
 import { useState } from "react";
 import { X, Loader2, Eye, EyeOff, Tag, RefreshCw, Sparkles } from "lucide-react";
-import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
+import { resetAuthRefreshState } from "@/store/api/baseQuery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   useLoginMutation,
   useRegisterMutation,
   useGoogleLoginMutation,
-} from "@/app/provider/api/authApi";
+} from "@/store/api/authApi";
 import {
   useGetVibeTagsQuery,
   useSaveUserVibesMutation,
   type VibeTag,
-} from "@/app/provider/api/discoverApi";
+} from "@/store/api/discoverApi";
 import { useDispatch } from "react-redux";
-import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
+import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GoogleLogin } from "@react-oauth/google";

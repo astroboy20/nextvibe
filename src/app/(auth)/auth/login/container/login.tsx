@@ -12,7 +12,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Loader2, CheckCircle2, Info } from "lucide-react";
 
 import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
-import { setIsAuthenticated, setUser } from "@/app/provider/slices/user";
+import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import {
@@ -23,11 +23,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useLoginMutation } from "@/app/provider/api/authApi";
+import { useLoginMutation } from "@/store/api/authApi";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
 import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
-import { resetAuthRefreshState } from "@/app/provider/api/baseQuery";
+import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),

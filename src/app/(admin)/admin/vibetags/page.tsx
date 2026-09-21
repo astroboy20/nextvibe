@@ -1,7 +1,7 @@
 "use client";
 
-import { useGetVibeTagStatsQuery } from "@/app/provider/api/admin";
-import type { IAdminVibeTag } from "@/app/provider/api/admin";
+import { useGetVibeTagStatsQuery } from "@/store/api/admin";
+import type { IAdminVibeTag } from "@/store/api/admin";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

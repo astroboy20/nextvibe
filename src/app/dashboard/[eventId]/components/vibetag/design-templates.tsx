@@ -1,8 +1,8 @@
 "use client";
 
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 import { useDispatch, useSelector } from "react-redux";
-import { setView, setTemplate } from "@/app/provider/slices/canvas-slice";
+import { setView, setTemplate } from "@/store/slices/canvas-slice";
 import { useEffect } from "react";
 import Templates from "./studio/templates";
 import Editor from "./studio/editor";

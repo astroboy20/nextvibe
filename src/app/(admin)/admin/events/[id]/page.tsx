@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useGetEventDetailQuery, useCancelEventMutation } from "@/app/provider/api/admin";
+import { useGetEventDetailQuery, useCancelEventMutation } from "@/store/api/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

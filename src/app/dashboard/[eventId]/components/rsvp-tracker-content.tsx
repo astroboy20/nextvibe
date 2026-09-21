@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGetEventAttendeesQuery } from "@/app/provider/api/eventApi";
+import { useGetEventAttendeesQuery } from "@/store/api/eventApi";
 
 interface RSVPTrackerContentProps {
   eventId: string;

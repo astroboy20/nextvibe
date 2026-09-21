@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { useResetPasswordMutation } from "@/app/provider/api/authApi";
+import { useResetPasswordMutation } from "@/store/api/authApi";
 
 const resetSchema = z
   .object({

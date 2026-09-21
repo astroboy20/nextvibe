@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetPostcardsQuery,
   useGetEventDetailsQuery,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import { PostcardItem } from "../../components/postcard-grid";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";

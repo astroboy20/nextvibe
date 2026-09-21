@@ -5,7 +5,7 @@ import {
   useGetUserDetailQuery,
   useToggleUserBanMutation,
   useUpdateUserRoleMutation,
-} from "@/app/provider/api/admin";
+} from "@/store/api/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

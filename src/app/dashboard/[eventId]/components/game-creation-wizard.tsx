@@ -19,7 +19,7 @@ import StepThree from "./game-steps/step-three";
 import StepFour from "./game-steps/step-four";
 import StepFive from "./game-steps/step-five";
 import StepSix from "./game-steps/step-six";
-import { useCreateGameMutation } from "@/app/provider/api/eventApi";
+import { useCreateGameMutation } from "@/store/api/eventApi";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useBeforeUnload } from "@/hooks/use-before-unload";

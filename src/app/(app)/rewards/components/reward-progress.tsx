@@ -6,7 +6,7 @@ import {
   REWARD_STAGES,
   type RewardStage,
   type RewardStatus,
-} from "@/app/provider/api/gameApi";
+} from "@/store/api/gameApi";
 
 /** What each stage means to the person waiting, in their words not ours. */
 const STAGE_LABELS: Record<RewardStage, string> = {

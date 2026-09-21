@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetAnalyticsQuery } from "@/app/provider/api/admin";
+import { useGetAnalyticsQuery } from "@/store/api/admin";
 import { ChartContainer } from "@/components/chart-container";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";

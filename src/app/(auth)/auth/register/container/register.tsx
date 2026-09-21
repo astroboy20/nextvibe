@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
 import { toast } from "sonner";
-import { useRegisterMutation } from "@/app/provider/api/authApi";
+import { useRegisterMutation } from "@/store/api/authApi";
 import Cookies from "js-cookie";
 import PasswordField from "../component/password-field";
 import { useState } from "react";

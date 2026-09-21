@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetEventPostcardsQuery,
   useGetEventDetailsQuery,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import {
   PostcardViewer,

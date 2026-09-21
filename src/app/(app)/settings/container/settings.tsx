@@ -23,9 +23,9 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useLogoutMutation } from "@/app/provider/api/authApi";
+import { useLogoutMutation } from "@/store/api/authApi";
 import Cookies from "js-cookie";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
 
 const Settings = () => {

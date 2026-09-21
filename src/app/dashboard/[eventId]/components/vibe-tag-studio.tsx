@@ -16,12 +16,12 @@ import Vibetags from "./vibetag/vibetags";
 import {
   useGetVibeTagsQuery,
   useGetEventDetailsQuery,
-} from "@/app/provider/api/eventApi";
-import { useInitiateVibeTagAddonPaymentMutation } from "@/app/provider/api/organizerPaymentApi";
+} from "@/store/api/eventApi";
+import { useInitiateVibeTagAddonPaymentMutation } from "@/store/api/organizerPaymentApi";
 import { useDispatch } from "react-redux";
-import { setView, setTemplate } from "@/app/provider/slices/canvas-slice";
+import { setView, setTemplate } from "@/store/slices/canvas-slice";
 import { toast } from "sonner";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT" | "BOTH";
 

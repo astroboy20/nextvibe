@@ -28,7 +28,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useInitiatePledgeMutation, type PledgeTierId } from "@/app/provider/api/pledgeApi";
+import { useInitiatePledgeMutation, type PledgeTierId } from "@/store/api/pledgeApi";
 
 const USD_TO_NGN_FALLBACK = 1500; // used only if the live fetch fails
 

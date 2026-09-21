@@ -15,13 +15,13 @@ import {
   User,
 } from "lucide-react";
 
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 
 import {
   useGetUserQuery,
   useUpdateUserMutation,
   useGetPresignedUrlMutation,
-} from "@/app/provider/api/authApi";
+} from "@/store/api/authApi";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

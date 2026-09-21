@@ -19,8 +19,8 @@ import {
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
   useMergeAnonymousSessionsMutation,
-} from "@/app/provider/api/eventApi";
-import { useGetUserQuery } from "@/app/provider/api/userApi";
+} from "@/store/api/eventApi";
+import { useGetUserQuery } from "@/store/api/userApi";
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
 import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/lib/anonymous-game";

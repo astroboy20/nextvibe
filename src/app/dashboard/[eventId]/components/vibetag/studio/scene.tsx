@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 import {
   setHasSavedData,
   setIsRestoreModalOpen,
-} from "@/app/provider/slices/canvas-slice";
+} from "@/store/slices/canvas-slice";
 import { canvasStore } from "@/hooks/canvas-store";
 
 export const PLACEHOLDER = "Tap to edit";

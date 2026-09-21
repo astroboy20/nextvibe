@@ -6,7 +6,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,9 +34,9 @@ import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import { usePostcardViewTracker } from "@/hooks/use-views";
-import { useGetUserQuery } from "@/app/provider/api/authApi";
+import { useGetUserQuery } from "@/store/api/authApi";
 import { getGuestSessionId } from "@/hooks/get-guest-sessionId";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

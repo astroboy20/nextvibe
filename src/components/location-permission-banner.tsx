@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import { MapPin, X } from "lucide-react";
 import Cookies from "js-cookie";
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 
 export function LocationPermissionBanner() {
   const synced = useSelector((s: RootState) => s.location.synced);

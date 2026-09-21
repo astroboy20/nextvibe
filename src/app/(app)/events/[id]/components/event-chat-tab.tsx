@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, MessageCircle } from "lucide-react";
-import { useGetUserQuery } from "@/app/provider/api/userApi";
+import { useGetUserQuery } from "@/store/api/userApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";

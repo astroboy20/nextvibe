@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useLazyVerifyPledgeQuery } from "@/app/provider/api/pledgeApi";
+import { useLazyVerifyPledgeQuery } from "@/store/api/pledgeApi";
 
 const formatNgn = (v: string | number) =>
   new Intl.NumberFormat("en-NG", {

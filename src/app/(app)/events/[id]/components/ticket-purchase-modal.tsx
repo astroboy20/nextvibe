@@ -1,15 +1,15 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Ticket, Check, Loader2, Plus, Minus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useGetTicketsQuery } from "@/app/provider/api/eventApi";
-import { useInitiatePurchaseMutation } from "@/app/provider/api/paymentApi";
+import { useGetTicketsQuery } from "@/store/api/eventApi";
+import { useInitiatePurchaseMutation } from "@/store/api/paymentApi";
 import Image from "next/image";
 
 interface TicketItem {

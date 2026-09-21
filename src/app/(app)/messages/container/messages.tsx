@@ -15,10 +15,10 @@ import {
   useGetMessagesQuery,
   type Conversation,
   type Message,
-} from "@/app/provider/api/messagingApi";
+} from "@/store/api/messagingApi";
 import { useSocket } from "@/hooks/useSocket";
 import { getTokens } from "@/hooks/getToken";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
+import { setHideHeader } from "@/store/slices/ui-slice";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

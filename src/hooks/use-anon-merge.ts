@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getPendingSessions, clearAnonGameData, getAnonymousId, type AnonPendingSession } from "@/lib/anonymous-game";
-import { useMergeAnonymousSessionsMutation } from "@/app/provider/api/eventApi";
+import { useMergeAnonymousSessionsMutation } from "@/store/api/eventApi";
 
 export function useAnonMerge() {
   const [mergeSessions, { isLoading }] = useMergeAnonymousSessionsMutation();

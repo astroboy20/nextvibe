@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useGetPostcardsQuery } from "@/app/provider/api/admin";
-import type { IAdminPostcard } from "@/app/provider/api/admin";
+import { useGetPostcardsQuery } from "@/store/api/admin";
+import type { IAdminPostcard } from "@/store/api/admin";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

@@ -25,11 +25,11 @@ import {
   useInitiatePlanPaymentMutation,
   type PlanType,
   type PlanQuote,
-} from "@/app/provider/api/organizerPaymentApi";
+} from "@/store/api/organizerPaymentApi";
 import {
   useUpdateEventStatusMutation,
   useGetPublishPreviewQuery,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 
 // ─── Plan display helpers ─────────────────────────────────────────────────────
 

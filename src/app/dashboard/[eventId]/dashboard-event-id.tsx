@@ -43,14 +43,14 @@ import {
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
   useUploadIntentMutation,
-} from "@/app/provider/api/eventApi";
+} from "@/store/api/eventApi";
 import {
   useGetVibeTagsQuery as useGetDiscoverTagsQuery,
   useCreateDiscoverTagMutation,
-} from "@/app/provider/api/discoverApi";
+} from "@/store/api/discoverApi";
 import { useDispatch } from "react-redux";
-import { setHideHeader } from "@/app/provider/slices/ui-slice";
-import { useGetRemindersQuery } from "@/app/provider/api/reminderApi";
+import { setHideHeader } from "@/store/slices/ui-slice";
+import { useGetRemindersQuery } from "@/store/api/reminderApi";
 import { AccessKeyDisplay } from "@/components/private-event-guard";
 import { formatDate, formatTime } from "@/hooks/format-date";
 import Link from "next/link";

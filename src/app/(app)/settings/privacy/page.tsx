@@ -40,16 +40,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RootState } from "@/app/provider/store";
+import { RootState } from "@/store/store";
 import {
   setLocationConsent,
   setMarketingConsent,
   clearConsent,
-} from "@/app/provider/slices/consent-slice";
-import { clearLocation } from "@/app/provider/slices/location-slice";
+} from "@/store/slices/consent-slice";
+import { clearLocation } from "@/store/slices/location-slice";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { useLogoutMutation } from "@/app/provider/api/authApi";
+import { useLogoutMutation } from "@/store/api/authApi";
 
 export default function PrivacyPreferencesPage() {
   const router = useRouter();

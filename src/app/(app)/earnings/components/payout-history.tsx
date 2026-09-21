@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { useState } from "react";
-import { useGetMyPayoutsQuery } from "@/app/provider/api/payoutApi";
+import { useGetMyPayoutsQuery } from "@/store/api/payoutApi";
 import { PAYOUT_STATUS_CONFIG } from "./payout-status";
 import { formatMoney } from "@/utils/money";
 import { cn } from "@/lib/utils";

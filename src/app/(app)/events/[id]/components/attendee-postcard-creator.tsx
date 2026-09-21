@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Trophy, Crown, Medal, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGetPostcardLeaderboardQuery } from "@/app/provider/api/eventApi";
+import { useGetPostcardLeaderboardQuery } from "@/store/api/eventApi";
 import { type PostcardPhase } from "@/types/postcards.type";
 
 // activityTiming values the API accepts

@@ -28,8 +28,8 @@ import {
   useGetUserQuery,
   useGetUserBasicQuery,
   useGetUserActivityQuery,
-} from "@/app/provider/api/authApi";
-import { useGetMyRewardsQuery } from "@/app/provider/api/gameApi";
+} from "@/store/api/authApi";
+import { useGetMyRewardsQuery } from "@/store/api/gameApi";
 import {
   PostcardViewer,
   type PostcardData,

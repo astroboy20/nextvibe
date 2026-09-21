@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useGetPaymentsQuery, useGetPaymentStatsQuery } from "@/app/provider/api/admin";
+import { useGetPaymentsQuery, useGetPaymentStatsQuery } from "@/store/api/admin";
 import { StatsCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
