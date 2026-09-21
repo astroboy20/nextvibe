@@ -36,7 +36,7 @@ import {
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
 } from "@/app/provider/api/eventApi";
-import { GameScoreShare } from "./game-share";
+import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useRequireAuth } from "@/hooks/useRequireAuth";

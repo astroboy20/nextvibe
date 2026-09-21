@@ -43,7 +43,7 @@ import {
   useUpdateTicketMutation,
   useUploadIntentMutation,
 } from "@/app/provider/api/eventApi";
-import { PayoutSection } from "@/app/dashboard/(dashboard-route)/events/[id]/components/payout-section";
+import { PayoutSection } from "./payout-section";
 import { toast } from "sonner";
 
 // ── Ticket-image upload helpers ──────────────────────────────────────────────

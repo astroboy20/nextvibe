@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: false, // Skip type checking during dev
+    // Type errors fail the production build. This was `true`, which is why
+    // a page with an unresolvable import shipped and the postcard filter
+    // mismatch went unnoticed — tsc knew, nothing was listening.
+    ignoreBuildErrors: false,
   },
 
   async headers() {
