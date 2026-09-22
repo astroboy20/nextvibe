@@ -337,12 +337,12 @@ export default function BirthdayFunnel() {
   const isFull = stats?.isFull ?? false;
 
   // ── Funnel state ──────────────────────────────────────────────────────────
-  // Template has 4 steps. We add a tier-selection step (new step 2) making it 5 total.
-  const [step, setStep] = useState(1);
-  const [category, setCategory] = useState<string>("birthday");
-  const [showOtherTypes, setShowOtherTypes] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<CampaignTier | null>(null);
+  // Single-step funnel: details + date + pay button
+  const [step] = useState(2); // always on step 2 (details form)
+  const [category] = useState<string>("birthday");
+  const [selectedTier] = useState<CampaignTier>(TIERS[0].id); // auto-select first tier (MICRO)
   const [tierQuote, setTierQuote] = useState<TierQuote | null>(null);
+  const [quoteError, setQuoteError] = useState(false);
   const [isGift, setIsGift] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -360,6 +360,15 @@ export default function BirthdayFunnel() {
   const [signupBirthday, { isLoading: submitting }] =
     useSignupBirthdayMutation();
 
+  // Fetch quote for the auto-selected tier on mount
+  useEffect(() => {
+    triggerQuote(selectedTier)
+      .unwrap()
+      .then((q) => setTierQuote(q))
+      .catch(() => setQuoteError(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const el = heroRef.current;
     if (!el) return;
@@ -375,25 +384,11 @@ export default function BirthdayFunnel() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   const scrollToFunnel = () => scrollTo("funnel");
 
-  const pickCategory = (id: string) => {
-    setCategory(id);
-    setStep(2);
-  };
+  // Step 1 → Step 2 (no longer needed, kept for safety)
+  // const goToDetails = () => { setStep(2); scrollToFunnel(); };
 
-  const pickTier = async (tierId: CampaignTier) => {
-    setSelectedTier(tierId);
-    try {
-      const q = await triggerQuote(tierId).unwrap();
-      setTierQuote(q);
-    } catch {
-      toast.error("Could not load pricing — please try again");
-      return;
-    }
-    setStep(3);
-    scrollToFunnel();
-  };
-
-  const submitDetails = (e: React.FormEvent) => {
+  // Final submit: validate then pay
+  const pay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@") || !name.trim()) {
       toast.error("Add your name and a real email so we can send your VibeTag");
@@ -403,20 +398,10 @@ export default function BirthdayFunnel() {
       toast.error("Add the recipient's name and a valid email for the gift");
       return;
     }
-    setStep(4);
-  };
-
-  const submitDate = (e: React.FormEvent) => {
-    e.preventDefault();
     if (!eventDate) {
       toast.error("Pick your event date — it sets up your reminders");
       return;
     }
-    setStep(5);
-  };
-
-  const pay = async () => {
-    if (!selectedTier || !email || !eventDate) return;
     const eventDateStr = format(eventDate, "yyyy-MM-dd");
     try {
       const res = await signupBirthday({
@@ -435,15 +420,9 @@ export default function BirthdayFunnel() {
         };
         message?: string;
       };
-      // The API wraps errors as { success: false, error: { code, message } },
-      // so the real reason lives at data.error.message — not data.message.
-      const serverMessage = e?.data?.error?.message ?? e?.data?.message;
       if (e?.status === 409)
         toast.error("This email already has a confirmed spot.");
-      else if (e?.status === 400)
-        // console.log(e)
-        // toast.error(e?.data?;
-        toast.error(e?.data?.error?.message);
+      else if (e?.status === 400) toast.error(e?.data?.error?.message);
       else
         toast.error(
           e?.data?.error?.message ?? e?.message ?? "Something went wrong."
@@ -451,8 +430,8 @@ export default function BirthdayFunnel() {
     }
   };
 
-  // Total steps = 5 (category → tier → details → date → confirm)
-  const totalSteps = 5;
+  // Total steps = 1 (single form: details + date + pay)
+  const totalSteps = 1;
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
@@ -547,163 +526,34 @@ export default function BirthdayFunnel() {
         <div className="w-full px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-2xl">
             <h2 className="text-center text-2xl font-bold md:text-4xl">
-              Secure your birthday Vibe in four quick steps
+              Secure your birthday Vibe
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted-foreground">
               You do not need every event detail ready. Start now and complete
               the remaining setup later.
             </p>
 
-            <div className="mt-6 flex items-center gap-2">
-              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
-                <div
-                  key={s}
-                  className={cn(
-                    "h-2 flex-1 rounded-full transition-colors",
-                    step >= s ? "bg-primary" : "bg-border"
-                  )}
-                />
-              ))}
-            </div>
-            <p className="mt-2 text-center text-sm text-muted-foreground">
-              Step {step} of {totalSteps} · Occasion → size → your details →
-              date → payment
-            </p>
-
             <div className="mt-6 rounded-3xl bg-card p-6 shadow-sm md:p-8">
-              {/* Step 1 — Category (identical to template) */}
-              {step === 1 && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-xl font-bold md:text-2xl">
-                    You are celebrating a birthday
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => pickCategory("birthday")}
-                    className={cn(
-                      "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-all hover:-translate-y-1 hover:shadow-sm",
-                      category === "birthday"
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-background"
-                    )}
-                  >
-                    <Cake className="size-7 text-primary" />
-                    <div>
-                      <p className="text-lg font-bold">Birthday</p>
-                      <p className="text-sm text-muted-foreground">
-                        Preselected for you — tap to continue
-                      </p>
-                    </div>
-                  </button>
-
-                  <Button
-                    size="lg"
-                    onClick={() => pickCategory(category)}
-                    disabled={isFull}
-                  >
-                    Continue
-                    <ArrowRight className="size-5" />
-                  </Button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowOtherTypes((v) => !v)}
-                    className="text-sm font-medium text-muted-foreground underline underline-offset-4"
-                  >
-                    Planning something else?
-                  </button>
-
-                  {showOtherTypes && (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {categories
-                        .filter((c) => c.id !== "birthday")
-                        .map((c) => {
-                          const Icon = c.icon;
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => pickCategory(c.id)}
-                              className={cn(
-                                "flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center transition-all hover:-translate-y-1 hover:border-primary",
-                                category === c.id &&
-                                  "border-primary bg-primary/5"
-                              )}
-                            >
-                              <Icon className="size-5 text-primary" />
-                              <span className="text-sm font-semibold">
-                                {c.label}
-                              </span>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Step 2 — Tier selection (new, keeps same card style) */}
+              {/* Single step — Details + date + Pay */}
               {step === 2 && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-xl font-bold md:text-2xl">
-                    Pick your event size
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Tier determines your deposit amount and locks in your
-                    package.
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    {TIERS.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        disabled={quoteLoading && selectedTier === t.id}
-                        onClick={() => pickTier(t.id)}
-                        className={cn(
-                          "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm",
-                          selectedTier === t.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-background"
-                        )}
-                      >
-                        <div>
-                          <p className="font-bold">{t.label}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {t.capacity}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {t.tagline && (
-                            <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
-                              {t.tagline}
-                            </span>
-                          )}
-                          {quoteLoading && selectedTier === t.id ? (
-                            <Loader2 className="size-4 animate-spin text-primary" />
-                          ) : (
-                            <ArrowRight className="size-4 text-muted-foreground" />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setStep(1)}
-                  >
-                    Back
-                  </Button>
-                </div>
-              )}
-
-              {/* Step 3 — Details (template step 2) */}
-              {step === 3 && (
-                <form onSubmit={submitDetails} className="flex flex-col gap-5">
+                <form onSubmit={pay} className="flex flex-col gap-5">
                   <h3 className="text-xl font-bold md:text-2xl">
                     Where do we send your VibeTag?
                   </h3>
+
+                  {/* Pricing badge */}
+                  {quoteLoading && !tierQuote && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" /> Loading
+                      pricing…
+                    </div>
+                  )}
+                  {quoteError && !tierQuote && (
+                    <p className="text-sm text-destructive">
+                      Could not load pricing — your spot is still reserved at
+                      ₦5,000.
+                    </p>
+                  )}
                   {tierQuote && (
                     <div className="inline-flex items-baseline gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
                       <span>{formatNaira(tierQuote.amountDue)} deposit</span>
@@ -751,7 +601,7 @@ export default function BirthdayFunnel() {
                     <div>
                       <p className="font-semibold text-sm">🎁 This is a gift</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Send the VibeTag to someone else's birthday
+                        Send the VibeTag to someone else&apos;s birthday
                       </p>
                     </div>
                     <div
@@ -771,7 +621,7 @@ export default function BirthdayFunnel() {
                     </div>
                   </button>
 
-                  {/* Recipient fields — shown when gift is toggled on */}
+                  {/* Recipient fields */}
                   {isGift && (
                     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-secondary/20 p-4">
                       <p className="text-sm font-semibold text-primary">
@@ -803,38 +653,7 @@ export default function BirthdayFunnel() {
                     </div>
                   )}
 
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setStep(2)}
-                      className="w-full sm:w-auto sm:flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full sm:w-auto sm:flex-1"
-                    >
-                      Continue
-                      <ArrowRight className="size-5" />
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Step 4 — Date (template step 3, now with shadcn Calendar) */}
-              {step === 4 && (
-                <form onSubmit={submitDate} className="flex flex-col gap-5">
-                  <h3 className="text-xl font-bold md:text-2xl">
-                    When is the party?
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    An approximate date is fine — we time your reminders and
-                    event-day support around it.
-                  </p>
+                  {/* Event date */}
                   <div className="flex flex-col gap-2">
                     <Label>Event date</Label>
                     <Popover>
@@ -871,105 +690,12 @@ export default function BirthdayFunnel() {
                     </Popover>
                   </div>
 
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setStep(3)}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full sm:w-auto sm:flex-1"
-                    >
-                      Continue
-                      <ArrowRight className="size-5" />
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Step 5 — Confirm & pay (template step 4) */}
-              {step === 5 && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-xl font-bold md:text-2xl">
-                    Confirm and lock{" "}
-                    {tierQuote ? formatNaira(tierQuote.amountDue) : "₦5,000"}
-                  </h3>
-                  <div className="flex flex-col gap-3 rounded-2xl bg-secondary/60 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        Celebration
-                      </span>
-                      <span className="text-sm font-semibold capitalize">
-                        {categories.find((c) => c.id === category)?.label ??
-                          "Birthday"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        Package size
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {TIERS.find((t) => t.id === selectedTier)?.label} —{" "}
-                        {TIERS.find((t) => t.id === selectedTier)?.capacity}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        Email
-                      </span>
-                      <span className="truncate text-sm font-semibold">
-                        {email}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        Event date
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {eventDate ? format(eventDate, "dd MMMM yyyy") : "—"}
-                      </span>
-                    </div>
-                    {tierQuote && (
-                      <>
-                        <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-                          <span className="text-sm text-muted-foreground">
-                            Full price
-                          </span>
-                          <span className="text-sm font-semibold text-muted-foreground line-through">
-                            {formatNaira(tierQuote.baseAmount)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-sm text-muted-foreground">
-                            Deposit today ({tierQuote.depositPercent}%)
-                          </span>
-                          <span className="text-xl font-bold text-primary">
-                            {formatNaira(tierQuote.amountDue)}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {included.map((item) => (
-                      <div key={item} className="flex items-center gap-3">
-                        <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="size-4" />
-                        </div>
-                        <p className="text-sm">{item}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Single pay button — triggers payment call */}
                   <Button
+                    type="submit"
                     size="lg"
-                    onClick={pay}
                     disabled={submitting || isFull}
-                    className="w-full"
+                    className="w-full h-14!"
                   >
                     {submitting ? (
                       <>
@@ -983,24 +709,17 @@ export default function BirthdayFunnel() {
                         Pay{" "}
                         {tierQuote
                           ? formatNaira(tierQuote.amountDue)
-                          : "deposit"}{" "}
+                          : "₦5,000"}{" "}
                         &amp; secure my birthday Vibe
                       </>
                     )}
                   </Button>
+
                   <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <ShieldCheck className="size-4" />
-                    Secure local checkout via Ercaspay
+                    Secure local checkout via Bachs
                   </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStep(4)}
-                  >
-                    Back
-                  </Button>
-                </div>
+                </form>
               )}
             </div>
           </div>
