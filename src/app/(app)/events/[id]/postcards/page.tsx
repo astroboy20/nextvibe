@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useAccumulatedPages } from "@/hooks/use-accumulated-pages";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -146,7 +147,9 @@ export default function EventPostcardsPage({
     limit: LIMIT,
   });
 
-  const postcards: PostcardItem[] = postcardsData?.data?.data ?? [];
+  // Raw page straight from the cache — accumulate first, then narrow.
+  const postcardsPage = postcardsData?.data?.data as PostcardItem[] | undefined;
+  const postcards = useAccumulatedPages(postcardsPage, page, id);
   const meta = postcardsData?.data?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";
 
@@ -173,7 +176,9 @@ export default function EventPostcardsPage({
       </div>
 
       <div className="container px-4 pt-4">
-        {isLoading ? (
+        {/* See note in (app)/postcards/[id]: isLoading is true for each new page,
+            so gate the skeletons on having nothing to show yet. */}
+        {isLoading && postcards.length === 0 ? (
           <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="mb-3 break-inside-avoid">

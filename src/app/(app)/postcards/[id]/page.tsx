@@ -21,6 +21,7 @@ import {
   isPostcardPhase,
   type PostcardPhase,
 } from "@/types/postcards.type";
+import { useAccumulatedPages } from "@/hooks/use-accumulated-pages";
 
 
 // ─── Grid tile ────────────────────────────────────────────────────────────────
@@ -115,11 +116,17 @@ export default function EventPostcardsPage({
     phase,
   });
 
-  const gridItems: PostcardData[] = (
-    postcardsData?.data?.data ??
-    postcardsData?.data ??
-    []
-  ).filter((p: PostcardData) => (p.media ?? []).some((m) => !!m.mediaUrl));
+  // Accumulate the raw page, then filter — filtering first would hand the hook
+  // a fresh array identity on every render and re-run its effect endlessly.
+  const postcardsPage = (postcardsData?.data?.data ?? postcardsData?.data) as
+    | PostcardData[]
+    | undefined;
+  // `phase` is the reset key: switching tabs starts the list over rather than
+  // appending the new phase's postcards underneath the old ones.
+  const accumulated = useAccumulatedPages(postcardsPage, page, phase);
+  const gridItems: PostcardData[] = accumulated.filter((p: PostcardData) =>
+    (p.media ?? []).some((m) => !!m.mediaUrl),
+  );
   const meta = postcardsData?.data?.meta ?? postcardsData?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";
 
@@ -168,7 +175,10 @@ export default function EventPostcardsPage({
       </div>
 
       <div className="px-1 pt-1">
-        {isLoading ? (
+        {/* Bumping `page` changes the RTK Query cache key, so isLoading goes true
+            on every "Load more". Gating on an empty list keeps the skeletons for
+            the genuine first load instead of blanking the grid mid-scroll. */}
+        {isLoading && gridItems.length === 0 ? (
           <div className="columns-2 gap-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="mb-1 break-inside-avoid">
