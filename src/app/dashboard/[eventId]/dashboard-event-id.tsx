@@ -47,9 +47,9 @@ import {
   useGetGamesQuery,
 } from "@/store/api/endpoints/games";
 import {
-  useGetVibeTagsQuery as useGetDiscoverTagsQuery,
-  useCreateDiscoverTagMutation,
-} from "@/store/api/discoverApi";
+  useGetInterestTagsQuery as useGetDiscoverTagsQuery,
+  useCreateInterestTagMutation,
+} from "@/store/api/interestsApi";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useGetRemindersQuery } from "@/store/api/reminderApi";
@@ -588,7 +588,7 @@ function EventTagsEditor({ event }: { event: any }) {
   const { data: discoverTagsData } = useGetDiscoverTagsQuery();
   const [addTags, { isLoading: isAdding }] = useAddEventTagsMutation();
   const [removeTags, { isLoading: isRemoving }] = useRemoveEventTagsMutation();
-  const [createTag, { isLoading: isCreating }] = useCreateDiscoverTagMutation();
+  const [createTag, { isLoading: isCreating }] = useCreateInterestTagMutation();
 
   // Text input for searching / creating a new tag
   const [tagInput, setTagInput] = useState("");

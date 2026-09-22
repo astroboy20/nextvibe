@@ -17,7 +17,7 @@ import { adminApi } from "./api/admin";
 import { organizerPaymentApi } from "./api/organizerPaymentApi";
 import { reminderApi } from "./api/reminderApi";
 import { pledgeApi } from "./api/pledgeApi";
-import { discoverApi } from "./api/discoverApi";
+import { interestsApi } from "./api/interestsApi";
 import { launchApi } from "./api/launchApi";
 import { analyticsApi } from "./api/analyticsApi";
 import { campaignApi } from "./api/campaignApi";
@@ -43,7 +43,7 @@ export const store = configureStore({
         [organizerPaymentApi.reducerPath]: organizerPaymentApi.reducer,
         [reminderApi.reducerPath]: reminderApi.reducer,
         [pledgeApi.reducerPath]: pledgeApi.reducer,
-        [discoverApi.reducerPath]: discoverApi.reducer,
+        [interestsApi.reducerPath]: interestsApi.reducer,
         [launchApi.reducerPath]: launchApi.reducer,
         [analyticsApi.reducerPath]: analyticsApi.reducer,
         [campaignApi.reducerPath]: campaignApi.reducer,
@@ -63,7 +63,7 @@ export const store = configureStore({
             organizerPaymentApi.middleware,
             reminderApi.middleware,
             pledgeApi.middleware,
-            discoverApi.middleware,
+            interestsApi.middleware,
             launchApi.middleware,
             analyticsApi.middleware,
             campaignApi.middleware,

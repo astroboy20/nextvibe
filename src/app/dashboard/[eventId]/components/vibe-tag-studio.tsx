@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Vibetags from "./vibetag/vibetags";
 import {
-  useGetVibeTagsQuery,
+  useGetEventVibeTagsQuery,
   useGetEventDetailsQuery,
 } from "@/store/api/eventApi";
 import { useInitiateVibeTagAddonPaymentMutation } from "@/store/api/organizerPaymentApi";
@@ -88,7 +88,7 @@ const VibeTagStudioContent = ({ eventId, name, eventPlan }: VibeTagStudioContent
     setOpen(true);
   };
 
-  const { data, isLoading, refetch } = useGetVibeTagsQuery(
+  const { data, isLoading, refetch } = useGetEventVibeTagsQuery(
     { eventId },
     { skip: !eventId, refetchOnMountOrArgChange: true }
   );

@@ -17,8 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetVibeTagsQuery } from "@/store/api/discoverApi";
-import type { VibeTag } from "@/store/api/discoverApi";
+import { useGetInterestTagsQuery } from "@/store/api/interestsApi";
+import type { VibeTag } from "@/store/api/interestsApi";
 import { NewLogo } from "@/components/logo";
 
 // Fallback icon map for known tag names
@@ -68,7 +68,7 @@ export function InterestSelector({ onComplete, isSubmitting = false }: InterestS
     isLoading,
     isError,
     refetch,
-  } = useGetVibeTagsQuery();
+  } = useGetInterestTagsQuery();
 
   const toggleInterest = (id: string) => {
     setSelected((prev) =>

@@ -22,10 +22,10 @@ import {
   useGoogleLoginMutation,
 } from "@/store/api/authApi";
 import {
-  useGetVibeTagsQuery,
+  useGetInterestTagsQuery,
   useSaveUserVibesMutation,
   type VibeTag,
-} from "@/store/api/discoverApi";
+} from "@/store/api/interestsApi";
 import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { toast } from "sonner";
@@ -100,7 +100,7 @@ export function AuthBottomSheet({
     isLoading: isLoadingVibes,
     isError: isVibesError,
     refetch: refetchVibes,
-  } = useGetVibeTagsQuery(undefined, { skip: step !== "vibe-select" });
+  } = useGetInterestTagsQuery(undefined, { skip: step !== "vibe-select" });
 
   const isAuthLoading = isLoggingIn || isRegistering || isGoogleLoading;
 

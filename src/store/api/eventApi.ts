@@ -223,6 +223,10 @@ export const eventsApi = baseApi.injectEndpoints({
       // A high limit because this feeds an event picker, not a paged list —
       // the default page size would hide events past the first page.
       query: () => "/v1/events/me/created?limit=100",
+      // Shares the "Events" tag with createEvent/deleteEvent, so a newly
+      // created event shows up here immediately. Without this the list had
+      // nothing to invalidate it and served a stale copy.
+      providesTags: ["Events"],
     }),
 
     uploadGalleryMedia: builder.mutation<
@@ -330,7 +334,7 @@ export const eventsApi = baseApi.injectEndpoints({
         { type: "PublishPreview", id: eventId },
       ],
     }),
-    getVibeTags: builder.query<
+    getEventVibeTags: builder.query<
       any,
       { eventId: string; activityTiming?: string }
     >({
@@ -437,7 +441,7 @@ export const {
   useGetTicketsQuery,
   useCheckinEventMutation,
   useCreateVibeTagMutation,
-  useGetVibeTagsQuery,
+  useGetEventVibeTagsQuery,
   useGetEventAttendeesQuery,
   useGetPublishPreviewQuery,
   useUploadIntentMutation,
