@@ -354,6 +354,30 @@ export const eventsApi = createApi({
     }),
 
     //Games
+    /**
+     * POST /v1/games/ai/generate-draft — asks the backend to draft a game with
+     * AI. Nothing is persisted; /save-draft does that.
+     *
+     * Was a raw `fetch` in game-creation-wizard.tsx with a hand-built
+     * Authorization header, built from a token read once at component render.
+     * That meant no refresh on a 401 *and* a stale token if baseQuery had
+     * refreshed it elsewhere — on the slowest call in the app, where an access
+     * token is most likely to expire mid-flight.
+     *
+     * The 60s timeout overrides baseQuery's 15s default: this waits on an LLM,
+     * and 15s is comfortably within the range a real generation takes. The raw
+     * fetch had no timeout at all, so without this override, moving it here
+     * would have traded a token bug for a truncation bug.
+     */
+    generateGameDraft: builder.mutation<any, Record<string, unknown>>({
+      query: (body) => ({
+        url: "/v1/games/ai/generate-draft",
+        method: "POST",
+        body,
+        timeout: 60000,
+      }),
+    }),
+
     createGame: builder.mutation<any, any>({
       query: ({ body, eventId }: { body: any; eventId: string }) => ({
         url: `/v1/events/${eventId}/game-sessions`,
@@ -995,6 +1019,7 @@ export const {
   useCreateVibeTagMutation,
   useGetVibeTagsQuery,
   useGetEventAttendeesQuery,
+  useGenerateGameDraftMutation,
   useGetEventPostcardsQuery,
   useCreatePostcardMutation,
   useToggleLikePostcardMutation,

@@ -19,9 +19,11 @@ import StepThree from "./game-steps/step-three";
 import StepFour from "./game-steps/step-four";
 import StepFive from "./game-steps/step-five";
 import StepSix from "./game-steps/step-six";
-import { useCreateGameMutation } from "@/store/api/eventApi";
+import {
+  useCreateGameMutation,
+  useGenerateGameDraftMutation,
+} from "@/store/api/eventApi";
 import { toast } from "sonner";
-import Cookies from "js-cookie";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
@@ -169,6 +171,7 @@ export function GameCreationWizard({
 }: GameCreationWizardProps) {
   const totalSteps = 6;
   const [createGame] = useCreateGameMutation();
+  const [generateGameDraft] = useGenerateGameDraftMutation();
 
   const [step, setStep] = useState<number>(1);
   const [gameName, setGameName] = useState<string>("");
@@ -215,7 +218,6 @@ export function GameCreationWizard({
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [rewardTiers, setRewardTiers] = useState<RewardTier[]>([]);
 
-  const accessToken = Cookies.get("accessToken");
   const progress = (step / totalSteps) * 100;
   const [validationError, setValidationError] = useState("");
   const [isDone, setIsDone] = useState(false);
@@ -397,20 +399,7 @@ export function GameCreationWizard({
     setValidationError("");
     setIsGenerating(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(promptToSend),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data?.message || "AI generation failed");
+      const data = await generateGameDraft(promptToSend).unwrap();
 
       // Response shape:
       // { success, data: { success, data: { suggestedTitle, rounds: [{ title, questions: [{ grid, hiddenWords, points }, ...] }] } } }
@@ -531,7 +520,13 @@ export function GameCreationWizard({
       setRoundQuestions(roundIdx, generated);
       setStep(4);
     } catch (err: any) {
-      toast.error(err?.message || "AI generation failed. Please try again.");
+      // RTK Query rejects with { status, data } rather than an Error, so the
+      // server message is at err.data.message.
+      toast.error(
+        err?.data?.message ??
+          err?.message ??
+          "AI generation failed. Please try again."
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -541,19 +536,7 @@ export function GameCreationWizard({
     const q = currentRound?.questions.find((q) => q.id === id);
     if (!q) return;
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/games/ai/generate-draft`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ ...aiPrompt, count: 1 }),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message);
+      const data = await generateGameDraft({ ...aiPrompt, count: 1 }).unwrap();
       const inner = data?.data?.data ?? data?.data ?? data;
       const gameType = currentRound?.gameType ?? "trivia";
 
