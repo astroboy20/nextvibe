@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { canvasStore } from "@/hooks/canvas-store";
+import { canvasStore } from "@/lib/canvas-store";
 
 const PRESET_COLORS = [
   "#000000", "#ffffff", "#ef4444", "#f97316", "#eab308",

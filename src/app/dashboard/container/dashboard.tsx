@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetUserQuery, useGetOrganizerEventsQuery } from "@/store/api/authApi";
-import { formatDate } from "@/hooks/format-date";
+import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetOverviewLocationAnalyticsQuery } from "@/store/api/analyticsApi";

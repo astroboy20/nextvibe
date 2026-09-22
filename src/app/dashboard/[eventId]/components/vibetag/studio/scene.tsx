@@ -7,7 +7,7 @@ import {
   setHasSavedData,
   setIsRestoreModalOpen,
 } from "@/store/slices/canvas-slice";
-import { canvasStore } from "@/hooks/canvas-store";
+import { canvasStore } from "@/lib/canvas-store";
 
 export const PLACEHOLDER = "Tap to edit";
 

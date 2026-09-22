@@ -1,6 +1,6 @@
 "use client";
 
-import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { WifiOff } from "lucide-react";
 
 export const NetworkStatusBanner = () => {

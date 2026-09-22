@@ -1,6 +1,6 @@
 "use client";
 
-import { useMobileViewport } from "@/hooks/useMobileViewport";
+import { useMobileViewport } from "@/hooks/use-mobile-viewport";
 import { Smartphone } from "lucide-react";
 import { NewLogo } from "@/components/logo";
 

@@ -24,7 +24,7 @@ import PasswordField from "../component/password-field";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAnonMerge } from "@/hooks/use-anon-merge";
-import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
+import { useRedirectIfAuthenticated } from "@/hooks/use-redirect-if-authenticated";
 import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
 
 const registerSchema = z.object({

@@ -10,10 +10,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
-import { useSocket } from "@/hooks/useSocket";
+import { useSocket } from "@/hooks/use-socket";
 import { errorHandler } from "@/utils/errorHandler";
 import { useRouter } from "next/navigation";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 
 type Section = "pre-event" | "during" | "post-event";
 

@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetEventsQuery } from "@/store/api/eventApi";
 import { useGetUserQuery } from "@/store/api/authApi";
-import { useEventDiscovery } from "@/hooks/use-event-dicovery";
+import { useEventDiscovery } from "@/hooks/use-event-discovery";
 import ViewToggle from "../components/view-toggle";
 import { EventCard } from "../components/event-card";
 import {

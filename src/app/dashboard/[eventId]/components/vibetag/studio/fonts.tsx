@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { canvasStore } from "@/hooks/canvas-store";
+import { canvasStore } from "@/lib/canvas-store";
 
 export const PLACEHOLDER = "Tap to edit";
 

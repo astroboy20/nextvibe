@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { canvasStore } from "./canvas-store";
+import { canvasStore } from "@/lib/canvas-store";
 
 export function useCanvas() {
   const [canvas, setCanvas] = useState<any>(() => canvasStore.get());

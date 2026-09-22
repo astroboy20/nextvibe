@@ -4,7 +4,7 @@ import type React from "react";
 import { Calendar, Gamepad2, Lock, MapPin, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { formatDate } from "@/hooks/format-date";
+import { formatDate } from "@/lib/format-date";
 import Image from "next/image";
 
 export interface EventCardProps {

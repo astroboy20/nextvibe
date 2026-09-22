@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { useGetConversationsQuery } from "@/store/api/messagingApi";
-import { useSocket } from "@/hooks/useSocket";
+import { useSocket } from "@/hooks/use-socket";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/events" },

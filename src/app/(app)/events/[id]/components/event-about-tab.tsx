@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatDate, formatTime } from "@/hooks/format-date";
+import { formatDate, formatTime } from "@/lib/format-date";
 import {
   Calendar,
   MapPin,
@@ -19,7 +19,7 @@ import { useGetUserQuery } from "@/store/api/userApi";
 import { useToggleFollowMutation } from "@/store/api/socialApi";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 
 interface EventAboutTabProps {
   event: any;

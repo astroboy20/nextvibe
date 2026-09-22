@@ -39,7 +39,7 @@ import {
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useGetUserQuery } from "@/store/api/authApi";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";

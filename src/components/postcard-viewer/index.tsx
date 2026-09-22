@@ -37,7 +37,7 @@ import {
 } from "@/store/api/eventApi";
 import { usePostcardViewTracker } from "@/hooks/use-views";
 import { useGetUserQuery } from "@/store/api/authApi";
-import { getGuestSessionId } from "@/hooks/get-guest-sessionId";
+import { getGuestSessionId } from "@/lib/get-guest-session-id";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -16,7 +16,7 @@ import {
   useMarkOneReadMutation,
   type Notification,
 } from "@/store/api/notificationApi";
-import { useSocket } from "@/hooks/useSocket";
+import { useSocket } from "@/hooks/use-socket";
 import {
   Popover,
   PopoverContent,

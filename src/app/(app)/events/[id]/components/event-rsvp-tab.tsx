@@ -20,7 +20,7 @@ import {
   useGetEventAttendeesQuery,
 } from "@/store/api/eventApi";
 import { toast } from "sonner";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import Link from "next/link";
 
 interface EventRSVPTabProps {
