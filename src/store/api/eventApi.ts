@@ -198,39 +198,6 @@ export const eventsApi = baseApi.injectEndpoints({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
-    getUpcomingEvents: builder.query<any, void>({
-      query: () => "/events/explore/upcoming",
-    }),
-
-    getLiveEvents: builder.query<any, void>({
-      query: () => "/events/explore/live",
-    }),
-
-    getPromotedEvents: builder.query<any, void>({
-      query: () => "/events/explore/promoted",
-    }),
-
-    explore: builder.query<any, void>({
-      query: () => "/events/explore",
-    }),
-
-    recommendedEvents: builder.query<any, void>({
-      query: () => "/events/for-you",
-    }),
-
-    getUserEvents: builder.query<any, void>({
-      query: () => "/events/user",
-    }),
-
-    /**
-     * GET /v1/events/me/created — events the signed-in user organizes.
-     *
-     * Note the `/v1` prefix, which most queries in this file omit. The backend
-     * sets a global `v1` prefix, so the unprefixed ones (including
-     * `getUserEvents` above, which targets a route that 404s) never reach a
-     * handler. Verified live: `/v1/events/me/created` answers 401,
-     * `/events/user` and `/v1/events/user` both 404.
-     */
     getMyCreatedEvents: builder.query<
       {
         success: boolean;
@@ -373,13 +340,6 @@ export const eventsApi = baseApi.injectEndpoints({
       ],
     }),
 
-    /**
-     * Takes the UI's phase slug ("pre-event", "all", …) and converts it to the
-     * wire value here, so this is the single place the two vocabularies meet.
-     * Callers pass what their tabs hold and never think about the enum; "all"
-     * simply omits the param.
-     */
-    // ── Event Tags ────────────────────────────────────────────────────────────
     /** POST /v1/events/:id/tags/add — add vibe tags to an event (organizer only, locked once started) */
     addEventTags: builder.mutation<any, { eventId: string; tagIds: string[] }>({
       query: ({ eventId, tagIds }) => ({
@@ -403,7 +363,7 @@ export const eventsApi = baseApi.injectEndpoints({
       invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
     }),
 
-    // ── Game Session CRUD ─────────────────────────────────────────────────────
+    // ── Publish Preview ───────────────────────────────────────────────────────
     /**
      * GET /v1/organizer-payments/publish-preview/:eventId
      * Returns valid plan options + prices before publishing.
@@ -416,15 +376,6 @@ export const eventsApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // ── Postcard Swap ─────────────────────────────────────────────────────────
-    /**
-     * POST /v1/postcards/:id/swap
-     * Replace an existing postcard with new media (used when the 20-media cap is hit).
-     * :id is the postcard being REPLACED (not the event).
-     * Body is identical to createPostcards.
-     * Response is the newly created postcard with a brand-new id.
-     */
-    // ── Withdrawal Requests (DEPRECATED) ──────────────────────────────────────
     /**
      * @deprecated Use `useRequestPayoutMutation` from `./payoutApi` instead.
      *
@@ -463,6 +414,7 @@ export const eventsApi = baseApi.injectEndpoints({
 
 export const {
   useGetEventsQuery,
+  useGetMyCreatedEventsQuery,
   useGetEventDetailsQuery,
   useDeleteEventMutation,
   useUpdateEventMutation,
@@ -473,13 +425,6 @@ export const {
   useShareEventMutation,
   useCheckinMutation,
   useRsvpMutation,
-  useGetUpcomingEventsQuery,
-  useGetLiveEventsQuery,
-  useGetPromotedEventsQuery,
-  useExploreQuery,
-  useRecommendedEventsQuery,
-  useGetUserEventsQuery,
-  useGetMyCreatedEventsQuery,
   useUploadGalleryMediaMutation,
   useGetUserGalleryMediaQuery,
   useGetPromotedGalleryItemsQuery,

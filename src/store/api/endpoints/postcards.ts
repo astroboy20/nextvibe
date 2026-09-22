@@ -12,6 +12,12 @@ import { phaseToTiming, type PostcardPhase } from "@/types/postcards.type";
  */
 export const postcardEndpoints = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    /**
+     * Takes the UI's phase slug ("pre-event", "all", …) and converts it to the
+     * wire value here, so this is the single place the two vocabularies meet.
+     * Callers pass what their tabs hold and never think about the enum; "all"
+     * simply omits the param.
+     */
     getEventPostcards: builder.query<
       any,
       {
@@ -182,6 +188,13 @@ export const postcardEndpoints = baseApi.injectEndpoints({
         { type: "Gallery", id: `memories-${eventId}` },
       ],
     }),
+    /**
+     * POST /v1/postcards/:id/swap
+     * Replace an existing postcard with new media (used when the 20-media cap is hit).
+     * :id is the postcard being REPLACED (not the event).
+     * Body is identical to createPostcards.
+     * Response is the newly created postcard with a brand-new id.
+     */
     swapPostcard: builder.mutation<
       any,
       {
