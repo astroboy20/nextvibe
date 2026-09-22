@@ -34,7 +34,7 @@ import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/postcards";
 import { usePostcardViewTracker } from "@/hooks/use-views";
 import { useGetUserQuery } from "@/store/api/authApi";
 import { getGuestSessionId } from "@/lib/get-guest-session-id";

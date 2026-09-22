@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  useGetPostcardsQuery,
   useGetEventDetailsQuery,
 } from "@/store/api/eventApi";
+import {
+  useGetPostcardsQuery,
+} from "@/store/api/endpoints/postcards";
 import { PostcardItem } from "../../components/postcard-grid";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";

@@ -29,7 +29,7 @@ import {
 import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/postcards";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import Cookies from "js-cookie";
 

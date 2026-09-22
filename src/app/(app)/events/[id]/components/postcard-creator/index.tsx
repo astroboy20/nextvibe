@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, X, Camera, Plus, Loader2, Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useCreatePostcardsMutation, useSwapPostcardMutation } from "@/store/api/eventApi";
+import {
+  useCreatePostcardsMutation,
+  useSwapPostcardMutation,
+} from "@/store/api/endpoints/postcards";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/hooks/use-before-unload";

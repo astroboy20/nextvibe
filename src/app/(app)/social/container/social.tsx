@@ -42,7 +42,7 @@ import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
   useToggleLikePostcardMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/postcards";
 import {
   PostcardViewer,
   type PostcardData,

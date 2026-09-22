@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useTrackPostcardViewMutation } from "@/store/api/eventApi";
+import {
+  useTrackPostcardViewMutation,
+} from "@/store/api/endpoints/postcards";
 
 interface UsePostcardTrackerProps {
   postId: string;

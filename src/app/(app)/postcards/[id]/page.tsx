@@ -6,9 +6,11 @@ import { ArrowLeft, ImageOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  useGetEventPostcardsQuery,
   useGetEventDetailsQuery,
 } from "@/store/api/eventApi";
+import {
+  useGetEventPostcardsQuery,
+} from "@/store/api/endpoints/postcards";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import {
   PostcardViewer,
