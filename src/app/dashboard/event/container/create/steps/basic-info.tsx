@@ -35,7 +35,7 @@ import { useMemo, useEffect, useState } from "react";
 import { toast } from "sonner";
 import SuccessModal from "../../../components/success-modal";
 import { Badge } from "@/components/ui/badge";
-import { errorHandler } from "@/utils/errorHandler";
+import { errorHandler } from "@/lib/error-handler";
 
 const MAX_VIDEO_SIZE = 350 * 1024 * 1024; // 350 MB
 const MAX_FLIER_SIZE = 10 * 1024 * 1024; // 10 MB hard cap before compression

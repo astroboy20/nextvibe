@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
 import { useSocket } from "@/hooks/use-socket";
-import { errorHandler } from "@/utils/errorHandler";
+import { errorHandler } from "@/lib/error-handler";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 

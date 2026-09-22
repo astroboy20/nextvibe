@@ -6,7 +6,7 @@ import { Menu, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { PRIMARY_COLOR } from "@/utils/constants";
+import { PRIMARY_COLOR } from "@/lib/constants";
 import { useDispatch } from "react-redux";
 import { setView } from "@/store/slices/canvas-slice";
 

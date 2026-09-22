@@ -21,7 +21,7 @@ import {
   useMarkPayoutFailedMutation,
   type AdminPayout,
 } from "@/store/api/payoutApi";
-import { formatMoney } from "@/utils/money";
+import { formatMoney } from "@/lib/money";
 
 export type PayoutAction = "approve" | "paid" | "reject" | "failed";
 

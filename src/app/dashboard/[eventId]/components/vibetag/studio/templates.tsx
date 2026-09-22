@@ -7,7 +7,7 @@ import { setTemplate, setView } from "@/store/slices/canvas-slice";
 import { RootState } from "@/store/store";
 import { VibeTags } from "@/data/templates";
 import { Template } from "@/types/canvas";
-import { PRIMARY_COLOR } from "@/utils/constants";
+import { PRIMARY_COLOR } from "@/lib/constants";
 import { Check, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 

@@ -6,7 +6,7 @@ import { NetworkStatusBanner } from "@/components/network-status-banner";
 import "./globals.css";
 import ProviderWrapper from "@/store/provider";
 import Script from "next/script";
-import { GOOGLE_ANALYTICS_ID, GOOGLE_MAP_KEY } from "@/utils/constants";
+import { GOOGLE_ANALYTICS_ID, GOOGLE_MAP_KEY } from "@/lib/constants";
 
 const nunitoSans = Nunito_Sans({
   weight: ["200", "300", "400", "500", "600", "700", "800", "900", "1000"],

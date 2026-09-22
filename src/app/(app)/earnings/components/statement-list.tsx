@@ -13,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useGetStatementQuery, type LedgerEntryType } from "@/store/api/payoutApi";
-import { formatMoney } from "@/utils/money";
+import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;

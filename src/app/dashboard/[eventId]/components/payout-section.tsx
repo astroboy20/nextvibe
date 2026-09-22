@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Banknote, ArrowRight, Clock, Loader2 } from "lucide-react";
 import { useGetBalancesQuery } from "@/store/api/payoutApi";
-import { formatMoney, isPositive } from "@/utils/money";
+import { formatMoney, isPositive } from "@/lib/money";
 
 interface PayoutSectionProps {
   /** Ticket tier data, for this event's own sales figure. */

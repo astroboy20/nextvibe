@@ -9,7 +9,7 @@ import {
   setIsPreviewOpen,
   setIsUploadImgOpen,
 } from "@/store/slices/canvas-slice";
-import base64ToImage from "@/utils/base64ToImg";
+import base64ToImage from "@/lib/base64-to-img";
 
 import Fonts from "./fonts";
 import ColorMenu from "./color-menu";

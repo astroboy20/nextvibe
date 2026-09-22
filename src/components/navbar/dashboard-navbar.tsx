@@ -28,7 +28,7 @@ import {
   notificationDot,
   hasActorPrefix,
   notificationHref,
-} from "@/utils/notification-copy";
+} from "@/lib/notification-copy";
 
 // Copy now lives in @/utils/notification-copy so this and the notifications
 // page can't drift, and so an unrecognised type never renders as a raw enum.

@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";
-import { notificationText, notificationHref } from "@/utils/notification-copy";
+import { notificationText, notificationHref } from "@/lib/notification-copy";
 
 /**
  * Matched lowercase ("like") while the API sends the Prisma enum uppercase

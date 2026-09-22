@@ -32,7 +32,7 @@ import {
   PayoutActionDialog,
   type PayoutAction,
 } from "./components/payout-action-dialogs";
-import { formatMoney, getCurrencyDecimals } from "@/utils/money";
+import { formatMoney, getCurrencyDecimals } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
