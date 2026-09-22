@@ -19,7 +19,7 @@ import {
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
   useMergeAnonymousSessionsMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/games";
 import { useGetUserQuery } from "@/store/api/userApi";
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";

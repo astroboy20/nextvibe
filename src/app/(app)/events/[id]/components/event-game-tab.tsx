@@ -25,8 +25,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  useGetGamesQuery,
   useGetEventDetailsQuery,
+} from "@/store/api/eventApi";
+import {
+  useGetGamesQuery,
   useJoinGameSessionMutation,
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
@@ -35,7 +37,7 @@ import {
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/games";
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";

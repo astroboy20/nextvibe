@@ -41,7 +41,7 @@ import {
   useGetSessionLeaderboardQuery,
   useGetGameSessionEditPolicyQuery,
   useUpdateGameSessionMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/games";
 import { useInitiateAdditionalGamePaymentMutation } from "@/store/api/organizerPaymentApi";
 import { toast } from "sonner";
 

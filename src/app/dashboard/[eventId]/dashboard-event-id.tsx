@@ -37,13 +37,15 @@ import VibeTagStudioContent from "./components/vibe-tag-studio";
 // import PostcardLeaderboardContent from "./components/leaderboard-content";
 import {
   useGetEventDetailsQuery,
-  useGetGamesQuery,
   useUpdateEventStatusMutation,
   useUpdateEventMutation,
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
   useUploadIntentMutation,
 } from "@/store/api/eventApi";
+import {
+  useGetGamesQuery,
+} from "@/store/api/endpoints/games";
 import {
   useGetVibeTagsQuery as useGetDiscoverTagsQuery,
   useCreateDiscoverTagMutation,

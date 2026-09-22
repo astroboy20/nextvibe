@@ -22,7 +22,7 @@ import StepSix from "./game-steps/step-six";
 import {
   useCreateGameMutation,
   useGenerateGameDraftMutation,
-} from "@/store/api/eventApi";
+} from "@/store/api/endpoints/games";
 import { toast } from "sonner";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 
