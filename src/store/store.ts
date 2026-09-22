@@ -6,7 +6,7 @@ import consentReducer from "./slices/consent-slice"
 import uiReducer from "./slices/ui-slice";
 import { authApi } from "./api/authApi";
 import canvasReducer from "./slices/canvas-slice";
-import { gamesApi } from "./api/gameApi";
+import { rewardsApi } from "./api/rewardApi";
 import { eventsApi } from "./api/eventApi";
 import { userApi } from "./api/userApi";
 import { messagingApi } from "./api/messagingApi";
@@ -32,7 +32,7 @@ export const store = configureStore({
         consent: consentReducer,
         ui: uiReducer,
         [authApi.reducerPath]: authApi.reducer,
-        [gamesApi.reducerPath]: gamesApi.reducer,
+        [rewardsApi.reducerPath]: rewardsApi.reducer,
         [eventsApi.reducerPath]: eventsApi.reducer,
         [userApi.reducerPath]: userApi.reducer,
         [messagingApi.reducerPath]: messagingApi.reducer,
@@ -52,7 +52,7 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
             authApi.middleware,
-            gamesApi.middleware,
+            rewardsApi.middleware,
             eventsApi.middleware,
             userApi.middleware,
             messagingApi.middleware,
