@@ -115,7 +115,7 @@ export default function BirthdayVerify() {
             </div>
             <div className="flex w-full flex-col gap-1.5 rounded-lg border border-border bg-secondary/20 p-4">
               {[
-                "Verifying with Ercaspay",
+                "Verifying with Bachs",
                 "Reserving your spot",
                 "Generating your code",
               ].map((step, i) => (
@@ -286,7 +286,7 @@ export default function BirthdayVerify() {
       </motion.div>
 
       <p className="mt-6 text-center text-[10px] text-muted-foreground">
-        NextVibe · Secure checkout powered by Ercaspay
+        NextVibe · Secure checkout powered by Bachs
       </p>
     </div>
   );

@@ -87,6 +87,11 @@ const nextConfig: NextConfig = {
         destination: "/users/:id",
         permanent: true,
       },
+      {
+        source: "/campaigns/birthday/verify/:paymentId",
+        destination: "/birthday/verify?paymentId=:paymentId",
+        permanent: false,
+      },
     ];
   },
 
