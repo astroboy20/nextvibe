@@ -211,10 +211,12 @@ export function VideoPlayer({
     if (!vid) return;
     vid.muted = true;
     // Auto-hide the unmute hint after 3 seconds
-    unmuteHintTimerRef.current = setTimeout(() => setShowUnmuteHint(false), 3000);
+    unmuteHintTimerRef.current = setTimeout(
+      () => setShowUnmuteHint(false),
+      3000
+    );
     return () => {
-      if (unmuteHintTimerRef.current)
-        clearTimeout(unmuteHintTimerRef.current);
+      if (unmuteHintTimerRef.current) clearTimeout(unmuteHintTimerRef.current);
     };
   }, []);
 
@@ -254,7 +256,8 @@ export function VideoPlayer({
         setMuted(next);
         // Hide the unmute hint once user has interacted
         setShowUnmuteHint(false);
-        if (unmuteHintTimerRef.current) clearTimeout(unmuteHintTimerRef.current);
+        if (unmuteHintTimerRef.current)
+          clearTimeout(unmuteHintTimerRef.current);
         onSingleTap?.();
       }, 300);
     }
@@ -552,7 +555,11 @@ export function PostcardViewer({
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (swipeTouchStartY.current === null || swipeTouchStartX.current === null) return;
+      if (
+        swipeTouchStartY.current === null ||
+        swipeTouchStartX.current === null
+      )
+        return;
 
       const dy = swipeTouchStartY.current - e.touches[0].clientY;
       const dx = swipeTouchStartX.current - e.touches[0].clientX;
@@ -761,32 +768,32 @@ export function PostcardViewer({
 
     setDownloading(true);
     try {
-      const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
-      const res = await fetch(proxyUrl);
+      const isVideo = currentMedia.mediaType === "VIDEO";
+
+      // Only videos go through the conversion endpoint.
+      // Images continue using the existing media proxy unchanged.
+      const mediaUrl = isVideo
+        ? `/api/media-convert?url=${encodeURIComponent(currentMedia.mediaUrl)}`
+        : `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+
+      const res = await fetch(mediaUrl);
       if (!res.ok) throw new Error("Failed to fetch media");
 
       const blob = await res.blob();
-      const isVideo = currentMedia.mediaType === "VIDEO";
-      
-      // Determine extension based on actual blob type to preserve playability
-      let ext: string;
-      if (isVideo) {
-        if (blob.type.includes("webm")) {
-          ext = "webm";
-        } else if (blob.type.includes("mp4") || blob.type.includes("quicktime")) {
-          ext = "mp4";
-        } else {
-          // Fallback to checking URL if mime type is unclear
-          ext = currentMedia.mediaUrl.includes(".webm") ? "webm" : "mp4";
-        }
-      } else {
-        ext = "png";
-      }
+
+      // Videos are always downloaded as MP4 after server-side conversion.
+      const ext = isVideo ? "mp4" : "png";
 
       // Build filename: "{author}_{eventName}_{number}.{ext}"
       const sanitise = (s: string) =>
-        s.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 40);
-      const authorPart = sanitise(resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "user");
+        s
+          .replace(/[^\w\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "_")
+          .slice(0, 40);
+      const authorPart = sanitise(
+        resolvedAuthor?.displayName ?? resolvedAuthor?.username ?? "user"
+      );
       const eventPart = sanitise(resolvedEventName ?? "event");
       const number = activeIndex + 1;
       const filename = `${authorPart}_${eventPart}_${number}.${ext}`;
@@ -821,6 +828,7 @@ export function PostcardViewer({
       : typeof window !== "undefined"
       ? window.location.href
       : "";
+
     if (!navigator.share) {
       await navigator.clipboard
         .writeText(`${text}\n\n${shareUrl}`)
@@ -833,21 +841,29 @@ export function PostcardViewer({
     if (currentMedia?.mediaUrl) {
       setSharing(true);
       try {
-        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(
-          currentMedia.mediaUrl
-        )}`;
-        const res = await fetch(proxyUrl);
+        const isVideo = currentMedia.mediaType === "VIDEO";
+
+        // Videos are converted to MP4 before being shared.
+        // Images continue using the existing media proxy unchanged.
+        const mediaUrl = isVideo
+          ? `/api/media-convert?url=${encodeURIComponent(
+              currentMedia.mediaUrl
+            )}`
+          : `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
+
+        const res = await fetch(mediaUrl);
+
         if (res.ok) {
           const blob = await res.blob();
-          const isVideo = currentMedia.mediaType === "VIDEO";
-          const ext = isVideo
-            ? blob.type.includes("webm")
-              ? "webm"
-              : "mp4"
-            : "jpg";
-          const file = new File([blob], `nextvibe-postcard.${ext}`, {
-            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
-          });
+
+          const file = new File(
+            [blob],
+            `nextvibe-postcard.${isVideo ? "mp4" : "jpg"}`,
+            {
+              type: isVideo ? "video/mp4" : blob.type || "image/jpeg",
+            }
+          );
+
           if (navigator.canShare?.({ files: [file] })) {
             try {
               await navigator.share({
@@ -906,38 +922,40 @@ export function PostcardViewer({
           ref={cardRef}
           style={{
             transform: `translateY(${swipeOffset}px)`,
-            transition: swipeTransitioning ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)" : "none",
+            transition: swipeTransitioning
+              ? "transform 0.3s cubic-bezier(0.32,0.72,0,1)"
+              : "none",
             willChange: "transform",
           }}
         >
-        <div className="flex items-center gap-2 p-4  bg-background shrink-0">
-          <button
-            onClick={onClose}
-            className=" z-30 flex h-9 w-9 items-center justify-center rounded-full text-black"
-            aria-label="Close"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2 p-4  bg-background shrink-0">
+            <button
+              onClick={onClose}
+              className=" z-30 flex h-9 w-9 items-center justify-center rounded-full text-black"
+              aria-label="Close"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-          <div>
+            <div>
+              {isLoading && !resolvedAuthor ? (
+                <Skeleton className="rounded-full w-10 h-10" />
+              ) : resolvedAuthor?.avatarUrl ? (
+                <Image
+                  src={resolvedAuthor.avatarUrl}
+                  alt={displayName}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                  {displayName?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              )}
+            </div>
+
             {isLoading && !resolvedAuthor ? (
-              <Skeleton className="rounded-full w-10 h-10" />
-            ) : resolvedAuthor?.avatarUrl ? (
-              <Image
-                src={resolvedAuthor.avatarUrl}
-                alt={displayName}
-                width={40}
-                height={40}
-                className="h-10 w-10 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                {displayName?.[0]?.toUpperCase() ?? "?"}
-              </div>
-            )}
-          </div>
-
-          {isLoading && !resolvedAuthor ? (
               <Skeleton className="h-4 w-1/4" />
             ) : (
               <div className="flex-1 min-w-0">
@@ -946,117 +964,117 @@ export function PostcardViewer({
                 </p>
               </div>
             )}
-        </div>
-        {/* Carousel — flex-1 so it fills remaining height */}
-        <div className="relative  h-full w-full bg-black ">
-          <Carousel
-            setApi={setCarouselApi}
-            opts={{ loop: false }}
-            className="w-full h-full"
-          >
-            <CarouselContent className="ml-0 h-full">
-              {media.map((m, i) => (
-                <CarouselItem
-                  key={m.id ?? i}
-                  className="pl-0 basis-full h-full"
-                >
-                  {m.mediaType === "VIDEO" ? (
-                    <VideoPlayer
-                      src={m.mediaUrl!}
-                      active={i === activeIndex}
-                      onDoubleTap={triggerLikeAnimation}
-                      vibeTagOverlayUrl={m.vibeTagOverlayUrl}
-                    />
-                  ) : (
-                    <div className="w-full h-full" onClick={handleImageTap}>
-                      <ProgressiveImage
-                        src={m.mediaUrl!}
-                        alt={postcard.caption ?? "Postcard"}
-                        eager={i === 0}
-                        fullscreen
-                      />
-                    </div>
-                  )}
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
-
-          {showHeart && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-              <Heart className="h-24 w-24 fill-[#5B1A57] text-[#5B1A57] opacity-90 animate-ping" />
-            </div>
-          )}
-        </div>
-
-        {/* Dot indicators — windowed, max 5 visible */}
-        <DotIndicator
-          total={media.length}
-          active={activeIndex}
-          onSelect={(i) => carouselApi?.scrollTo(i)}
-        />
-
-        {/* Actions */}
-        <div className="flex items-center gap-4 px-4 pt-5 bg-background shrink-0">
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-1.5 transition-transform active:scale-90"
-          >
-            <Heart
-              className={cn(
-                "h-6 w-6 transition-all duration-150",
-                liked
-                  ? "fill-[#5B1A57] text-[#5B1A57] scale-110"
-                  : "text-foreground"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">
-              {likeCount}
-            </span>
-          </button>
-          <button
-            onClick={() => setShowComments(true)}
-            className="flex items-center gap-1.5"
-          >
-            <MessageCircle className="h-6 w-6 text-foreground" />
-            <span className="text-sm font-medium text-foreground">
-              {commentCount}
-            </span>
-          </button>
-          <button
-            onClick={handleShare}
-            disabled={sharing}
-            className="flex items-center gap-1.5 disabled:opacity-50"
-          >
-            {sharing ? (
-              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
-            ) : (
-              <Send className="h-6 w-6 text-foreground" />
-            )}
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center gap-1.5 disabled:opacity-50"
-            aria-label="Download"
-          >
-            {downloading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
-            ) : (
-              <Download className="h-6 w-6 text-foreground" />
-            )}
-          </button>
-          <div className="flex items-center gap-1.5  py-2 text-sm text-foreground shrink-0 ">
-            <Eye className="h-6 w-6 text-foreground" />{" "}
-            {freshData?.viewCount ?? 0}
           </div>
-        </div>
+          {/* Carousel — flex-1 so it fills remaining height */}
+          <div className="relative  h-full w-full bg-black ">
+            <Carousel
+              setApi={setCarouselApi}
+              opts={{ loop: false }}
+              className="w-full h-full"
+            >
+              <CarouselContent className="ml-0 h-full">
+                {media.map((m, i) => (
+                  <CarouselItem
+                    key={m.id ?? i}
+                    className="pl-0 basis-full h-full"
+                  >
+                    {m.mediaType === "VIDEO" ? (
+                      <VideoPlayer
+                        src={m.mediaUrl!}
+                        active={i === activeIndex}
+                        onDoubleTap={triggerLikeAnimation}
+                        vibeTagOverlayUrl={m.vibeTagOverlayUrl}
+                      />
+                    ) : (
+                      <div className="w-full h-full" onClick={handleImageTap}>
+                        <ProgressiveImage
+                          src={m.mediaUrl!}
+                          alt={postcard.caption ?? "Postcard"}
+                          eager={i === 0}
+                          fullscreen
+                        />
+                      </div>
+                    )}
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
 
-        <>
-          {/* Author row — top, with close button */}
+            {showHeart && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <Heart className="h-24 w-24 fill-[#5B1A57] text-[#5B1A57] opacity-90 animate-ping" />
+              </div>
+            )}
+          </div>
 
-          <div className="flex items-center gap-3 px-4 py-5  bg-background shrink-0">
-            {/* {isLoading ? (
+          {/* Dot indicators — windowed, max 5 visible */}
+          <DotIndicator
+            total={media.length}
+            active={activeIndex}
+            onSelect={(i) => carouselApi?.scrollTo(i)}
+          />
+
+          {/* Actions */}
+          <div className="flex items-center gap-4 px-4 pt-5 bg-background shrink-0">
+            <button
+              onClick={handleLike}
+              className="flex items-center gap-1.5 transition-transform active:scale-90"
+            >
+              <Heart
+                className={cn(
+                  "h-6 w-6 transition-all duration-150",
+                  liked
+                    ? "fill-[#5B1A57] text-[#5B1A57] scale-110"
+                    : "text-foreground"
+                )}
+              />
+              <span className="text-sm font-medium text-foreground">
+                {likeCount}
+              </span>
+            </button>
+            <button
+              onClick={() => setShowComments(true)}
+              className="flex items-center gap-1.5"
+            >
+              <MessageCircle className="h-6 w-6 text-foreground" />
+              <span className="text-sm font-medium text-foreground">
+                {commentCount}
+              </span>
+            </button>
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {sharing ? (
+                <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+              ) : (
+                <Send className="h-6 w-6 text-foreground" />
+              )}
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 disabled:opacity-50"
+              aria-label="Download"
+            >
+              {downloading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-foreground" />
+              ) : (
+                <Download className="h-6 w-6 text-foreground" />
+              )}
+            </button>
+            <div className="flex items-center gap-1.5  py-2 text-sm text-foreground shrink-0 ">
+              <Eye className="h-6 w-6 text-foreground" />{" "}
+              {freshData?.viewCount ?? 0}
+            </div>
+          </div>
+
+          <>
+            {/* Author row — top, with close button */}
+
+            <div className="flex items-center gap-3 px-4 py-5  bg-background shrink-0">
+              {/* {isLoading ? (
               <Skeleton className="rounded-full w-10 h-q0" />
             ) : resolvedAuthor?.avatarUrl ? (
               <Image
@@ -1072,44 +1090,47 @@ export function PostcardViewer({
               </div>
             )} */}
 
-            {isLoading && !resolvedAuthor ? (
-              <Skeleton className="h-4 w-1/4" />
-            ) : (
-              <div className="flex-1 min-w-0">
-                <div className="text-base">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <p className="font-semibold leading-tight">{displayName}</p>
+              {isLoading && !resolvedAuthor ? (
+                <Skeleton className="h-4 w-1/4" />
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <div className="text-base">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <p className="font-semibold leading-tight">
+                        {displayName}
+                      </p>
 
-                    <p className="wrap-break-word">
-                      {displayedCaption}
+                      <p className="wrap-break-word">
+                        {displayedCaption}
 
-                      {isLongCaption && (
-                        <button
-                          onClick={() => setExpandedCaption((prev) => !prev)}
-                          className="ml-1 text-primary font-medium hover:underline"
-                        >
-                          {expandedCaption ? "Read less" : "Read more"}
-                        </button>
-                      )}
-                    </p>
+                        {isLongCaption && (
+                          <button
+                            onClick={() => setExpandedCaption((prev) => !prev)}
+                            className="ml-1 text-primary font-medium hover:underline"
+                          >
+                            {expandedCaption ? "Read less" : "Read more"}
+                          </button>
+                        )}
+                      </p>
+                    </div>
                   </div>
+
+                  <p className="text-muted-foreground truncate">
+                    {timeAgo ? `${timeAgo}` : timeAgo}
+                  </p>
                 </div>
+              )}
+            </div>
+          </>
 
-                <p className="text-muted-foreground truncate">
-                  {timeAgo ? `${timeAgo}` : timeAgo}
-                </p>
-              </div>
-            )}
-          </div>
-        </>
-
-        {/* {postcard.caption && (
+          {/* {postcard.caption && (
           <div className="px-4 pb-4 pt-1 bg-background shrink-0">
             <span className="text-sm font-semibold mr-1">{displayName}</span>
             <span className="text-sm text-foreground">{postcard.caption}</span>
           </div>
         )} */}
-        </div>{/* end inner swipe wrapper */}
+        </div>
+        {/* end inner swipe wrapper */}
       </div>
 
       {showComments && postcard.id && (
