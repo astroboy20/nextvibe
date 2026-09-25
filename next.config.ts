@@ -188,6 +188,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  outputFileTracingIncludes: {
+    "/api/media-convert": ["./node_modules/ffmpeg-static/**"],
+  },
 };
 
 export default nextConfig;

@@ -658,7 +658,7 @@ export function PostcardViewer({
       const dx = swipeTouchStartX.current - e.touches[0].clientX;
 
       // Lock direction: if moving more horizontally, don't intercept
-      if (Math.abs(dx) > Math.abs(dy) * 0.9) return;
+      if (Math.abs(dx) > Math.abs(dy) * 0.7) return;
 
       // Prevent pull-to-refresh and page scroll
       e.preventDefault();
@@ -679,7 +679,7 @@ export function PostcardViewer({
       if (swipeTouchStartY.current === null) return;
 
       const dy = swipeDeltaY.current;
-      const threshold = 80;
+      const threshold = 120;
 
       setSwipeTransitioning(true);
 
@@ -1025,7 +1025,7 @@ export function PostcardViewer({
       >
         {/* Inner wrapper that slides during swipe */}
         <div
-          className="flex flex-col w-full h-full overflow-y-auto no-scrollbar"
+          className="flex flex-col w-full h-full overflow-hidden"
           ref={cardRef}
           style={{
             transform: `translateY(${swipeOffset}px)`,
@@ -1072,8 +1072,8 @@ export function PostcardViewer({
               </div>
             )}
           </div>
-          {/* Carousel — flex-1 so it fills remaining height */}
-          <div className="relative  h-full w-full bg-black ">
+          {/* Carousel — flex-1 min-h-0 so it fills remaining height without pushing actions offscreen */}
+          <div className="relative flex-1 min-h-0 w-full bg-black">
             <Carousel
               setApi={setCarouselApi}
               opts={{ loop: false }}
