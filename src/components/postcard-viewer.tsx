@@ -618,7 +618,7 @@ export const PostcardViewer = memo(function PostcardViewer({
                     {/* Double-tap heart */}
                     {showHeart && index === activeIndex && (
                       <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                        <Heart className="h-24 w-24 animate-ping fill-[#FF2E55] text-[#FF2E55] opacity-90" />
+                        <Heart className="h-24 w-24 animate-ping fill-[#5B1A57] text-[#5B1A57] opacity-90" />
                       </div>
                     )}
 
@@ -638,18 +638,6 @@ export const PostcardViewer = memo(function PostcardViewer({
                           onDownload={handleDownload}
                           onRepost={onRepost}
                         />
-
-                        <PostcardCaption
-                          displayName={displayName}
-                          avatarUrl={resolvedAuthor?.avatarUrl}
-                          caption={caption}
-                          timeAgo={timeAgo}
-                          expanded={expandedCaption}
-                          isLongCaption={isLongCaption}
-                          onToggleExpanded={() =>
-                            setExpandedCaption((expanded) => !expanded)
-                          }
-                        />
                       </>
                     )}
                   </div>
@@ -657,7 +645,15 @@ export const PostcardViewer = memo(function PostcardViewer({
               ))}
             </CarouselContent>
           </Carousel>
-
+          <PostcardCaption
+            displayName={displayName}
+            avatarUrl={resolvedAuthor?.avatarUrl}
+            caption={caption}
+            timeAgo={timeAgo}
+            expanded={expandedCaption}
+            isLongCaption={isLongCaption}
+            onToggleExpanded={() => setExpandedCaption((expanded) => !expanded)}
+          />
           {/* Dot indicator */}
           <div className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center">
             <div className="pointer-events-auto rounded-full bg-black/45 px-3 py-2 backdrop-blur-md">

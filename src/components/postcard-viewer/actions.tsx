@@ -108,7 +108,7 @@ export const PostcardActions = memo(function PostcardActions({
   return (
     <aside
       className={cn(
-        "absolute right-2 z-30 flex flex-col items-center gap-1.5 transition-[bottom] duration-200 sm:right-3 sm:gap-2",
+        "absolute right-2  z-30 flex flex-col items-center gap-1.5 transition-[bottom] duration-200 sm:right-3 sm:gap-2",
 
         /**
          * Full-height media:
@@ -117,7 +117,7 @@ export const PostcardActions = memo(function PostcardActions({
          * Short media:
          * bring the entire action rail down.
          */
-        mediaFillsHeight ? "bottom-14" : "bottom-3"
+        mediaFillsHeight ? "bottom-10" : "bottom-3"
       )}
     >
       <ActionButton
