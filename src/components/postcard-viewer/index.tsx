@@ -499,6 +499,44 @@ function DotIndicator({
   );
 }
 
+// ─── Media prep cache helpers ─────────────────────────────────────────────────
+// Fetches/converts a media item ahead of time (while the user is just viewing
+// it) so that by the time they tap Share/Download, the File is already sitting
+// in memory. This matters most for video, where /api/media-convert can take
+// several seconds — doing that fetch inside a click handler burns the "real
+// user gesture" window that navigator.share() needs to attach files, which is
+// what caused it to silently fall back to "Link copied" before.
+
+type PreparedEntry = {
+  status: "loading" | "ready" | "error";
+  file?: File;
+  promise?: Promise<File | null>;
+};
+
+function buildProxyUrl(mediaUrl: string, isVideo: boolean) {
+  return isVideo
+    ? `/api/media-convert?url=${encodeURIComponent(mediaUrl)}`
+    : `/api/media-proxy?url=${encodeURIComponent(mediaUrl)}`;
+}
+
+async function fetchAndBuildFile(
+  mediaUrl: string,
+  isVideo: boolean
+): Promise<File | null> {
+  try {
+    const res = await fetch(buildProxyUrl(mediaUrl, isVideo));
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File(
+      [blob],
+      `nextvibe-postcard.${isVideo ? "mp4" : "jpg"}`,
+      { type: isVideo ? "video/mp4" : blob.type || "image/jpeg" }
+    );
+  } catch {
+    return null;
+  }
+}
+
 // ─── PostcardViewer ───────────────────────────────────────────────────────────
 
 export function PostcardViewer({
@@ -534,6 +572,61 @@ export function PostcardViewer({
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
+
+  // ─── Prefetch/convert cache for share + download ─────────────────────────
+  // Keyed by mediaUrl. We warm this up in the background as soon as a media
+  // item becomes active (or is about to), so Share/Download taps can use an
+  // already-ready File synchronously instead of awaiting a fetch first.
+  const preparedMediaRef = useRef<Map<string, PreparedEntry>>(new Map());
+  // Bump this to force a re-render once a background prepare finishes, so
+  // buttons can reflect "ready" state if you want to show a subtle indicator.
+  const [, setPreparedTick] = useState(0);
+
+  const prepareMedia = useCallback((m?: PostcardMediaItem) => {
+    if (!m?.mediaUrl) return;
+    const key = m.mediaUrl;
+    const cache = preparedMediaRef.current;
+    const existing = cache.get(key);
+    if (existing && (existing.status === "ready" || existing.status === "loading")) {
+      return;
+    }
+
+    const isVideo = m.mediaType === "VIDEO";
+    const promise = fetchAndBuildFile(key, isVideo).then((file) => {
+      if (file) {
+        cache.set(key, { status: "ready", file });
+      } else {
+        cache.set(key, { status: "error" });
+      }
+      setPreparedTick((t) => t + 1);
+      return file;
+    });
+
+    cache.set(key, { status: "loading", promise });
+  }, []);
+
+  /** Returns a File for this media item — from cache if ready, otherwise
+   *  awaits the in-flight prepare (or starts one) as a fallback. */
+  const getOrFetchFile = useCallback(
+    async (m: PostcardMediaItem): Promise<File | null> => {
+      if (!m.mediaUrl) return null;
+      const key = m.mediaUrl;
+      const cache = preparedMediaRef.current;
+      const existing = cache.get(key);
+      if (existing?.status === "ready" && existing.file) return existing.file;
+      if (existing?.status === "loading" && existing.promise) {
+        return existing.promise;
+      }
+      // Not prepared yet — kick it off now (slow path).
+      const isVideo = m.mediaType === "VIDEO";
+      const promise = fetchAndBuildFile(key, isVideo);
+      cache.set(key, { status: "loading", promise });
+      const file = await promise;
+      cache.set(key, file ? { status: "ready", file } : { status: "error" });
+      return file;
+    },
+    []
+  );
 
   // ─── Vertical swipe between postcards ────────────────────────────────────
   const currentPostcardIndex = initialPostcardIndex ?? 0;
@@ -725,6 +818,18 @@ export function PostcardViewer({
     });
   }, [activeIndex, media]);
 
+  // Warm the share/download cache for the current item as soon as it becomes
+  // active. This is what actually fixes the "takes forever" / "link copied"
+  // problems — by the time the user taps Share or Download, the converted
+  // file is usually already sitting in memory.
+  useEffect(() => {
+    const current = media[activeIndex];
+    if (current) prepareMedia(current);
+    // Also warm the next item so swiping forward feels the same way.
+    const next = media[activeIndex + 1];
+    if (next) prepareMedia(next);
+  }, [activeIndex, media, prepareMedia]);
+
   const handleLike = useCallback(async () => {
     if (!postcard.id) return;
     const wasLiked = liked;
@@ -762,29 +867,8 @@ export function PostcardViewer({
     lastImageTapRef.current = now;
   }, [triggerLikeAnimation]);
 
-  const handleDownload = async () => {
-    const currentMedia = media[activeIndex];
-    if (!currentMedia?.mediaUrl) return;
-
-    setDownloading(true);
-    try {
-      const isVideo = currentMedia.mediaType === "VIDEO";
-
-      // Only videos go through the conversion endpoint.
-      // Images continue using the existing media proxy unchanged.
-      const mediaUrl = isVideo
-        ? `/api/media-convert?url=${encodeURIComponent(currentMedia.mediaUrl)}`
-        : `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
-
-      const res = await fetch(mediaUrl);
-      if (!res.ok) throw new Error("Failed to fetch media");
-
-      const blob = await res.blob();
-
-      // Videos are always downloaded as MP4 after server-side conversion.
-      const ext = isVideo ? "mp4" : "png";
-
-      // Build filename: "{author}_{eventName}_{number}.{ext}"
+  const buildFilename = useCallback(
+    (ext: string) => {
       const sanitise = (s: string) =>
         s
           .replace(/[^\w\s-]/g, "")
@@ -796,9 +880,28 @@ export function PostcardViewer({
       );
       const eventPart = sanitise(resolvedEventName ?? "event");
       const number = activeIndex + 1;
-      const filename = `${authorPart}_${eventPart}_${number}.${ext}`;
+      return `${authorPart}_${eventPart}_${number}.${ext}`;
+    },
+    [resolvedAuthor, resolvedEventName, activeIndex]
+  );
 
-      const url = URL.createObjectURL(blob);
+  const handleDownload = async () => {
+    const currentMedia = media[activeIndex];
+    if (!currentMedia?.mediaUrl) return;
+
+    setDownloading(true);
+    try {
+      const isVideo = currentMedia.mediaType === "VIDEO";
+
+      // Use the prepared/cached file if we already have it (fast path — no
+      // waiting on the webm→mp4 conversion again); otherwise fetch now.
+      const file = await getOrFetchFile(currentMedia);
+      if (!file) throw new Error("Failed to fetch media");
+
+      const ext = isVideo ? "mp4" : "png";
+      const filename = buildFilename(ext);
+
+      const url = URL.createObjectURL(file);
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -834,37 +937,41 @@ export function PostcardViewer({
         .writeText(`${text}\n\n${shareUrl}`)
         .catch(() => {});
       toast.success("Link copied to clipboard");
-
       return;
     }
 
     if (currentMedia?.mediaUrl) {
-      setSharing(true);
-      try {
-        const isVideo = currentMedia.mediaType === "VIDEO";
+      const key = currentMedia.mediaUrl;
+      const cached = preparedMediaRef.current.get(key);
 
-        // Videos are converted to MP4 before being shared.
-        // Images continue using the existing media proxy unchanged.
-        const mediaUrl = isVideo
-          ? `/api/media-convert?url=${encodeURIComponent(
-              currentMedia.mediaUrl
-            )}`
-          : `/api/media-proxy?url=${encodeURIComponent(currentMedia.mediaUrl)}`;
-
-        const res = await fetch(mediaUrl);
-
-        if (res.ok) {
-          const blob = await res.blob();
-
-          const file = new File(
-            [blob],
-            `nextvibe-postcard.${isVideo ? "mp4" : "jpg"}`,
-            {
-              type: isVideo ? "video/mp4" : blob.type || "image/jpeg",
-            }
-          );
-
-          if (navigator.canShare?.({ files: [file] })) {
+      // ── Fast path: file already prepared in the background ──────────────
+      // This is the important case: the user gesture from the tap is still
+      // "fresh" because we do zero async work before calling navigator.share.
+      if (cached?.status === "ready" && cached.file) {
+        if (navigator.canShare?.({ files: [cached.file] })) {
+          try {
+            await navigator.share({
+              files: [cached.file],
+              title: `${resolvedEventName} — NextVibe`,
+              text,
+              url: shareUrl,
+            });
+            return;
+          } catch (e: any) {
+            if (e?.name === "AbortError") return;
+            // fall through to link-only share below
+          }
+        }
+      } else {
+        // ── Slow path: not prepared yet ──────────────────────────────────
+        // We still try, but note the browser may reject navigator.share
+        // with files here because the gesture can go stale during the
+        // await. This only happens if prepareMedia hasn't resolved yet
+        // (e.g. very fast tap right after opening the postcard).
+        setSharing(true);
+        try {
+          const file = await getOrFetchFile(currentMedia);
+          if (file && navigator.canShare?.({ files: [file] })) {
             try {
               await navigator.share({
                 files: [file],
@@ -881,11 +988,11 @@ export function PostcardViewer({
               }
             }
           }
+        } catch {
+          /* fall through to text share */
         }
-      } catch {
-        /* fall through to text share */
+        setSharing(false);
       }
-      setSharing(false);
     }
 
     try {
