@@ -679,7 +679,7 @@ export function PostcardViewer({
       if (swipeTouchStartY.current === null) return;
 
       const dy = swipeDeltaY.current;
-      const threshold = 120;
+      const threshold = 80;
 
       setSwipeTransitioning(true);
 
