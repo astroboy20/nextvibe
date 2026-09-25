@@ -144,6 +144,7 @@ export const PostcardViewer = memo(function PostcardViewer({
 
   const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username;
 
+  const userId = resolvedAuthor?.id ;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
   const media = useMemo(
@@ -647,6 +648,7 @@ export const PostcardViewer = memo(function PostcardViewer({
           </Carousel>
           <PostcardCaption
             displayName={displayName}
+            userId={userId}
             avatarUrl={resolvedAuthor?.avatarUrl}
             caption={caption}
             timeAgo={timeAgo}

@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { memo } from "react";
 
 interface PostcardCaptionProps {
   displayName?: string;
+  userId?: string;
   avatarUrl?: string | null;
   caption: string;
   timeAgo: string;
@@ -14,6 +16,7 @@ interface PostcardCaptionProps {
 
 export const PostcardCaption = memo(function PostcardCaption({
   displayName,
+  userId,
   avatarUrl,
   caption,
   timeAgo,
@@ -41,9 +44,12 @@ export const PostcardCaption = memo(function PostcardCaption({
         )}
 
         <div className="min-w-0 flex gap-2 items-center">
-          <p className="text-sm font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          <Link
+            href={`/users/${userId}`}
+            className="text-sm font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+          >
             {displayName ?? "User"}
-          </p>
+          </Link>
           <span>-</span>
           {timeAgo && <p className="text-xs text-white/65">{timeAgo}</p>}
         </div>
