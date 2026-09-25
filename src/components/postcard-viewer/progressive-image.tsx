@@ -113,7 +113,7 @@ export const ProgressiveImage = memo(function ProgressiveImage({
   }
 
   return (
-    <div className="relative min-h-30 w-full">
+    <div className="relative min-h-30 w-full border">
       {!loaded && !error && (
         <div
           className="absolute inset-0 animate-pulse rounded-inherit bg-muted"

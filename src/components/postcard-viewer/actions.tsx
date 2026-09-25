@@ -2,14 +2,11 @@
 
 import { memo } from "react";
 import {
-  Bookmark,
   Download,
   Eye,
   Heart,
   Loader2,
   MessageCircle,
-  MoreHorizontal,
-  Repeat2,
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -93,8 +90,6 @@ interface PostcardActionsProps {
   onShare: () => void;
   onDownload: () => void;
   onRepost?: () => void;
-  onSave?: () => void;
-  onMore?: () => void;
 }
 
 export const PostcardActions = memo(function PostcardActions({
@@ -109,9 +104,6 @@ export const PostcardActions = memo(function PostcardActions({
   onComments,
   onShare,
   onDownload,
-  onRepost,
-  onSave,
-  onMore,
 }: PostcardActionsProps) {
   return (
     <aside
@@ -137,7 +129,7 @@ export const PostcardActions = memo(function PostcardActions({
           <Heart
             className={cn(
               "h-5 w-5 transition-all sm:h-6 sm:w-6",
-              liked ? "fill-[#FF2E55] text-[#FF2E55]" : "text-white"
+              liked ? "fill-[#5B1A57] text-[#5B1A57]" : "text-white"
             )}
           />
         }
@@ -148,12 +140,6 @@ export const PostcardActions = memo(function PostcardActions({
         onClick={onComments}
         count={commentCount}
         icon={<MessageCircle className="h-5 w-5 text-white sm:h-6 sm:w-6" />}
-      />
-
-      <ActionButton
-        ariaLabel="Repost postcard"
-        onClick={onRepost}
-        icon={<Repeat2 className="h-5 w-5 text-white sm:h-6 sm:w-6" />}
       />
 
       <ActionButton
@@ -170,12 +156,6 @@ export const PostcardActions = memo(function PostcardActions({
       />
 
       <ActionButton
-        ariaLabel="Save postcard"
-        onClick={onSave}
-        icon={<Bookmark className="h-5 w-5 text-white sm:h-6 sm:w-6" />}
-      />
-
-      <ActionButton
         ariaLabel="Download postcard"
         onClick={onDownload}
         disabled={downloading}
@@ -186,12 +166,6 @@ export const PostcardActions = memo(function PostcardActions({
             <Download className="h-5 w-5 text-white sm:h-6 sm:w-6" />
           )
         }
-      />
-
-      <ActionButton
-        ariaLabel="More postcard actions"
-        onClick={onMore}
-        icon={<MoreHorizontal className="h-5 w-5 text-white sm:h-6 sm:w-6" />}
       />
 
       <div className="mt-0.5 flex flex-col items-center gap-0.5 text-white">

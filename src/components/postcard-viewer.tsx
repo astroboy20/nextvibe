@@ -63,8 +63,6 @@ export const PostcardViewer = memo(function PostcardViewer({
   onAddPostcard,
   onFilter,
   onRepost,
-  onSave,
-  onMore,
 }: PostcardViewerProps) {
   const dispatch = useDispatch();
 
@@ -639,8 +637,6 @@ export const PostcardViewer = memo(function PostcardViewer({
                           onShare={handleShare}
                           onDownload={handleDownload}
                           onRepost={onRepost}
-                          onSave={onSave}
-                          onMore={onMore}
                         />
 
                         <PostcardCaption

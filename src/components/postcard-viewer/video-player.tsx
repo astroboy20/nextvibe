@@ -295,7 +295,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         type="button"
         onClick={toggleMute}
         aria-label={muted ? "Unmute video" : "Mute video"}
-        className="absolute bottom-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform active:scale-90"
+        className="absolute top-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition-transform active:scale-90"
       >
         {muted ? (
           <VolumeX className="h-5 w-5" />
