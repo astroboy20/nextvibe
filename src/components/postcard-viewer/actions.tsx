@@ -117,7 +117,7 @@ export const PostcardActions = memo(function PostcardActions({
          * Short media:
          * bring the entire action rail down.
          */
-        mediaFillsHeight ? "bottom-10" : "bottom-3"
+        mediaFillsHeight ? "bottom-14" : "bottom-3"
       )}
     >
       <ActionButton
@@ -128,7 +128,7 @@ export const PostcardActions = memo(function PostcardActions({
         icon={
           <Heart
             className={cn(
-              "h-5 w-5 transition-all sm:h-6 sm:w-6",
+              "h-6 w-6 transition-all sm:h-6 sm:w-6",
               liked ? "fill-[#5B1A57] text-[#5B1A57]" : "text-white"
             )}
           />
@@ -139,7 +139,7 @@ export const PostcardActions = memo(function PostcardActions({
         ariaLabel="View comments"
         onClick={onComments}
         count={commentCount}
-        icon={<MessageCircle className="h-5 w-5 text-white sm:h-6 sm:w-6" />}
+        icon={<MessageCircle className="h-6 w-6 text-white sm:h-6 sm:w-6" />}
       />
 
       <ActionButton
@@ -148,9 +148,9 @@ export const PostcardActions = memo(function PostcardActions({
         disabled={sharing}
         icon={
           sharing ? (
-            <Loader2 className="h-5 w-5 animate-spin text-white sm:h-6 sm:w-6" />
+            <Loader2 className="h-6 w-6 animate-spin text-white sm:h-6 sm:w-6" />
           ) : (
-            <Send className="h-5 w-5 text-white sm:h-6 sm:w-6" />
+            <Send className="h-6 w-6 text-white sm:h-6 sm:w-6" />
           )
         }
       />
@@ -161,15 +161,15 @@ export const PostcardActions = memo(function PostcardActions({
         disabled={downloading}
         icon={
           downloading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-white sm:h-6 sm:w-6" />
+            <Loader2 className="h-6 w-6 animate-spin text-white sm:h-6 sm:w-6" />
           ) : (
-            <Download className="h-5 w-5 text-white sm:h-6 sm:w-6" />
+            <Download className="h-6 w-6 text-white sm:h-6 sm:w-6" />
           )
         }
       />
 
       <div className="mt-0.5 flex flex-col items-center gap-0.5 text-white">
-        <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+        <Eye className="h-5 w-5 sm:h-5 sm:w-5" />
 
         <span className="text-[10px] font-semibold sm:text-[11px]">
           {formatCount(viewCount) ?? 0}
