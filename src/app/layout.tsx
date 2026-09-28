@@ -17,7 +17,7 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://mynextvibe.com"),
   title: {
-    default: "NextVibe — Party Photo Sharing & Event Memory App",
+    default: "NextVibe — Digital memory bank for your events",
     template: "%s | NextVibe",
   },
   description:
@@ -42,8 +42,14 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon/favicon.ico" }],
     apple: [{ url: "/apple-touch-icon.png" }],
     other: [
-      { rel: "android-chrome-icon", url: "/favicon/android-chrome-192x192.png" },
-      { rel: "android-chrome-icon", url: "/favicon/android-chrome-512x512.png" },
+      {
+        rel: "android-chrome-icon",
+        url: "/favicon/android-chrome-192x192.png",
+      },
+      {
+        rel: "android-chrome-icon",
+        url: "/favicon/android-chrome-512x512.png",
+      },
     ],
   },
   manifest: "/favicon/site.webmanifest",
