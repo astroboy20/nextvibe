@@ -19,6 +19,7 @@ export default function BirthdayVerify() {
       : null);
 
   // Ercaspay sometimes appends "?reference=..." directly onto the paymentId value,
+  // This is a guard inherited from ercaspay's previous implementation, which gets URL-encoded as "%3F". Strip everything from the first "?" onward. It has not been verified from bachs
   // which gets URL-encoded as "%3F". Strip everything from the first "?" onward.
   const paymentId = rawPaymentId?.split("?")[0] ?? null;
 
