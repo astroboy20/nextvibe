@@ -202,7 +202,6 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
       : "";
 
   const [isSharing, setIsSharing] = useState(false);
-
   const handleShare = async () => {
     const shareText = `Check out this event: ${
       eventDetails?.data?.name ?? "Event"
