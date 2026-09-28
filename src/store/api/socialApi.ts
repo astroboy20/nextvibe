@@ -94,15 +94,39 @@ export interface SocialUsersResponse {
   };
 }
 
+// GET /v1/users/:id — one profile, not a list, so no inner data/meta wrapper.
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  isVerified: boolean;
+  createdAt: string;
+  followerCount: number;
+  followingCount: number;
+  postcardsCount: number;
+  // Always false when the viewer is signed out or looking at themselves.
+  isFollowing: boolean;
+  isMutual: boolean;
+}
+
+export interface UserProfileResponse {
+  success: boolean;
+  data: UserProfile;
+}
+
 export const socialApi = createApi({
   reducerPath: "socialApi",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Postcards", "Comments", "People", "Feed"],
   keepUnusedDataFor: 300,
   endpoints: (build) => ({
-
     // ── Feed: postcards from accounts you follow ──────────────────────────────
-    getFollowingFeed: build.query<PostcardsResponse, { page?: number; limit?: number } | void>({
+    getFollowingFeed: build.query<
+      PostcardsResponse,
+      { page?: number; limit?: number } | void
+    >({
       query: (params) => {
         const p = new URLSearchParams();
         if (params?.page) p.set("page", String(params.page));
@@ -115,13 +139,15 @@ export const socialApi = createApi({
 
     // ── Follow / Unfollow ────────────────────────────────────────────────────
     // Pass { userId, isFollowing: true } to unfollow (DELETE), false to follow (POST)
-    toggleFollow: build.mutation<any, { userId: string; isFollowing: boolean }>({
-      query: ({ userId, isFollowing }) => ({
-        url: `/v1/users/${userId}/follow`,
-        method: isFollowing ? "DELETE" : "POST",
-      }),
-      invalidatesTags: ["People", "Feed"],
-    }),
+    toggleFollow: build.mutation<any, { userId: string; isFollowing: boolean }>(
+      {
+        query: ({ userId, isFollowing }) => ({
+          url: `/v1/users/${userId}/follow`,
+          method: isFollowing ? "DELETE" : "POST",
+        }),
+        invalidatesTags: ["People", "Feed"],
+      },
+    ),
 
     // ── My following ──────────────────────────────────────────────────────────
     getMyFollowing: build.query<SocialUsersResponse, void>({
@@ -141,8 +167,19 @@ export const socialApi = createApi({
       providesTags: ["People"],
     }),
 
+    // ── Profile ───────────────────────────────────────────────────────────────
+    getUserProfile: build.query<UserProfileResponse, { userId: string }>({
+      query: ({ userId }) => `/v1/users/${userId}`,
+      // A function, not an array: the query's argument only exists per call,
+      // so RTK hands it in as the third parameter.
+      providesTags: (_result, _error, { userId }) => [{ type: "People", id: userId }],
+    }),
+
     // ── Likes ─────────────────────────────────────────────────────────────────
-    likeTarget: build.mutation<any, { targetType: "postcard" | "event"; targetId: string }>({
+    likeTarget: build.mutation<
+      any,
+      { targetType: "postcard" | "event"; targetId: string }
+    >({
       query: (body) => ({
         url: "/v1/likes",
         method: "POST",
@@ -151,7 +188,10 @@ export const socialApi = createApi({
       invalidatesTags: ["Postcards", "Feed"],
     }),
 
-    unlikeTarget: build.mutation<any, { targetType: "postcard" | "event"; targetId: string }>({
+    unlikeTarget: build.mutation<
+      any,
+      { targetType: "postcard" | "event"; targetId: string }
+    >({
       query: (body) => ({
         url: "/v1/likes",
         method: "DELETE",
@@ -161,19 +201,39 @@ export const socialApi = createApi({
     }),
 
     // ── Comments ──────────────────────────────────────────────────────────────
-    getComments: build.query<CommentsResponse, { targetType: "postcard" | "event"; targetId: string; page?: number; limit?: number }>({
+    getComments: build.query<
+      CommentsResponse,
+      {
+        targetType: "postcard" | "event";
+        targetId: string;
+        page?: number;
+        limit?: number;
+      }
+    >({
       query: ({ targetType, targetId, page = 1, limit = 20 }) =>
         `/v1/comments?targetType=${targetType}&targetId=${targetId}&page=${page}&limit=${limit}`,
-      providesTags: (_r, _e, { targetId }) => [{ type: "Comments", id: targetId }],
+      providesTags: (_r, _e, { targetId }) => [
+        { type: "Comments", id: targetId },
+      ],
     }),
 
-    postComment: build.mutation<any, { targetType: "postcard" | "event"; targetId: string; body: string; parentId?: string | null }>({
+    postComment: build.mutation<
+      any,
+      {
+        targetType: "postcard" | "event";
+        targetId: string;
+        body: string;
+        parentId?: string | null;
+      }
+    >({
       query: ({ targetType, targetId, body, parentId = null }) => ({
         url: "/v1/comments",
         method: "POST",
         body: { targetType, targetId, body, parentId },
       }),
-      invalidatesTags: (_r, _e, { targetId }) => [{ type: "Comments", id: targetId }],
+      invalidatesTags: (_r, _e, { targetId }) => [
+        { type: "Comments", id: targetId },
+      ],
     }),
 
     deleteComment: build.mutation<any, string>({
@@ -186,11 +246,16 @@ export const socialApi = createApi({
 
     getCommentReplies: build.query<CommentsResponse, string>({
       query: (commentId) => `/v1/comments/${commentId}/replies`,
-      providesTags: (_r, _e, commentId) => [{ type: "Comments", id: commentId }],
+      providesTags: (_r, _e, commentId) => [
+        { type: "Comments", id: commentId },
+      ],
     }),
 
     // ── Shares ────────────────────────────────────────────────────────────────
-    recordShare: build.mutation<any, { targetType: "postcard" | "event"; targetId: string; platform: string }>({
+    recordShare: build.mutation<
+      any,
+      { targetType: "postcard" | "event"; targetId: string; platform: string }
+    >({
       query: (body) => ({
         url: "/v1/shares",
         method: "POST",
@@ -213,4 +278,5 @@ export const {
   useDeleteCommentMutation,
   useGetCommentRepliesQuery,
   useRecordShareMutation,
+  useGetUserProfileQuery,
 } = socialApi;
