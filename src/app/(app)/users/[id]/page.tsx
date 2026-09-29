@@ -2,17 +2,24 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, Heart, UserPlus, Check, Loader2, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  UserPlus,
+  Check,
+  Loader2,
+  MessageCircle,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useGetUserBasicQuery } from "@/store/api/authApi";
-import { useToggleFollowMutation, useGetMyFollowingQuery } from "@/store/api/socialApi";
+import {
+  useToggleFollowMutation,
+  useGetUserProfileQuery,
+} from "@/store/api/socialApi";
 import { useStartConversationMutation } from "@/store/api/messagingApi";
 
 interface UserProfilePageProps {
@@ -23,27 +30,29 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
   const { id } = use(params);
   const router = useRouter();
 
-  const { data, isLoading, isError } = useGetUserBasicQuery(id);
-  const { data: followingData } = useGetMyFollowingQuery();
+  const { data, isLoading, isError } = useGetUserProfileQuery({ userId: id });
   const [toggleFollow, { isLoading: isToggling }] = useToggleFollowMutation();
-  const [startConversation, { isLoading: isStartingChat }] = useStartConversationMutation();
+  const [startConversation, { isLoading: isStartingChat }] =
+    useStartConversationMutation();
 
   const user = data?.data;
 
-  // Cross-reference with the following list — same source of truth used on the social page.
-  // user?.isFollowing from the /basic endpoint is unreliable (API may return false even if following).
-  const followingIds = new Set((followingData?.data?.data ?? []).map((u: any) => u.id));
-  const [followed, setFollowed] = useState<boolean | null>(null);
-  const isFollowing = followed !== null ? followed : followingIds.has(id);
+  // The server answers "do I follow them" for this one user. The optimistic
+  // value only bridges the gap until the refetch after toggling lands; it's
+  // keyed by id so it can't leak onto the next profile if Next reuses this
+  // component when navigating between /users/[id] pages.
+  const [optimistic, setOptimistic] = useState<{ id: string; following: boolean } | null>(null);
+  const isFollowing =
+    optimistic?.id === id ? optimistic.following : (user?.isFollowing ?? false);
 
   const handleFollow = async () => {
     const prev = isFollowing;
-    setFollowed(!prev);
+    setOptimistic({ id, following: !prev });
     try {
       await toggleFollow({ userId: id, isFollowing: prev }).unwrap();
       toast.success(prev ? "Unfollowed" : "Now following!");
     } catch (err: any) {
-      setFollowed(prev);
+      setOptimistic({ id, following: prev });
       toast.error(err?.data?.message ?? "Could not update follow status.");
     }
   };
@@ -52,15 +61,16 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
     try {
       const res = await startConversation({ userId: id }).unwrap();
       const conversationId = res?.data?.id;
-      router.push(conversationId
-        ? `/messages?conversation=${conversationId}`
-        : `/messages?chat=${id}`
+      router.push(
+        conversationId
+          ? `/messages?conversation=${conversationId}`
+          : `/messages?chat=${id}`,
       );
     } catch (err: any) {
       toast.error(
         err?.data?.error?.message ??
-        err?.data?.message ??
-        "You can only message mutual followers."
+          err?.data?.message ??
+          "You can only message mutual followers.",
       );
     }
   };
@@ -70,11 +80,16 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b">
         <div className="container px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-1.5 rounded-full hover:bg-muted transition-colors">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-full hover:bg-muted transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <span className="font-semibold text-sm">
-            {isLoading ? "Profile" : user?.displayName ?? user?.username ?? "Profile"}
+            {isLoading
+              ? "Profile"
+              : (user?.displayName ?? user?.username ?? "Profile")}
           </span>
         </div>
       </div>
@@ -95,8 +110,12 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
         {/* Error */}
         {isError && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-muted-foreground mb-4">Could not load profile.</p>
-            <Button variant="outline" onClick={() => router.back()}>Go back</Button>
+            <p className="text-sm text-muted-foreground mb-4">
+              Could not load profile.
+            </p>
+            <Button variant="outline" onClick={() => router.back()}>
+              Go back
+            </Button>
           </div>
         )}
 
@@ -106,28 +125,36 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             <Card>
               <CardContent className="p-6 flex flex-col items-center gap-3 text-center">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarImage src={user.avatarUrl ?? undefined} />
                   <AvatarFallback className="text-2xl font-bold">
-                    {(user.displayName ?? user.username ?? "?")[0]?.toUpperCase()}
+                    {(user.displayName ??
+                      user.username ??
+                      "?")[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
                 <div>
-                  <h2 className="text-lg font-bold">{user.displayName ?? user.username}</h2>
+                  <h2 className="text-lg font-bold">
+                    {user.displayName ?? user.username}
+                  </h2>
                   {user.username && (
-                    <p className="text-sm text-muted-foreground">@{user.username.replace(/^@/, "")}</p>
+                    <p className="text-sm text-muted-foreground">
+                      @{user.username.replace(/^@/, "")}
+                    </p>
                   )}
                 </div>
 
                 {user.bio && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">{user.bio}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {user.bio}
+                  </p>
                 )}
 
                 {/* Stats */}
                 <div className="flex items-center gap-6 text-center mt-1">
-                  {user.followersCount !== undefined && (
+                  {user.followerCount !== undefined && (
                     <div>
-                      <p className="font-bold text-sm">{user.followersCount}</p>
+                      <p className="font-bold text-sm">{user.followerCount}</p>
                       <p className="text-xs text-muted-foreground">Followers</p>
                     </div>
                   )}
@@ -157,9 +184,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     {isToggling ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : isFollowing ? (
-                      <><Check className="h-3.5 w-3.5" /> Following</>
+                      <>
+                        <Check className="h-3.5 w-3.5" /> Following
+                      </>
                     ) : (
-                      <><UserPlus className="h-3.5 w-3.5" /> Follow</>
+                      <>
+                        <UserPlus className="h-3.5 w-3.5" /> Follow
+                      </>
                     )}
                   </Button>
                   <Button
@@ -169,54 +200,16 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     onClick={handleMessage}
                     disabled={isStartingChat}
                   >
-                    {isStartingChat
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <MessageCircle className="h-3.5 w-3.5" />}
+                    {isStartingChat ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-3.5 w-3.5" />
+                    )}
                     Message
                   </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Interests / badges */}
-            {user.interests?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Interests</p>
-                <div className="flex flex-wrap gap-2">
-                  {user.interests.map((interest: string) => (
-                    <Badge key={interest} variant="secondary" className="rounded-full">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recent activity stats */}
-            {(user.eventsAttended !== undefined || user.likesGiven !== undefined) && (
-              <Card>
-                <CardContent className="p-4 grid grid-cols-2 gap-4">
-                  {user.eventsAttended !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-semibold text-sm">{user.eventsAttended}</p>
-                        <p className="text-xs text-muted-foreground">Events attended</p>
-                      </div>
-                    </div>
-                  )}
-                  {user.likesGiven !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-semibold text-sm">{user.likesGiven}</p>
-                        <p className="text-xs text-muted-foreground">Likes given</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </>
         )}
       </div>
