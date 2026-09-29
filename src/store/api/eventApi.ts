@@ -1,9 +1,5 @@
 import { baseApi } from "./baseApi";
 import { IGalleryItem } from "@/types/event.type";
-import {
-  phaseToTiming,
-  type PostcardPhase,
-} from "@/types/postcards.type";
 
 // ── Withdrawal types ──────────────────────────────────────────────────────────
 /**

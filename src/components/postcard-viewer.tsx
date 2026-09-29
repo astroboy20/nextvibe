@@ -15,6 +15,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import {
+  useDeletePostcardMutation,
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
   useToggleLikePostcardMutation,
@@ -79,6 +80,11 @@ export const PostcardViewer = memo(function PostcardViewer({
   const [downloading, setDownloading] = useState(false);
 
   const [expandedCaption, setExpandedCaption] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const [deletePostcard, { isLoading: isDeleting }] =
+    useDeletePostcardMutation();
 
   /**
    * True until the active media reports its real dimensions.
@@ -547,6 +553,29 @@ export const PostcardViewer = memo(function PostcardViewer({
     resolvedEventName,
   ]);
 
+  const handleDelete = async () => {
+    if (!postcard.id) return;
+
+    try {
+      await deletePostcard({
+        postcardId: postcard.id,
+        eventId,
+      }).unwrap();
+
+      toast.success("Postcard deleted successfully");
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch {
+      toast.error("Failed to delete postcard. Please try again.");
+    }
+  };
+
+  /** Only the author can delete their own postcard */
+  const isOwner =
+    !!userData?.data?.id &&
+    !!(resolvedAuthor?.id ?? freshData?.author?.id) &&
+    userData.data.id === (resolvedAuthor?.id ?? freshData?.author?.id);
+
   if (media.length === 0) {
     onClose();
     return null;
@@ -632,11 +661,14 @@ export const PostcardViewer = memo(function PostcardViewer({
                           viewCount={freshData?.viewCount ?? 0}
                           sharing={sharing}
                           downloading={downloading}
+                          isDeleting={isDeleting}
+                          canDelete={isOwner}
                           mediaFillsHeight={activeMediaFillsHeight}
                           onLike={handleLike}
                           onComments={() => setShowComments(true)}
                           onShare={handleShare}
                           onDownload={handleDownload}
+                          onDelete={() => setShowDeleteConfirm(true)}
                           onRepost={onRepost}
                         />
                       </>
@@ -680,6 +712,101 @@ export const PostcardViewer = memo(function PostcardViewer({
           postcardId={postcard.id}
           onClose={() => setShowComments(false)}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-title"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+          />
+
+          {/* Sheet */}
+          <div className="relative z-10 w-full max-w-sm rounded-t-2xl bg-[#111518] p-6 shadow-xl sm:rounded-2xl">
+            <div className="mb-1 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/15">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </div>
+              <h2
+                id="delete-dialog-title"
+                className="text-base font-semibold text-white"
+              >
+                Delete postcard?
+              </h2>
+            </div>
+
+            <p className="mb-6 pl-[52px] text-sm text-white/60">
+              This postcard will be permanently removed and cannot be recovered.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 py-3 text-sm font-semibold text-white transition-opacity hover:bg-red-600 disabled:opacity-60"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg
+                      className="h-4 w-4 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                    Deleting…
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

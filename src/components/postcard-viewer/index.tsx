@@ -34,6 +34,7 @@
 //   useCommentOnPostcardMutation,
 //   useGetPostcardCommentsQuery,
 //   useGetPostcardQuery,
+//   useDeletePostcardMutation,
 // } from "@/store/api/endpoints/postcards";
 // import { usePostcardViewTracker } from "@/hooks/use-views";
 // import { useGetUserQuery } from "@/store/api/authApi";

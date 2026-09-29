@@ -55,6 +55,14 @@ export const postcardEndpoints = baseApi.injectEndpoints({
       ],
     }),
 
+    deletePostcard: builder.mutation<void, { postcardId: string; eventId: string }>({
+      query: ({ postcardId }) => ({
+        url: `/v1/postcards/${postcardId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_, __, { eventId }) => [{ type: "Gallery", id: eventId }],
+    }),
+
     // Step 2: create postcards with the returned fileKeys
     createPostcards: builder.mutation<
       any,
@@ -231,4 +239,5 @@ export const {
   useGetEventMemoriesCountQuery,
   useTrackPostcardViewMutation,
   useSwapPostcardMutation,
+  useDeletePostcardMutation
 } = postcardEndpoints;

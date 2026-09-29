@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageCircle,
   Send,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,8 @@ interface PostcardActionsProps {
   viewCount: number;
   sharing: boolean;
   downloading: boolean;
+  isDeleting?: boolean;
+  canDelete?: boolean;
 
   /**
    * False means the current media
@@ -90,6 +93,7 @@ interface PostcardActionsProps {
   onShare: () => void;
   onDownload: () => void;
   onRepost?: () => void;
+  onDelete?: () => void;
 }
 
 export const PostcardActions = memo(function PostcardActions({
@@ -99,11 +103,14 @@ export const PostcardActions = memo(function PostcardActions({
   viewCount,
   sharing,
   downloading,
+  isDeleting,
+  canDelete,
   mediaFillsHeight,
   onLike,
   onComments,
   onShare,
   onDownload,
+  onDelete,
 }: PostcardActionsProps) {
   return (
     <aside
@@ -117,7 +124,7 @@ export const PostcardActions = memo(function PostcardActions({
          * Short media:
          * bring the entire action rail down.
          */
-        mediaFillsHeight ? "bottom-14" : "bottom-3"
+        mediaFillsHeight ? "bottom-14" : "bottom-7"
       )}
     >
       <ActionButton
@@ -167,6 +174,21 @@ export const PostcardActions = memo(function PostcardActions({
           )
         }
       />
+
+      {canDelete && (
+        <ActionButton
+          ariaLabel="Delete postcard"
+          onClick={onDelete}
+          disabled={isDeleting}
+          icon={
+            isDeleting ? (
+              <Loader2 className="h-6 w-6 animate-spin text-white sm:h-6 sm:w-6" />
+            ) : (
+              <Trash2 className="h-6 w-6 text-red-400 sm:h-6 sm:w-6" />
+            )
+          }
+        />
+      )}
 
       <div className="mt-0.5 flex flex-col items-center gap-0.5 text-white">
         <Eye className="h-5 w-5 sm:h-5 sm:w-5" />
