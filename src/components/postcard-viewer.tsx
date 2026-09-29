@@ -150,7 +150,7 @@ export const PostcardViewer = memo(function PostcardViewer({
 
   const displayName = resolvedAuthor?.displayName ?? resolvedAuthor?.username;
 
-  const userId = resolvedAuthor?.id ;
+  const userId = resolvedAuthor?.id;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
   const media = useMemo(

@@ -115,7 +115,7 @@ export const PostcardActions = memo(function PostcardActions({
   return (
     <aside
       className={cn(
-        "absolute right-2  z-30 flex flex-col items-center gap-1.5 transition-[bottom] duration-200 sm:right-3 sm:gap-2",
+        "absolute right-2  z-100 flex flex-col items-center gap-1.5 transition-[bottom] duration-200 sm:right-3 sm:gap-2",
 
         /**
          * Full-height media:
