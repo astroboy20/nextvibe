@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatDistanceToNow } from "date-fns";
-import { Heart } from "lucide-react";
+import { Heart, Loader, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { setHideHeader } from "@/store/slices/ui-slice";
@@ -716,94 +716,80 @@ export const PostcardViewer = memo(function PostcardViewer({
 
       {showDeleteConfirm && (
         <div
-          className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center"
+          className="fixed inset-0 z-9999 flex items-end justify-center sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-dialog-title"
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => !isDeleting && setShowDeleteConfirm(false)}
           />
 
           {/* Sheet */}
-          <div className="relative z-10 w-full max-w-sm rounded-t-2xl bg-[#111518] p-6 shadow-xl sm:rounded-2xl">
-            <div className="mb-1 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/15">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+          <div className="animate-slide-up relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl sm:animate-none sm:rounded-3xl">
+            {/* Brand accent bar */}
+            <div className="h-1 w-full bg-linear-to-r from-[#5B1A57] via-[#9b4d97] to-[#5B1A57]" />
+
+            <div className="bg-white px-6 pb-8 pt-6">
+              {/* Icon + title */}
+              <div className="mb-1 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5B1A57]/20 ring-1 ring-[#5B1A57]/50">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-[#c97ec6]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                </div>
+                <h2
+                  id="delete-dialog-title"
+                  className="text-base font-semibold text-[#0E0E14]"
                 >
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                  <path d="M10 11v6" />
-                  <path d="M14 11v6" />
-                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                </svg>
+                  Delete postcard?
+                </h2>
               </div>
-              <h2
-                id="delete-dialog-title"
-                className="text-base font-semibold text-white"
-              >
-                Delete postcard?
-              </h2>
-            </div>
 
-            <p className="mb-6 pl-[52px] text-sm text-white/60">
-              This postcard will be permanently removed and cannot be recovered.
-            </p>
+              <p className="mb-7 pl-13 text-sm leading-relaxed text-black/50">
+                This memory will be permanently removed and cannot be recovered.
+              </p>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 disabled:opacity-50"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-2xl border border-black/10 bg-white/5 py-3 text-sm font-medium text-black/70 transition-colors hover:bg-black/10 disabled:opacity-40"
+                >
+                  Cancel
+                </button>
 
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 py-3 text-sm font-semibold text-white transition-opacity hover:bg-red-600 disabled:opacity-60"
-              >
-                {isDeleting ? (
-                  <>
-                    <svg
-                      className="h-4 w-4 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8H4z"
-                      />
-                    </svg>
-                    Deleting…
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-500/50 disabled:opacity-60"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

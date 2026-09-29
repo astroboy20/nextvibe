@@ -25,7 +25,7 @@ export const PostcardCaption = memo(function PostcardCaption({
   onToggleExpanded,
 }: PostcardCaptionProps) {
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/75 to-transparent px-4 pb-5 pt-20 pr-24 text-white">
+    <div className="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black via-black/75 to-transparent px-4 pb-5 pt-20 pr-24 text-white">
       <div className="flex  max-w-[calc(100%-12px)] items-center gap-2 mb-2">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

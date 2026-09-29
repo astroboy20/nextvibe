@@ -232,6 +232,7 @@ export default function RegisterContent() {
 
             <Button
               type="submit"
+              // eslint-disable-next-line react-hooks/incompatible-library
               disabled={isLoading || googleLoading || isMerging || !form.watch("acceptedTerms")}
               className="w-full h-11 bg-[#5B1A57] hover:bg-[#4a1446] text-white rounded-lg font-medium disabled:opacity-50"
             >

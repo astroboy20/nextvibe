@@ -1,5 +1,5 @@
 "use client";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -237,6 +237,7 @@ function ReminderCard({
     };
     const daysNeeded = daysMap[timing];
     const daysUntil = Math.ceil(
+      // eslint-disable-next-line react-hooks/purity
       (new Date(eventStartsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     );
     if (daysUntil < daysNeeded) {
