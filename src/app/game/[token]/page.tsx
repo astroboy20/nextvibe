@@ -592,6 +592,8 @@ function PublicRoundPlayer({
   token,
   onScoreReceived,
   onFinish,
+  nextRound,
+  onPlayNext,
 }: {
   round: any;
   session: any;
@@ -601,7 +603,23 @@ function PublicRoundPlayer({
   token?: string;
   onScoreReceived?: (score: number) => void;
   onFinish?: () => void;
+  /** Another active round this player hasn't played yet, if there is one. */
+  nextRound?: { id: string; title?: string | null } | null;
+  onPlayNext?: () => void;
 }) {
+  // Shown on every "round done" screen. Without it, finishing a round led back
+  // to a lobby that looked finished, and players left not knowing more rounds
+  // were waiting.
+  const playNextButton = nextRound && onPlayNext ? (
+    <Button
+      className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+      onClick={onPlayNext}
+    >
+      <Play className="h-4 w-4" />
+      Play next round{nextRound.title ? `: ${nextRound.title}` : ""}
+    </Button>
+  ) : null;
+
   const questions: any[] = round.config?.questions ?? [];
   const gameType = mapType(round.gameType ?? "TRIVIA");
 
@@ -697,6 +715,9 @@ function PublicRoundPlayer({
           const result = await onSubmit(round.id, feedbackAnswers, Date.now() - totalStartTime);
           if (result.ok) {
             setFinalScore(0);
+            // Feedback is unscored, but the round is still done — without this
+            // the lobby kept offering it until the next refetch.
+            onScoreReceived?.(0);
           }
         }}
       />
@@ -714,13 +735,14 @@ function PublicRoundPlayer({
           <p className="text-lg font-semibold text-foreground">Thanks for your feedback!</p>
           <p className="text-sm text-muted-foreground">Your answers have been submitted.</p>
         </div>
+        {playNextButton}
         {onFinish && (
           <Button
             variant="outline"
             className="rounded-xl"
             onClick={onFinish}
           >
-            Done
+            {nextRound ? "Back to Lobby" : "Done"}
           </Button>
         )}
       </div>
@@ -781,6 +803,7 @@ function PublicRoundPlayer({
             </p>
           </CardContent>
         </Card>
+        {playNextButton}
         <Button
           className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
           onClick={async () => {
@@ -924,7 +947,7 @@ function PublicRoundPlayer({
 // ── Public Game Page ─────────────────────────────────────────────────────────
 export default function PublicGamePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
-  const { data, isLoading, error } = useGetGameSessionByTokenQuery(token);
+  const { data, isLoading, error, refetch: refetchSession } = useGetGameSessionByTokenQuery(token);
   const [joinByToken, { isLoading: isJoining }] = useJoinGameSessionByTokenMutation();
   const [anonymousJoin, { isLoading: isAnonJoining }] = useAnonymousJoinGameMutation();
   const [submitAnswers, { isLoading: isSubmitting }] = useSubmitRoundAnswersMutation();
@@ -935,35 +958,26 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [anonId, setAnonId] = useState<string | null>(null);
   const [playingRoundId, setPlayingRoundId] = useState<string | null>(null);
-  const [playedRounds, setPlayedRounds] = useState<Set<string>>(new Set());
-  const [lastScore, setLastScore] = useState<number | null>(null);
+  // roundId -> score for rounds finished during this visit. The server's
+  // per-round hasPlayed/myScore catches up on the next refetch; this covers the
+  // gap so a just-finished round never flickers back to "Play".
+  const [playedScores, setPlayedScores] = useState<Record<string, number>>({});
 
   const session = data?.data;
-  const activeRound = session?.rounds?.find((r: any) => r.status === "ACTIVE");
-  const gameType = mapType(session?.rounds?.[0]?.gameType ?? "TRIVIA");
+  const rounds: any[] = (session?.rounds ?? []).filter((r: any) => r.status !== "CANCELLED");
+  const gameType = mapType(rounds[0]?.gameType ?? "TRIVIA");
   const eventName = session?.event?.name ?? session?.eventName;
 
-  const { data: lbData, refetch: refetchLeaderboard } = useGetSessionLeaderboardQuery(session?.id, {
-    skip: !session?.id,
-    refetchOnMountOrArgChange: true,
-  });
   const { data: meData } = useGetUserQuery();
   const myUserId: string | undefined = meData?.data?.id;
 
-  const lbPayload = lbData?.data ?? lbData;
-  const lbEntries: any[] = lbPayload?.entries ?? lbPayload?.data?.entries ?? [];
-  const myEntry: any = lbPayload?.myEntry ?? lbPayload?.data?.myEntry ?? null;
-
-  const isInEntries = !!myUserId && lbEntries.some(
-    (e: any) => e.user?.id === myUserId || e.userId === myUserId
-  );
-
-  // Check hasPlayed from leaderboard AND from the session's per-round hasPlayed flag
-  const activeRoundHasPlayed = !!activeRound && (
-    playedRounds.has(activeRound.id) ||
-    !!session?.rounds?.find((r: any) => r.id === activeRound.id)?.hasPlayed
-  );
-  const hasPlayed = !!myEntry || isInEntries || activeRoundHasPlayed;
+  // "Played" is per round. It used to be per session — being on the session
+  // leaderboard at all hid every remaining round behind "already played".
+  const isRoundPlayed = (r: any) => !!r.hasPlayed || r.id in playedScores;
+  const roundScore = (r: any): number | null => r.myScore ?? playedScores[r.id] ?? null;
+  const playableRounds = rounds.filter((r) => r.status === "ACTIVE" && !isRoundPlayed(r));
+  const upcomingRounds = rounds.filter((r) => r.status === "PENDING" || r.status === "UNLOCKED");
+  const playedCount = rounds.filter(isRoundPlayed).length;
 
   // Initialize joined state from session.isJoined (handles the post-merge page load case)
   useEffect(() => {
@@ -997,7 +1011,8 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
       .then(() => {
         clearAnonGameData();
         toast.success("Your game progress has been saved!");
-        refetchLeaderboard();
+        // Guest rounds are now real entries on the account — re-read them.
+        refetchSession();
       })
       .catch(() => clearAnonGameData());
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1095,11 +1110,14 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
 
   // Playing a round
   if (playingRoundId) {
-    const round = session.rounds?.find((r: any) => r.id === playingRoundId);
-    // Use only local state — session.rounds[].hasPlayed can update via server refetch
-    // during submission and cause a race where PublicRoundPlayer unmounts before
-    // finalScore is committed, losing the score screen entirely.
-    const roundAlreadyPlayed = playedRounds.has(playingRoundId);
+    const round = rounds.find((r: any) => r.id === playingRoundId);
+    // Played on an earlier visit — the lobby doesn't offer these, but a stale
+    // tap could still land here. A round finished during *this* visit is in
+    // playedScores and keeps its score screen: the server's hasPlayed flips to
+    // true on refetch, and keying off it alone would unmount PublicRoundPlayer
+    // and lose the score screen.
+    const playedBeforeThisVisit = !!round?.hasPlayed && !(playingRoundId in playedScores);
+    const nextRound = playableRounds.find((r) => r.id !== playingRoundId) ?? null;
 
     return (
       <div className="min-h-screen bg-background">
@@ -1111,7 +1129,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
             ← Back
           </button>
           <p className="text-xs text-muted-foreground font-medium">{session.title}</p>
-          {roundAlreadyPlayed && lastScore === null ? (
+          {playedBeforeThisVisit ? (
             <div className="flex flex-col items-center gap-4 py-10 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -1119,8 +1137,8 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
               <div className="space-y-1">
                 <p className="font-semibold text-foreground">Round already completed</p>
                 <p className="text-sm text-muted-foreground">You&apos;ve already submitted your answers for this round.</p>
-                {myEntry?.score != null && (
-                  <p className="text-sm font-medium text-primary mt-1">Your score: {myEntry.score.toLocaleString()} pts</p>
+                {round?.myScore != null && round.gameType !== "FEEDBACK" && (
+                  <p className="text-sm font-medium text-primary mt-1">Your score: {round.myScore.toLocaleString()} pts</p>
                 )}
               </div>
               <Button variant="outline" className="rounded-xl" onClick={() => setPlayingRoundId(null)}>
@@ -1129,6 +1147,10 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
             </div>
           ) : round ? (
             <PublicRoundPlayer
+              // Keyed by round: "Play next round" swaps rounds in place, and
+              // without a new key React would reuse this instance — carrying the
+              // finished round's score screen and answers into the next one.
+              key={round.id}
               round={round}
               session={session}
               onSubmit={handleSubmit}
@@ -1136,10 +1158,13 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
               isAnonymous={isAnonymous || (!myUserId && !!anonId)}
               token={token}
               onScoreReceived={(score) => {
-                setLastScore(score);
-                setPlayedRounds((prev) => new Set(prev).add(playingRoundId!));
+                setPlayedScores((prev) => ({ ...prev, [playingRoundId]: score }));
+                // After the local record, never before (see playedBeforeThisVisit).
+                refetchSession();
               }}
               onFinish={() => setPlayingRoundId(null)}
+              nextRound={nextRound}
+              onPlayNext={nextRound ? () => setPlayingRoundId(nextRound.id) : undefined}
             />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Round not found.</p>
@@ -1172,7 +1197,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Rounds</span>
-              <span className="font-medium">{session.rounds?.length ?? 0}</span>
+              <span className="font-medium">{rounds.length}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Players joined</span>
@@ -1200,45 +1225,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         {/* Active */}
         {session.status === "ACTIVE" && (
           <div className="space-y-3">
-            {hasPlayed ? (
-              <div className="space-y-2">
-                {lastScore !== null ? (
-                  <div className="flex flex-col items-center gap-4 py-6 text-center animate-fade-in">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-accent/20">
-                      <Trophy className="h-10 w-10 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground font-medium">Your Score</p>
-                      <p className="font-display text-5xl font-bold text-foreground">{lastScore.toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">points</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
-                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-1" />
-                    <p className="text-xs text-primary font-medium">You&apos;ve already played this round</p>
-                    {myEntry?.score != null && (
-                      <p className="text-sm font-bold text-foreground mt-1">{myEntry.score.toLocaleString()} pts</p>
-                    )}
-                  </div>
-                )}
-                {isAnonymous && !myUserId && (
-                  <div className="rounded-xl bg-[#5B1A57]/5 border border-[#5B1A57]/20 p-3 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      <UserRound className="inline h-3 w-3 mr-1" />
-                      Your score is saved for 7 days.{" "}
-                      <a
-                        href={`/auth/register?from=${encodeURIComponent(`/game/${token}`)}`}
-                        className="font-semibold text-[#5B1A57] hover:underline"
-                      >
-                        Create an account
-                      </a>{" "}
-                      to keep it &amp; RSVP this event.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : !joined ? (
+            {!joined ? (
               <div className="space-y-2">
                 <Button
                   className="w-full gap-2 rounded-xl bg-green-600 hover:bg-green-700 text-white"
@@ -1255,43 +1242,102 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
                   </p>
                 )}
               </div>
-            ) : activeRound ? (
-              <Button
-                className="w-full gap-2 rounded-xl bg-[#531342] hover:bg-[#531342]/90 text-white"
-                onClick={() => setPlayingRoundId(activeRound.id)}
-              >
-                <Play className="h-4 w-4" />
-                Play Round: {activeRound.title}
-              </Button>
-            ) : (
-              <div className="space-y-2">
+            ) : playableRounds.length === 0 ? (
+              // Joined, nothing to play right now: either everything is done,
+              // or the rest haven't been opened yet.
+              upcomingRounds.length > 0 ? (
                 <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-4 text-center">
                   <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
                   <p className="text-xs text-green-700 font-medium">You&apos;re in the lobby!</p>
-                  <p className="text-xs text-muted-foreground">Waiting for the organizer to start a round.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {playedCount > 0
+                      ? "You're caught up — more rounds open soon."
+                      : "Waiting for the organizer to start a round."}
+                  </p>
                 </div>
-                {isAnonymous && (
-                  <div className="rounded-xl bg-muted/60 border border-border p-3 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      <UserRound className="inline h-3 w-3 mr-1" />
-                      Playing as guest —{" "}
-                      <a
-                        href={`/auth/register?from=${encodeURIComponent(`/game/${token}`)}`}
-                        className="font-semibold text-[#5B1A57] hover:underline"
-                      >
-                        Sign up
-                      </a>{" "}
-                      or{" "}
-                      <a
-                        href={`/auth/login?from=${encodeURIComponent(`/game/${token}`)}`}
-                        className="font-semibold text-[#5B1A57] hover:underline"
-                      >
-                        log in
-                      </a>{" "}
-                      to save your progress &amp; RSVP this event
-                    </p>
-                  </div>
-                )}
+              ) : playedCount > 0 ? (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
+                  <Trophy className="h-5 w-5 text-primary mx-auto mb-1" />
+                  <p className="text-xs text-primary font-medium">You&apos;ve played every round 🎉</p>
+                </div>
+              ) : null
+            ) : null}
+
+            {/* Every round, so players can see there's more than one. Visible
+                before joining too — that's when they decide whether to stay. */}
+            {rounds.length > 0 && (
+              <div className="space-y-2">
+                {rounds.map((r: any, i: number) => {
+                  const played = isRoundPlayed(r);
+                  const score = roundScore(r);
+                  const isFeedback = r.gameType === "FEEDBACK";
+                  const canPlay = joined && r.status === "ACTIVE" && !played;
+                  const title = r.title || `Round ${i + 1}`;
+                  return (
+                    <div
+                      key={r.id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border p-3",
+                        canPlay ? "border-[#531342]/30 bg-[#531342]/5" : "border-border",
+                      )}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        {gameTypeIcons[mapType(r.gameType ?? "TRIVIA")]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {played
+                            ? isFeedback
+                              ? "Submitted"
+                              : score != null
+                                ? `${score.toLocaleString()} pts`
+                                : "Played"
+                            : r.status === "ACTIVE"
+                              ? "Open now"
+                              : r.status === "ENDED"
+                                ? "Closed"
+                                : "Coming up"}
+                        </p>
+                      </div>
+                      {canPlay ? (
+                        <Button
+                          size="sm"
+                          className="shrink-0 gap-1.5 rounded-full bg-[#531342] hover:bg-[#531342]/90 text-white"
+                          onClick={() => setPlayingRoundId(r.id)}
+                        >
+                          <Play className="h-3.5 w-3.5" />
+                          Play
+                        </Button>
+                      ) : played ? (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {joined && isAnonymous && !myUserId && (
+              <div className="rounded-xl bg-[#5B1A57]/5 border border-[#5B1A57]/20 p-3 text-center">
+                <p className="text-xs text-muted-foreground">
+                  <UserRound className="inline h-3 w-3 mr-1" />
+                  {playedCount > 0 ? "Your scores are saved for 7 days. " : "Playing as guest — "}
+                  <a
+                    href={`/auth/register?from=${encodeURIComponent(`/game/${token}`)}`}
+                    className="font-semibold text-[#5B1A57] hover:underline"
+                  >
+                    Sign up
+                  </a>{" "}
+                  or{" "}
+                  <a
+                    href={`/auth/login?from=${encodeURIComponent(`/game/${token}`)}`}
+                    className="font-semibold text-[#5B1A57] hover:underline"
+                  >
+                    log in
+                  </a>{" "}
+                  to keep {playedCount > 0 ? "them" : "your progress"} &amp; RSVP this event
+                </p>
               </div>
             )}
           </div>

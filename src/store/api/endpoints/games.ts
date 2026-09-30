@@ -1,4 +1,5 @@
 import { baseApi } from "../baseApi";
+import { getAnonymousId } from "@/lib/anonymous-game";
 
 /**
  * Game endpoints — sessions, rounds, answers, leaderboards, reward tiers, and
@@ -146,8 +147,18 @@ export const gameEndpoints = baseApi.injectEndpoints({
     }),
 
     /** GET /v1/games/t/:token — public: get game session by viral share token */
+    // Guests send their anonymous id so the server can mark which rounds they
+    // have played (it lives in Redis, not the database). A header rather than a
+    // query param: the id is the guest's credential, and request URLs get logged.
+    // Signed-in users are resolved from the bearer token and the header is ignored.
     getGameSessionByToken: builder.query<any, string>({
-      query: (token) => `/v1/games/t/${token}`,
+      query: (token) => {
+        const anonymousId = getAnonymousId();
+        return {
+          url: `/v1/games/t/${token}`,
+          headers: anonymousId ? { "X-Anonymous-Id": anonymousId } : undefined,
+        };
+      },
     }),
 
     /** POST /v1/games/join/:token — public: join a game session via viral share token */
