@@ -12,22 +12,71 @@ interface EventQRTabProps {
 
 export function EventQRTab({ event }: EventQRTabProps) {
   const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const domain = typeof window !== "undefined" ? window.location.origin : "";
   const eventUrl = `${domain}/events/${event.id || "1"}`;
   const qrRef = useRef<SVGSVGElement | null>(null);
 
   const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: event.name,
-          text: "Check out this event",
-          url: eventUrl,
-        });
-      } else {
-        await navigator.clipboard.writeText(eventUrl);
-        toast.success("Link copied to clipboard");
+    const shareText = `Check out this event: ${event.name ?? "Event"}`;
+
+    // If Web Share API isn't available at all, fall back to clipboard
+    if (!navigator.share) {
+      await navigator.clipboard.writeText(eventUrl).catch(() => {});
+      toast.success("Link copied to clipboard");
+      return;
+    }
+
+    // Try to share with the flier image attached
+    if (event?.flierUrl) {
+      setIsSharing(true);
+      try {
+        const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(event.flierUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const ext = blob.type.includes("png")
+            ? "png"
+            : blob.type.includes("webp")
+            ? "webp"
+            : "jpg";
+          const file = new File(
+            [blob],
+            `${event.name ?? "event"}-flier.${ext}`,
+            { type: blob.type || "image/jpeg" }
+          );
+          if (navigator.canShare?.({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: event.name ?? "Event",
+                text: shareText,
+                url: eventUrl,
+              });
+              setIsSharing(false);
+              return;
+            } catch (e: any) {
+              if (e?.name === "AbortError") {
+                setIsSharing(false);
+                return;
+              }
+              // file share failed, fall through to URL-only share
+            }
+          }
+        }
+      } catch {
+        // fetch failed, fall through to URL-only share
       }
+      setIsSharing(false);
+    }
+
+    // Fallback: share URL only (no clipboard toast — the native sheet will open)
+    try {
+      await navigator.share({
+        title: event.name ?? "Event",
+        text: shareText,
+        url: eventUrl,
+      });
     } catch (err: any) {
       if (err?.name !== "AbortError") {
         await navigator.clipboard.writeText(eventUrl).catch(() => {});
@@ -121,8 +170,13 @@ export function EventQRTab({ event }: EventQRTabProps) {
           variant="outline"
           className="h-auto flex-col gap-2 py-4 rounded-2xl"
           onClick={handleShare}
+          disabled={isSharing}
         >
-          <Share2 className="h-5 w-5" />
+          {isSharing ? (
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+          ) : (
+            <Share2 className="h-5 w-5" />
+          )}
           <span className="text-sm">Share Event</span>
         </Button>
       </div>

@@ -1259,27 +1259,47 @@ function RoundPlayer({
             const shareTitle = `I scored ${finalScore} in ${session?.title ?? round.title}!`;
             const shareText = `I played in ${eventName ?? session?.title}'s game, I scored ${finalScore}. Play and see if you can beat mine.`;
 
-            if (shareToken && navigator.share) {
-              // Try to attach the event flier
-              if (eventFlierUrl) {
-                try {
-                  const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(eventFlierUrl)}`;
-                  const res = await fetch(proxyUrl);
-                  if (res.ok) {
-                    const blob = await res.blob();
-                    const file = new File([blob], "event-flier.jpg", { type: blob.type || "image/jpeg" });
-                    if (navigator.canShare?.({ files: [file] })) {
+            // No Web Share API — fall back to the in-app share card
+            if (!navigator.share) {
+              setShowShare(true);
+              return;
+            }
+
+            // Try to share with the event flier attached
+            if (eventFlierUrl) {
+              try {
+                const proxyUrl = `/api/media-proxy?url=${encodeURIComponent(eventFlierUrl)}`;
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+                  const file = new File(
+                    [blob],
+                    `${eventName ?? "event"}-flier.${ext}`,
+                    { type: blob.type || "image/jpeg" }
+                  );
+                  if (navigator.canShare?.({ files: [file] })) {
+                    try {
                       await navigator.share({ files: [file], title: shareTitle, text: shareText, url: shareUrl });
                       return;
+                    } catch (e: any) {
+                      if (e?.name === "AbortError") return;
+                      // file share failed — fall through to URL-only share
                     }
                   }
-                } catch (err: any) {
-                  if (err?.name === "AbortError") return;
                 }
+              } catch {
+                // fetch failed — fall through to URL-only share
               }
-              navigator.share({ title: shareTitle, text: shareText, url: shareUrl }).catch(() => setShowShare(true));
-            } else {
-              setShowShare(true);
+            }
+
+            // Fallback: share URL only (native sheet, no clipboard toast)
+            try {
+              await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+            } catch (err: any) {
+              if (err?.name !== "AbortError") {
+                setShowShare(true);
+              }
             }
           }}
         >
