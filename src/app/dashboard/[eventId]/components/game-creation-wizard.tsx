@@ -22,7 +22,9 @@ import StepSix from "./game-steps/step-six";
 import {
   useCreateGameMutation,
   useGenerateGameDraftMutation,
+  useRegenerateAiQuestionMutation,
 } from "@/store/api/endpoints/games";
+import { AiGenerationProgress } from "./ai-generation-progress";
 import { toast } from "sonner";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 
@@ -172,6 +174,10 @@ export function GameCreationWizard({
   const totalSteps = 6;
   const [createGame] = useCreateGameMutation();
   const [generateGameDraft] = useGenerateGameDraftMutation();
+  const [regenerateAiQuestion] = useRegenerateAiQuestionMutation();
+  // The question currently being regenerated — one at a time, matching the
+  // backend's one-generation-per-organizer lock.
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const [step, setStep] = useState<number>(1);
   const [gameName, setGameName] = useState<string>("");
@@ -380,6 +386,9 @@ export function GameCreationWizard({
       ...aiPrompt,
       count: resolvedCount,
       activityTiming: resolvedTiming,
+      // Lets the backend check this organizer owns the event and record the
+      // generation's cost against it.
+      eventId,
     };
 
     // Validate with the resolved prompt
@@ -533,75 +542,143 @@ export function GameCreationWizard({
   };
 
   const regenerateQuestion = async (id: string) => {
-    const q = currentRound?.questions.find((q) => q.id === id);
-    if (!q) return;
+    const round = currentRound;
+    const target = round?.questions.find((q) => q.id === id);
+    if (!round || !target || regeneratingId) return;
+
+    const base = {
+      topic: aiPrompt.topic,
+      gameType: GAMETYPE_TO_API[round.gameType],
+      difficulty: aiPrompt.difficulty,
+      // From the phase, like full generation — aiPrompt.activityTiming can
+      // still be "" here, which the backend rejects.
+      activityTiming: PHASE_TO_API[phase],
+      eventName: aiPrompt.eventName,
+      eventId,
+    };
+
+    setRegeneratingId(id);
     try {
-      const data = await generateGameDraft({ ...aiPrompt, count: 1 }).unwrap();
-      const inner = data?.data?.data ?? data?.data ?? data;
-      const gameType = currentRound?.gameType ?? "trivia";
-
-      let replacement: any = null;
-
-      if (gameType === "word-puzzle") {
-        // Same shape as bulk generation: rounds[0].questions is an array of puzzle objects,
-        // each with { grid, hiddenWords, points }. Take the first hiddenWord of the first puzzle.
-        const puzzleItems: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
-        const firstPuzzle = puzzleItems[0];
-        if (firstPuzzle) {
-          const hw = firstPuzzle.hiddenWords?.[0];
-          if (hw) {
-            replacement = {
-              ...hw,
-              _grid: firstPuzzle.grid ?? [],
-              points: hw.points ?? firstPuzzle.points ?? 10,
-              timeLimitSecs: firstPuzzle.timeLimitSecs ?? 15,
-            };
-          }
-        }
+      if (round.gameType === "word-puzzle") {
+        await regenerateWord(round, target, base);
       } else {
-        const rawQuestions: any[] = inner?.rounds?.[0]?.questions ?? inner?.questions ?? [];
-        replacement = rawQuestions[0];
+        await regenerateOne(round, target, base);
       }
-
-      if (!replacement) throw new Error("No replacement question returned.");
-
-      setRoundQuestions(
-        activeRoundIdx,
-        currentRound!.questions.map((q) => {
-          if (q.id !== id) return q;
-          if (gameType === "word-puzzle") {
-            return {
-              ...q,
-              question: replacement.clue ?? q.question,
-              clue: replacement.clue ?? q.clue,
-              correctAnswer: replacement.word ?? q.correctAnswer,
-              wordPuzzleMeta: {
-                word: replacement.word ?? "",
-                grid: replacement._grid ?? [],
-                startCell: replacement.startCell ?? null,
-                endCell: replacement.endCell ?? null,
-                direction: replacement.direction ?? null,
-              },
-              timeLimitSecs: replacement.timeLimitSecs ?? q.timeLimitSecs,
-            };
-          }
-          return {
-            ...q,
-            question: replacement?.question ?? replacement?.text ?? q.question,
-            clue: replacement?.clue ?? replacement?.text ?? q.clue,
-            correctAnswer: replacement?.correctAnswer ?? q.correctAnswer,
-            options: replacement?.options ?? q.options,
-            correctAnswerIndex:
-              replacement?.correctAnswerIndex ??
-              replacement?.correctAnswerIndex ??
-              q.correctAnswerIndex,
-            timeLimitSecs: replacement?.timeLimitSecs ?? q.timeLimitSecs,
-          };
-        })
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ??
+          err?.message ??
+          "Could not regenerate this question. Please edit it manually."
       );
-    } catch {
-      toast.error("Could not regenerate question. Please edit it manually.");
+    } finally {
+      setRegeneratingId(null);
     }
+  };
+
+  /** Same normalisation as the backend's normaliseWord(), so words compare equal. */
+  const normaliseWord = (w: string | undefined) =>
+    (w ?? "").toUpperCase().replace(/[^A-Z]/g, "");
+
+  /**
+   * Swap one word of a word puzzle. The new word comes back inside a new grid
+   * that also holds every other word, so *every* question's grid and cells
+   * are updated — not just the replaced one. A word's cells only mean
+   * anything in the grid it was placed in; keeping the old grid for the
+   * others left the new word somewhere players could never find it.
+   */
+  const regenerateWord = async (
+    round: RoundData,
+    target: Question,
+    base: Record<string, unknown>
+  ) => {
+    const others = round.questions.filter(
+      (q) => q.id !== target.id && q.wordPuzzleMeta?.word
+    );
+    const res = await regenerateAiQuestion({
+      ...base,
+      keepWords: others.map((q) => ({
+        word: q.wordPuzzleMeta!.word,
+        clue: q.clue ?? q.question ?? "",
+      })),
+      avoid: [target.wordPuzzleMeta?.word ?? target.correctAnswer ?? ""].filter(
+        Boolean
+      ),
+    }).unwrap();
+    const inner = res?.data?.data ?? res?.data ?? res;
+    const grid: string[][] = inner?.grid ?? [];
+    const newWord = normaliseWord(inner?.question?.word);
+    const placements = new Map<string, any>(
+      (inner?.hiddenWords ?? []).map((hw: any) => [hw.word, hw])
+    );
+    if (!newWord || !placements.has(newWord) || !grid.length) {
+      throw new Error("No replacement word returned.");
+    }
+
+    setRoundQuestions(
+      activeRoundIdx,
+      round.questions.map((q) => {
+        const isTarget = q.id === target.id;
+        const word = isTarget ? newWord : normaliseWord(q.wordPuzzleMeta?.word);
+        const placement = placements.get(word);
+        // Questions added by hand without a word aren't in the grid; leave them.
+        if (!placement) return q;
+        return {
+          ...q,
+          ...(isTarget && {
+            question: placement.clue,
+            clue: placement.clue,
+          }),
+          correctAnswer: placement.word,
+          wordPuzzleMeta: {
+            word: placement.word,
+            grid,
+            startCell: placement.startCell ?? null,
+            endCell: placement.endCell ?? null,
+            direction: placement.direction ?? null,
+          },
+        };
+      })
+    );
+  };
+
+  /** Replace one trivia / two-truths / true-false / feedback question. */
+  const regenerateOne = async (
+    round: RoundData,
+    target: Question,
+    base: Record<string, unknown>
+  ) => {
+    const res = await regenerateAiQuestion({
+      ...base,
+      // Every question in the round, the one being replaced included, so the
+      // replacement can't repeat any of them.
+      avoid: round.questions.map((q) => q.question).filter(Boolean),
+    }).unwrap();
+    const inner = res?.data?.data ?? res?.data ?? res;
+    const replacement = inner?.question;
+    if (!replacement?.text) throw new Error("No replacement question returned.");
+
+    const options: string[] | undefined = replacement.options;
+    const correctIdx: number | undefined = replacement.correctAnswerIndex;
+
+    setRoundQuestions(
+      activeRoundIdx,
+      round.questions.map((q) =>
+        q.id !== target.id
+          ? q
+          : {
+              ...q,
+              question: replacement.text,
+              clue: replacement.text,
+              options: options ?? q.options,
+              correctAnswerIndex: correctIdx ?? q.correctAnswerIndex,
+              correctAnswer:
+                options && correctIdx !== undefined
+                  ? options[correctIdx]
+                  : q.correctAnswer,
+              points: replacement.points ?? q.points,
+            }
+      )
+    );
   };
 
   const handleQuestionEdit = (
@@ -997,6 +1074,7 @@ export function GameCreationWizard({
           handleOptionEdit={handleOptionEdit}
           setEditingQuestion={setEditingQuestion}
           regenerateQuestion={regenerateQuestion}
+          regeneratingId={regeneratingId}
           gameType={currentRound?.gameType ?? "trivia"}
           setQuestions={(
             qs: Question[] | ((prev: Question[]) => Question[])
@@ -1043,6 +1121,8 @@ export function GameCreationWizard({
           isLoading={isLoading}
         />
       )}
+
+      <AiGenerationProgress active={isGenerating} />
 
       {/* Navigation */}
       <div className="flex gap-3 pt-4 border-t border-border">

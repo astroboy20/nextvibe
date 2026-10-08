@@ -104,6 +104,8 @@ interface StepFourProps {
   handleOptionEdit: (questionId: string, optionIndex: number, value: string) => void;
   setEditingQuestion: (id: string | null) => void;
   regenerateQuestion: (id: string) => void;
+  /** Id of the question being regenerated, if any — only one runs at a time. */
+  regeneratingId?: string | null;
   gameType: string;
   setQuestions: any;
 }
@@ -120,6 +122,7 @@ const StepFour = ({
   handleOptionEdit,
   setEditingQuestion,
   regenerateQuestion,
+  regeneratingId = null,
   gameType,
   setQuestions,
 }: StepFourProps) => {
@@ -390,9 +393,16 @@ const StepFour = ({
                       <button
                         type="button"
                         onClick={() => regenerateQuestion(q.id)}
-                        className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                        disabled={regeneratingId !== null}
+                        aria-label="Regenerate this question"
+                        title="Regenerate this question"
+                        className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 text-muted-foreground ${
+                            regeneratingId === q.id ? "animate-spin" : ""
+                          }`}
+                        />
                       </button>
                     )}
                     <button

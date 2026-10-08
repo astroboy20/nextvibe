@@ -54,6 +54,22 @@ export const gameEndpoints = baseApi.injectEndpoints({
       }),
     }),
 
+    /**
+     * POST /v1/games/ai/regenerate-question — one replacement question that
+     * differs from everything in `avoid`. For WORD_PUZZLE, send the remaining
+     * words as `keepWords`; the reply carries a new grid for all of them
+     * (`{ question, grid, hiddenWords }`), because a word's start and end
+     * cells only mean anything inside the grid it was placed in.
+     */
+    regenerateAiQuestion: builder.mutation<any, Record<string, unknown>>({
+      query: (body) => ({
+        url: "/v1/games/ai/regenerate-question",
+        method: "POST",
+        body,
+        timeout: 60000,
+      }),
+    }),
+
     createGame: builder.mutation<any, any>({
       query: ({ body, eventId }: { body: any; eventId: string }) => ({
         url: `/v1/events/${eventId}/game-sessions`,
@@ -331,6 +347,7 @@ export const {
   useGetGameSessionByTokenQuery,
   useJoinGameSessionByTokenMutation,
   useGenerateGameDraftMutation,
+  useRegenerateAiQuestionMutation,
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
