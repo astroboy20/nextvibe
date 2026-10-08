@@ -42,8 +42,8 @@ import {
 import { GameScoreShare } from "@/features/games/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useRequireAuth } from "@/hooks/use-require-auth";
-import { useGetUserQuery } from "@/store/api/authApi";
+import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
+import { useGetUserQuery } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/features/games/lib/anonymous-game";
 import { AnonScorePrompt } from "@/features/games/components/anon-score-prompt";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthBottomSheet } from "@/components/auth-bottom-sheet";
+import { AuthBottomSheet } from "@/features/auth/components/auth-bottom-sheet";
 import { AnonymousMergeDialog } from "./anonymous-merge-dialog";
 import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
 import {

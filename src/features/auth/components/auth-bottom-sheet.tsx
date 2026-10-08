@@ -20,7 +20,7 @@ import {
   useLoginMutation,
   useRegisterMutation,
   useGoogleLoginMutation,
-} from "@/store/api/authApi";
+} from "@/features/auth/api/auth-api";
 import {
   useGetInterestTagsQuery,
   useSaveUserVibesMutation,

@@ -16,15 +16,15 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
+import GoogleLoginButton from "@/features/auth/components/google-login-button";
 import { toast } from "sonner";
-import { useRegisterMutation } from "@/store/api/authApi";
+import { useRegisterMutation } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
-import PasswordField from "../component/password-field";
+import PasswordField from "@/features/auth/components/password-field";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
-import { useRedirectIfAuthenticated } from "@/hooks/use-redirect-if-authenticated";
+import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated";
 import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 
 const registerSchema = z.object({

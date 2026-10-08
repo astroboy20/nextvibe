@@ -13,7 +13,7 @@ import Cookies from "js-cookie";
 import { useSocket } from "@/hooks/use-socket";
 import { errorHandler } from "@/lib/error-handler";
 import { useRouter } from "next/navigation";
-import { useRequireAuth } from "@/hooks/use-require-auth";
+import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
 
 type Section = "pre-event" | "during" | "post-event";
 

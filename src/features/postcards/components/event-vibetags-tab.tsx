@@ -30,7 +30,7 @@ import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
 } from "@/features/postcards/api/postcards-api";
-import { useRequireAuth } from "@/hooks/use-require-auth";
+import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
 import Cookies from "js-cookie";
 
 type ActivityTiming = "PRE_EVENT" | "DURING_EVENT" | "POST_EVENT";

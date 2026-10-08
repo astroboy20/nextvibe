@@ -21,7 +21,7 @@ import {
   useGetUserQuery,
   useUpdateUserMutation,
   useGetPresignedUrlMutation,
-} from "@/store/api/authApi";
+} from "@/features/auth/api/auth-api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

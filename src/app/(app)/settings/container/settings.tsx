@@ -23,7 +23,7 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useLogoutMutation } from "@/store/api/authApi";
+import { useLogoutMutation } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";

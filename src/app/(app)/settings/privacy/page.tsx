@@ -49,7 +49,7 @@ import {
 import { clearLocation } from "@/store/slices/location-slice";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { useLogoutMutation } from "@/store/api/authApi";
+import { useLogoutMutation } from "@/features/auth/api/auth-api";
 
 export default function PrivacyPreferencesPage() {
   const router = useRouter();

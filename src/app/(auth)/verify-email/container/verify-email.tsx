@@ -15,7 +15,7 @@ import { setUser } from "@/store/slices/user";
 import {
   useResendverificationEmailMutation,
   useVerifyEmailMutation,
-} from "@/store/api/authApi";
+} from "@/features/auth/api/auth-api";
 
 type VerificationStatus = "loading" | "success" | "expired" | "error";
 

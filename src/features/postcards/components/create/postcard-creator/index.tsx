@@ -12,7 +12,7 @@ import {
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
-import { AuthBottomSheet } from "@/components/auth-bottom-sheet";
+import { AuthBottomSheet } from "@/features/auth/components/auth-bottom-sheet";
 import Cookies from "js-cookie";
 import { bakeOverlay, bakeOverlayOntoVideo, resizeTo1080p, dataUrlToBlob, createBakeQueue, OUTPUT_WIDTH, OUTPUT_HEIGHT } from "./utils";
 import type { QueuedItem, PostcardCreatorProps } from "./types";

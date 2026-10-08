@@ -4,7 +4,7 @@ import eventFormReducer from "./slices/eventform-slice"
 import locationReducer from "./slices/location-slice"
 import consentReducer from "./slices/consent-slice"
 import uiReducer from "./slices/ui-slice";
-import { authApi } from "./api/authApi";
+import { authApi } from "@/features/auth/api/auth-api";
 import canvasReducer from "@/features/vibetags/canvas-slice";
 import { rewardsApi } from "@/features/games/api/rewards-api";
 import { eventsApi } from "@/features/events/api/events-api";

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGetEventsQuery } from "@/features/events/api/events-api";
-import { useGetUserQuery } from "@/store/api/authApi";
+import { useGetUserQuery } from "@/features/auth/api/auth-api";
 import { useEventDiscovery } from "@/features/events/hooks/use-event-discovery";
 import ViewToggle from "@/features/events/components/discovery/view-toggle";
 import { EventCard } from "@/features/events/components/discovery/event-card";

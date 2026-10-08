@@ -19,7 +19,7 @@ import { useGetUserQuery } from "@/store/api/userApi";
 import { useToggleFollowMutation } from "@/store/api/socialApi";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useRequireAuth } from "@/hooks/use-require-auth";
+import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
 
 interface EventAboutTabProps {
   event: any;

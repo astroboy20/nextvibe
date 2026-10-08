@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { InterestSelector } from "@/app/(auth)/components/interest-selector";
+import { InterestSelector } from "@/features/auth/components/interest-selector";
 import { useSaveUserVibesMutation } from "@/store/api/interestsApi";
 
 export default function VibeOnboarding() {

@@ -28,7 +28,7 @@ import {
   useGetUserQuery,
   useGetUserBasicQuery,
   useGetUserActivityQuery,
-} from "@/store/api/authApi";
+} from "@/features/auth/api/auth-api";
 import { useGetMyRewardsQuery } from "@/features/games/api/rewards-api";
 import {
   PostcardViewer,

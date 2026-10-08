@@ -21,7 +21,7 @@ import {
   useToggleLikePostcardMutation,
 } from "@/features/postcards/api/postcards-api";
 import { usePostcardViewTracker } from "@/features/postcards/hooks/use-views";
-import { useGetUserQuery } from "@/store/api/authApi";
+import { useGetUserQuery } from "@/features/auth/api/auth-api";
 import { getGuestSessionId } from "@/lib/get-guest-session-id";
 
 import { PostcardHeader } from "./postcard-viewer/header";

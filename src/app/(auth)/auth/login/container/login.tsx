@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, CheckCircle2, Info } from "lucide-react";
 
-import GoogleLoginButton from "@/app/(auth)/components/google-login-button";
+import GoogleLoginButton from "@/features/auth/components/google-login-button";
 import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
@@ -23,9 +23,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useLoginMutation } from "@/store/api/authApi";
+import { useLoginMutation } from "@/features/auth/api/auth-api";
 import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
-import { useRedirectIfAuthenticated } from "@/hooks/use-redirect-if-authenticated";
+import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated";
 import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
