@@ -20,7 +20,7 @@ import {
   useToggleFollowMutation,
   useGetUserProfileQuery,
 } from "@/features/profile/api/social-api";
-import { useStartConversationMutation } from "@/store/api/messagingApi";
+import { useStartConversationMutation } from "@/features/messaging/api/messaging-api";
 
 interface UserProfilePageProps {
   params: Promise<{ id: string }>;

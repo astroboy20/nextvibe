@@ -36,7 +36,7 @@ import {
   type PostcardItem,
   type SocialUser,
 } from "@/features/profile/api/social-api";
-import { useStartConversationMutation } from "@/store/api/messagingApi";
+import { useStartConversationMutation } from "@/features/messaging/api/messaging-api";
 import { toast } from "sonner";
 import {
   useCommentOnPostcardMutation,

@@ -15,11 +15,11 @@ import {
   useMarkAllReadMutation,
   useMarkOneReadMutation,
   type Notification,
-} from "@/store/api/notificationApi";
+} from "@/features/notifications/api/notifications-api";
 import { toast } from "sonner";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";
-import { notificationText, notificationHref } from "@/lib/notification-copy";
+import { notificationText, notificationHref } from "@/features/notifications/lib/notification-copy";
 
 /**
  * Matched lowercase ("like") while the API sends the Prisma enum uppercase

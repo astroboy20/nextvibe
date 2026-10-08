@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { baseQueryWithReauth } from "./baseQuery";
+import { baseQueryWithReauth } from "@/store/api/baseQuery";
 
 export interface NotificationActor {
   /** The API has always returned this (see the backend's `select`), but the

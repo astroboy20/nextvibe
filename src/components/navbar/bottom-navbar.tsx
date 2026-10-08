@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { useGetConversationsQuery } from "@/store/api/messagingApi";
+import { useGetConversationsQuery } from "@/features/messaging/api/messaging-api";
 import { useSocket } from "@/hooks/use-socket";
 
 const navItems = [

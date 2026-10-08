@@ -15,7 +15,7 @@ import {
   useMarkAllReadMutation,
   useMarkOneReadMutation,
   type Notification,
-} from "@/store/api/notificationApi";
+} from "@/features/notifications/api/notifications-api";
 import { useSocket } from "@/hooks/use-socket";
 import {
   Popover,
@@ -28,7 +28,7 @@ import {
   notificationDot,
   hasActorPrefix,
   notificationHref,
-} from "@/lib/notification-copy";
+} from "@/features/notifications/lib/notification-copy";
 
 // Copy now lives in @/utils/notification-copy so this and the notifications
 // page can't drift, and so an unrecognised type never renders as a raw enum.

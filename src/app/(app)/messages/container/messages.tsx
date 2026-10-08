@@ -15,7 +15,7 @@ import {
   useGetMessagesQuery,
   type Conversation,
   type Message,
-} from "@/store/api/messagingApi";
+} from "@/features/messaging/api/messaging-api";
 import { useSocket } from "@/hooks/use-socket";
 import { getTokens } from "@/lib/get-token";
 import { setHideHeader } from "@/store/slices/ui-slice";
