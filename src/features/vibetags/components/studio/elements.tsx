@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setIsElementsOpen } from "@/store/slices/canvas-slice";
-import { allElements } from "@/data/elements";
+import { setIsElementsOpen } from "@/features/vibetags/canvas-slice";
+import { allElements } from "@/features/vibetags/data/elements";
 import { FabricImage } from "fabric";
 import Image from "next/image";
 

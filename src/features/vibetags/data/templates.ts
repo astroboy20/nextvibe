@@ -1,4 +1,4 @@
-import { Template } from "@/types/canvas";
+import { Template } from "@/features/vibetags/types";
 
 export const VibeTags: Template[] = [
   {

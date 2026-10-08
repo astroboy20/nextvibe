@@ -6,8 +6,8 @@ import { RootState } from "@/store/store";
 import {
   setHasSavedData,
   setIsRestoreModalOpen,
-} from "@/store/slices/canvas-slice";
-import { canvasStore } from "@/lib/canvas-store";
+} from "@/features/vibetags/canvas-slice";
+import { canvasStore } from "@/features/vibetags/lib/canvas-store";
 
 export const PLACEHOLDER = "Tap to edit";
 

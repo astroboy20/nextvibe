@@ -8,7 +8,7 @@ import {
   setIsFontsOpen,
   setIsPreviewOpen,
   setIsUploadImgOpen,
-} from "@/store/slices/canvas-slice";
+} from "@/features/vibetags/canvas-slice";
 import base64ToImage from "@/lib/base64-to-img";
 
 import Fonts from "./fonts";
@@ -29,7 +29,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useCanvas } from "@/hooks/use-canvas";
+import { useCanvas } from "@/features/vibetags/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/features/events/api/events-api";
 import { toast } from "sonner";
 import { setHideHeader } from "@/store/slices/ui-slice";

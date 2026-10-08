@@ -5,7 +5,7 @@ import locationReducer from "./slices/location-slice"
 import consentReducer from "./slices/consent-slice"
 import uiReducer from "./slices/ui-slice";
 import { authApi } from "./api/authApi";
-import canvasReducer from "./slices/canvas-slice";
+import canvasReducer from "@/features/vibetags/canvas-slice";
 import { rewardsApi } from "@/features/games/api/rewards-api";
 import { eventsApi } from "@/features/events/api/events-api";
 import { userApi } from "./api/userApi";

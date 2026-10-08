@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import { Image as FabricImage } from "fabric";
 import { useDispatch, useSelector } from "react-redux";
-import { setIsUploadImgOpen } from "@/store/slices/canvas-slice";
+import { setIsUploadImgOpen } from "@/features/vibetags/canvas-slice";
 import { RootState } from "@/store/store";
 import { toast } from "sonner";
 

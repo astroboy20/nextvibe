@@ -1,9 +1,9 @@
 "use client";
 
 import { useDispatch, useSelector } from "react-redux";
-import { setIsFontsOpen } from "@/store/slices/canvas-slice";
+import { setIsFontsOpen } from "@/features/vibetags/canvas-slice";
 import { RootState } from "@/store/store";
-import { fonts } from "@/data/fonts";
+import { fonts } from "@/features/vibetags/data/fonts";
 import { Textbox } from "fabric";
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { canvasStore } from "@/lib/canvas-store";
+import { canvasStore } from "@/features/vibetags/lib/canvas-store";
 
 export const PLACEHOLDER = "Tap to edit";
 

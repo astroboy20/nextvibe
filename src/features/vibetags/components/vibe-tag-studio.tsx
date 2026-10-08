@@ -12,14 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import Vibetags from "./vibetag/vibetags";
+import Vibetags from "./vibetags";
 import {
   useGetEventVibeTagsQuery,
   useGetEventDetailsQuery,
 } from "@/features/events/api/events-api";
 import { useInitiateVibeTagAddonPaymentMutation } from "@/store/api/organizerPaymentApi";
 import { useDispatch } from "react-redux";
-import { setView, setTemplate } from "@/store/slices/canvas-slice";
+import { setView, setTemplate } from "@/features/vibetags/canvas-slice";
 import { toast } from "sonner";
 import { setHideHeader } from "@/store/slices/ui-slice";
 

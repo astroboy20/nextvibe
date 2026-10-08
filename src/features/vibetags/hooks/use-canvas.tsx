@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { canvasStore } from "@/lib/canvas-store";
+import { canvasStore } from "@/features/vibetags/lib/canvas-store";
 
 export function useCanvas() {
   const [canvas, setCanvas] = useState<any>(() => canvasStore.get());

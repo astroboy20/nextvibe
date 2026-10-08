@@ -1,4 +1,4 @@
-import { Template } from "@/types/canvas";
+import { Template } from "./types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface CanvasState {

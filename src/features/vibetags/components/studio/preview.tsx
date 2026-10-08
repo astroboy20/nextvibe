@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setIsPreviewOpen } from "@/store/slices/canvas-slice";
+import { setIsPreviewOpen } from "@/features/vibetags/canvas-slice";
 import {
   Dialog,
   DialogContent,

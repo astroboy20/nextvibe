@@ -33,7 +33,7 @@ import { PaymentModule } from "./components/payment-module";
 import EventRemindersContent from "@/features/events/components/dashboard/event-reminders-content";
 import Image from "next/image";
 // import AnalyticsPanelContent from "@/features/events/components/dashboard/analytics-panel";
-import VibeTagStudioContent from "./components/vibe-tag-studio";
+import VibeTagStudioContent from "@/features/vibetags/components/vibe-tag-studio";
 // import PostcardLeaderboardContent from "@/features/postcards/components/dashboard/leaderboard-content";
 import {
   useGetEventDetailsQuery,
