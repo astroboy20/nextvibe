@@ -17,8 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetInterestTagsQuery } from "@/store/api/interestsApi";
-import type { VibeTag } from "@/store/api/interestsApi";
+import { useGetInterestTagsQuery } from "@/features/profile/api/interests-api";
+import type { VibeTag } from "@/features/profile/api/interests-api";
 import { NewLogo } from "@/components/logo";
 
 // Fallback icon map for known tag names

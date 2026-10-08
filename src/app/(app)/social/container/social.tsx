@@ -35,7 +35,7 @@ import {
   useRecordShareMutation,
   type PostcardItem,
   type SocialUser,
-} from "@/store/api/socialApi";
+} from "@/features/profile/api/social-api";
 import { useStartConversationMutation } from "@/store/api/messagingApi";
 import { toast } from "sonner";
 import {

@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   useToggleFollowMutation,
   useGetUserProfileQuery,
-} from "@/store/api/socialApi";
+} from "@/features/profile/api/social-api";
 import { useStartConversationMutation } from "@/store/api/messagingApi";
 
 interface UserProfilePageProps {

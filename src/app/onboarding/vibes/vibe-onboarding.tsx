@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { InterestSelector } from "@/features/auth/components/interest-selector";
-import { useSaveUserVibesMutation } from "@/store/api/interestsApi";
+import { useSaveUserVibesMutation } from "@/features/profile/api/interests-api";
 
 export default function VibeOnboarding() {
   const router = useRouter();

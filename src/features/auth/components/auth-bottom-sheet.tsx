@@ -25,7 +25,7 @@ import {
   useGetInterestTagsQuery,
   useSaveUserVibesMutation,
   type VibeTag,
-} from "@/store/api/interestsApi";
+} from "@/features/profile/api/interests-api";
 import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { toast } from "sonner";

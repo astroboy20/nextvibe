@@ -27,7 +27,7 @@ import { useLogoutMutation } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
-import { DeleteAccountDialog } from "./delete-account-dialog";
+import { DeleteAccountDialog } from "@/features/profile/components/delete-account-dialog";
 
 const Settings = () => {
   const router = useRouter();

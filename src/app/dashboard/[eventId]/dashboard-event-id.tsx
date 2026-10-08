@@ -49,7 +49,7 @@ import {
 import {
   useGetInterestTagsQuery as useGetDiscoverTagsQuery,
   useCreateInterestTagMutation,
-} from "@/store/api/interestsApi";
+} from "@/features/profile/api/interests-api";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useGetRemindersQuery } from "@/features/events/api/reminders-api";

@@ -21,7 +21,7 @@ import {
   useMergeAnonymousSessionsMutation,
   useAnswerQuestionMutation,
 } from "@/features/games/api/games-api";
-import { useGetUserQuery } from "@/store/api/userApi";
+import { useGetUserQuery } from "@/features/profile/api/users-api";
 import { GameScoreShare } from "@/features/games/components/game-share";
 import { toast } from "sonner";
 import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/features/games/lib/anonymous-game";

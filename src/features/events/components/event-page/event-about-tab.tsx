@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import { DisplayMap } from "./display-map";
-import { useGetUserQuery } from "@/store/api/userApi";
-import { useToggleFollowMutation } from "@/store/api/socialApi";
+import { useGetUserQuery } from "@/features/profile/api/users-api";
+import { useToggleFollowMutation } from "@/features/profile/api/social-api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
