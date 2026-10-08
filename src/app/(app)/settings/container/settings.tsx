@@ -27,6 +27,7 @@ import { useLogoutMutation } from "@/store/api/authApi";
 import Cookies from "js-cookie";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 
 const Settings = () => {
   const router = useRouter();
@@ -132,6 +133,8 @@ const Settings = () => {
             </>
           )}
         </Button>
+
+        <DeleteAccountDialog />
       </main>
     </div>
   );
