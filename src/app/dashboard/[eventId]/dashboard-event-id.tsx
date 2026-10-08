@@ -26,8 +26,8 @@ import {
 } from "lucide-react";
 import { EventDashboardCard } from "@/features/events/components/dashboard/event-dashboard-card";
 import { RSVPTrackerContent } from "@/features/events/components/dashboard/rsvp-tracker-content";
-import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
-// import { RecentPurchasesContent } from "./components/recent-purchases-content";
+import { TicketCreatorEnhanced } from "@/features/tickets/components/dashboard/tracker-creator-enhanced";
+// import { RecentPurchasesContent } from "@/features/tickets/components/dashboard/recent-purchases-content";
 import { GamificationHubContent } from "@/features/games/components/dashboard/gamification-hub-content";
 import { PaymentModule } from "./components/payment-module";
 import EventRemindersContent from "@/features/events/components/dashboard/event-reminders-content";

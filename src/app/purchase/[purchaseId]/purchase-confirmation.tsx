@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { useGetPurchaseSummaryQuery } from "@/store/api/paymentApi";
+import { useGetPurchaseSummaryQuery } from "@/features/tickets/api/payments-api";
 import { cn } from "@/lib/utils";
 
 const formatNgn = (amount: number | null) =>

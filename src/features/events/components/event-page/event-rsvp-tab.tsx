@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TicketPurchaseModal } from "@/app/(app)/events/[id]/components/ticket-purchase-modal";
+import { TicketPurchaseModal } from "@/features/tickets/components/ticket-purchase-modal";
 import {
   useRsvpMutation,
   useGetEventAttendeesQuery,

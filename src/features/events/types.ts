@@ -1,6 +1,6 @@
 
 
-import { IOrder } from "@/types/order.type";
+import { IOrder } from "@/features/tickets/types";
 import { IUser } from "@/types/user.type";
 
 export type Liker = {
