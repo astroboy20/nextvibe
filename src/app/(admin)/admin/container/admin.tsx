@@ -12,10 +12,10 @@ import {
   Bar,
 } from "recharts";
 import { Users, Calendar, ImageIcon, Gamepad2 } from "lucide-react";
-import { StatsCard } from "@/components/stat-card";
-import { ChartContainer } from "@/components/chart-container";
-import { EmptyState } from "@/components/empty-state";
-import { useGetAnalyticsQuery, useGetStatsQuery } from "@/store/api/admin";
+import { StatsCard } from "@/shared/components/stat-card";
+import { ChartContainer } from "@/shared/components/chart-container";
+import { EmptyState } from "@/shared/components/empty-state";
+import { useGetAnalyticsQuery, useGetStatsQuery } from "@/features/admin/api/admin-api";
 
 // brand palette tokens
 const PLUM = "hsl(316 62% 20%)";

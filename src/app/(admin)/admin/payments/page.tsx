@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useGetPaymentsQuery, useGetPaymentStatsQuery } from "@/store/api/admin";
-import { StatsCard } from "@/components/stat-card";
-import { EmptyState } from "@/components/empty-state";
+import { useGetPaymentsQuery, useGetPaymentStatsQuery } from "@/features/admin/api/admin-api";
+import { StatsCard } from "@/shared/components/stat-card";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/user"
-import eventFormReducer from "./slices/eventform-slice"
+import eventFormReducer from "@/features/events/eventform-slice"
 import locationReducer from "./slices/location-slice"
 import consentReducer from "./slices/consent-slice"
 import uiReducer from "./slices/ui-slice";
@@ -13,14 +13,14 @@ import { messagingApi } from "@/features/messaging/api/messaging-api";
 import { socialApi } from "@/features/profile/api/social-api";
 import { paymentApi } from "@/features/tickets/api/payments-api";
 import { notificationApi } from "@/features/notifications/api/notifications-api";
-import { adminApi } from "./api/admin";
+import { adminApi } from "@/features/admin/api/admin-api";
 import { organizerPaymentApi } from "@/features/billing/api/organizer-payments-api";
 import { reminderApi } from "@/features/events/api/reminders-api";
-import { pledgeApi } from "./api/pledgeApi";
+import { pledgeApi } from "@/features/campaigns/api/pledge-api";
 import { interestsApi } from "@/features/profile/api/interests-api";
-import { launchApi } from "./api/launchApi";
-import { analyticsApi } from "./api/analyticsApi";
-import { campaignApi } from "./api/campaignApi";
+import { launchApi } from "@/features/campaigns/api/launch-api";
+import { analyticsApi } from "@/features/events/api/analytics-api";
+import { campaignApi } from "@/features/campaigns/api/campaign-api";
 import { payoutApi } from "@/features/payouts/api/payouts-api";
 
 export const store = configureStore({

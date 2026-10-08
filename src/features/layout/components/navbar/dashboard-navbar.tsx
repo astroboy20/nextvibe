@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { NewLogo } from "../logo";
+import { NewLogo } from "@/shared/components/logo";
 import { RootState } from "@/store/store";
 import {
   useGetNotificationsQuery,
@@ -16,7 +16,7 @@ import {
   useMarkOneReadMutation,
   type Notification,
 } from "@/features/notifications/api/notifications-api";
-import { useSocket } from "@/hooks/use-socket";
+import { useSocket } from "@/shared/hooks/use-socket";
 import {
   Popover,
   PopoverContent,

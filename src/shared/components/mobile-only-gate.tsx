@@ -1,8 +1,8 @@
 "use client";
 
-import { useMobileViewport } from "@/hooks/use-mobile-viewport";
+import { useMobileViewport } from "@/shared/hooks/use-mobile-viewport";
 import { Smartphone } from "lucide-react";
-import { NewLogo } from "@/components/logo";
+import { NewLogo } from "./logo";
 
 /**
  * Wraps any layout that should only be accessible on mobile screens (≤ 430px).

@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useAccumulatedPages } from "@/hooks/use-accumulated-pages";
+import { useAccumulatedPages } from "@/shared/hooks/use-accumulated-pages";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import {
   useGetPostcardsQuery,
 } from "@/features/postcards/api/postcards-api";
 import { PostcardItem } from "@/features/postcards/components/postcard-grid";
-import BottomNav from "@/components/navbar/bottom-navbar";
+import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 

@@ -1,6 +1,6 @@
-import Footer from "@/components/footer";
+import Footer from "@/features/layout/components/footer";
 import LaunchLanding from "./container/launch";
-import Navbar from "@/components/navbar/navbar";
+import Navbar from "@/features/layout/components/navbar/navbar";
 
 export default function LaunchPage() {
   return (

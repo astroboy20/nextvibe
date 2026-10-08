@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Lock, ArrowUpRight, Wallet } from "lucide-react";
-import { formatMoney, isPositive } from "@/lib/money";
+import { formatMoney, isPositive } from "@/shared/lib/money";
 import type { CurrencyBalance } from "@/features/payouts/api/payouts-api";
 
 interface Props {

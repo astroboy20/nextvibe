@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { AlertCircle, CheckCircle2, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLazyVerifyBirthdayPaymentQuery } from "@/store/api/campaignApi";
+import { useLazyVerifyBirthdayPaymentQuery } from "@/features/campaigns/api/campaign-api";
 
 export default function BirthdayVerify() {
   const router = useRouter();

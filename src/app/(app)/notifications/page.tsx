@@ -17,7 +17,7 @@ import {
   type Notification,
 } from "@/features/notifications/api/notifications-api";
 import { toast } from "sonner";
-import BottomNav from "@/components/navbar/bottom-navbar";
+import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 import { useRouter } from "next/navigation";
 import { notificationText, notificationHref } from "@/features/notifications/lib/notification-copy";
 

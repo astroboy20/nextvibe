@@ -1,6 +1,6 @@
 import HowItWorksContent from "./container/how-it-works";
 import { Metadata } from "next";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/shared/lib/constants";
 
 export const metadata: Metadata = {
   title: "How It Works | " + APP_NAME,

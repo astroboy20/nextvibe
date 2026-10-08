@@ -26,7 +26,7 @@ import {
   useRequestPayoutMutation,
   type CurrencyBalance,
 } from "@/features/payouts/api/payouts-api";
-import { formatMoney, toNumber, getCurrencyDecimals } from "@/lib/money";
+import { formatMoney, toNumber, getCurrencyDecimals } from "@/shared/lib/money";
 
 interface Props {
   open: boolean;

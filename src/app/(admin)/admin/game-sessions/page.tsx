@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useGetGameSessionsQuery } from "@/store/api/admin";
-import type { IAdminGameSession } from "@/store/api/admin";
-import { EmptyState } from "@/components/empty-state";
+import { useGetGameSessionsQuery } from "@/features/admin/api/admin-api";
+import type { IAdminGameSession } from "@/features/admin/api/admin-api";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

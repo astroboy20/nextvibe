@@ -1,4 +1,4 @@
-import { IUser } from "@/types/user.type";
+import { IUser } from "@/features/profile/types";
 
 export type AuthResponse = {
     message: string;

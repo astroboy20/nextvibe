@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { baseQueryWithReauth } from "./baseQuery";
+import { baseQueryWithReauth } from "@/store/api/baseQuery";
 
 // ── Analytics API ─────────────────────────────────────────────────────────────
 // All endpoints are read-only consumer models per the Analytics Frontend Guide.

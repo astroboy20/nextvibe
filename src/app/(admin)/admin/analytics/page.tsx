@@ -1,8 +1,8 @@
 "use client";
 
-import { useGetAnalyticsQuery } from "@/store/api/admin";
-import { ChartContainer } from "@/components/chart-container";
-import { EmptyState } from "@/components/empty-state";
+import { useGetAnalyticsQuery } from "@/features/admin/api/admin-api";
+import { ChartContainer } from "@/shared/components/chart-container";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,

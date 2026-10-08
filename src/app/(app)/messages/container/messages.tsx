@@ -16,8 +16,8 @@ import {
   type Conversation,
   type Message,
 } from "@/features/messaging/api/messaging-api";
-import { useSocket } from "@/hooks/use-socket";
-import { getTokens } from "@/lib/get-token";
+import { useSocket } from "@/shared/hooks/use-socket";
+import { getTokens } from "@/shared/lib/get-token";
 import { setHideHeader } from "@/store/slices/ui-slice";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

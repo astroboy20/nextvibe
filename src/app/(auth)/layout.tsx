@@ -1,7 +1,7 @@
 "use client";
 
-import { NewLogo } from "@/components/logo";
-import { MobileOnlyGate } from "@/components/mobile-only-gate";
+import { NewLogo } from "@/shared/components/logo";
+import { MobileOnlyGate } from "@/shared/components/mobile-only-gate";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

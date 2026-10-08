@@ -1,7 +1,7 @@
 
 
 import { IOrder } from "@/features/tickets/types";
-import { IUser } from "@/types/user.type";
+import { IUser } from "@/features/profile/types";
 
 export type Liker = {
   user: Pick<IUser, "id" | "name" | "avatar">;

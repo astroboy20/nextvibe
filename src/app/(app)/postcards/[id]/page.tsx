@@ -11,7 +11,7 @@ import {
 import {
   useGetEventPostcardsQuery,
 } from "@/features/postcards/api/postcards-api";
-import BottomNav from "@/components/navbar/bottom-navbar";
+import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 import {
   PostcardViewer,
   ProgressiveImage,
@@ -21,7 +21,7 @@ import {
   isPostcardPhase,
   type PostcardPhase,
 } from "@/features/postcards/types";
-import { useAccumulatedPages } from "@/hooks/use-accumulated-pages";
+import { useAccumulatedPages } from "@/shared/hooks/use-accumulated-pages";
 
 
 // ─── Grid tile ────────────────────────────────────────────────────────────────

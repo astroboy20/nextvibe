@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatDate, formatTime } from "@/lib/format-date";
+import { formatDate, formatTime } from "@/shared/lib/format-date";
 import {
   Calendar,
   MapPin,
@@ -13,7 +13,7 @@ import {
   Loader2,
   Video,
 } from "lucide-react";
-import { AddToCalendarButton } from "@/components/add-to-calendar-button";
+import { AddToCalendarButton } from "@/features/events/components/add-to-calendar-button";
 import { DisplayMap } from "./display-map";
 import { useGetUserQuery } from "@/features/profile/api/users-api";
 import { useToggleFollowMutation } from "@/features/profile/api/social-api";

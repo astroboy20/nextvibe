@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useGetEventsQuery, useCancelEventMutation } from "@/store/api/admin";
-import type { IAdminEvent } from "@/store/api/admin";
-import { EmptyState } from "@/components/empty-state";
+import { useGetEventsQuery, useCancelEventMutation } from "@/features/admin/api/admin-api";
+import type { IAdminEvent } from "@/features/admin/api/admin-api";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -7,14 +7,14 @@ import {
   useUpdateCouponMutation,
   useDeleteCouponMutation,
   useGetCouponDetailQuery,
-} from "@/store/api/admin";
+} from "@/features/admin/api/admin-api";
 import type {
   IAdminCoupon,
   IAdminCouponDetail,
   IAdminCouponRedemption,
   ICreateAdminCouponInput,
-} from "@/store/api/admin";
-import { EmptyState } from "@/components/empty-state";
+} from "@/features/admin/api/admin-api";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

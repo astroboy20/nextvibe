@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/shared/lib/constants";
 import Contact from "./container/new-contact";
 
 export const metadata: Metadata = {

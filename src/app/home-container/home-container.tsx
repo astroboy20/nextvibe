@@ -6,8 +6,8 @@ import { FeaturesSection } from "./container/feature-section";
 import StakeholdersSection from "./container/stakeholder-timeline-section";
 import SocialProofSection from "./container/socialproof-section";
 import JoinMovement from "./container/join-movement-section";
-import Navbar from "@/components/navbar/navbar";
-import Footer from "@/components/footer";
+import Navbar from "@/features/layout/components/navbar/navbar";
+import Footer from "@/features/layout/components/footer";
 
 const HomeContainer = () => {
   return (

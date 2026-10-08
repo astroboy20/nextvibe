@@ -2,7 +2,7 @@ import React from "react";
 import { Metadata } from "next";
 
 import AboutContent from "./component/about";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/shared/lib/constants";
 
 export const metadata: Metadata = {
   title: "About | " + APP_NAME,

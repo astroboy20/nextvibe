@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Wallet } from "lucide-react";
 import {
   useGetBalancesQuery,

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetInterestTagsQuery } from "@/features/profile/api/interests-api";
 import type { VibeTag } from "@/features/profile/api/interests-api";
-import { NewLogo } from "@/components/logo";
+import { NewLogo } from "@/shared/components/logo";
 
 // Fallback icon map for known tag names
 const ICON_MAP: Record<string, React.ElementType> = {

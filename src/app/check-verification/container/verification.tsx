@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useResendverificationEmailMutation } from "@/features/auth/api/auth-api";
-import { errorHandler } from "@/lib/error-handler";
+import { errorHandler } from "@/shared/lib/error-handler";
 
 const COOLDOWN_SECONDS = 60;
 

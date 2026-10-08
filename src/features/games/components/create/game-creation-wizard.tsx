@@ -26,7 +26,7 @@ import {
 } from "@/features/games/api/games-api";
 import { AiGenerationProgress } from "./ai-generation-progress";
 import { toast } from "sonner";
-import { useBeforeUnload } from "@/hooks/use-before-unload";
+import { useBeforeUnload } from "@/shared/hooks/use-before-unload";
 
 export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 export type GameTypeOrEmpty = "" | GameType;

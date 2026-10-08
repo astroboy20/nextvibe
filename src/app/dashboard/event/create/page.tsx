@@ -1,8 +1,8 @@
 "use client";
 
-import DashboardNavbar from "@/components/navbar/dashboard-navbar";
+import DashboardNavbar from "@/features/layout/components/navbar/dashboard-navbar";
 import Create from "../container/create/create";
-import BottomNav from "@/components/navbar/bottom-navbar";
+import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 
 export default function CreateEventContent() {
   return (

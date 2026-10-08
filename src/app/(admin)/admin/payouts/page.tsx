@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState } from "@/shared/components/empty-state";
 import {
   Banknote,
   ChevronLeft,
@@ -31,8 +31,8 @@ import { PAYOUT_STATUS_CONFIG } from "@/features/payouts/components/payout-statu
 import {
   PayoutActionDialog,
   type PayoutAction,
-} from "./components/payout-action-dialogs";
-import { formatMoney, getCurrencyDecimals } from "@/lib/money";
+} from "@/features/admin/components/payout-action-dialogs";
+import { formatMoney, getCurrencyDecimals } from "@/shared/lib/money";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { JsonLd } from "@/components/seo/json-ld";
+import { JsonLd } from "@/shared/components/seo/json-ld";
 
 export const metadata: Metadata = {
   title: "Wedding Photo Sharing App — Shared Album for All Your Guests",

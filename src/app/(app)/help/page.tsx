@@ -10,7 +10,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Send, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import BottomNav from "@/components/navbar/bottom-navbar";
+import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 
 const faqs = [
   {

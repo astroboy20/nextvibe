@@ -10,8 +10,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import Cookies from "js-cookie";
-import { useSocket } from "@/hooks/use-socket";
-import { errorHandler } from "@/lib/error-handler";
+import { useSocket } from "@/shared/hooks/use-socket";
+import { errorHandler } from "@/shared/lib/error-handler";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/features/auth/hooks/use-require-auth";
 

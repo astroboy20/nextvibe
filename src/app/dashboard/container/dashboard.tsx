@@ -4,10 +4,10 @@ import Image from "next/image";
 import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetUserQuery, useGetOrganizerEventsQuery } from "@/features/auth/api/auth-api";
-import { formatDate } from "@/lib/format-date";
+import { formatDate } from "@/shared/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useGetOverviewLocationAnalyticsQuery } from "@/store/api/analyticsApi";
+import { useGetOverviewLocationAnalyticsQuery } from "@/features/events/api/analytics-api";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 

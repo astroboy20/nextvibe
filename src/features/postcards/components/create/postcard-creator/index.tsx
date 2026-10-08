@@ -11,7 +11,7 @@ import {
 } from "@/features/postcards/api/postcards-api";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
-import { useBeforeUnload } from "@/hooks/use-before-unload";
+import { useBeforeUnload } from "@/shared/hooks/use-before-unload";
 import { AuthBottomSheet } from "@/features/auth/components/auth-bottom-sheet";
 import Cookies from "js-cookie";
 import { bakeOverlay, bakeOverlayOntoVideo, resizeTo1080p, dataUrlToBlob, createBakeQueue, OUTPUT_WIDTH, OUTPUT_HEIGHT } from "./utils";

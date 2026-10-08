@@ -16,7 +16,7 @@ import {
   Activity,
   Banknote,
 } from "lucide-react";
-import { NewLogo } from "./logo";
+import { NewLogo } from "@/shared/components/logo";
 
 const adminRoutes = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },

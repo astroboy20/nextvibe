@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { Sparkles, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import LaunchFAQ from "@/app/launch/component/launch-faq";
-import RewardTiers from "@/app/launch/component/reward-tier";
-import WhyBackNextVibe from "@/app/launch/component/why-nextvibe";
+import LaunchFAQ from "@/features/campaigns/components/launch/launch-faq";
+import RewardTiers from "@/features/campaigns/components/launch/reward-tier";
+import WhyBackNextVibe from "@/features/campaigns/components/launch/why-nextvibe";
 
 export default function PledgeLanding() {
   return (

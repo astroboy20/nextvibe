@@ -53,8 +53,8 @@ import {
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useGetRemindersQuery } from "@/features/events/api/reminders-api";
-import { AccessKeyDisplay } from "@/components/private-event-guard";
-import { formatDate, formatTime } from "@/lib/format-date";
+import { AccessKeyDisplay } from "@/features/events/components/private-event-guard";
+import { formatDate, formatTime } from "@/shared/lib/format-date";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef, useState } from "react";

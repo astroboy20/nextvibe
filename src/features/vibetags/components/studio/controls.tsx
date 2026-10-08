@@ -9,7 +9,7 @@ import {
   setIsPreviewOpen,
   setIsUploadImgOpen,
 } from "@/features/vibetags/canvas-slice";
-import base64ToImage from "@/lib/base64-to-img";
+import base64ToImage from "@/shared/lib/base64-to-img";
 
 import Fonts from "./fonts";
 import ColorMenu from "./color-menu";
@@ -33,7 +33,7 @@ import { useCanvas } from "@/features/vibetags/hooks/use-canvas";
 import { useCreateVibeTagMutation } from "@/features/events/api/events-api";
 import { toast } from "sonner";
 import { setHideHeader } from "@/store/slices/ui-slice";
-import { useBeforeUnload } from "@/hooks/use-before-unload";
+import { useBeforeUnload } from "@/shared/hooks/use-before-unload";
 
 interface ControlItem {
   label: string;

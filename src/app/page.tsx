@@ -1,12 +1,12 @@
 import { Metadata } from "next";
 import HomeContainerClient from "./home-container-client";
-import { JsonLd } from "@/components/seo/json-ld";
+import { JsonLd } from "@/shared/components/seo/json-ld";
 import {
   organizationSchema,
   softwareAppSchema,
   faqSchema,
   websiteSchema,
-} from "@/lib/seo/structured-data";
+} from "@/shared/lib/seo/structured-data";
 
 export const metadata: Metadata = {
   title: "Nextvibe — Party Photo Sharing & Event Memory App",

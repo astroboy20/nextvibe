@@ -7,7 +7,7 @@ import { Loader2, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { useState } from "react";
 import { useGetMyPayoutsQuery } from "@/features/payouts/api/payouts-api";
 import { PAYOUT_STATUS_CONFIG } from "./payout-status";
-import { formatMoney } from "@/lib/money";
+import { formatMoney } from "@/shared/lib/money";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;

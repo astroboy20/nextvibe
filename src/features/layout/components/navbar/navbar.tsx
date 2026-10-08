@@ -7,10 +7,10 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 
-import { NewLogo } from "../logo";
-import { Button } from "../ui/button";
+import { NewLogo } from "@/shared/components/logo";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const links = [
   { name: "Home", href: "/" },

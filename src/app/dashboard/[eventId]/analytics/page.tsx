@@ -65,7 +65,7 @@ import {
   useGetEventSocialAnalyticsQuery,
   useGetEventLocationAnalyticsQuery,
   useGetEventGameAnalyticsQuery,
-} from "@/store/api/analyticsApi";
+} from "@/features/events/api/analytics-api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const BRAND   = "#531342";

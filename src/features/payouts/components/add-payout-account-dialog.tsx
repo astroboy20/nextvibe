@@ -27,7 +27,7 @@ import {
   useLazyResolveAccountQuery,
   type PayoutRail,
 } from "@/features/payouts/api/payouts-api";
-import { COUNTRIES, currencyForCountry } from "@/lib/countries";
+import { COUNTRIES, currencyForCountry } from "@/shared/lib/countries";
 
 /**
  * Human labels and input hints per rail-specific field name.

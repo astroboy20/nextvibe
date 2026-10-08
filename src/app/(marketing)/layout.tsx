@@ -1,5 +1,5 @@
-import Navbar from "@/components/navbar/navbar";
-import Footer from "@/components/footer";
+import Navbar from "@/features/layout/components/navbar/navbar";
+import Footer from "@/features/layout/components/footer";
 
 /**
  * Chrome for the public marketing pages.

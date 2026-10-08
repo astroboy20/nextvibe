@@ -1,9 +1,9 @@
 "use client";
 
-import BottomNav from "@/components/navbar/bottom-navbar";
-import DashboardNavbar from "@/components/navbar/dashboard-navbar";
-import { MobileOnlyGate } from "@/components/mobile-only-gate";
-import { LocationPermissionBanner } from "@/components/location-permission-banner";
+import BottomNav from "./navbar/bottom-navbar";
+import DashboardNavbar from "./navbar/dashboard-navbar";
+import { MobileOnlyGate } from "@/shared/components/mobile-only-gate";
+import { LocationPermissionBanner } from "@/shared/components/location-permission-banner";
 
 /**
  * Shared shell used by all dashboard pages.

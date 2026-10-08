@@ -1,12 +1,12 @@
 "use client";
 
-import { useGetVibeTagStatsQuery } from "@/store/api/admin";
-import type { IAdminVibeTag } from "@/store/api/admin";
-import { EmptyState } from "@/components/empty-state";
+import { useGetVibeTagStatsQuery } from "@/features/admin/api/admin-api";
+import type { IAdminVibeTag } from "@/features/admin/api/admin-api";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChartContainer } from "@/components/chart-container";
+import { ChartContainer } from "@/shared/components/chart-container";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
