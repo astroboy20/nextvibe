@@ -529,10 +529,11 @@ export function GameCreationWizard({
       setRoundQuestions(roundIdx, generated);
       setStep(4);
     } catch (err: any) {
-      // RTK Query rejects with { status, data } rather than an Error, so the
-      // server message is at err.data.message.
+      // RTK Query rejects with { status, data } rather than an Error, and the
+      // backend's error body is { success: false, error: { code, message } }.
       toast.error(
-        err?.data?.message ??
+        err?.data?.error?.message ??
+          err?.data?.message ??
           err?.message ??
           "AI generation failed. Please try again."
       );
@@ -566,7 +567,8 @@ export function GameCreationWizard({
       }
     } catch (err: any) {
       toast.error(
-        err?.data?.message ??
+        err?.data?.error?.message ??
+          err?.data?.message ??
           err?.message ??
           "Could not regenerate this question. Please edit it manually."
       );

@@ -63,7 +63,9 @@ export function DeleteAccountDialog() {
       signOutTo("/");
     } catch (err: any) {
       const message: string =
-        err?.data?.message ?? "Could not delete your account. Please try again.";
+        err?.data?.error?.message ??
+        err?.data?.message ??
+        "Could not delete your account. Please try again.";
       // OAuth-only accounts must have signed in recently; offer the way out.
       if (err?.status === 401 && !check?.needsPassword) {
         setNeedsFreshSignIn(true);
