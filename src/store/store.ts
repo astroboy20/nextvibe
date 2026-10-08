@@ -14,7 +14,7 @@ import { socialApi } from "./api/socialApi";
 import { paymentApi } from "@/features/tickets/api/payments-api";
 import { notificationApi } from "./api/notificationApi";
 import { adminApi } from "./api/admin";
-import { organizerPaymentApi } from "./api/organizerPaymentApi";
+import { organizerPaymentApi } from "@/features/billing/api/organizer-payments-api";
 import { reminderApi } from "@/features/events/api/reminders-api";
 import { pledgeApi } from "./api/pledgeApi";
 import { interestsApi } from "./api/interestsApi";

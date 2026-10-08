@@ -25,7 +25,7 @@ import {
   useInitiatePlanPaymentMutation,
   type PlanType,
   type PlanQuote,
-} from "@/store/api/organizerPaymentApi";
+} from "@/features/billing/api/organizer-payments-api";
 import {
   useUpdateEventStatusMutation,
   useGetPublishPreviewQuery,

@@ -29,7 +29,7 @@ import { RSVPTrackerContent } from "@/features/events/components/dashboard/rsvp-
 import { TicketCreatorEnhanced } from "@/features/tickets/components/dashboard/tracker-creator-enhanced";
 // import { RecentPurchasesContent } from "@/features/tickets/components/dashboard/recent-purchases-content";
 import { GamificationHubContent } from "@/features/games/components/dashboard/gamification-hub-content";
-import { PaymentModule } from "./components/payment-module";
+import { PaymentModule } from "@/features/billing/components/payment-module";
 import EventRemindersContent from "@/features/events/components/dashboard/event-reminders-content";
 import Image from "next/image";
 // import AnalyticsPanelContent from "@/features/events/components/dashboard/analytics-panel";

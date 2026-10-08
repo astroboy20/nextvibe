@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLazyVerifyOrganizerPaymentQuery } from "@/store/api/organizerPaymentApi";
+import { useLazyVerifyOrganizerPaymentQuery } from "@/features/billing/api/organizer-payments-api";
 
 type PollState = "polling" | "success" | "failed" | "timeout" | "missing";
 

@@ -42,7 +42,7 @@ import {
   useGetGameSessionEditPolicyQuery,
   useUpdateGameSessionMutation,
 } from "@/features/games/api/games-api";
-import { useInitiateAdditionalGamePaymentMutation } from "@/store/api/organizerPaymentApi";
+import { useInitiateAdditionalGamePaymentMutation } from "@/features/billing/api/organizer-payments-api";
 import { toast } from "sonner";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
