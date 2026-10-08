@@ -21,7 +21,7 @@ import {
   useSetDefaultPayoutAccountMutation,
   useDeletePayoutAccountMutation,
   type PayoutAccount,
-} from "@/store/api/payoutApi";
+} from "@/features/payouts/api/payouts-api";
 import { cn } from "@/lib/utils";
 
 interface Props {

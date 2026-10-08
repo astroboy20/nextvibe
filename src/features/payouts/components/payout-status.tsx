@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   Send,
 } from "lucide-react";
-import type { PayoutStatus } from "@/store/api/payoutApi";
+import type { PayoutStatus } from "@/features/payouts/api/payouts-api";
 
 /**
  * One source of truth for how each payout status looks and reads, shared by the

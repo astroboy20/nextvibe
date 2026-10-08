@@ -8,13 +8,13 @@ import { Wallet } from "lucide-react";
 import {
   useGetBalancesQuery,
   type CurrencyBalance,
-} from "@/store/api/payoutApi";
-import { BalanceCard } from "./components/balance-card";
-import { PayoutAccountsManager } from "./components/payout-accounts-manager";
-import { PayoutHistory } from "./components/payout-history";
-import { StatementList } from "./components/statement-list";
-import { AddPayoutAccountDialog } from "./components/add-payout-account-dialog";
-import { RequestPayoutDialog } from "./components/request-payout-dialog";
+} from "@/features/payouts/api/payouts-api";
+import { BalanceCard } from "@/features/payouts/components/balance-card";
+import { PayoutAccountsManager } from "@/features/payouts/components/payout-accounts-manager";
+import { PayoutHistory } from "@/features/payouts/components/payout-history";
+import { StatementList } from "@/features/payouts/components/statement-list";
+import { AddPayoutAccountDialog } from "@/features/payouts/components/add-payout-account-dialog";
+import { RequestPayoutDialog } from "@/features/payouts/components/request-payout-dialog";
 
 export default function EarningsPage() {
   const { data, isLoading, isError } = useGetBalancesQuery();

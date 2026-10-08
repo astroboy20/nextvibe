@@ -21,7 +21,7 @@ import { interestsApi } from "./api/interestsApi";
 import { launchApi } from "./api/launchApi";
 import { analyticsApi } from "./api/analyticsApi";
 import { campaignApi } from "./api/campaignApi";
-import { payoutApi } from "./api/payoutApi";
+import { payoutApi } from "@/features/payouts/api/payouts-api";
 
 export const store = configureStore({
     reducer: {

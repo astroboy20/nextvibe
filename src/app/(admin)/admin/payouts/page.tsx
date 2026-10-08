@@ -26,8 +26,8 @@ import {
   useGetAdminPayoutsQuery,
   type AdminPayout,
   type PayoutStatus,
-} from "@/store/api/payoutApi";
-import { PAYOUT_STATUS_CONFIG } from "@/app/(app)/earnings/components/payout-status";
+} from "@/features/payouts/api/payouts-api";
+import { PAYOUT_STATUS_CONFIG } from "@/features/payouts/components/payout-status";
 import {
   PayoutActionDialog,
   type PayoutAction,
