@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nextvibe — Party Photo Sharing & Event Memory App",
+    title: "NextVibe — Digital memory bank for your events",
     description:
       "Capture every moment at parties, weddings, and festivals. Shared albums, VibeTags, and event games.",
     images: ["https://mynextvibe.com/logos/new/logo_black_text.png"],
@@ -66,7 +66,7 @@ export default function Home() {
         even though the interactive UI is client-rendered.
       */}
       <div className="sr-only" aria-hidden="true">
-        <h1>NextVibe — Party Photo Sharing &amp; Event Memory App</h1>
+        <h1>NextVibe — Digital memory bank for your events</h1>
         <p>
           NextVibe is the digital memory bank for events. Guests scan a QR code
           to upload photos to a shared album — no app download required. Built

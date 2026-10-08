@@ -518,6 +518,47 @@ export default function BirthdayFunnel() {
         </div>
       </section>
 
+        {/* 5. How it works */}
+      <section className="py-16 md:py-24">
+        <div className="w-full px-4 md:px-8 lg:px-16">
+          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
+            How Nextvibe works
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
+            {steps.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.n}
+                  className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-extrabold text-primary/30">
+                      {s.n}
+                    </span>
+                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-5" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-bold">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground">{s.desc}</p>
+                  <div className="mt-1 overflow-hidden rounded-xl bg-secondary/60">
+                    <video
+                      src={s.video}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="h-auto w-full object-cover"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* 10. Reservation form */}
       <section
         id="funnel"
@@ -841,46 +882,7 @@ export default function BirthdayFunnel() {
         </div>
       </section> */}
 
-      {/* 5. How it works */}
-      <section className="py-16 md:py-24">
-        <div className="w-full px-4 md:px-8 lg:px-16">
-          <h2 className="mx-auto max-w-3xl text-center text-2xl font-bold md:text-4xl">
-            How Nextvibe works
-          </h2>
-          <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
-            {steps.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div
-                  key={s.n}
-                  className="flex flex-col gap-3 rounded-2xl bg-card p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl font-extrabold text-primary/30">
-                      {s.n}
-                    </span>
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold">{s.title}</h3>
-                  <p className="text-sm text-muted-foreground">{s.desc}</p>
-                  <div className="mt-1 overflow-hidden rounded-xl bg-secondary/60">
-                    <video
-                      src={s.video}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="h-auto w-full object-cover"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+    
 
       {/* 6. Benefits split */}
       {/* <section className="border-y border-border/50 bg-secondary/40 py-16 md:py-24">
