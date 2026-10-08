@@ -6,8 +6,8 @@ import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { useGoogleLoginMutation } from "@/store/api/authApi";
 import { Loader2 } from "lucide-react";
-import { useAnonMerge } from "@/hooks/use-anon-merge";
-import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
+import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
 interface GoogleLoginButtonProps {

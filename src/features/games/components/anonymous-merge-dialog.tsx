@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { Trophy } from "lucide-react";
-import type { AnonPendingSession } from "@/lib/anonymous-game";
+import type { AnonPendingSession } from "@/features/games/lib/anonymous-game";
 
 interface Props {
   sessions: AnonPendingSession[];

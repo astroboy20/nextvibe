@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Loader2, Play, CheckCircle2, Clock, Users, RefreshCw, Trophy } from "lucide-react";
-import { RoundData, RewardTier, gameTypeConfig } from "../game-creation-wizard";
+import { RoundData, RewardTier, gameTypeConfig } from "@/features/games/components/create/game-creation-wizard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

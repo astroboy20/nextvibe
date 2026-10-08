@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { AuthBottomSheet } from "@/components/auth-bottom-sheet";
-import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
-import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { AnonymousMergeDialog } from "./anonymous-merge-dialog";
+import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
 import {
   dismissScorePrompt,
   isScorePromptDismissed,
-} from "@/lib/anonymous-game";
+} from "@/features/games/lib/anonymous-game";
 
 /**
  * How long the score sits alone before the sheet slides up.

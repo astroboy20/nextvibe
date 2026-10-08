@@ -28,7 +28,7 @@ import { EventDashboardCard } from "./components/event-dashboard-card";
 import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
 import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
 // import { RecentPurchasesContent } from "./components/recent-purchases-content";
-import { GamificationHubContent } from "./components/gamification-hub-content";
+import { GamificationHubContent } from "@/features/games/components/dashboard/gamification-hub-content";
 import { PaymentModule } from "./components/payment-module";
 import EventRemindersContent from "./components/event-reminders-content";
 import Image from "next/image";
@@ -45,7 +45,7 @@ import {
 } from "@/store/api/eventApi";
 import {
   useGetGamesQuery,
-} from "@/store/api/endpoints/games";
+} from "@/features/games/api/games-api";
 import {
   useGetInterestTagsQuery as useGetDiscoverTagsQuery,
   useCreateInterestTagMutation,

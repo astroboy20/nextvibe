@@ -1,7 +1,7 @@
 "use client";
 
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { baseQueryWithReauth } from "./baseQuery";
+import { baseQueryWithReauth } from "@/store/api/baseQuery";
 
 /**
  * Rewards — prize tiers, attendee claims, and the organizer's approval flow.

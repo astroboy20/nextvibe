@@ -16,13 +16,13 @@ import {
   useClaimRewardMutation,
   type Reward,
   type RewardType,
-} from "@/store/api/rewardApi";
+} from "@/features/games/api/rewards-api";
 import {
   RewardProgress,
   RewardStatusBadge,
   rewardStatusHint,
-} from "./components/reward-progress";
-import { OrganizerRewards } from "./components/organizer-rewards";
+} from "@/features/games/components/rewards/reward-progress";
+import { OrganizerRewards } from "@/features/games/components/rewards/organizer-rewards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function rewardIcon(type: RewardType) {

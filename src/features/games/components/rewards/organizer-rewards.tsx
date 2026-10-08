@@ -33,7 +33,7 @@ import {
   useRejectRewardMutation,
   type EventRewardsOverview,
   type RewardStatus,
-} from "@/store/api/rewardApi";
+} from "@/features/games/api/rewards-api";
 import { useGetMyCreatedEventsQuery } from "@/store/api/eventApi";
 import { RewardStatusBadge } from "./reward-progress";
 

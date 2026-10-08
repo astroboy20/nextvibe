@@ -29,7 +29,7 @@ import {
   useGetUserBasicQuery,
   useGetUserActivityQuery,
 } from "@/store/api/authApi";
-import { useGetMyRewardsQuery } from "@/store/api/rewardApi";
+import { useGetMyRewardsQuery } from "@/features/games/api/rewards-api";
 import {
   PostcardViewer,
   type PostcardData,

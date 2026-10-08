@@ -24,9 +24,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/store/api/authApi";
-import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
 import { useRedirectIfAuthenticated } from "@/hooks/use-redirect-if-authenticated";
-import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
 const loginSchema = z.object({

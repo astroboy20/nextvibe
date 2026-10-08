@@ -6,7 +6,7 @@ import consentReducer from "./slices/consent-slice"
 import uiReducer from "./slices/ui-slice";
 import { authApi } from "./api/authApi";
 import canvasReducer from "./slices/canvas-slice";
-import { rewardsApi } from "./api/rewardApi";
+import { rewardsApi } from "@/features/games/api/rewards-api";
 import { eventsApi } from "./api/eventApi";
 import { userApi } from "./api/userApi";
 import { messagingApi } from "./api/messagingApi";

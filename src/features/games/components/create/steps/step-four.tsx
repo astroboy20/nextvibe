@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Check, Edit2, RefreshCw, Plus, Trash2 } from "lucide-react";
-import { Question } from "../game-creation-wizard";
+import { Question } from "@/features/games/components/create/game-creation-wizard";
 import { Badge } from "@/components/ui/badge";
 
 // ── Read-only grid preview for word puzzles ──────────────────────────────────

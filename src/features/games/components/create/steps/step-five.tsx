@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Trophy } from "lucide-react";
-import { DiscountType, RewardTier, RewardType } from "../game-creation-wizard";
+import { DiscountType, RewardTier, RewardType } from "@/features/games/components/create/game-creation-wizard";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface StepFiveProps {

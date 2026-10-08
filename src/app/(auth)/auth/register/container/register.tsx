@@ -23,9 +23,9 @@ import Cookies from "js-cookie";
 import PasswordField from "../component/password-field";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAnonMerge } from "@/hooks/use-anon-merge";
+import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
 import { useRedirectIfAuthenticated } from "@/hooks/use-redirect-if-authenticated";
-import { AnonymousMergeDialog } from "@/components/anonymous-merge-dialog";
+import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters"),

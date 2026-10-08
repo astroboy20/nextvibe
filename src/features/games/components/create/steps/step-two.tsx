@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Lock, Clock, Users, CalendarClock, RefreshCw } from "lucide-react";
-import { EventPhase, ScheduleMode } from "../game-creation-wizard";
+import { EventPhase, ScheduleMode } from "@/features/games/components/create/game-creation-wizard";
 
 // End date is locked ONLY for pre-event — auto-set to 10 mins before event start.
 // main-event, post-event, and both are always free.

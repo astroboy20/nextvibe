@@ -20,12 +20,12 @@ import {
   useAnonymousSubmitRoundMutation,
   useMergeAnonymousSessionsMutation,
   useAnswerQuestionMutation,
-} from "@/store/api/endpoints/games";
+} from "@/features/games/api/games-api";
 import { useGetUserQuery } from "@/store/api/userApi";
-import { GameScoreShare } from "@/components/game-share";
+import { GameScoreShare } from "@/features/games/components/game-share";
 import { toast } from "sonner";
-import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/lib/anonymous-game";
-import { AnonScorePrompt } from "@/components/anon-score-prompt";
+import { getAnonymousId, saveAnonSession, getPendingSessions, clearAnonGameData } from "@/features/games/lib/anonymous-game";
+import { AnonScorePrompt } from "@/features/games/components/anon-score-prompt";
 
 type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
 

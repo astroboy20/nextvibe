@@ -38,15 +38,15 @@ import {
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
   useAnswerQuestionMutation,
-} from "@/store/api/endpoints/games";
-import { GameScoreShare } from "@/components/game-share";
+} from "@/features/games/api/games-api";
+import { GameScoreShare } from "@/features/games/components/game-share";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useGetUserQuery } from "@/store/api/authApi";
 import Cookies from "js-cookie";
-import { getAnonymousId, saveAnonSession } from "@/lib/anonymous-game";
-import { AnonScorePrompt } from "@/components/anon-score-prompt";
+import { getAnonymousId, saveAnonSession } from "@/features/games/lib/anonymous-game";
+import { AnonScorePrompt } from "@/features/games/components/anon-score-prompt";
 
 /** Read a persisted set of ids, tolerating absent/corrupt entries. */
 const readIdSet = (key: string): Set<string> => {

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Pencil, Sparkles, HelpCircle, Puzzle, MessageSquare, MessageCircleQuestion, Zap } from "lucide-react";
-import { GameType, ApiGameType } from "../game-creation-wizard";
+import { GameType, ApiGameType } from "@/features/games/components/create/game-creation-wizard";
 
 interface StepThreeProps {
   roundIndex: number;

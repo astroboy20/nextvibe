@@ -1,5 +1,5 @@
-import { baseApi } from "../baseApi";
-import { getAnonymousId } from "@/lib/anonymous-game";
+import { baseApi } from "@/store/api/baseApi";
+import { getAnonymousId } from "@/features/games/lib/anonymous-game";
 
 /**
  * Game endpoints — sessions, rounds, answers, leaderboards, reward tiers, and

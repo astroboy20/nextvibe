@@ -33,7 +33,7 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GameCreationWizard } from "./game-creation-wizard";
+import { GameCreationWizard } from "@/features/games/components/create/game-creation-wizard";
 import {
   useGetGamesQuery,
   useUpdateGameStatusMutation,
@@ -41,7 +41,7 @@ import {
   useGetSessionLeaderboardQuery,
   useGetGameSessionEditPolicyQuery,
   useUpdateGameSessionMutation,
-} from "@/store/api/endpoints/games";
+} from "@/features/games/api/games-api";
 import { useInitiateAdditionalGamePaymentMutation } from "@/store/api/organizerPaymentApi";
 import { toast } from "sonner";
 

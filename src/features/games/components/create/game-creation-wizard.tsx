@@ -13,17 +13,17 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
-import StepOne from "./game-steps/step-one";
-import StepTwo from "./game-steps/step-two";
-import StepThree from "./game-steps/step-three";
-import StepFour from "./game-steps/step-four";
-import StepFive from "./game-steps/step-five";
-import StepSix from "./game-steps/step-six";
+import StepOne from "./steps/step-one";
+import StepTwo from "./steps/step-two";
+import StepThree from "./steps/step-three";
+import StepFour from "./steps/step-four";
+import StepFive from "./steps/step-five";
+import StepSix from "./steps/step-six";
 import {
   useCreateGameMutation,
   useGenerateGameDraftMutation,
   useRegenerateAiQuestionMutation,
-} from "@/store/api/endpoints/games";
+} from "@/features/games/api/games-api";
 import { AiGenerationProgress } from "./ai-generation-progress";
 import { toast } from "sonner";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
