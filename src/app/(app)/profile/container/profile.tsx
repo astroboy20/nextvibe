@@ -33,7 +33,7 @@ import { useGetMyRewardsQuery } from "@/features/games/api/rewards-api";
 import {
   PostcardViewer,
   type PostcardData,
-} from "@/components/postcard-viewer";
+} from "@/features/postcards/components/postcard-viewer";
 
 // Type definitions — matched to real API response shapes
 interface ActivityEvent {

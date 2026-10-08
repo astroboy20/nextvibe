@@ -42,11 +42,11 @@ import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
   useToggleLikePostcardMutation,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import {
   PostcardViewer,
   type PostcardData,
-} from "@/components/postcard-viewer";
+} from "@/features/postcards/components/postcard-viewer";
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);

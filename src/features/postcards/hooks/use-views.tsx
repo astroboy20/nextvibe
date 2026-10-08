@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   useTrackPostcardViewMutation,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 
 interface UsePostcardTrackerProps {
   postId: string;

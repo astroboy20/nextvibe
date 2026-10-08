@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   useCreatePostcardsMutation,
   useSwapPostcardMutation,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import { setHideHeader } from "@/store/slices/ui-slice";
 import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/hooks/use-before-unload";

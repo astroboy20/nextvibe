@@ -1,5 +1,5 @@
-import { baseApi } from "../baseApi";
-import { phaseToTiming, type PostcardPhase } from "@/types/postcards.type";
+import { baseApi } from "@/store/api/baseApi";
+import { phaseToTiming, type PostcardPhase } from "@/features/postcards/types";
 
 /**
  * Postcard endpoints — the gallery, creation and swapping, likes, comments,

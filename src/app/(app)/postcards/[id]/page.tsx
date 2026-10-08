@@ -10,17 +10,17 @@ import {
 } from "@/store/api/eventApi";
 import {
   useGetEventPostcardsQuery,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import {
   PostcardViewer,
   ProgressiveImage,
   type PostcardData,
-} from "@/components/postcard-viewer";
+} from "@/features/postcards/components/postcard-viewer";
 import {
   isPostcardPhase,
   type PostcardPhase,
-} from "@/types/postcards.type";
+} from "@/features/postcards/types";
 import { useAccumulatedPages } from "@/hooks/use-accumulated-pages";
 
 

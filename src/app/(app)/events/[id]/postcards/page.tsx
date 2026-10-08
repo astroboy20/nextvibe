@@ -10,8 +10,8 @@ import {
 } from "@/store/api/eventApi";
 import {
   useGetPostcardsQuery,
-} from "@/store/api/endpoints/postcards";
-import { PostcardItem } from "../../components/postcard-grid";
+} from "@/features/postcards/api/postcards-api";
+import { PostcardItem } from "@/features/postcards/components/postcard-grid";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";

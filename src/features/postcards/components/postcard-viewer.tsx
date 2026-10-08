@@ -19,8 +19,8 @@ import {
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
   useToggleLikePostcardMutation,
-} from "@/store/api/endpoints/postcards";
-import { usePostcardViewTracker } from "@/hooks/use-views";
+} from "@/features/postcards/api/postcards-api";
+import { usePostcardViewTracker } from "@/features/postcards/hooks/use-views";
 import { useGetUserQuery } from "@/store/api/authApi";
 import { getGuestSessionId } from "@/lib/get-guest-session-id";
 

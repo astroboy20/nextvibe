@@ -15,21 +15,21 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
-import { PostcardCreator, type VibeTagOverlay } from "./postcard-creator";
-import { AttendeePostcardLeaderboard } from "./attendee-postcard-creator";
+import { PostcardCreator, type VibeTagOverlay } from "./create/postcard-creator";
+import { AttendeePostcardLeaderboard } from "./create/attendee-postcard-creator";
 import { toast } from "sonner";
 import {
   PostcardViewer,
   type PostcardData,
-} from "@/components/postcard-viewer";
+} from "./postcard-viewer";
 import {
   isPostcardPhase,
   type PostcardPhase,
-} from "@/types/postcards.type";
+} from "@/features/postcards/types";
 import {
   useGetEventPostcardsQuery,
   useToggleLikePostcardMutation,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import Cookies from "js-cookie";
 

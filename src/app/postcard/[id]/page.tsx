@@ -3,9 +3,9 @@
 import { use } from "react";
 import {
   useGetPostcardQuery,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PostcardViewer } from "@/components/postcard-viewer";
+import { PostcardViewer } from "@/features/postcards/components/postcard-viewer";
 
 export default function PostcardPage({
   params,

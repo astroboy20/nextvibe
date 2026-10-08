@@ -23,7 +23,7 @@ import { EventQRTab } from "./components/event-qr-tab";
 import BottomNav from "@/components/navbar/bottom-navbar";
 import { EventChatTab } from "./components/event-chat-tab";
 import { EventGamesTab } from "@/features/games/components/play/event-game-tab";
-import { EventVibeTagsTab } from "./components/event-vibetags-tab";
+import { EventVibeTagsTab } from "@/features/postcards/components/event-vibetags-tab";
 import { useGetEventDetailsQuery } from "@/store/api/eventApi";
 import { PrivateEventGuard } from "@/components/private-event-guard";
 import { toast } from "sonner";

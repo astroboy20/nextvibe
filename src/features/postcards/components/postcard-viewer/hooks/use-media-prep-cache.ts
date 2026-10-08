@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import type { PostcardMediaItem } from "../types";
+import type { PostcardMediaItem } from "@/features/postcards/components/postcard-viewer/types";
 import {
   fetchAndBuildFile,
   type PreparedEntry,
-} from "../media-prep";
+} from "@/features/postcards/components/postcard-viewer/media-prep";
 
 const MAX_PREPARED_ITEMS = 4;
 

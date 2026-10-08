@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCommentOnPostcardMutation,
   useGetPostcardCommentsQuery,
-} from "@/store/api/endpoints/postcards";
+} from "@/features/postcards/api/postcards-api";
 import type { CommentData } from "./types";
 
 interface CommentSheetProps {

@@ -34,7 +34,7 @@ import EventRemindersContent from "./components/event-reminders-content";
 import Image from "next/image";
 // import AnalyticsPanelContent from "./components/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
-// import PostcardLeaderboardContent from "./components/leaderboard-content";
+// import PostcardLeaderboardContent from "@/features/postcards/components/dashboard/leaderboard-content";
 import {
   useGetEventDetailsQuery,
   useUpdateEventStatusMutation,

@@ -6,8 +6,8 @@ import { Heart, Trophy, Crown, Medal, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useGetPostcardLeaderboardQuery,
-} from "@/store/api/endpoints/postcards";
-import { type PostcardPhase } from "@/types/postcards.type";
+} from "@/features/postcards/api/postcards-api";
+import { type PostcardPhase } from "@/features/postcards/types";
 
 // activityTiming values the API accepts
 // const PHASE_MAP = {
