@@ -37,6 +37,7 @@ import {
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
+  useAnswerQuestionMutation,
 } from "@/store/api/endpoints/games";
 import { GameScoreShare } from "@/components/game-share";
 import { toast } from "sonner";
@@ -95,6 +96,17 @@ interface HiddenWord {
   direction: string;
 }
 
+type Cells = [[number, number], [number, number]];
+
+/**
+ * Asks the server whether a drag selected a hidden word. Resolves to the word
+ * and its cells, or null for a miss.
+ */
+type CheckSelection = (
+  start: [number, number],
+  end: [number, number]
+) => Promise<{ word: string; startCell: [number, number]; endCell: [number, number] } | null>;
+
 /**
  * Build a 2-D letter grid from a list of flat question objects.
  *
@@ -116,6 +128,31 @@ function buildGridFromQuestions(questions: any[]): { grid: string[][]; hiddenWor
   // even though hiddenWords[] carries the coordinates to rebuild it from.
   const gridIsUsable = (g: any) =>
     Array.isArray(g) && g.length > 0 && Array.isArray(g[0]) && g[0].length > 0;
+
+  // What players get now: the server keeps word positions to itself and checks
+  // each drag (POST /game-rounds/:id/answer), so hidden words arrive with no
+  // cells. [-1, -1] means "position unknown until found"; highlightRange
+  // ignores out-of-grid cells, and found words carry the server's cells.
+  const first = questions[0];
+  if (
+    questions.length === 1 &&
+    gridIsUsable(first?.grid) &&
+    Array.isArray(first?.hiddenWords) &&
+    first.hiddenWords.length > 0 &&
+    first.hiddenWords.every((h: any) => !h?.startCell)
+  ) {
+    return {
+      grid: first.grid as string[][],
+      hiddenWords: first.hiddenWords.map((h: any) => ({
+        word: String(h?.word ?? "").toUpperCase(),
+        clue: h?.clue ?? "",
+        startCell: [-1, -1] as [number, number],
+        endCell: [-1, -1] as [number, number],
+        direction: "",
+      })),
+      timeLimitSecs,
+    };
+  }
 
   const wrapper =
     questions.length === 1 && gridIsUsable(questions[0]?.grid) && Array.isArray(questions[0]?.hiddenWords)
@@ -281,11 +318,13 @@ function WordPuzzleGrid({
   hiddenWords,
   onWordFound,
   foundWords,
+  checkSelection,
 }: {
   grid: string[][];
   hiddenWords: HiddenWord[];
   onWordFound: (word: string) => void;
   foundWords: Set<string>;
+  checkSelection: CheckSelection;
 }) {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -307,6 +346,12 @@ function WordPuzzleGrid({
   // Stable ref to foundWords
   const foundWordsRef = useRef(foundWords);
   foundWordsRef.current = foundWords;
+  const checkSelectionRef = useRef(checkSelection);
+  checkSelectionRef.current = checkSelection;
+  // Where each found word sits. The server only reveals it once found.
+  const placementsRef = useRef(new Map<string, Cells>());
+  const cellsOf = (hw: HiddenWord): Cells =>
+    placementsRef.current.get(hw.word.toUpperCase()) ?? [hw.startCell, hw.endCell];
 
   // Reset cell states when grid dimensions change
   useEffect(() => {
@@ -323,7 +368,7 @@ function WordPuzzleGrid({
       const next = prev.map((row) => row.map((c) => (c === "correct" ? "correct" : "idle")));
       for (const hw of hiddenWords) {
         if (foundWords.has(hw.word.toUpperCase())) {
-          highlightRange(next, hw.startCell, hw.endCell, "correct");
+          highlightRange(next, ...cellsOf(hw), "correct");
         }
       }
       return next;
@@ -403,45 +448,43 @@ function WordPuzzleGrid({
   );
 
   const handleSelectionComplete = useCallback(
-    (selStart: [number, number], selEnd: [number, number]) => {
-      const hw = hiddenWordsRef.current;
-      const fw = foundWordsRef.current;
-      const matched = hw.find(
-        (h) =>
-          !fw.has(h.word.toUpperCase()) &&
-          ((h.startCell[0] === selStart[0] &&
-            h.startCell[1] === selStart[1] &&
-            h.endCell[0] === selEnd[0] &&
-            h.endCell[1] === selEnd[1]) ||
-            (h.startCell[0] === selEnd[0] &&
-              h.startCell[1] === selEnd[1] &&
-              h.endCell[0] === selStart[0] &&
-              h.endCell[1] === selStart[1]))
-      );
+    async (selStart: [number, number], selEnd: [number, number]) => {
+      // The server decides: word positions never reach the browser, so a
+      // player can't read the answers out of the network tab.
+      let matched: Awaited<ReturnType<CheckSelection>> = null;
+      try {
+        matched = await checkSelectionRef.current(selStart, selEnd);
+      } catch {
+        matched = null;
+      }
+      const word = matched?.word.toUpperCase();
 
-      if (matched) {
+      if (matched && word && !foundWordsRef.current.has(word)) {
+        placementsRef.current.set(word, [matched.startCell, matched.endCell]);
+        const { startCell: s, endCell: e } = matched;
         setCellStates((prev) => {
           const next = prev.map((row) => [...row]);
-          highlightRange(next, matched.startCell, matched.endCell, "correct");
+          highlightRange(next, s, e, "correct");
           return next;
         });
-        onWordFound(matched.word.toUpperCase());
-      } else {
-        setCellStates((prev) => {
-          const next = prev.map((row) =>
-            row.map((c) => (c === "correct" ? "correct" : "idle"))
-          );
-          highlightRange(next, selStart, selEnd, "wrong-flash");
-          return next;
-        });
-        setTimeout(() => {
-          setCellStates((prev) =>
-            prev.map((row) => row.map((c) => (c === "wrong-flash" ? "idle" : c)))
-          );
-        }, 500);
+        onWordFound(word);
+        return;
       }
+
+      setCellStates((prev) => {
+        const next = prev.map((row) =>
+          row.map((c) => (c === "correct" ? "correct" : "idle"))
+        );
+        // Re-finding a word already found just clears the drag.
+        if (!matched) highlightRange(next, selStart, selEnd, "wrong-flash");
+        return next;
+      });
+      setTimeout(() => {
+        setCellStates((prev) =>
+          prev.map((row) => row.map((c) => (c === "wrong-flash" ? "idle" : c)))
+        );
+      }, 500);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onWordFound]
   );
 
@@ -613,14 +656,28 @@ function WordPuzzleGrid({
 // finds every hidden word on that grid before submitting.
 
 function WordPuzzleRoundPlayer({
+  roundId,
   questions,
   onAllComplete,
   initialFoundWords,
 }: {
+  roundId: string;
   questions: any[];
   onAllComplete: (answers: string[]) => void;
   initialFoundWords?: string[];
 }) {
+
+  const [answerQuestion] = useAnswerQuestionMutation();
+  const checkSelection: CheckSelection = useCallback(
+    async (start, end) => {
+      const res = await answerQuestion({ roundId, startCell: start, endCell: end }).unwrap();
+      const r = res?.data ?? res;
+      return r?.found
+        ? { word: String(r.word), startCell: r.startCell, endCell: r.endCell }
+        : null;
+    },
+    [answerQuestion, roundId]
+  );
   // Build the grid once from all questions (stable across re-renders via useMemo)
   const { grid, hiddenWords, timeLimitSecs } = useMemo(
     () => buildGridFromQuestions(questions),
@@ -711,6 +768,7 @@ function WordPuzzleRoundPlayer({
         hiddenWords={hiddenWords}
         onWordFound={handleWordFound}
         foundWords={foundWords}
+        checkSelection={checkSelection}
       />
 
       <Button
@@ -981,11 +1039,18 @@ function RoundPlayer({
     selected: number | string;
     correct: number | string;
     isCorrect: boolean;
+    /** The server couldn't be reached: show the choice, claim nothing. */
+    unknown?: boolean;
   } | null>(null);
 
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [waitingForResult, setWaitingForResult] = useState(false);
+
+  // Answers are checked by the server (see handleSelectOption). Declared up
+  // here, above the early returns, so hook order never changes.
+  const [answerQuestion] = useAnswerQuestionMutation();
+  const [checking, setChecking] = useState(false);
 
   const { data: leaderboardData, refetch: refetchLeaderboard } =
     useGetSessionLeaderboardQuery(session?.id, { skip: !session?.id });
@@ -1045,6 +1110,7 @@ function RoundPlayer({
     } else {
       return (
         <WordPuzzleRoundPlayer
+          roundId={round.id}
           questions={questions}
           initialFoundWords={
             savedState?.answers
@@ -1163,18 +1229,35 @@ function RoundPlayer({
     }
   };
 
-  const handleSelectOption = (idx: number) => {
-    if (flash) return;
-    // correctAnswerIndex is the numeric index stored in config.questions
-    const correctIdx: number = q?.correctAnswerIndex ?? 0;
-    const isCorrect = idx === correctIdx;
-
+  const handleSelectOption = async (idx: number) => {
+    if (flash || checking) return;
+    setChecking(true);
     const newAnswers = [...answers];
     newAnswers[currentQ] = idx;
+    try {
+      // Only the server knows the answer. Its reply is final: if this
+      // question was already answered, it returns that first answer instead.
+      const res = await answerQuestion({
+        roundId: round.id,
+        questionIndex: currentQ,
+        answer: idx,
+      }).unwrap();
+      const r = res?.data ?? res;
+      const locked: number = typeof r?.answer === "number" ? r.answer : idx;
+      newAnswers[currentQ] = locked;
+      setFlash({
+        selected: locked,
+        correct: typeof r?.correctAnswerIndex === "number" ? r.correctAnswerIndex : -1,
+        isCorrect: !!r?.isCorrect,
+      });
+    } catch {
+      // Couldn't check (offline, or the round just closed). Keep the choice;
+      // submit scores it.
+      setFlash({ selected: idx, correct: -1, isCorrect: false, unknown: true });
+    } finally {
+      setChecking(false);
+    }
     setAnswers(newAnswers);
-    setFlash({ selected: idx, correct: correctIdx, isCorrect });
-
-    // Auto-advance after 800 ms
     setTimeout(() => advance(idx, newAnswers), 800);
   };
 
@@ -1387,7 +1470,7 @@ function RoundPlayer({
           {q.options.map((opt: string, idx: number) => {
             const isSelected = flash?.selected === idx;
             const isCorrectOpt = flash ? flash.correct === idx : false;
-            const isWrongSelected = isSelected && !isCorrectOpt;
+            const isWrongSelected = isSelected && !isCorrectOpt && !flash?.unknown;
 
             return (
               <button

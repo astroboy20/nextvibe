@@ -162,6 +162,37 @@ export const gameEndpoints = baseApi.injectEndpoints({
       providesTags: ["Games"],
     }),
 
+    /**
+     * POST /v1/game-rounds/:roundId/answer — the server checks one answer.
+     * Round configs no longer include answers for players, so this is the only
+     * way to know whether a choice was right. The first answer to a question is
+     * final; sending another returns the first one's result. Word puzzles send
+     * the drag (`startCell`, `endCell`) instead.
+     *
+     * Signed-in players are identified by their token; guests by the same
+     * X-Anonymous-Id header as getGameSessionByToken.
+     */
+    answerQuestion: builder.mutation<
+      any,
+      {
+        roundId: string;
+        questionIndex?: number;
+        answer?: number;
+        startCell?: [number, number];
+        endCell?: [number, number];
+      }
+    >({
+      query: ({ roundId, ...body }) => {
+        const anonymousId = getAnonymousId();
+        return {
+          url: `/v1/game-rounds/${roundId}/answer`,
+          method: "POST",
+          body,
+          headers: anonymousId ? { "X-Anonymous-Id": anonymousId } : undefined,
+        };
+      },
+    }),
+
     /** GET /v1/games/t/:token — public: get game session by viral share token */
     // Guests send their anonymous id so the server can mark which rounds they
     // have played (it lives in Redis, not the database). A header rather than a
@@ -348,6 +379,7 @@ export const {
   useJoinGameSessionByTokenMutation,
   useGenerateGameDraftMutation,
   useRegenerateAiQuestionMutation,
+  useAnswerQuestionMutation,
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
   useAnonymousSubmitRoundMutation,
