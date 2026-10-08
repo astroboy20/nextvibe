@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Ticket, Check, Loader2, Plus, Minus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useGetTicketsQuery } from "@/store/api/eventApi";
+import { useGetTicketsQuery } from "@/features/events/api/events-api";
 import { useInitiatePurchaseMutation } from "@/store/api/paymentApi";
 import Image from "next/image";
 

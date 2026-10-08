@@ -24,15 +24,15 @@ import {
   Loader2,
   Video,
 } from "lucide-react";
-import { EventDashboardCard } from "./components/event-dashboard-card";
-import { RSVPTrackerContent } from "./components/rsvp-tracker-content";
+import { EventDashboardCard } from "@/features/events/components/dashboard/event-dashboard-card";
+import { RSVPTrackerContent } from "@/features/events/components/dashboard/rsvp-tracker-content";
 import { TicketCreatorEnhanced } from "./components/tracker-creator-enhanced";
 // import { RecentPurchasesContent } from "./components/recent-purchases-content";
 import { GamificationHubContent } from "@/features/games/components/dashboard/gamification-hub-content";
 import { PaymentModule } from "./components/payment-module";
-import EventRemindersContent from "./components/event-reminders-content";
+import EventRemindersContent from "@/features/events/components/dashboard/event-reminders-content";
 import Image from "next/image";
-// import AnalyticsPanelContent from "./components/analytics-panel";
+// import AnalyticsPanelContent from "@/features/events/components/dashboard/analytics-panel";
 import VibeTagStudioContent from "./components/vibe-tag-studio";
 // import PostcardLeaderboardContent from "@/features/postcards/components/dashboard/leaderboard-content";
 import {
@@ -42,7 +42,7 @@ import {
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
   useUploadIntentMutation,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import {
   useGetGamesQuery,
 } from "@/features/games/api/games-api";
@@ -52,7 +52,7 @@ import {
 } from "@/store/api/interestsApi";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
-import { useGetRemindersQuery } from "@/store/api/reminderApi";
+import { useGetRemindersQuery } from "@/features/events/api/reminders-api";
 import { AccessKeyDisplay } from "@/components/private-event-guard";
 import { formatDate, formatTime } from "@/lib/format-date";
 import Link from "next/link";

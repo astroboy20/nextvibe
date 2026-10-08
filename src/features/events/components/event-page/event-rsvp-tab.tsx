@@ -14,11 +14,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TicketPurchaseModal } from "./ticket-purchase-modal";
+import { TicketPurchaseModal } from "@/app/(app)/events/[id]/components/ticket-purchase-modal";
 import {
   useRsvpMutation,
   useGetEventAttendeesQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import { toast } from "sonner";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import Link from "next/link";

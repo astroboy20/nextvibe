@@ -42,7 +42,7 @@ import {
   useDeleteTicketMutation,
   useUpdateTicketMutation,
   useUploadIntentMutation,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import { PayoutSection } from "./payout-section";
 import { toast } from "sonner";
 

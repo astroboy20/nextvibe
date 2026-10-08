@@ -1,5 +1,5 @@
 "use client";
-import BasicInfo from "./steps/basic-info";
+import BasicInfo from "@/features/events/components/create/steps/basic-info";
 
 const Create = () => {
   return (

@@ -1,7 +1,7 @@
 
 
-import { IOrder } from "./order.type";
-import { IUser } from "./user.type";
+import { IOrder } from "@/types/order.type";
+import { IUser } from "@/types/user.type";
 
 export type Liker = {
   user: Pick<IUser, "id" | "name" | "avatar">;

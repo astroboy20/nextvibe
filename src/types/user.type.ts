@@ -1,4 +1,4 @@
-import { IEvent } from "./event.type";
+import { IEvent } from "@/features/events/types";
 
 
 export interface IUser {

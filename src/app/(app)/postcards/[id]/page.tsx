@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetEventDetailsQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import {
   useGetEventPostcardsQuery,
 } from "@/features/postcards/api/postcards-api";

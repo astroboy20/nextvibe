@@ -16,7 +16,7 @@ import Vibetags from "./vibetag/vibetags";
 import {
   useGetEventVibeTagsQuery,
   useGetEventDetailsQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import { useInitiateVibeTagAddonPaymentMutation } from "@/store/api/organizerPaymentApi";
 import { useDispatch } from "react-redux";
 import { setView, setTemplate } from "@/store/slices/canvas-slice";

@@ -26,7 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   useGetEventDetailsQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import {
   useGetGamesQuery,
   useJoinGameSessionMutation,

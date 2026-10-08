@@ -29,7 +29,7 @@ import {
 import {
   useUpdateEventStatusMutation,
   useGetPublishPreviewQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 
 // ─── Plan display helpers ─────────────────────────────────────────────────────
 

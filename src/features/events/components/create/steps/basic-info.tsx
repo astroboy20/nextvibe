@@ -18,12 +18,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
-import AddressSearch from "../../../components/address-search";
+import AddressSearch from "@/features/events/components/create/address-search";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateEventMutation,
   useUploadIntentMutation,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useMemo, useEffect, useState } from "react";
 import { toast } from "sonner";
-import SuccessModal from "../../../components/success-modal";
+import SuccessModal from "@/features/events/components/create/success-modal";
 import { Badge } from "@/components/ui/badge";
 import { errorHandler } from "@/lib/error-handler";
 

@@ -17,14 +17,14 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { EventAboutTab } from "./components/event-about-tab";
-import { EventRSVPTab } from "./components/event-rsvp-tab";
-import { EventQRTab } from "./components/event-qr-tab";
+import { EventAboutTab } from "@/features/events/components/event-page/event-about-tab";
+import { EventRSVPTab } from "@/features/events/components/event-page/event-rsvp-tab";
+import { EventQRTab } from "@/features/events/components/event-page/event-qr-tab";
 import BottomNav from "@/components/navbar/bottom-navbar";
-import { EventChatTab } from "./components/event-chat-tab";
+import { EventChatTab } from "@/features/events/components/event-page/event-chat-tab";
 import { EventGamesTab } from "@/features/games/components/play/event-game-tab";
 import { EventVibeTagsTab } from "@/features/postcards/components/event-vibetags-tab";
-import { useGetEventDetailsQuery } from "@/store/api/eventApi";
+import { useGetEventDetailsQuery } from "@/features/events/api/events-api";
 import { PrivateEventGuard } from "@/components/private-event-guard";
 import { toast } from "sonner";
 import Image from "next/image";

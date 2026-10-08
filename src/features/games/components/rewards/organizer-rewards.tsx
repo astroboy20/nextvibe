@@ -34,7 +34,7 @@ import {
   type EventRewardsOverview,
   type RewardStatus,
 } from "@/features/games/api/rewards-api";
-import { useGetMyCreatedEventsQuery } from "@/store/api/eventApi";
+import { useGetMyCreatedEventsQuery } from "@/features/events/api/events-api";
 import { RewardStatusBadge } from "./reward-progress";
 
 type Winner = EventRewardsOverview["winners"][number];

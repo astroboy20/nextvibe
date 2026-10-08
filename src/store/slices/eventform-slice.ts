@@ -1,4 +1,4 @@
-import { AutomatedReminder, EventGamificationData } from "@/types/event.type";
+import { AutomatedReminder, EventGamificationData } from "@/features/events/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 

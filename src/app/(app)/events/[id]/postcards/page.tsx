@@ -7,7 +7,7 @@ import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetEventDetailsQuery,
-} from "@/store/api/eventApi";
+} from "@/features/events/api/events-api";
 import {
   useGetPostcardsQuery,
 } from "@/features/postcards/api/postcards-api";

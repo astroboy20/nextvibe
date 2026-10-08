@@ -1,5 +1,5 @@
-import { baseApi } from "./baseApi";
-import { IGalleryItem } from "@/types/event.type";
+import { baseApi } from "@/store/api/baseApi";
+import { IGalleryItem } from "@/features/events/types";
 
 // ── Withdrawal types ──────────────────────────────────────────────────────────
 /**

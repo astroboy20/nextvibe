@@ -1,4 +1,4 @@
-import { IEvent } from "@/types/event.type"
+import { IEvent } from "@/features/events/types"
 
 
 // Game Types

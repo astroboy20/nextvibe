@@ -19,11 +19,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGetEventsQuery } from "@/store/api/eventApi";
+import { useGetEventsQuery } from "@/features/events/api/events-api";
 import { useGetUserQuery } from "@/store/api/authApi";
-import { useEventDiscovery } from "@/hooks/use-event-discovery";
-import ViewToggle from "../components/view-toggle";
-import { EventCard } from "../components/event-card";
+import { useEventDiscovery } from "@/features/events/hooks/use-event-discovery";
+import ViewToggle from "@/features/events/components/discovery/view-toggle";
+import { EventCard } from "@/features/events/components/discovery/event-card";
 import {
   Select,
   SelectContent,
