@@ -113,7 +113,14 @@ export default function RegisterContent() {
           }}
         />
       )}
-      <GoogleLoginButton onLoadingChange={setGoogleLoading} />
+      <GoogleLoginButton
+        onLoadingChange={setGoogleLoading}
+        onSignedIn={(destination) =>
+          handlePostAuth(() => {
+            window.location.href = destination;
+          })
+        }
+      />
 
       <div className="py-4 flex items-center gap-2 text-sm text-gray-500">
         <span className="h-px bg-gray-300 flex-1" />

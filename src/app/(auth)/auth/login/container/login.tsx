@@ -270,7 +270,14 @@ const LoginContent = () => {
 
         <div className="flex flex-col items-center gap-4 ">
           <div className=" w-full">
-            <GoogleLoginButton onLoadingChange={setGoogleLoading} />
+            <GoogleLoginButton
+              onLoadingChange={setGoogleLoading}
+              onSignedIn={(destination) =>
+                handlePostAuth(() => {
+                  window.location.href = destination;
+                })
+              }
+            />
           </div>
 
           <p className="text-center text-sm font-medium text-gray-600 mt-2">

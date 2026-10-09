@@ -6,16 +6,26 @@ import { useDispatch } from "react-redux";
 import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { useGoogleLoginMutation } from "@/features/auth/api/auth-api";
 import { Loader2 } from "lucide-react";
-import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
-import { AnonymousMergeDialog } from "@/features/games/components/anonymous-merge-dialog";
 import { resetAuthRefreshState } from "@/store/api/baseQuery";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
+  /**
+   * Runs after the session is stored, instead of navigating straight to
+   * `destination`. Lets the page fit its own post-sign-in steps (merging a
+   * guest's game rounds) in between without auth knowing about games.
+   */
+  onSignedIn?: (destination: string) => void | Promise<void>;
 }
+
+// Hard navigation so middleware sees cookies before route resolves
+const navigateTo = (destination: string) => {
+  window.location.href = destination;
+};
 
 const GoogleLoginButtonInner = ({
   onLoadingChange,
+  onSignedIn = navigateTo,
 }: GoogleLoginButtonProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
@@ -43,15 +53,6 @@ const GoogleLoginButtonInner = ({
     pathname === "/auth/login"
       ? "Logged in successfully"
       : "Account created successfully";
-  const {
-    pendingSessions,
-    showDialog,
-    isLoading: isMerging,
-    handlePostAuth,
-    confirmMerge,
-    skipMerge,
-  } = useAnonMerge();
-
   useEffect(() => {
     const interval = setInterval(() => {
       if ((window as any).google) {
@@ -70,24 +71,7 @@ const GoogleLoginButtonInner = ({
   if (!isLoaded) return null;
 
   return (
-    <>
-      {showDialog && (
-        <AnonymousMergeDialog
-          sessions={pendingSessions}
-          isLoading={isMerging}
-          onConfirm={(ids) =>
-            confirmMerge(ids, () => {
-              window.location.href = validFrom ?? "/events";
-            })
-          }
-          onSkip={() =>
-            skipMerge(() => {
-              window.location.href = validFrom ?? "/events";
-            })
-          }
-        />
-      )}
-      <GoogleLogin
+    <GoogleLogin
         onSuccess={async (credentialResponse) => {
           try {
             const res = await googleLogin({
@@ -126,10 +110,7 @@ const GoogleLoginButtonInner = ({
               destination = validFrom ?? "/events";
             }
 
-            await handlePostAuth(() => {
-              // Hard navigation so middleware sees cookies before route resolves
-              window.location.href = destination;
-            });
+            await onSignedIn(destination);
           } catch (err: any) {
             const msg =
               err?.data?.error?.message ||
@@ -145,13 +126,12 @@ const GoogleLoginButtonInner = ({
           toast.error("Login Failed. Please try again");
         }}
       />
-    </>
   );
 };
 
-const GoogleLoginButton = ({ onLoadingChange }: GoogleLoginButtonProps) => (
+const GoogleLoginButton = (props: GoogleLoginButtonProps) => (
   <Suspense fallback={null}>
-    <GoogleLoginButtonInner onLoadingChange={onLoadingChange} />
+    <GoogleLoginButtonInner {...props} />
   </Suspense>
 );
 
