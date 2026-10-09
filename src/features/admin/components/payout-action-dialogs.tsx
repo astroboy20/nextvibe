@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import {
@@ -123,7 +124,7 @@ export function PayoutActionDialog({ action, payout, onClose }: Props) {
     } catch (err: unknown) {
       const e = err as { data?: { error?: { message?: string }; message?: string } };
       // Illegal status transitions come back as a 400 naming what IS allowed.
-      toast.error(e?.data?.error?.message ?? e?.data?.message ?? "That action failed");
+      toast.error(apiErrorMessage(e) ?? "That action failed");
     }
   };
 

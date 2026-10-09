@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import Cookies from "js-cookie";
@@ -63,8 +64,7 @@ export function DeleteAccountDialog() {
       signOutTo("/");
     } catch (err: any) {
       const message: string =
-        err?.data?.error?.message ??
-        err?.data?.message ??
+        apiErrorMessage(err) ??
         "Could not delete your account. Please try again.";
       // OAuth-only accounts must have signed in recently; offer the way out.
       if (err?.status === 401 && !check?.needsPassword) {

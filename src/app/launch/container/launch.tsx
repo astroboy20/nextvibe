@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ export default function LaunchLanding() {
       setEmail("");
     } catch (error: any) {
       const msg =
-        error?.data?.message ??
+        apiErrorMessage(error) ??
         error?.data?.error?.message ??
         error?.message ??
         "Something went wrong. Please try again.";

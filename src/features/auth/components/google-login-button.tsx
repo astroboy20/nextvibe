@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useEffect, useState, Suspense } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -113,8 +114,7 @@ const GoogleLoginButtonInner = ({
             await onSignedIn(destination);
           } catch (err: any) {
             const msg =
-              err?.data?.error?.message ||
-              err?.data?.message ||
+              apiErrorMessage(err) ||
               err?.message ||
               "Google login failed. Please try again.";
             toast.error(msg);

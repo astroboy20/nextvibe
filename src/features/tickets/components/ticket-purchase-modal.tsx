@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useMemo, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
@@ -105,7 +106,7 @@ export function TicketPurchaseModal({
       window.location.href = res.data.checkoutUrl;
     } catch (err: any) {
       toast.error(
-        err?.data?.message ?? err?.message ?? "Failed to initiate purchase."
+        apiErrorMessage(err) ?? err?.message ?? "Failed to initiate purchase."
       );
     }
   };

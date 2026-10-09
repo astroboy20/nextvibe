@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { use, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1124,7 +1125,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         setJoined(true);
         toast.success("Joined! Get ready to play.");
       } catch (err: any) {
-        toast.error(err?.data?.message ?? "Could not join. Try again.");
+        toast.error(apiErrorMessage(err) ?? "Could not join. Try again.");
       }
     } else {
       try {
@@ -1142,7 +1143,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         setJoined(true);
         toast.success("Joined as guest! Sign up after to save your score.");
       } catch (err: any) {
-        toast.error(err?.data?.message ?? "Could not join. Try again.");
+        toast.error(apiErrorMessage(err) ?? "Could not join. Try again.");
       }
     }
   };
@@ -1169,7 +1170,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
         toast.success("Answers submitted!");
         return { ok: true, score: payload.score ?? 0 };
       } catch (err: any) {
-        toast.error(err?.data?.message ?? "Submission failed.");
+        toast.error(apiErrorMessage(err) ?? "Submission failed.");
         return { ok: false };
       }
     }
@@ -1180,7 +1181,7 @@ export default function PublicGamePage({ params }: { params: Promise<{ token: st
       const score = res?.data?.score ?? res?.data?.totalScore ?? res?.score ?? 0;
       return { ok: true, score };
     } catch (err: any) {
-      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "Submission failed.");
+      toast.error(apiErrorMessage(err) ?? "Submission failed.");
       return { ok: false };
     }
   };

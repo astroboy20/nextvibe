@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -283,7 +284,7 @@ function EventEditModal({
       toast.success("Event updated.");
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update event.");
+      toast.error(apiErrorMessage(err) ?? "Failed to update event.");
     }
   };
 
@@ -607,7 +608,7 @@ function EventTagsEditor({ event }: { event: any }) {
       await removeTags({ eventId: event.id, tagIds: [tagId] }).unwrap();
       toast.success("Tag removed.");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to remove tag.");
+      toast.error(apiErrorMessage(err) ?? "Failed to remove tag.");
     } finally {
       setRemovingTagId(null);
     }
@@ -618,7 +619,7 @@ function EventTagsEditor({ event }: { event: any }) {
       await addTags({ eventId: event.id, tagIds: [tagId] }).unwrap();
       toast.success("Tag added.");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to add tag.");
+      toast.error(apiErrorMessage(err) ?? "Failed to add tag.");
     }
   };
 
@@ -636,7 +637,7 @@ function EventTagsEditor({ event }: { event: any }) {
       toast.success(`Tag "${newTag.name}" created and added.`);
       setTagInput("");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create tag.");
+      toast.error(apiErrorMessage(err) ?? "Failed to create tag.");
     }
   };
 
@@ -928,7 +929,7 @@ export default function OrganizerDashboard({
       );
       setConfirmStatus(null);
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update event status.");
+      toast.error(apiErrorMessage(err) ?? "Failed to update event status.");
     }
   };
 

@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,9 +89,7 @@ export default function RegisterContent() {
       await handlePostAuth(() => { window.location.href = `/onboarding/vibes?next=${next}`; });
     } catch (error: any) {
       const msg =
-        error?.data?.error?.message ||
-        error?.data?.message ||
-        error?.response?.data?.message ||
+        apiErrorMessage(error) ||
         error?.message ||
         "Something went wrong. Please try again.";
       toast.error(msg);

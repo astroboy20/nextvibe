@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export function EventAboutTab({ event }: EventAboutTabProps) {
       toast.success(prev ? "Unfollowed" : "Following!");
     } catch (err: any) {
       setFollowed(prev);
-      toast.error(err?.data?.message ?? "Could not update follow status.");
+      toast.error(apiErrorMessage(err) ?? "Could not update follow status.");
     }
   };
 

@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -86,7 +87,7 @@ function WinnerRow({ winner }: { winner: Winner }) {
       toast.success(ok);
     } catch (err: unknown) {
       const e = err as { data?: { error?: { message?: string }; message?: string } };
-      toast.error(e?.data?.error?.message ?? e?.data?.message ?? "That didn't work.");
+      toast.error(apiErrorMessage(e) ?? "That didn't work.");
     }
   };
 

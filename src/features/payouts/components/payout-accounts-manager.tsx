@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +58,7 @@ export function PayoutAccountsManager({ onAddAccount }: Props) {
       const e = err as { data?: { error?: { message?: string }; message?: string } };
       // The backend blocks removal while a payout to this account is in flight.
       toast.error(
-        e?.data?.error?.message ?? e?.data?.message ?? "Couldn't remove that account",
+        apiErrorMessage(e) ?? "Couldn't remove that account",
       );
       setPendingDelete(null);
     }

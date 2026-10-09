@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -164,7 +165,7 @@ export default function EditProfile() {
       console.error(error);
 
       toast.error(
-        error?.data?.message ||
+        apiErrorMessage(error) ||
           "Failed to upload avatar"
       );
     } finally {
@@ -188,7 +189,7 @@ export default function EditProfile() {
       // router.back();
     } catch (error: any) {
       toast.error(
-        error?.data?.message ||
+        apiErrorMessage(error) ||
           "Failed to update profile"
       );
     }

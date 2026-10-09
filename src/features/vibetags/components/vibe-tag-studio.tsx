@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,7 +157,7 @@ const VibeTagStudioContent = ({ eventId, name, eventPlan }: VibeTagStudioContent
 
       window.location.href = checkoutUrl;
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to initiate VibeTags payment.");
+      toast.error(apiErrorMessage(err) ?? "Failed to initiate VibeTags payment.");
     }
   };
   useEffect(() => {

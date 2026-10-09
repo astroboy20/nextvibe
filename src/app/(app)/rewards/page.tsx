@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,7 @@ function RewardCard({ reward }: { reward: Reward }) {
       await claim(reward.id).unwrap();
       toast.success("Reward claimed! Check your email or the organizer for next steps.");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Could not claim this reward.");
+      toast.error(apiErrorMessage(err) ?? "Could not claim this reward.");
     }
   };
 

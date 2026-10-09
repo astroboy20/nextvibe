@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 /**
  * AuthBottomSheet
@@ -148,7 +149,7 @@ export function AuthBottomSheet({
       onSuccess(); // login skips vibe step
     } catch (err: any) {
       toast.error(
-        err?.data?.message ?? err?.message ?? "Login failed. Check your credentials."
+        apiErrorMessage(err) ?? err?.message ?? "Login failed. Check your credentials."
       );
     }
   };
@@ -170,7 +171,7 @@ export function AuthBottomSheet({
       goToVibeSelect(); // new user → select vibes
     } catch (err: any) {
       toast.error(
-        err?.data?.message ?? err?.message ?? "Registration failed. Please try again."
+        apiErrorMessage(err) ?? err?.message ?? "Registration failed. Please try again."
       );
     }
   };
@@ -197,8 +198,7 @@ export function AuthBottomSheet({
       }
     } catch (err: any) {
       toast.error(
-        err?.data?.error?.message ??
-          err?.data?.message ??
+        apiErrorMessage(err) ??
           err?.message ??
           "Google sign-in failed. Please try again."
       );

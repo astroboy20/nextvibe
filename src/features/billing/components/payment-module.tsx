@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect } from "react";
@@ -220,7 +221,7 @@ export function PaymentModule({ eventId, eventStatus, onPublished }: PaymentModu
                 onPublished?.();
               } catch (err: any) {
                 toast.error(
-                  err?.data?.message ?? "Failed to publish event."
+                  apiErrorMessage(err) ?? "Failed to publish event."
                 );
               }
             }}
@@ -265,7 +266,7 @@ export function PaymentModule({ eventId, eventStatus, onPublished }: PaymentModu
       // Refetch publish preview to update pricing
       refetchPreview();
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Invalid or expired coupon.");
+      toast.error(apiErrorMessage(err) ?? "Invalid or expired coupon.");
     }
   };
 
@@ -306,7 +307,7 @@ export function PaymentModule({ eventId, eventStatus, onPublished }: PaymentModu
       // Redirect to Ercaspay-hosted checkout page (full redirect, not iframe)
       window.location.href = checkoutUrl;
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to initiate payment.");
+      toast.error(apiErrorMessage(err) ?? "Failed to initiate payment.");
     }
   };
 

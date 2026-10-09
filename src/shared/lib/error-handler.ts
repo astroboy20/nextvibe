@@ -66,6 +66,19 @@ function extractMessage(data: unknown): string | null {
 }
 
 /**
+ * The human-readable message from a failed API call, or `null` so the caller
+ * can supply its own fallback: `apiErrorMessage(err) ?? "Couldn't save"`.
+ *
+ * Use this instead of reading `err.data.message`: the backend sends
+ * `{ success: false, error: { code, message } }`, so that path is always empty.
+ * Unlike `errorHandler`, it doesn't log or swap in generic status text.
+ */
+export function apiErrorMessage(error: unknown): string | null {
+  const e = error as { data?: unknown; response?: { data?: unknown } } | null;
+  return extractMessage(e?.data) ?? extractMessage(e?.response?.data);
+}
+
+/**
  * Universal error handler — covers RTK Query, Axios, Zod, Fetch, DOM, and
  * plain objects. Returns a human-readable string safe to display in the UI.
  */

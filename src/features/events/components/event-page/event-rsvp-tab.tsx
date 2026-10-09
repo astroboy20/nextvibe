@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,7 +32,7 @@ type RSVPChoice = "going" | "waitlisted" | "maybe" | "not-going" | null;
 
 function extractErrorMessage(err: any): string {
   return (
-    err?.data?.message ??
+    apiErrorMessage(err) ??
     err?.data?.error?.message ??
     err?.data?.error ??
     err?.message ??

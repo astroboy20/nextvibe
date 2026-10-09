@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -181,7 +182,7 @@ export default function Controls({ onSaveVibeTag, activityTiming, eventId: event
       setHasEdits(false);
       if (onSaveVibeTag) onSaveVibeTag(file, { paymentRequired, vibeTagId: request?.data?.id });
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create VibeTag. Please try again.");
+      toast.error(apiErrorMessage(err) ?? "Failed to create VibeTag. Please try again.");
     }
   };
 

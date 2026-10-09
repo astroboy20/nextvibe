@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useMemo, useState } from "react";
 import {
@@ -104,7 +105,7 @@ export function RequestPayoutDialog({
     } catch (err: unknown) {
       const e = err as { data?: { error?: { message?: string }; message?: string } };
       toast.error(
-        e?.data?.error?.message ?? e?.data?.message ?? "Couldn't request that payout",
+        apiErrorMessage(e) ?? "Couldn't request that payout",
       );
     }
   };

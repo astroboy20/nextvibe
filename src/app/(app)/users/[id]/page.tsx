@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -53,7 +54,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       toast.success(prev ? "Unfollowed" : "Now following!");
     } catch (err: any) {
       setOptimistic({ id, following: prev });
-      toast.error(err?.data?.message ?? "Could not update follow status.");
+      toast.error(apiErrorMessage(err) ?? "Could not update follow status.");
     }
   };
 
@@ -68,8 +69,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       );
     } catch (err: any) {
       toast.error(
-        err?.data?.error?.message ??
-          err?.data?.message ??
+        apiErrorMessage(err) ??
           "You can only message mutual followers.",
       );
     }

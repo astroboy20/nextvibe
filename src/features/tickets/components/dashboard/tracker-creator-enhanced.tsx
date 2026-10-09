@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState, useRef } from "react";
@@ -299,7 +300,7 @@ export function TicketCreatorEnhanced({
     } catch (error: any) {
       // The backend explains currency mismatches; show its message.
       toast.error(
-        error?.data?.error?.message ?? "Failed to create ticket. Please try again."
+        apiErrorMessage(error) ?? "Failed to create ticket. Please try again."
       );
     }
   };
@@ -325,7 +326,7 @@ export function TicketCreatorEnhanced({
       }
     } catch (error: any) {
       const msg =
-        error?.data?.message ??
+        apiErrorMessage(error) ??
         "Failed to update ticket. Please try again.";
       toast.error(msg);
     }
@@ -355,7 +356,7 @@ export function TicketCreatorEnhanced({
       }
     } catch (error: any) {
       const msg =
-        error?.data?.message ??
+        apiErrorMessage(error) ??
         "Failed to delete ticket. Please try again.";
       toast.error(msg);
     }

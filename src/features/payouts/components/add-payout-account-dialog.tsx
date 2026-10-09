@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -287,7 +288,7 @@ export function AddPayoutAccountDialog({ open, onOpenChange, defaultCurrency }: 
       // digit counts) — surface them rather than a generic failure.
       const e = err as { data?: { error?: { message?: string }; message?: string } };
       toast.error(
-        e?.data?.error?.message ?? e?.data?.message ?? "Couldn't add that account",
+        apiErrorMessage(e) ?? "Couldn't add that account",
       );
     }
   };

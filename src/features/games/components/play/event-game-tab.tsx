@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -2031,8 +2032,7 @@ export function EventGamesTab({
       toast.success("Joined! Wait for the organizer to start a round.");
     } catch (err: any) {
       toast.error(
-        err?.data?.error?.message ??
-        err?.data?.message ??
+        apiErrorMessage(err) ??
         "Could not join session."
       );
     }
@@ -2058,7 +2058,7 @@ export function EventGamesTab({
         toast.success("Answers submitted!");
         return { ok: true, score: payload.score ?? 0 };
       } catch (err: any) {
-        toast.error(err?.data?.message ?? "Submission failed.");
+        toast.error(apiErrorMessage(err) ?? "Submission failed.");
         return { ok: false };
       }
     }
@@ -2104,7 +2104,7 @@ export function EventGamesTab({
       return { ok: true, score };
     } catch (err: any) {
       toast.error(
-        err?.data?.error?.message ?? err?.data?.message ?? "Submission failed."
+        apiErrorMessage(err) ?? "Submission failed."
       );
       return { ok: false };
     }

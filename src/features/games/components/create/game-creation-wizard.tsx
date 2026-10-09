@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -532,8 +533,7 @@ export function GameCreationWizard({
       // RTK Query rejects with { status, data } rather than an Error, and the
       // backend's error body is { success: false, error: { code, message } }.
       toast.error(
-        err?.data?.error?.message ??
-          err?.data?.message ??
+        apiErrorMessage(err) ??
           err?.message ??
           "AI generation failed. Please try again."
       );
@@ -567,8 +567,7 @@ export function GameCreationWizard({
       }
     } catch (err: any) {
       toast.error(
-        err?.data?.error?.message ??
-          err?.data?.message ??
+        apiErrorMessage(err) ??
           err?.message ??
           "Could not regenerate this question. Please edit it manually."
       );
@@ -884,7 +883,7 @@ export function GameCreationWizard({
       clearSaved();
       onCancel();
     } catch (err: any) {
-      const msg = err?.data?.message ?? err?.data?.error ?? err?.message ?? "Failed to create game. Please try again.";
+      const msg = apiErrorMessage(err) ?? err?.message ?? "Failed to create game. Please try again.";
       toast.error(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setIsLoading(false);

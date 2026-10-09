@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -300,7 +301,7 @@ function ReminderCard({
       await upsert({ eventId, timing, rsvpStatus, subject, message }).unwrap();
       toast.success("Reminder saved");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save reminder");
+      toast.error(apiErrorMessage(err) ?? "Failed to save reminder");
     }
   }
 
@@ -310,7 +311,7 @@ function ReminderCard({
       await toggle({ eventId, templateId: template.id, enabled }).unwrap();
       toast.success(enabled ? "Reminder enabled" : "Reminder paused");
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to toggle reminder");
+      toast.error(apiErrorMessage(err) ?? "Failed to toggle reminder");
     }
   }
 
@@ -324,7 +325,7 @@ function ReminderCard({
       setShowDeleteConfirm(false);
       setOpen(false);
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete reminder");
+      toast.error(apiErrorMessage(err) ?? "Failed to delete reminder");
     }
   }
 
@@ -660,8 +661,7 @@ function CsvImportPanel({ eventId, onImportSuccess }: CsvImportPanelProps) {
       onImportSuccess?.();
     } catch (err: any) {
       const raw =
-        err?.data?.error?.message ??
-        err?.data?.message ??
+        apiErrorMessage(err) ??
         err?.message ??
         "CSV import failed";
       toast.error(Array.isArray(raw) ? raw[0] : raw);

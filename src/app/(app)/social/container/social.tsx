@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
@@ -387,7 +388,7 @@ function PeopleList({
       const conversationId = res?.data?.id;
       router.push(conversationId ? `/messages?conversation=${conversationId}` : `/messages?chat=${userId}`);
     } catch (err: any) {
-      toast.error(err?.data?.error?.message ?? err?.data?.message ?? "You can only message mutual followers.");
+      toast.error(apiErrorMessage(err) ?? "You can only message mutual followers.");
     } finally {
       setStartingChat(null);
     }

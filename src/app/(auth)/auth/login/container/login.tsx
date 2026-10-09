@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,8 +112,7 @@ const LoginContent = () => {
       });
     } catch (error: any) {
       const msg =
-        error?.data?.error?.message ||
-        error?.data?.message ||
+        apiErrorMessage(error) ||
         error?.message ||
         "Login failed. Please try again.";
 

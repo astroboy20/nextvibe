@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import {
@@ -450,7 +451,7 @@ export default function CouponsPage() {
       setShowCreate(false);
       setForm(emptyForm);
     } catch (err: any) {
-      toast.error(err?.data?.message ?? err?.message ?? "Failed to create coupon");
+      toast.error(apiErrorMessage(err) ?? err?.message ?? "Failed to create coupon");
     }
   };
 

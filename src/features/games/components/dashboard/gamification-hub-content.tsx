@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setHideHeader } from "@/store/slices/ui-slice";
@@ -184,7 +185,7 @@ function EditGameSessionDialog({
       toast.success("Game session updated.");
       onOpenChange(false);
     } catch (err: any) {
-      const msg = err?.data?.message ?? "Failed to update game session.";
+      const msg = apiErrorMessage(err) ?? "Failed to update game session.";
       // Show the lock message defensively (could have become locked between load and save)
       toast.error(msg);
     }
@@ -477,7 +478,7 @@ export function GamificationHubContent({
 
       window.location.href = checkoutUrl;
     } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to initiate unlock payment.");
+      toast.error(apiErrorMessage(err) ?? "Failed to initiate unlock payment.");
     }
   };
 

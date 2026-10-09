@@ -1,4 +1,5 @@
 "use client";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -422,7 +423,7 @@ export default function RewardTiers() {
       window.location.href = res?.data?.checkoutUrl;
     } catch (err: any) {
       const msg =
-        err?.data?.message ?? err?.message ?? "Failed to initiate pledge.";
+        apiErrorMessage(err) ?? err?.message ?? "Failed to initiate pledge.";
       toast.error(msg);
       setPledgingId(null);
     }

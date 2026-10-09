@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
@@ -304,7 +305,7 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
       ready.forEach((item) => onSubmit?.({ image: item.baked ?? item.raw, caption: item.caption }));
       onClose?.();
     } catch (err: any) {
-      const msg = err?.data?.message ?? err?.message ?? "Failed to post. Please try again.";
+      const msg = apiErrorMessage(err) ?? err?.message ?? "Failed to post. Please try again.";
       // Helpful error messages for swap-specific cases
       if (isSwapMode && err?.status === 403) {
         toast.error("You can only replace your own postcards.");
