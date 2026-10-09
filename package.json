@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:features": "node scripts/check-feature-boundaries.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -1,6 +1,3 @@
-import { IEvent } from "@/features/events/types";
-
-
 export interface IUser {
   id: string;
   name: string;
@@ -22,7 +19,6 @@ export interface IUser {
   subscription: "free" | "pro" | "premium";
   uploadCount: number;
   favoriteIds: string[];
-  favorites: Partial<IEvent>[];
   followerIds: string[];
   followingIds: string[];
   followers: Partial<IUser>[];
