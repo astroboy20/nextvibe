@@ -44,6 +44,19 @@ import {
 } from "@/features/tickets/api/tickets-api";
 import { useUploadIntentMutation } from "@/shared/api/uploads-api";
 import { PayoutSection } from "@/features/payouts/components/dashboard/payout-section";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  TICKET_CURRENCIES,
+  currencySymbol,
+  formatTicketPrice,
+  lockedTicketCurrency,
+} from "@/features/tickets/lib/currency";
 import { toast } from "sonner";
 
 // ── Ticket-image upload helpers ──────────────────────────────────────────────
@@ -229,6 +242,10 @@ export function TicketCreatorEnhanced({
     useDeleteTicketMutation();
   const [uploadIntent] = useUploadIntentMutation();
 
+  // Once the event has a paid tier, every new paid tier must use its currency.
+  const lockedCurrency = lockedTicketCurrency(tickets);
+  const currency = lockedCurrency ?? newTicket.currency;
+
   const totalRevenue = eventDetails?.reduce(
     (sum: number, t: any) => sum + t.price * t.quantitySold,
     0
@@ -247,7 +264,7 @@ export function TicketCreatorEnhanced({
         price: Number(newTicket.price),
         ...(newTicket.description && { description: newTicket.description }),
         ...(newTicket.quantity && { quantity: Number(newTicket.quantity) }),
-        ...(newTicket.currency && { currency: newTicket.currency }),
+        currency,
         ...(newTicket.perks && { perks: newTicket.perks }),
         ...(newTicket.ticketEndDate && { ticketEndDate: newTicket.ticketEndDate }),
         ...(newTicket.ticketLink && { ticketLink: newTicket.ticketLink }),
@@ -260,7 +277,11 @@ export function TicketCreatorEnhanced({
       }).unwrap();
 
       if (request?.success) {
-        setTickets((prev) => [...(prev || []), request.data]);
+        // A first paid tier moves the event, and its free tiers, to its currency.
+        setTickets((prev) => [
+          ...(prev || []).map((t: any) => ({ ...t, currency: request.data.currency })),
+          request.data,
+        ]);
         toast.success("Ticket created successfully");
         setIsCreating(false);
         setNewTicketImageUrl(null);
@@ -269,14 +290,17 @@ export function TicketCreatorEnhanced({
           description: "",
           price: "",
           quantity: "",
-          currency: "NGN",
+          currency: newTicket.currency,
           perks: "",
           ticketEndDate: "",
           ticketLink: "",
         });
       }
-    } catch (error) {
-      toast.error("Failed to create ticket. Please try again.");
+    } catch (error: any) {
+      // The backend explains currency mismatches; show its message.
+      toast.error(
+        error?.data?.error?.message ?? "Failed to create ticket. Please try again."
+      );
     }
   };
 
@@ -337,14 +361,6 @@ export function TicketCreatorEnhanced({
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
-
   const isSoldOut = (ticket: any) => {
     return ticket.quantity > 0 && ticket.quantitySold >= ticket.quantity;
   };
@@ -357,7 +373,7 @@ export function TicketCreatorEnhanced({
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-green-500/10 p-3 text-center">
           <p className="font-display text-lg font-bold text-green-600">
-            {formatPrice(totalRevenue || 0)}
+            {formatTicketPrice(totalRevenue || 0, lockedCurrency)}
           </p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
@@ -422,9 +438,35 @@ export function TicketCreatorEnhanced({
                   }
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticket-currency">Currency</Label>
+                <Select
+                  value={currency}
+                  onValueChange={(value) =>
+                    setNewTicket({ ...newTicket, currency: value })
+                  }
+                  disabled={!!lockedCurrency}
+                >
+                  <SelectTrigger id="ticket-currency" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TICKET_CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {lockedCurrency
+                    ? `This event sells in ${lockedCurrency}. All paid tickets use the same currency.`
+                    : "Your first paid ticket sets the event's currency. You can't mix currencies."}
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ticket-price">Price (₦)</Label>
+                  <Label htmlFor="ticket-price">Price ({currencySymbol(currency)})</Label>
                   <Input
                     id="ticket-price"
                     type="number"
@@ -522,7 +564,7 @@ export function TicketCreatorEnhanced({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{ticket.name}</span>
                   <Badge variant="outline" className="text-xs">
-                    {formatPrice(ticket.price)}
+                    {formatTicketPrice(ticket.price, ticket.currency)}
                   </Badge>
                   {isSoldOut(ticket) && (
                     <Badge className="bg-red-500 text-white text-xs">
@@ -588,7 +630,7 @@ export function TicketCreatorEnhanced({
                         </div>
                         <div className="grid grid-cols-2 gap-4 opacity-60 pointer-events-none select-none">
                           <div className="space-y-2">
-                            <Label>Price (₦)</Label>
+                            <Label>Price ({currencySymbol(editingTicket.currency)})</Label>
                             <Input value={editingTicket.price} readOnly />
                           </div>
                           <div className="space-y-2">

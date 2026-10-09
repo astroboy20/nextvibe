@@ -9,6 +9,7 @@ import { Ticket, Check, Loader2, Plus, Minus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useGetTicketsQuery } from "@/features/tickets/api/tickets-api";
+import { formatTicketPrice } from "@/features/tickets/lib/currency";
 import { useInitiatePurchaseMutation } from "@/features/tickets/api/payments-api";
 import Image from "next/image";
 
@@ -17,6 +18,7 @@ interface TicketItem {
   name: string;
   description: string;
   price: number;
+  currency: string;
   available: number;
   imageUrl: string | null;
 }
@@ -30,14 +32,8 @@ interface TicketPurchaseModalProps {
   setTicketTierId?: (id: string) => void;
 }
 
-const formatPrice = (price: number) =>
-  price === 0
-    ? "Free"
-    : new Intl.NumberFormat("en-NG", {
-        style: "currency",
-        currency: "NGN",
-        minimumFractionDigits: 0,
-      }).format(price);
+const formatPrice = (price: number, currency: string) =>
+  price === 0 ? "Free" : formatTicketPrice(price, currency);
 
 export function TicketPurchaseModal({
   open,
@@ -81,6 +77,7 @@ export function TicketPurchaseModal({
         name: t.name,
         description: t.description ?? "",
         price: Number(t.price),
+        currency: t.currency ?? "NGN",
         available: t.quantity - (t.quantitySold ?? 0),
         imageUrl: t.imageUrl ?? null,
       })),
@@ -219,7 +216,7 @@ export function TicketPurchaseModal({
                           variant={isSelected ? "default" : "secondary"}
                           className="text-xs font-semibold shrink-0"
                         >
-                          {formatPrice(ticket.price)}
+                          {formatPrice(ticket.price, ticket.currency)}
                         </Badge>
                       </div>
                     </button>
@@ -286,7 +283,7 @@ export function TicketPurchaseModal({
                     {selectedQty} × {selected.name}
                   </span>
                   <span className="font-semibold text-sm">
-                    {formatPrice(total)}
+                    {formatPrice(total, selected.currency)}
                   </span>
                 </div>
               )}
@@ -317,7 +314,7 @@ export function TicketPurchaseModal({
                 ) : (
                   <>
                     <Ticket className="h-4 w-4" />
-                    Pay {formatPrice(total)}
+                    Pay {formatPrice(total, selected.currency)}
                   </>
                 )}
               </Button>
