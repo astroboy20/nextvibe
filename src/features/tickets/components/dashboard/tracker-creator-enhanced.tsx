@@ -41,8 +41,8 @@ import {
   useCreateTicketMutation,
   useDeleteTicketMutation,
   useUpdateTicketMutation,
-  useUploadIntentMutation,
-} from "@/features/events/api/events-api";
+} from "@/features/tickets/api/tickets-api";
+import { useUploadIntentMutation } from "@/shared/api/uploads-api";
 import { PayoutSection } from "@/features/payouts/components/dashboard/payout-section";
 import { toast } from "sonner";
 

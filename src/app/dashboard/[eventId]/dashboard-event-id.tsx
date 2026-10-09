@@ -41,8 +41,8 @@ import {
   useUpdateEventMutation,
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
-  useUploadIntentMutation,
 } from "@/features/events/api/events-api";
+import { useUploadIntentMutation } from "@/shared/api/uploads-api";
 import {
   useGetGamesQuery,
 } from "@/features/games/api/games-api";

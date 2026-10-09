@@ -20,10 +20,8 @@ import { useForm } from "react-hook-form";
 import Image from "next/image";
 import AddressSearch from "@/features/events/components/create/address-search";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  useCreateEventMutation,
-  useUploadIntentMutation,
-} from "@/features/events/api/events-api";
+import { useCreateEventMutation } from "@/features/events/api/events-api";
+import { useUploadIntentMutation } from "@/shared/api/uploads-api";
 import {
   Select,
   SelectContent,

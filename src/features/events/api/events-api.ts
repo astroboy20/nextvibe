@@ -53,51 +53,7 @@ export const eventsApi = baseApi.injectEndpoints({
       providesTags: (_, __, id) => [{ type: "Event", id }],
     }),
 
-    //ticket api
-    createTicket: builder.mutation<any, { eventId: string; ticketData: any }>({
-      query: ({ eventId, ticketData }) => ({
-        url: `/v1/events/${eventId}/tickets`,
-        method: "POST",
-        body: ticketData,
-      }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
-    }),
-    updateTicket: builder.mutation<
-      any,
-      { eventId: string; ticketData: any; ticketId: string }
-    >({
-      query: ({ eventId, ticketData, ticketId }) => ({
-        url: `/v1/events/${eventId}/tickets/${ticketId}`,
-        method: "PATCH",
-        body: ticketData,
-      }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
-    }),
-    deleteTicket: builder.mutation<any, { eventId: string; ticketId: any }>({
-      query: ({ eventId, ticketId }) => ({
-        url: `/v1/events/${eventId}/tickets/${ticketId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (_, __, { eventId }) => [{ type: "Event", id: eventId }],
-    }),
-    getTickets: builder.query<any, string>({
-      query: (eventId) => `/v1/events/${eventId}/tickets`,
-      providesTags: (_, __, id) => [{ type: "Event", id }],
-    }),
-
     //event api
-
-    // Step A of presigned upload flow: get a short-lived upload URL + final CDN URL
-    uploadIntent: builder.mutation<
-      { success: boolean; data: { uploadUrl: string; fileUrl: string } },
-      { filename: string; contentType: string; folder: string }
-    >({
-      query: (body) => ({
-        url: "/v1/events/upload-intent",
-        method: "POST",
-        body,
-      }),
-    }),
 
     createEvent: builder.mutation<any, Record<string, any>>({
       query: (eventData) => ({
@@ -431,16 +387,11 @@ export const {
   useSendCustomInviteMutation,
   useGetEventMessagesQuery,
   useDeleteScheduledMessageMutation,
-  useCreateTicketMutation,
-  useUpdateTicketMutation,
-  useDeleteTicketMutation,
-  useGetTicketsQuery,
   useCheckinEventMutation,
   useCreateVibeTagMutation,
   useGetEventVibeTagsQuery,
   useGetEventAttendeesQuery,
   useGetPublishPreviewQuery,
-  useUploadIntentMutation,
   useAddEventTagsMutation,
   useRemoveEventTagsMutation,
   useRequestWithdrawalMutation,
