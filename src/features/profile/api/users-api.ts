@@ -45,9 +45,30 @@ export const userApi = createApi({
             }
         }),
 
+        /** GET /v1/users/me/deletion-check — what blocks deletion, and whether a password is needed. */
+        getDeletionCheck: build.query<
+            {
+                canDelete: boolean;
+                blockers: { code: string; message: string }[];
+                needsPassword: boolean;
+            },
+            void
+        >({
+            query: () => ({ url: "/v1/users/me/deletion-check", method: "GET" }),
+            transformResponse: (res: any) => res?.data ?? res,
+        }),
+
+        /**
+         * DELETE /v1/users/me — anonymizes the account and signs it out
+         * everywhere. Purchases and payouts are kept as "Deleted user".
+         */
+        deleteAccount: build.mutation<{ deleted: true }, { password?: string }>({
+            query: (body) => ({ url: "/v1/users/me", method: "DELETE", body }),
+        }),
+
 
 
     })
 })
 
-export const { useGetUserQuery, useSwitchRoleMutation, useUpdateMeMutation } = userApi
+export const { useGetUserQuery, useSwitchRoleMutation, useUpdateMeMutation, useGetDeletionCheckQuery, useDeleteAccountMutation } = userApi

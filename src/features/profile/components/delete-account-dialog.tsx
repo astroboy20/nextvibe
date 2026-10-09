@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import {
   useDeleteAccountMutation,
   useGetDeletionCheckQuery,
-} from "@/features/auth/api/auth-api";
+} from "@/features/profile/api/users-api";
 
 const CONFIRM_WORD = "DELETE";
 
