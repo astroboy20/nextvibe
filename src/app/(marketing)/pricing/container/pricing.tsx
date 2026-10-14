@@ -32,7 +32,7 @@ function useExchangeRate() {
 
     // 2. Fetch live USD → NGN rate (no API key, no rate limits)
     fetch(
-      "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json"
+      "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json",
     )
       .then((res) => res.json())
       .then((data) => {
@@ -358,7 +358,11 @@ export default function Pricing() {
             icon={Tag}
             description="Custom branded VibeTag design, unlimited postcards, forever storage, analytics."
             headers={["Tier", "Single (Pre OR Main)", "Bundle (Pre + Main)"]}
-            rows={tiers.map((t, i) => [t, fmt(vibetagSingleNgn[i]), fmt(vibetagBundleNgn[i])])}
+            rows={tiers.map((t, i) => [
+              t,
+              fmt(vibetagSingleNgn[i]),
+              fmt(vibetagBundleNgn[i]),
+            ])}
           />
 
           <PricingTable
@@ -366,7 +370,11 @@ export default function Pricing() {
             icon={Gamepad2}
             description="2 games included, AI generation, leaderboards, real-time scoring, sound effects & haptics."
             headers={["Tier", "Single (2 games)", "Bundle (4 games)"]}
-            rows={tiers.map((t, i) => [t, fmt(gameSingleNgn[i]), fmt(gameBundleNgn[i])])}
+            rows={tiers.map((t, i) => [
+              t,
+              fmt(gameSingleNgn[i]),
+              fmt(gameBundleNgn[i]),
+            ])}
           />
 
           <motion.div
@@ -422,7 +430,11 @@ export default function Pricing() {
               "Single (Pre OR Main)",
               "Full Event (Pre + Main)",
             ]}
-            rows={tiers.map((t, i) => [t, fmt(megaSingleNgn[i]), fmt(megaFullNgn[i])])}
+            rows={tiers.map((t, i) => [
+              t,
+              fmt(megaSingleNgn[i]),
+              fmt(megaFullNgn[i]),
+            ])}
           />
         </div>
 

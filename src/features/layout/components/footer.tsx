@@ -52,7 +52,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-[#5B1A57] text-white">
+    <footer className="bg-[#5B1A57] text-white relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           <div className="lg:col-span-2">
@@ -62,7 +62,7 @@ const Footer = () => {
               viewport={{ once: true }}
               className="mb-6"
             >
-              <h3 className="text-3xl font-bold mb-4">NextVibe</h3>
+              <h3 className="text-3xl font-bold mb-4">Nextvibe</h3>
               <p className="text-white/80 mb-6 leading-relaxed">
                 The digital memory bank for events. Shared photo albums via QR
                 code, VibeTags, event games, smart RSVP, and brand sponsorships
