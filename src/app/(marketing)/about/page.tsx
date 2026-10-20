@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const AboutPage = () => {
   return (
-    <div className="h-screen">
+    <div>
       <AboutContent />
     </div>
   );

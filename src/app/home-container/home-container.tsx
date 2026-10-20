@@ -5,19 +5,21 @@ import HeroSection from "./container/hero-section";
 import { FeaturesSection } from "./container/feature-section";
 import StakeholdersSection from "./container/stakeholder-timeline-section";
 import SocialProofSection from "./container/socialproof-section";
+import AffiliateSection from "./container/affiliate-section";
 import JoinMovement from "./container/join-movement-section";
 import Navbar from "@/features/layout/components/navbar/navbar";
 import Footer from "@/features/layout/components/footer";
 
 const HomeContainer = () => {
   return (
-    <main className="min-h-screen pt-25 overflow-x-hidden">
+    <main className="min-h-screen overflow-x-hidden">
       <Navbar />
       <InteractiveFeatures />
       <HeroSection />
       <FeaturesSection />
       <StakeholdersSection />
       <SocialProofSection />
+      <AffiliateSection />
       <JoinMovement />
       <Footer />
     </main>

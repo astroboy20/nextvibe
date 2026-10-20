@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const page = () => {
   return (
-    <main className="h-screen ">
+    <main>
       <Contact />
     </main>
   );
