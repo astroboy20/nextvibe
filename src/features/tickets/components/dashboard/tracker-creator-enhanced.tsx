@@ -1,6 +1,7 @@
-import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
+
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

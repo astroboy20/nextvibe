@@ -1,6 +1,7 @@
-import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @next/next/no-img-element */
 "use client";
+
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";

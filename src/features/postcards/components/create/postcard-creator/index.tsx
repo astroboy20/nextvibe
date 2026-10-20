@@ -1,6 +1,7 @@
-import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable @next/next/no-img-element */
 "use client";
+
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, X, Camera, Plus, Loader2, Heart, MessageCircle } from "lucide-react";

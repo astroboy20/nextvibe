@@ -1,6 +1,7 @@
-import { apiErrorMessage } from "@/shared/lib/error-handler";
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
+
+import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
