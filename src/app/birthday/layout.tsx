@@ -24,7 +24,8 @@ export default function BirthdayLayout({
       'https://connect.facebook.net/en_US/fbevents.js');
 
       fbq('init', '1613572376899735');   // Pixel #1 — Birthday campaign
-      fbq('init', '2123982265155494'); // Pixel #2 —  New Birthday campaign
+      fbq('init', '2123982265155494'); // Pixel #2 — New Birthday campaign
+      fbq('init', '1112302675091628'); // Pixel #3 — Sales campaign
 
       fbq('track', 'PageView');
     `,
@@ -47,6 +48,16 @@ export default function BirthdayLayout({
           width="1"
           style={{ display: "none" }}
           src="https://www.facebook.com/tr?id=2123982265155494&ev=PageView&noscript=1"
+          alt=""
+        />
+      </noscript>
+      <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src="https://www.facebook.com/tr?id=1112302675091628&ev=PageView&noscript=1"
           alt=""
         />
       </noscript>
