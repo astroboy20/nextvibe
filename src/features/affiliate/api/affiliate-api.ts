@@ -83,6 +83,9 @@ export interface PaginatedEarningsResponse {
   meta: PaginationMeta;
 }
 
+// Every backend response is wrapped: { success: boolean; data: T }
+type Envelope<T> = { success: boolean; data: T };
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const affiliateApi = createApi({
@@ -96,7 +99,7 @@ export const affiliateApi = createApi({
      * GET /v1/affiliates/me
      * Check whether the logged-in user is a registered affiliate.
      */
-    getAffiliateStatus: builder.query<AffiliateStatusResponse, void>({
+    getAffiliateStatus: builder.query<Envelope<AffiliateStatusResponse>, void>({
       query: () => "/v1/affiliates/me",
       providesTags: ["AffiliateStatus"],
     }),
@@ -105,7 +108,7 @@ export const affiliateApi = createApi({
      * POST /v1/affiliates/register
      * Register the current user as an affiliate. No body required.
      */
-    registerAffiliate: builder.mutation<AffiliateStatusResponse, void>({
+    registerAffiliate: builder.mutation<Envelope<AffiliateStatusResponse>, void>({
       query: () => ({
         url: "/v1/affiliates/register",
         method: "POST",
@@ -117,7 +120,7 @@ export const affiliateApi = createApi({
      * GET /v1/affiliates/dashboard
      * Full dashboard in a single request — profile, metrics, recent activity.
      */
-    getAffiliateDashboard: builder.query<AffiliateDashboardResponse, void>({
+    getAffiliateDashboard: builder.query<Envelope<AffiliateDashboardResponse>, void>({
       query: () => "/v1/affiliates/dashboard",
       providesTags: ["AffiliateDashboard"],
     }),
@@ -127,7 +130,7 @@ export const affiliateApi = createApi({
      * Paginated list of referred organizers.
      */
     getAffiliateReferrals: builder.query<
-      PaginatedReferralsResponse,
+      Envelope<PaginatedReferralsResponse>,
       { page?: number; limit?: number } | void
     >({
       query: (params) => {
@@ -145,7 +148,7 @@ export const affiliateApi = createApi({
      * Paginated commission earnings ledger.
      */
     getAffiliateEarnings: builder.query<
-      PaginatedEarningsResponse,
+      Envelope<PaginatedEarningsResponse>,
       { page?: number; limit?: number; status?: AffiliateEarningStatus } | void
     >({
       query: (params) => {

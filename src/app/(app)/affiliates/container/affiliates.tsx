@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,12 +23,11 @@ import { MetricsGrid, MetricsGridSkeleton } from "@/features/affiliate/component
 import { ReferralLinkCard } from "@/features/affiliate/components/referral-link-card";
 import { JoinAffiliateCard } from "@/features/affiliate/components/join-affiliate-card";
 import { EarningStatusBadge } from "@/features/affiliate/components/earnings-status-badge";
-import { TrendingUp, Users, Inbox } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatAmount(amount: number) {
-  return `₦${amount.toLocaleString()}`;
+  return `₦${Number(amount).toLocaleString()}`;
 }
 
 function formatDate(iso: string) {
@@ -46,10 +45,10 @@ const EARNING_STATUSES: { label: string; value: AffiliateEarningStatus | "ALL" }
   { label: "Paid Out", value: "PAID_OUT" },
 ];
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
+// ─── Overview tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab({ affiliateCode }: { affiliateCode: string }) {
-  const { data, isLoading } = useGetAffiliateDashboardQuery();
+  const { data: raw, isLoading } = useGetAffiliateDashboardQuery();
 
   if (isLoading) {
     return (
@@ -61,9 +60,11 @@ function OverviewTab({ affiliateCode }: { affiliateCode: string }) {
     );
   }
 
-  if (!data) return null;
+  // Backend wraps: { success, data: { profile, metrics, recentEarnings, recentReferrals } }
+  const dashboard = raw?.data;
+  if (!dashboard) return null;
 
-  const { metrics, recentEarnings, recentReferrals } = data;
+  const { metrics, recentEarnings, recentReferrals } = dashboard;
 
   return (
     <div className="space-y-5">
@@ -123,7 +124,8 @@ function OverviewTab({ affiliateCode }: { affiliateCode: string }) {
                     variant="secondary"
                     className="shrink-0 bg-emerald-500/10 text-emerald-600 text-[10px]"
                   >
-                    {ref.completedPurchasesCount} purchase{ref.completedPurchasesCount !== 1 ? "s" : ""}
+                    {ref.completedPurchasesCount} purchase
+                    {ref.completedPurchasesCount !== 1 ? "s" : ""}
                   </Badge>
                 )}
               </CardContent>
@@ -135,9 +137,11 @@ function OverviewTab({ affiliateCode }: { affiliateCode: string }) {
   );
 }
 
+// ─── Referrals tab ────────────────────────────────────────────────────────────
+
 function ReferralsTab() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching } = useGetAffiliateReferralsQuery({ page, limit: 20 });
+  const { data: raw, isLoading, isFetching } = useGetAffiliateReferralsQuery({ page, limit: 20 });
 
   if (isLoading) {
     return (
@@ -157,8 +161,9 @@ function ReferralsTab() {
     );
   }
 
-  const referrals = data?.data ?? [];
-  const meta = data?.meta;
+  // Backend wraps: { success, data: { data: [...], meta: {...} } }
+  const referrals = raw?.data?.data ?? [];
+  const meta = raw?.data?.meta;
 
   if (referrals.length === 0) {
     return (
@@ -205,7 +210,6 @@ function ReferralsTab() {
         </Card>
       ))}
 
-      {/* Pagination */}
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <Button
@@ -235,18 +239,21 @@ function ReferralsTab() {
   );
 }
 
+// ─── Earnings tab ─────────────────────────────────────────────────────────────
+
 function EarningsTab() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<AffiliateEarningStatus | "ALL">("ALL");
 
-  const { data, isLoading, isFetching } = useGetAffiliateEarningsQuery({
+  const { data: raw, isLoading, isFetching } = useGetAffiliateEarningsQuery({
     page,
     limit: 20,
     ...(statusFilter !== "ALL" ? { status: statusFilter } : {}),
   });
 
-  const earnings = data?.data ?? [];
-  const meta = data?.meta;
+  // Backend wraps: { success, data: { data: [...], meta: {...} } }
+  const earnings = raw?.data?.data ?? [];
+  const meta = raw?.data?.meta;
 
   return (
     <div className="space-y-4">
@@ -255,10 +262,7 @@ function EarningsTab() {
         {EARNING_STATUSES.map((s) => (
           <button
             key={s.value}
-            onClick={() => {
-              setStatusFilter(s.value);
-              setPage(1);
-            }}
+            onClick={() => { setStatusFilter(s.value); setPage(1); }}
             className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               statusFilter === s.value
                 ? "bg-primary text-primary-foreground"
@@ -314,7 +318,7 @@ function EarningsTab() {
                       +{formatAmount(earning.amount)}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {(earning.rateApplied * 100).toFixed(0)}% of{" "}
+                      {(Number(earning.rateApplied) * 100).toFixed(0)}% of{" "}
                       {formatAmount(earning.baseAmount)}
                     </p>
                   </div>
@@ -323,7 +327,6 @@ function EarningsTab() {
             </Card>
           ))}
 
-          {/* Pagination */}
           {meta && meta.totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <Button
@@ -345,11 +348,7 @@ function EarningsTab() {
                 disabled={page >= meta.totalPages || isFetching}
                 onClick={() => setPage((p) => p + 1)}
               >
-                {isFetching ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  "Next"
-                )}
+                {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Next"}
               </Button>
             </div>
           )}
@@ -363,10 +362,11 @@ function EarningsTab() {
 
 export default function AffiliatesContainer() {
   const router = useRouter();
-  const { data: statusData, isLoading: isCheckingStatus } =
-    useGetAffiliateStatusQuery();
-  const [registerAffiliate, { isLoading: isRegistering }] =
-    useRegisterAffiliateMutation();
+  const { data: statusRaw, isLoading: isCheckingStatus } = useGetAffiliateStatusQuery();
+  const [registerAffiliate, { isLoading: isRegistering }] = useRegisterAffiliateMutation();
+
+  // Backend wraps: { success, data: { isAffiliate, profile } }
+  const statusData = statusRaw?.data;
 
   const handleJoin = async () => {
     try {
@@ -407,10 +407,8 @@ export default function AffiliatesContainer() {
             <MetricsGridSkeleton />
           </div>
         ) : !statusData?.isAffiliate ? (
-          /* Not yet an affiliate — show the join card */
           <JoinAffiliateCard onJoin={handleJoin} isLoading={isRegistering} />
         ) : (
-          /* Registered affiliate — show the full dashboard */
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-3 rounded-xl mb-5">
               <TabsTrigger value="overview" className="rounded-lg text-xs">
@@ -425,9 +423,7 @@ export default function AffiliatesContainer() {
             </TabsList>
 
             <TabsContent value="overview">
-              <OverviewTab
-                affiliateCode={statusData.profile!.affiliateCode}
-              />
+              <OverviewTab affiliateCode={statusData.profile!.affiliateCode} />
             </TabsContent>
 
             <TabsContent value="referrals">
