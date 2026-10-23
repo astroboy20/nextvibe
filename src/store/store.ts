@@ -22,6 +22,7 @@ import { launchApi } from "@/features/campaigns/api/launch-api";
 import { analyticsApi } from "@/features/events/api/analytics-api";
 import { campaignApi } from "@/features/campaigns/api/campaign-api";
 import { payoutApi } from "@/features/payouts/api/payouts-api";
+import { affiliateApi } from "@/features/affiliate/api/affiliate-api";
 
 export const store = configureStore({
     reducer: {
@@ -48,6 +49,7 @@ export const store = configureStore({
         [analyticsApi.reducerPath]: analyticsApi.reducer,
         [campaignApi.reducerPath]: campaignApi.reducer,
         [payoutApi.reducerPath]: payoutApi.reducer,
+        [affiliateApi.reducerPath]: affiliateApi.reducer,
     },
     middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware().concat(
@@ -68,6 +70,7 @@ export const store = configureStore({
             analyticsApi.middleware,
             campaignApi.middleware,
             payoutApi.middleware,
+            affiliateApi.middleware,
         )
     }
 })

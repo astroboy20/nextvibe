@@ -20,6 +20,7 @@ import {
   Play,
   Banknote,
   Trophy,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -303,6 +304,23 @@ const Profile = () => {
                           {unclaimedRewards}
                         </span>
                       )}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/affiliates">
+                  <Card className="overflow-hidden border-violet-500/20 bg-linear-to-br from-violet-500/10 to-accent/10 hover:shadow-card transition-all">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20">
+                        <Link2 className="h-5 w-5 text-violet-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground text-2l">
+                          Affiliate
+                        </h3>
+                        <p className="text-base">Refer &amp; earn commission</p>
+                      </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </CardContent>
                   </Card>

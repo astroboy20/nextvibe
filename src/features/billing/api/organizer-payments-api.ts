@@ -20,6 +20,10 @@ export interface PlanQuote {
   volumeDiscountPercent: number;
   volumeDiscountAmount: number;
   couponDiscountAmount: number;
+  affiliateDiscountPercent: number;
+  affiliateDiscountAmount: number;
+  affiliateId?: string | null;
+  affiliateCode?: string | null;
   finalAmount: number;
   gamesIncluded?: number;
   couponCode?: string;

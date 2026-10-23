@@ -63,7 +63,9 @@ interface PlanCardProps {
 
 function PlanCard({ plan, selected, onSelect }: PlanCardProps) {
   const hasDiscount =
-    plan.volumeDiscountPercent > 0 || plan.couponDiscountAmount > 0;
+    plan.volumeDiscountPercent > 0 ||
+    plan.couponDiscountAmount > 0 ||
+    (plan.affiliateDiscountAmount ?? 0) > 0;
 
   return (
     <button
@@ -432,6 +434,19 @@ export function PaymentModule({ eventId, eventStatus, onPublished }: PaymentModu
               </span>
               <span className="text-green-700 font-bold">
                 −₦{quotedPlan.couponDiscountAmount.toLocaleString()}
+              </span>
+            </div>
+          )}
+
+          {/* Affiliate referral discount — auto-applied when user was referred at signup */}
+          {(activePlan?.affiliateDiscountAmount ?? 0) > 0 && (
+            <div className="flex items-center justify-between rounded-lg bg-violet-500/10 border border-violet-500/20 px-3 py-2 text-xs">
+              <span className="text-violet-700 dark:text-violet-400 font-medium flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                Referral Discount ({activePlan!.affiliateDiscountPercent}%)
+              </span>
+              <span className="text-violet-700 dark:text-violet-400 font-bold">
+                −₦{activePlan!.affiliateDiscountAmount.toLocaleString()}
               </span>
             </div>
           )}
