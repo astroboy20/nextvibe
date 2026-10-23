@@ -17,7 +17,7 @@ export function ReferralLinkCard({ affiliateCode }: ReferralLinkCardProps) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const shareUrl = `${APP_URL}/signup?ref=${affiliateCode}`;
+  const shareUrl = `${APP_URL}/auth/register?ref=${affiliateCode}`;
 
   const copy = async (text: string, type: "link" | "code") => {
     try {
