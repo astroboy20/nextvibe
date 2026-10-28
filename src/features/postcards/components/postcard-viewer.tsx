@@ -394,7 +394,7 @@ export const PostcardViewer = memo(function PostcardViewer({
     setDownloading(true);
 
     try {
-      const isVideo = currentMedia.mediaType === "VIDEO";
+      const isVideo = currentMedia.mediaType?.toUpperCase() === "VIDEO";
 
       const file = await getOrFetchFile(currentMedia);
 

@@ -34,7 +34,7 @@ export function useMediaPrepCache() {
         return;
       }
 
-      const isVideo = media.mediaType === "VIDEO";
+      const isVideo = media.mediaType?.toUpperCase() === "VIDEO";
       const promise = fetchAndBuildFile(key, isVideo).then((file) => {
         cache.set(key, file ? { status: "ready", file } : { status: "error" });
         trimCache(cache);
@@ -63,7 +63,7 @@ export function useMediaPrepCache() {
         return existing.promise;
       }
 
-      const isVideo = media.mediaType === "VIDEO";
+      const isVideo = media.mediaType?.toUpperCase() === "VIDEO";
       const promise = fetchAndBuildFile(key, isVideo);
       cache.set(key, { status: "loading", promise });
 

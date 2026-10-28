@@ -74,7 +74,7 @@ export const MediaSlide = memo(function MediaSlide({
    */
   const shouldMountMedia = isActive || isAdjacent;
 
-  const isVideo = media.mediaType === "VIDEO";
+  const isVideo = media.mediaType?.toUpperCase() === "VIDEO";
 
   /**
    * Compare intrinsic media aspect
