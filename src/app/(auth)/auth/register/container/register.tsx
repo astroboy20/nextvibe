@@ -21,8 +21,9 @@ import GoogleLoginButton from "@/features/auth/components/google-login-button";
 import { toast } from "sonner";
 import { useRegisterMutation } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
+import { clearReferralCode, getReferralCode } from "@/shared/lib/referral";
 import PasswordField from "@/features/auth/components/password-field";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAnonMerge } from "@/features/games/hooks/use-anon-merge";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated";
@@ -49,15 +50,6 @@ export default function RegisterContent() {
     ? (() => { try { return decodeURIComponent(from); } catch { return from; } })()
     : null;
 
-  // Capture affiliate referral code from ?ref= query param and persist it
-  // so it survives navigating away from the signup page before submitting.
-  const refParam = searchParams.get("ref");
-  useEffect(() => {
-    if (refParam) {
-      sessionStorage.setItem("nv_referral_code", refParam);
-    }
-  }, [refParam]);
-
   const [registerMutation, { isLoading }] = useRegisterMutation();
   const [googleLoading, setGoogleLoading] = useState(false);
   const { pendingSessions, showDialog, isLoading: isMerging, handlePostAuth, confirmMerge, skipMerge } = useAnonMerge();
@@ -76,7 +68,8 @@ export default function RegisterContent() {
 
   const handleSubmit = async (values: FormValues) => {
     try {
-      const referralCode = sessionStorage.getItem("nv_referral_code") ?? undefined;
+      // Captured from ?ref= on any page by proxy.ts
+      const referralCode = getReferralCode();
       const payload = referralCode ? { ...values, referralCode } : values;
       const res = await registerMutation(payload as any).unwrap();
       if (from) localStorage.setItem("redirect_after_auth", from);
@@ -91,7 +84,7 @@ export default function RegisterContent() {
         secure: process.env.NODE_ENV === "production",
       });
       // Clear the referral code now that it's been consumed
-      sessionStorage.removeItem("nv_referral_code");
+      clearReferralCode();
       toast.success("Account created successfully");
 
       const validFrom = decodedFrom && decodedFrom.startsWith("/") && !decodedFrom.startsWith("/auth")

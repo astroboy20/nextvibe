@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeJwt } from "jose";
+import {
+  REFERRAL_COOKIE,
+  REFERRAL_MAX_AGE_SECONDS,
+  normalizeReferralCode,
+} from "@/shared/lib/referral";
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -80,7 +85,27 @@ function redirectAdminToLogin(req: NextRequest): NextResponse {
   return res;
 }
 
+// Every page can carry an affiliate link (?ref=NV-...), so the referral is
+// captured here rather than on the register page alone. Applied to whatever
+// response the route logic below produces, redirects included.
 export async function proxy(req: NextRequest) {
+  const res = await route(req);
+
+  const ref = normalizeReferralCode(req.nextUrl.searchParams.get("ref"));
+  if (ref) {
+    res.cookies.set(REFERRAL_COOKIE, ref, {
+      httpOnly: false, // read by the sign-up forms via js-cookie
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: REFERRAL_MAX_AGE_SECONDS,
+    });
+  }
+
+  return res;
+}
+
+async function route(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   // Always allow static assets, Next.js internals, and API routes

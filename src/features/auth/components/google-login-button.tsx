@@ -8,6 +8,7 @@ import { setIsAuthenticated, setUser } from "@/store/slices/user";
 import { useGoogleLoginMutation } from "@/features/auth/api/auth-api";
 import { Loader2 } from "lucide-react";
 import { resetAuthRefreshState } from "@/store/api/baseQuery";
+import { clearReferralCode, getReferralCode } from "@/shared/lib/referral";
 
 interface GoogleLoginButtonProps {
   onLoadingChange?: (loading: boolean) => void;
@@ -77,7 +78,11 @@ const GoogleLoginButtonInner = ({
           try {
             const res = await googleLogin({
               idToken: credentialResponse.credential as string,
+              // The backend only applies it if this creates a new account
+              referralCode: getReferralCode(),
             }).unwrap();
+
+            if (res?.data?.isNewUser) clearReferralCode();
 
             const isSuperAdmin =
               res?.data?.user?.role === "SUPER_ADMIN" ||

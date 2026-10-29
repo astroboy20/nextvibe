@@ -35,7 +35,7 @@ export default function ApplyButton({
 
   const shareUrl =
     typeof window !== "undefined" && affiliateCode
-      ? `${window.location.origin}/signup?ref=${affiliateCode}`
+      ? `${window.location.origin}/auth/register?ref=${affiliateCode}`
       : null;
 
   const handleCopyLink = async () => {
