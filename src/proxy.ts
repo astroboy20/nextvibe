@@ -36,7 +36,10 @@ const PUBLIC_ROUTES = [
   "/birthday",
   "/birthday/verify",
   "/campaigns/birthday",
-  "/affiliate"
+  "/affiliate",
+  // Public marketing pages
+  "/thanksgiving",
+  "/discover",
 ];
 
 // Admin-only routes — protected by admin_accessToken

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, Loader, Loader2 } from "lucide-react";
+import { Heart,Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { setHideHeader } from "@/store/slices/ui-slice";

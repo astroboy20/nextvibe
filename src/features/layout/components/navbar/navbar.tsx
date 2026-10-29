@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const links = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
+  { name: "Discover", href: "/discover" },
   { name: "Pricing", href: "/pricing" },
   { name: "Contact us", href: "/contact" },
   { name: "How it works", href: "/how-it-works" },
@@ -47,7 +48,7 @@ export default function Navbar() {
             <NewLogo />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1 bg-[#5b1a57] rounded-[31px] px-12.5 py-2.5 shadow-sm border border-gray-100">
+          <nav className="hidden md:flex items-center gap-1 bg-[#5b1a57] rounded-[31px] px-6 py-2.5 shadow-sm border border-gray-100">
             {links.map((link, index) => (
               <Link
                 key={index}
