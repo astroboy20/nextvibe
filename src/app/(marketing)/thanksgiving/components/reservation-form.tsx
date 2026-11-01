@@ -90,7 +90,7 @@ export default function ReservationForm({ formRef }: ReservationFormProps) {
           {step === 1 && (
             <form onSubmit={submitDetails} className="flex flex-col gap-5">
               <h3 className="text-2xl font-bold">
-                Where should we send your VibeTag?
+                Where should we send your setup link?
               </h3>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="tg-name">Your name</Label>
@@ -211,8 +211,8 @@ export default function ReservationForm({ formRef }: ReservationFormProps) {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Clicking below locks your spot. Payment goes live shortly —
-                we&apos;ll email you when checkout opens.
+                Clicking below locks your spot at the founder price. Payment goes live shortly —
+                we&apos;ll email you when checkout opens. Full refund if you change your mind before your VibeTag is designed.
               </p>
               <div className="flex gap-3">
                 <Button
@@ -230,7 +230,7 @@ export default function ReservationForm({ formRef }: ReservationFormProps) {
                   disabled={submitting}
                   className="flex-1 sm:flex-none gap-2"
                 >
-                  {submitting ? "Reserving…" : `Reserve for $${FOUNDER_PRICE}`}
+                  {submitting ? "Reserving…" : `Get my family album for $${FOUNDER_PRICE}`}
                   {!submitting && <ArrowRight className="size-4" />}
                 </Button>
               </div>

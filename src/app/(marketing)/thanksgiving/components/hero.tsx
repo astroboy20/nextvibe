@@ -1,15 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Drumstick, ArrowRight } from "lucide-react";
+import { Drumstick, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-const SPOTS_TOTAL = 500;
-const SPOTS_TAKEN = 312;
-const STANDARD_PRICE = 58;
 const FOUNDER_PRICE = 29;
-const CTA_LABEL = "Reserve my Thanksgiving Vibe";
 /** US Thanksgiving 2026 — fourth Thursday of November. */
 const DEADLINE = new Date("2026-11-26T12:00:00-05:00");
 
@@ -47,7 +43,6 @@ interface HeroProps {
 
 export default function Hero({ onScrollToFunnel }: HeroProps) {
   const { days, hours, minutes, seconds } = useCountdown(DEADLINE);
-  const spotsLeft = SPOTS_TOTAL - SPOTS_TAKEN;
 
   return (
     <section className="relative overflow-hidden border-b border-border/50">
@@ -61,8 +56,7 @@ export default function Hero({ onScrollToFunnel }: HeroProps) {
           {/* Badge */}
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
             <Drumstick className="size-4" />
-            For American &amp; Canadian families — {spotsLeft} of {SPOTS_TOTAL}{" "}
-            spots left
+            For American families &amp; Friendsgiving hosts — founder price closes Thanksgiving Day
           </span>
 
           {/* Headline */}
@@ -77,12 +71,10 @@ export default function Hero({ onScrollToFunnel }: HeroProps) {
             downloads an app.
           </p>
 
-          {/* Price */}
+          {/* Price — no strikethrough; founder framing only */}
           <div className="flex flex-col items-center gap-1">
             <p className="text-3xl font-bold md:text-4xl">
-              <span className="text-muted-foreground line-through">
-                ${STANDARD_PRICE}
-              </span>{" "}
+              Founder price:{" "}
               <span className="text-primary">${FOUNDER_PRICE}</span>
             </p>
             <p className="text-sm text-muted-foreground">
@@ -90,36 +82,37 @@ export default function Hero({ onScrollToFunnel }: HeroProps) {
             </p>
           </div>
 
-          {/* Countdown */}
+          {/* Countdown — deadline scarcity only */}
           <div className="flex flex-col items-center gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Offer closes Thanksgiving Day
             </p>
             <div className="flex items-center gap-2">
               <CountdownUnit value={days} label="days" />
-              <span className="text-xl font-bold text-muted-foreground mb-1">
-                :
-              </span>
+              <span className="text-xl font-bold text-muted-foreground mb-1">:</span>
               <CountdownUnit value={hours} label="hrs" />
-              <span className="text-xl font-bold text-muted-foreground mb-1">
-                :
-              </span>
+              <span className="text-xl font-bold text-muted-foreground mb-1">:</span>
               <CountdownUnit value={minutes} label="min" />
-              <span className="text-xl font-bold text-muted-foreground mb-1">
-                :
-              </span>
+              <span className="text-xl font-bold text-muted-foreground mb-1">:</span>
               <CountdownUnit value={seconds} label="sec" />
             </div>
           </div>
 
-          <Button
-            size="lg"
-            onClick={onScrollToFunnel}
-            className="w-full sm:w-auto gap-2"
-          >
-            {CTA_LABEL}
-            <ArrowRight className="size-4" />
-          </Button>
+          {/* CTA with reassurance */}
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              size="lg"
+              onClick={onScrollToFunnel}
+              className="w-full sm:w-auto gap-2"
+            >
+              Get my family album for ${FOUNDER_PRICE}
+              <ArrowRight className="size-4" />
+            </Button>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ShieldCheck className="size-3.5 shrink-0 text-primary" />
+              Full refund before your VibeTag is designed · Secure checkout
+            </p>
+          </div>
 
           {/* Hero image */}
           <div className="mt-2 w-full overflow-hidden rounded-3xl border border-border shadow-lg">

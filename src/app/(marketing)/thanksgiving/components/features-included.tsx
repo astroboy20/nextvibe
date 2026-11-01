@@ -12,39 +12,33 @@ const FOUNDER_PRICE = 29;
 const features = [
   {
     icon: Camera,
-    title: "Permanent family gallery",
-    brand: "NextVibePulse",
-    desc: "Every guest photo, video and postcard stays together in one lasting memory bank.",
+    title: "Private family gallery",
+    desc: "Every photo and video your guests share stays together in one lasting memory bank — yours to revisit any time.",
   },
   {
     icon: Link2,
-    title: "One memorable sharing tag",
-    brand: "VibeTags",
-    desc: "Replace the scattered group-chat uploads with one trackable tag for the whole family.",
+    title: "One link for the whole table",
+    desc: "Replace scattered group-chat uploads with one VibeTag link. Guests tap it in any browser — no download.",
   },
   {
     icon: Gamepad2,
-    title: "Family trivia",
-    brand: "NextVibePilot",
+    title: "Family trivia between courses",
     desc: 'Get everyone off their phones — and back on them — with "How well do you really know Grandma?"',
   },
   {
     icon: Users,
-    title: "Family conversations",
-    brand: "VibePod",
-    desc: "Give relatives a place to catch up and say what they're thankful for before the day arrives.",
+    title: "Messages from every guest",
+    desc: "Family members can send the host postcards and personal notes before and during the celebration.",
   },
   {
     icon: BarChart3,
-    title: "Host insights",
-    brand: "Analytics",
-    desc: "See participation and engagement from everyone who joined the Vibe.",
+    title: "Host dashboard",
+    desc: "See who joined, what they shared, and how much of the table participated — all in one place.",
   },
   {
     icon: ShieldCheck,
-    title: "Founder pricing",
-    brand: "Secured Spot",
-    desc: "Lock the promotional $29 price for this Thanksgiving package, per the offer terms.",
+    title: "Founder pricing locked in",
+    desc: `Lock the $${FOUNDER_PRICE} price for this Thanksgiving package. Full refund before setup begins.`,
   },
 ];
 
@@ -58,12 +52,12 @@ export default function FeaturesIncluded() {
             <span className="text-primary">${FOUNDER_PRICE}</span>
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
-            The full stack. No add-ons, no upsells, no watermark.
+            The full package. No add-ons, no upsells, no watermark.
           </p>
         </div>
 
         <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-2">
-          {features.map(({ icon: Icon, title, brand, desc }) => (
+          {features.map(({ icon: Icon, title, desc }) => (
             <div
               key={title}
               className="flex gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm"
@@ -72,12 +66,7 @@ export default function FeaturesIncluded() {
                 <Icon className="size-6" />
               </div>
               <div>
-                <h3 className="font-bold text-base leading-snug">
-                  {title}{" "}
-                  <span className="font-semibold text-primary text-sm">
-                    — {brand}
-                  </span>
-                </h3>
+                <h3 className="font-bold text-base leading-snug">{title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
                   {desc}
                 </p>
