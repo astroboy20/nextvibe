@@ -1,14 +1,9 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Clock,
-  Gamepad2,
   MapPin,
   Search,
   Sparkles,
-  Tag,
-  Ticket,
   TrendingUp,
   X,
   ChevronLeft,
@@ -97,26 +92,14 @@ function Pagination({
   );
 }
 
-// ── Chip filters ──────────────────────────────────────────────────────────────
-const CHIP_FILTERS = [
-  { id: "games", label: "Has Games", icon: Gamepad2 },
-  { id: "vibetag", label: "Has VibeTag", icon: Tag },
-  { id: "free", label: "Free", icon: Ticket },
-  { id: "soon", label: "Starting Soon", icon: Clock },
-] as const;
-
-type ChipId = typeof CHIP_FILTERS[number]["id"];
-
 // ── Shared filter logic ───────────────────────────────────────────────────────
 function applyCommonFilters(
   list: any[],
   searchQuery: string,
   locationFilter: string,
   interestFilter: string,
-  activeFilters: string[]
 ) {
   let result = list;
-
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     result = result.filter(
@@ -138,21 +121,10 @@ function applyCommonFilters(
         (e.category ?? "").toLowerCase().includes(i)
     );
   }
-  if (activeFilters.includes("games")) result = result.filter((e) => e.hasGame);
-  if (activeFilters.includes("vibetag")) result = result.filter((e) => e.hasVibetag);
-  if (activeFilters.includes("free")) result = result.filter((e) => !e.isPaid && !e.ticketPrice);
-  if (activeFilters.includes("soon")) {
-    const now = Date.now();
-    const threeDays = 3 * 24 * 60 * 60 * 1000;
-    result = result.filter((e) => {
-      const start = new Date(e.startsAt).getTime();
-      return start > now && start - now <= threeDays;
-    });
-  }
   return result;
 }
 
-// ── EventCardSkeleton ─────────────────────────────────────────────────────────
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 function EventGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
@@ -173,7 +145,6 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [interestFilter, setInterestFilter] = useState("");
-  const [activeFilters, setActiveFilters] = useState<ChipId[]>([]);
   const [autoLocating, setAutoLocating] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -189,13 +160,6 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
   );
   const meta = postcardsData?.data?.meta;
   const totalPages = meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / PAGE_SIZE) : 1);
-
-  const toggleFilter = useCallback((id: ChipId) => {
-    setActiveFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
-    setPage(1);
-  }, []);
 
   const detectLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -222,11 +186,10 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
     setSearchQuery("");
     setLocationFilter("");
     setInterestFilter("");
-    setActiveFilters([]);
     setPage(1);
   }, []);
 
-  const hasFilters = searchQuery || locationFilter || interestFilter || activeFilters.length > 0;
+  const hasFilters = searchQuery || locationFilter || interestFilter;
 
   const filteredEvents = useMemo(() => {
     let list =
@@ -237,16 +200,13 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
             (a.locationName ?? "").toLowerCase().includes(locationFilter.toLowerCase()) ? -1 : 1
           )
           : allEvents;
-
-    list = applyCommonFilters(list, searchQuery, locationFilter, interestFilter, activeFilters);
+    list = applyCommonFilters(list, searchQuery, locationFilter, interestFilter);
     return list.filter((e) => (e.postcardCount ?? 0) > 0 || e.hasVibetag);
-  }, [allEvents, activeTab, searchQuery, locationFilter, interestFilter, activeFilters]);
+  }, [allEvents, activeTab, searchQuery, locationFilter, interestFilter]);
 
   return (
     <>
-      {/* ── Filter bar ── */}
       <div className="mb-5 rounded-2xl border border-border bg-card shadow-sm p-4 space-y-3">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -265,9 +225,8 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
           )}
         </div>
 
-        {/* Location + Vibe row */}
-        <div className={cn(hasFilters ? "grid-cols-3" : "grid grid-cols-2 gap-2 sm:grid-cols-3")}>
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[140px]">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               value={locationFilter}
@@ -290,7 +249,7 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
             value={interestFilter || "__all__"}
             onValueChange={(v) => { setInterestFilter(v === "__all__" ? "" : v); setPage(1); }}
           >
-            <SelectTrigger className="h-9 w-full">
+            <SelectTrigger className="h-9 flex-1 min-w-[120px]">
               <SelectValue placeholder="Vibe" />
             </SelectTrigger>
             <SelectContent>
@@ -309,25 +268,15 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
           </Select>
 
           {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-9 text-xs text-muted-foreground sm:col-span-1"
-            >
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 shrink-0 text-xs text-muted-foreground">
               <X className="mr-1 h-3 w-3" /> Clear
             </Button>
           )}
         </div>
       </div>
 
-      {/* ── Tab + chip filters ── */}
       <div className="mb-5">
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPage(1); }}
-          className="mb-3"
-        >
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPage(1); }}>
           <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
             <TabsTrigger value="foryou" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Sparkles className="h-3.5 w-3.5" /> For You
@@ -340,30 +289,8 @@ function PostcardsView({ userInterests }: { userInterests: any[] }) {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {CHIP_FILTERS.map(({ id, label, icon: Icon }) => {
-            const isActive = activeFilters.includes(id);
-            return (
-              <button
-                key={id}
-                onClick={() => toggleFilter(id)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-card text-muted-foreground shadow-sm hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* ── Results ── */}
       {isLoading ? (
         <EventGridSkeleton />
       ) : filteredEvents.length === 0 ? (
@@ -415,9 +342,7 @@ const Discover = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [interestFilter, setInterestFilter] = useState("");
-  const [vibeFilter, setVibeFilter] = useState("");
   const [autoLocating, setAutoLocating] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<ChipId[]>([]);
   const [eventsPage, setEventsPage] = useState(1);
 
   const { data: currentUser } = useGetUserQuery();
@@ -430,27 +355,9 @@ const Discover = () => {
   });
   const { userInterests } = useEventDiscovery();
 
-  const toggleFilter = useCallback((id: ChipId) => {
-    setActiveFilters((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
-    setEventsPage(1);
-  }, []);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("nextvibe_location");
-    if (stored) {
-      try {
-        const loc = JSON.parse(stored);
-        setLocationFilter(loc.city || loc.country || "");
-      } catch { }
-    }
-  }, []);
-
-  // Reset to page 1 when filters/tab change
   useEffect(() => {
     setEventsPage(1);
-  }, [activeTab, searchQuery, locationFilter, interestFilter, vibeFilter, activeFilters]);
+  }, [activeTab, searchQuery, locationFilter, interestFilter]);
 
   const detectLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -478,13 +385,11 @@ const Discover = () => {
     setSearchQuery("");
     setLocationFilter("");
     setInterestFilter("");
-    setVibeFilter("");
-    setActiveFilters([]);
     setEventsPage(1);
     localStorage.removeItem("nextvibe_location");
   }, []);
 
-  const hasFilters = searchQuery || locationFilter || interestFilter || vibeFilter || activeFilters.length > 0;
+  const hasFilters = searchQuery || locationFilter || interestFilter;
 
   const allEvents: any[] = useMemo(
     () => (eventsData?.data?.data ?? []).filter((e: any) => e.isPublic !== false),
@@ -503,33 +408,25 @@ const Discover = () => {
             (a.locationName ?? "").toLowerCase().includes(locationFilter.toLowerCase()) ? -1 : 1
           )
           : allEvents;
-
-    list = applyCommonFilters(list, searchQuery, locationFilter, interestFilter, activeFilters);
-    if (vibeFilter) list = list.filter((e) => e.hasVibetag);
-    return list;
-  }, [allEvents, activeTab, searchQuery, locationFilter, interestFilter, vibeFilter, activeFilters]);
+    return applyCommonFilters(list, searchQuery, locationFilter, interestFilter);
+  }, [allEvents, activeTab, searchQuery, locationFilter, interestFilter]);
 
   return (
     <main className="container pt-3 mx-auto pb-10 sm:pb-10">
-
-      {/* ── Greeting ── */}
       {displayName && (
         <p className="text-2xl font-bold text-foreground mb-5">
           Hi, {displayName} 👋
         </p>
       )}
 
-      {/* ── View toggle ── */}
       <div className="mb-6 flex justify-center">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
       </div>
 
-      {/* ══════════════ EVENTS VIEW ══════════════ */}
       {activeView === "events" && (
         <>
           {/* Filter card */}
           <div className="mb-5 rounded-2xl border border-border bg-card shadow-sm p-4 space-y-3">
-            {/* Search bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
@@ -548,7 +445,6 @@ const Discover = () => {
               )}
             </div>
 
-            {/* Location + Vibe + clear */}
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[140px]">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -592,12 +488,7 @@ const Discover = () => {
               </Select>
 
               {hasFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="h-9 shrink-0 text-xs text-muted-foreground"
-                >
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 shrink-0 text-xs text-muted-foreground">
                   <X className="mr-1 h-3 w-3" /> Clear
                 </Button>
               )}
@@ -608,7 +499,7 @@ const Discover = () => {
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-            className="mb-3"
+            className="mb-5"
           >
             <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
               <TabsTrigger value="foryou" className="gap-1.5 rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -623,28 +514,6 @@ const Discover = () => {
             </TabsList>
           </Tabs>
 
-          {/* Chip filters */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
-            {CHIP_FILTERS.map(({ id, label, icon: Icon }) => {
-              const isActive = activeFilters.includes(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => toggleFilter(id)}
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-card text-muted-foreground shadow-sm hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
           {activeTab === "foryou" && userInterests.length > 0 && !searchQuery && (
             <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -652,15 +521,12 @@ const Discover = () => {
             </div>
           )}
 
-          {/* Results */}
           {isLoadingEvents ? (
             <EventGridSkeleton />
           ) : filteredEvents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center">
               <p className="text-sm text-muted-foreground">
-                {hasFilters
-                  ? "No events match your filters."
-                  : "Nothing to see here yet, check back later!"}
+                {hasFilters ? "No events match your filters." : "Nothing to see here yet, check back later!"}
               </p>
             </div>
           ) : (
@@ -698,7 +564,6 @@ const Discover = () => {
         </>
       )}
 
-      {/* ══════════════ POSTCARDS VIEW ══════════════ */}
       {activeView === "postcards" && (
         <PostcardsView userInterests={userInterests} />
       )}
