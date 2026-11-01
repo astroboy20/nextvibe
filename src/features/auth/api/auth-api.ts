@@ -21,7 +21,7 @@ export const authApi = createApi({
             }
         }),
         googleLogin: build.mutation({
-            query(body: { idToken: string }) {
+            query(body: { idToken: string; referralCode?: string }) {
                 return {
                     url: "/v1/auth/oauth/google",
                     method: "POST",

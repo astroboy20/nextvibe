@@ -7,7 +7,7 @@ This guide covers everything the frontend team needs to build the Affiliate Mark
 ## 1. How the Program Works (Summary for Product/UI)
 
 1. **Marketers:** Any logged-in user can register as an affiliate with one click. They receive a unique code prefixed with `NV-` (e.g. `NV-KINGSLEY`) and can share their referral link:
-   `https://mynextvibe.com/signup?ref=NV-KINGSLEY`
+   `https://mynextvibe.com/auth/register?ref=NV-KINGSLEY`
 2. **Referred Organizers (The Buyers):** 
    - When they register via an affiliate link, they are permanently attributed to that marketer.
    - On their **first organizer package purchase** (VibeTags / Gamification / Mega Bundle), they automatically receive a **5% discount**.
@@ -24,7 +24,7 @@ There are **three touchpoints** to implement in the web/mobile app:
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 1. SIGNUP PAGE                                                              │
-│ URL: /signup?ref=NV-KINGSLEY                                                │
+│ URL: /auth/register?ref=NV-KINGSLEY (any page works)                       │
 │ Action: Read `ref` query param -> send in POST /v1/auth/register            │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
@@ -50,7 +50,8 @@ There are **three touchpoints** to implement in the web/mobile app:
 ## 3. Touchpoint 1: Referral Capture on Signup
 
 When a user lands on the website with `?ref=...`:
-1. Save `ref` in `localStorage` or `sessionStorage` (e.g. `sessionStorage.setItem('nv_referral_code', ref)`).
+1. **Web:** `proxy.ts` saves `?ref=` from *any* page into the `nv_ref` cookie (30 days, latest link wins). Read it with `getReferralCode()` from `shared/lib/referral.ts`; call `clearReferralCode()` after a new account is created.
+   **Google sign-up:** send the same code as `referralCode` in `POST /v1/auth/oauth/google`, or as `ref` on `GET /v1/auth/oauth/google/start` (mobile redirect flow). The backend only applies it when the sign-in creates a new account.
 2. When the user submits the registration form, pass `referralCode` in the body.
 
 ### API: `POST /v1/auth/register`
@@ -376,7 +377,7 @@ export interface PaginatedResponse<T> {
 
 When showing the marketer their referral link to copy:
 ```typescript
-const shareUrl = `${window.location.origin}/signup?ref=${profile.affiliateCode}`;
+const shareUrl = `${window.location.origin}/auth/register?ref=${profile.affiliateCode}`;
 ```
 
 Provide a "Copy Link" button that copies `shareUrl` and a "Copy Code" button that copies `profile.affiliateCode`.
