@@ -25,7 +25,7 @@ type Envelope<T> = { success: boolean; data: T };
 type ItemBody = {
   name: string;
   description?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   price: number | null;
   sortOrder?: number;
 };
@@ -148,6 +148,21 @@ export const wishlistEndpoints = baseApi.injectEndpoints({
       ],
     }),
 
+    reorderWishlistItems: builder.mutation<
+      unknown,
+      { eventId: string; itemIds: string[] }
+    >({
+      query: ({ eventId, itemIds }) => ({
+        url: `/v1/events/${eventId}/wishlist/items/order`,
+        method: "PUT",
+        body: { itemIds },
+      }),
+      invalidatesTags: (_, __, { eventId }) => [
+        { type: "Wishlist", id: eventId },
+        { type: "Wishlist", id: `manage-${eventId}` },
+      ],
+    }),
+
     deleteWishlistItem: builder.mutation<
       unknown,
       { eventId: string; itemId: string }
@@ -226,6 +241,7 @@ export const {
   useUpsertWishlistMutation,
   useCreateWishlistItemMutation,
   useUpdateWishlistItemMutation,
+  useReorderWishlistItemsMutation,
   useDeleteWishlistItemMutation,
   useSetWishlistItemFulfilledMutation,
   useGetContributionsQuery,

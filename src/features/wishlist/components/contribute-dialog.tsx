@@ -106,7 +106,6 @@ export function ContributeDialog({
             <DialogTitle>Thank you!</DialogTitle>
             <DialogDescription>
               The organizer will confirm your gift once they see the transfer.
-              {email.trim() && " We'll let you know by email."}
             </DialogDescription>
             <Button className="mt-2 w-full" onClick={() => onOpenChange(false)}>
               Done
@@ -209,7 +208,7 @@ export function ContributeDialog({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="So we can tell you when it's confirmed"
+                  placeholder="you@example.com"
                 />
               </div>
 

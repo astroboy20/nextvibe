@@ -2,6 +2,9 @@
 import { useState } from "react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
+  Image as ImageIcon,
   Loader2,
   Pencil,
   Plus,
@@ -28,8 +31,13 @@ import { cn } from "@/lib/utils";
 import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { formatMoney } from "@/shared/lib/money";
 import {
+  uploadFileToCDN,
+  useUploadIntentMutation,
+} from "@/shared/api/uploads-api";
+import {
   useCreateWishlistItemMutation,
   useDeleteWishlistItemMutation,
+  useReorderWishlistItemsMutation,
   useGetContributionsQuery,
   useGetOrganizerWishlistQuery,
   useReviewContributionMutation,
@@ -42,6 +50,9 @@ import type {
   OrganizerWishlist,
   OrganizerWishlistItem,
 } from "@/features/wishlist/types";
+
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 interface WishlistManagerContentProps {
   eventId: string;
@@ -244,6 +255,21 @@ function WishlistItems({
   );
   const [setFulfilled] = useSetWishlistItemFulfilledMutation();
   const [deleteItem] = useDeleteWishlistItemMutation();
+  const [reorder, { isLoading: isReordering }] =
+    useReorderWishlistItemsMutation();
+
+  // Sends the whole order, not a swap, so it stays right even if two items
+  // ever share a sortOrder.
+  const move = async (index: number, direction: -1 | 1) => {
+    const ids = wishlist.items.map((i) => i.id);
+    const target = index + direction;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    try {
+      await reorder({ eventId, itemIds: ids }).unwrap();
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? "Couldn't reorder the items.");
+    }
+  };
 
   const toggleFulfilled = async (item: OrganizerWishlistItem) => {
     try {
@@ -288,7 +314,7 @@ function WishlistItems({
         </p>
       ) : (
         <ul className="space-y-2">
-          {wishlist.items.map((item) => (
+          {wishlist.items.map((item, index) => (
             <li key={item.id} className="rounded-lg border p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -310,6 +336,28 @@ function WishlistItems({
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">
+                  <div className="flex flex-col">
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      aria-label="Move up"
+                      disabled={index === 0 || isReordering}
+                      onClick={() => move(index, -1)}
+                    >
+                      <ChevronUp />
+                    </Button>
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      aria-label="Move down"
+                      disabled={
+                        index === wishlist.items.length - 1 || isReordering
+                      }
+                      onClick={() => move(index, 1)}
+                    >
+                      <ChevronDown />
+                    </Button>
+                  </div>
                   <Button
                     size="icon-sm"
                     variant="ghost"
@@ -381,6 +429,38 @@ function ItemDialog({
     existing ? existing.price === null : false,
   );
   const [price, setPrice] = useState(existing?.price ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    existing?.imageUrl ?? null,
+  );
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [uploadIntent] = useUploadIntentMutation();
+  const isUploading = uploadPct !== null;
+
+  const handleImage = async (file: File | undefined) => {
+    if (!file) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.warning("Please upload a PNG, JPEG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.warning("Image must be 5 MB or less.");
+      return;
+    }
+    setUploadPct(0);
+    try {
+      const intent = await uploadIntent({
+        filename: file.name,
+        contentType: file.type,
+        folder: "wishlist",
+      }).unwrap();
+      await uploadFileToCDN(file, intent.data.uploadUrl, setUploadPct);
+      setImageUrl(intent.data.fileUrl);
+    } catch {
+      toast.error("Image upload failed. Please try again.");
+    } finally {
+      setUploadPct(null);
+    }
+  };
 
   const priceNumber = Number(price);
   const isValid =
@@ -392,6 +472,8 @@ function ItemDialog({
     const body = {
       name: name.trim(),
       description: description.trim() || undefined,
+      // null on an edit clears a removed photo.
+      imageUrl,
       price: isJustGive ? null : priceNumber,
     };
     try {
@@ -442,6 +524,46 @@ function ItemDialog({
               </p>
             </div>
             <Switch checked={isJustGive} onCheckedChange={setIsJustGive} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-item-image">Photo (optional)</Label>
+            <div className="flex items-center gap-3">
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="h-14 w-14 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <Input
+                  id="wl-item-image"
+                  type="file"
+                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  disabled={isUploading}
+                  onChange={(e) => handleImage(e.target.files?.[0])}
+                />
+                {isUploading && (
+                  <p className="text-xs text-muted-foreground">
+                    Uploading… {uploadPct}%
+                  </p>
+                )}
+                {imageUrl && !isUploading && (
+                  <button
+                    type="button"
+                    className="self-start text-xs text-destructive"
+                    onClick={() => setImageUrl(null)}
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
           {!isJustGive && (
             <div className="space-y-1.5">
