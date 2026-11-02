@@ -13,7 +13,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Loader2,
+  Disc3,
 } from "lucide-react";
+import WheelPrizeEditor, {
+  newWheelPrize,
+  validateWheelPrizes,
+  type WheelPrizeDraft,
+} from "./steps/wheel-prize-editor";
 import StepOne from "./steps/step-one";
 import StepTwo from "./steps/step-two";
 import StepThree from "./steps/step-three";
@@ -29,9 +35,21 @@ import { AiGenerationProgress } from "./ai-generation-progress";
 import { toast } from "sonner";
 import { useBeforeUnload } from "@/shared/hooks/use-before-unload";
 
-export type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
+export type GameType =
+  | "trivia"
+  | "word-puzzle"
+  | "two-truths"
+  | "this-or-that"
+  | "feedback"
+  | "spin-wheel";
 export type GameTypeOrEmpty = "" | GameType;
-export type ApiGameType = "TRIVIA" | "WORD_PUZZLE" | "TWO_TRUTHS_ONE_LIE" | "THIS_OR_THAT" | "FEEDBACK";
+export type ApiGameType =
+  | "TRIVIA"
+  | "WORD_PUZZLE"
+  | "TWO_TRUTHS_ONE_LIE"
+  | "THIS_OR_THAT"
+  | "FEEDBACK"
+  | "SPIN_WHEEL";
 export type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -86,6 +104,8 @@ export interface RoundData {
   title: string;
   description: string;
   questions: Question[];
+  /** SPIN_WHEEL rounds only: the slices, in wheel order. */
+  prizes?: WheelPrizeDraft[];
 }
 
 const PHASE_TO_API: Record<EventPhase, string> = {
@@ -107,6 +127,7 @@ const GAMETYPE_TO_API: Record<GameType, ApiGameType> = {
   "two-truths": "TWO_TRUTHS_ONE_LIE",
   "this-or-that": "THIS_OR_THAT",
   feedback: "FEEDBACK",
+  "spin-wheel": "SPIN_WHEEL",
 };
 
 export const gameTypeConfig: Record<
@@ -137,6 +158,11 @@ export const gameTypeConfig: Record<
     icon: <MessageCircleQuestion className="h-5 w-5" />,
     label: "Feedback",
     description: "Open-ended questions, no scoring",
+  },
+  "spin-wheel": {
+    icon: <Disc3 className="h-5 w-5" />,
+    label: "Spin the Wheel",
+    description: "Checked-in guests spin for prizes",
   },
 };
 
@@ -242,12 +268,20 @@ export function GameCreationWizard({
       title: roundsData[i]?.title ?? `Round ${i + 1}`,
       description: roundsData[i]?.description ?? "",
       questions: roundsData[i]?.questions ?? [],
+      prizes: roundsData[i]?.prizes,
     }));
 
   const updateRoundGameType = (idx: number, type: GameType) => {
     setRoundsData((prev) => {
       const next = [...prev];
-      next[idx] = { ...next[idx], gameType: type, questions: [] };
+      next[idx] = {
+        ...next[idx],
+        gameType: type,
+        questions: [],
+        // Start a new wheel with two blank prizes rather than an empty list.
+        prizes:
+          type === "spin-wheel" ? [newWheelPrize(), newWheelPrize()] : undefined,
+      };
       return next;
     });
     setAiPrompt((prev) => ({ ...prev, gameType: GAMETYPE_TO_API[type] }));
@@ -290,6 +324,21 @@ export function GameCreationWizard({
       quantity: rewardTiers[i]?.quantity ?? 1,
     }));
 
+  const isWheelRound = (idx: number) =>
+    roundsData[idx]?.gameType === "spin-wheel";
+  // A wheel has no leaderboard, so a game made only of wheels has no
+  // ranked winners and skips the "Cash Prizes" step.
+  const allRoundsAreWheels =
+    roundsData.length > 0 && roundsData.every((r) => r.gameType === "spin-wheel");
+
+  const setRoundPrizes = (idx: number, prizes: WheelPrizeDraft[]) => {
+    setRoundsData((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], prizes };
+      return next;
+    });
+  };
+
   // ── Validation ─────────────────────────────────────────────────────────────
   const validateStep = (s: number): string => {
     switch (s) {
@@ -308,6 +357,7 @@ export function GameCreationWizard({
         if (maxWinners <= 0) return "Please set the number of winners.";
         return "";
       case 3:
+        if (isWheelRound(activeRoundIdx)) return "";
         if (contentMode === "ai") {
           if (!aiPrompt.topic.trim())
             return "Please enter a topic for AI generation.";
@@ -321,7 +371,11 @@ export function GameCreationWizard({
           // activityTiming is always derived from phase — no need to validate it here
         }
         return "";
-      case 4:
+      case 4: {
+        if (isWheelRound(activeRoundIdx)) {
+          const err = validateWheelPrizes(roundsData[activeRoundIdx].prizes ?? []);
+          return err ? `Round ${activeRoundIdx + 1}: ${err}` : "";
+        }
         // Only validate the current round being edited
         if (!roundsData[activeRoundIdx]?.questions?.length)
           return `Round ${
@@ -343,6 +397,7 @@ export function GameCreationWizard({
             }: all answer options must be filled in.`;
         }
         return "";
+      }
       case 5:
         for (const tier of rewardTiers) {
           if (!tier.title.trim())
@@ -794,8 +849,30 @@ export function GameCreationWizard({
         gameDuration,
         basePrice: 0,
         perRoundPrice: 0,
-        rewardTiers: rewardTierPayload,
+        // A game of only wheels has no leaderboard, so no ranked prizes.
+        rewardTiers: allRoundsAreWheels ? [] : rewardTierPayload,
         rounds: roundsData.map((r, i) => {
+          if (r.gameType === "spin-wheel") {
+            // The slices ARE this round's reward tiers; the backend sets
+            // each one's position on the wheel from its order here.
+            return {
+              title: r.title || `Round ${i + 1}`,
+              description: r.description,
+              gameType: GAMETYPE_TO_API[r.gameType],
+              orderIndex: i,
+              config: { slices: r.prizes?.length ?? 0 },
+              rewardTiers: (r.prizes ?? []).map((p, slice) => ({
+                rank: slice + 1,
+                type: "OTHER",
+                title: p.isRetry ? "Retry" : p.title.trim(),
+                description: p.description.trim() || undefined,
+                quantity: p.isRetry ? null : p.quantity,
+                rarity: p.rarity,
+                isRetry: p.isRetry,
+              })),
+            };
+          }
+
           if (r.gameType === "word-puzzle") {
             // Backend scorer reads questions[0].hiddenWords[] — group all words there.
             // Grid is shared across all words in a puzzle (comes from AI wordPuzzleMeta).
@@ -928,6 +1005,11 @@ export function GameCreationWizard({
       return;
     }
 
+    if (step === 3 && isWheelRound(activeRoundIdx)) {
+      setStep(4);
+      return;
+    }
+
     if (step === 3 && contentMode === "ai") {
       generateQuestionsWithAI(activeRoundIdx);
       return;
@@ -959,8 +1041,9 @@ export function GameCreationWizard({
         setStep(3);
         return;
       }
-      // All rounds done → go to prizes
-      setStep(5);
+      // All rounds done → go to prizes (or straight to preview if there's
+      // nothing to rank)
+      setStep(allRoundsAreWheels ? 6 : 5);
       return;
     }
 
@@ -969,6 +1052,10 @@ export function GameCreationWizard({
 
   const handleBack = () => {
     setValidationError("");
+    if (step === 6 && allRoundsAreWheels) {
+      setStep(4);
+      return;
+    }
     if (step === 4 && activeRoundIdx > 0) {
       // Go back to previous round's questions
       setActiveRoundIdx((i) => i - 1);
@@ -1060,7 +1147,15 @@ export function GameCreationWizard({
           setAiPrompt={setAiPrompt}
         />
       )}
-      {step === 4 && (
+      {step === 4 && isWheelRound(activeRoundIdx) && (
+        <WheelPrizeEditor
+          roundIndex={activeRoundIdx}
+          totalRounds={numberOfRounds}
+          prizes={currentRound?.prizes ?? []}
+          setPrizes={(prizes) => setRoundPrizes(activeRoundIdx, prizes)}
+        />
+      )}
+      {step === 4 && !isWheelRound(activeRoundIdx) && (
         <StepFour
           roundIndex={activeRoundIdx}
           totalRounds={numberOfRounds}
@@ -1117,7 +1212,7 @@ export function GameCreationWizard({
           scheduleMode={scheduleMode}
           contentMode={contentMode}
           repetitions={repetitions}
-          rewardTiers={rewardTiers}
+          rewardTiers={allRoundsAreWheels ? [] : rewardTiers}
           handleComplete={handleComplete}
           isLoading={isLoading}
         />
@@ -1159,7 +1254,7 @@ export function GameCreationWizard({
               <>
                 <Loader2 className="h-4 w-4 animate-spin" /> Generating...
               </>
-            ) : step === 3 && contentMode === "ai" ? (
+            ) : step === 3 && contentMode === "ai" && !isWheelRound(activeRoundIdx) ? (
               <>
                 <Sparkles className="h-4 w-4" /> Generate Questions
               </>

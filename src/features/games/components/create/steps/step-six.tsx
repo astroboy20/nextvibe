@@ -86,6 +86,9 @@ const StepSix = ({
       </p>
       {roundsData.map((r, i) => {
         const config = gameTypeConfig[r.gameType];
+        // A wheel is made of prize slices, not questions.
+        const count = r.gameType === "spin-wheel" ? (r.prizes?.length ?? 0) : r.questions.length;
+        const noun = r.gameType === "spin-wheel" ? "slice" : "question";
         return (
           <div key={i} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#531342]/10 text-[#531342] shrink-0">
@@ -93,9 +96,9 @@ const StepSix = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{r.title || `Round ${i + 1}`}</p>
-              <p className="text-xs text-muted-foreground">{config?.label} · {r.questions.length} question{r.questions.length !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-muted-foreground">{config?.label} · {count} {noun}{count !== 1 ? "s" : ""}</p>
             </div>
-            <CheckCircle2 className={cn("h-4 w-4 shrink-0", r.questions.length > 0 ? "text-emerald-500" : "text-muted-foreground/30")} />
+            <CheckCircle2 className={cn("h-4 w-4 shrink-0", count > 0 ? "text-emerald-500" : "text-muted-foreground/30")} />
           </div>
         );
       })}

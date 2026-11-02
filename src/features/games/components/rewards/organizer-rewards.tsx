@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { AlertCircle, Gift, Loader2, Trophy, Users } from "lucide-react";
+import { AlertCircle, Gift, Loader2, Ticket, Trophy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,8 @@ import {
   useApproveRewardMutation,
   useFulfilRewardMutation,
   useRejectRewardMutation,
+  useLookupClaimCodeMutation,
+  useRedeemClaimCodeMutation,
   type EventRewardsOverview,
   type RewardStatus,
 } from "@/features/games/api/rewards-api";
@@ -112,6 +114,14 @@ function WinnerRow({ winner }: { winner: Winner }) {
           {winner.reward.value && ` · ${winner.reward.value}`}
           {winner.session.title && ` · ${winner.session.title}`}
         </p>
+        {winner.claimCode && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Code{" "}
+            <span className="font-mono font-semibold text-foreground tracking-wider">
+              {winner.claimCode}
+            </span>
+          </p>
+        )}
 
         <p className="text-[11px] text-muted-foreground mt-0.5">
           {formatDistanceToNow(new Date(winner.awardedAt), { addSuffix: true })}
@@ -254,6 +264,98 @@ function WinnerRow({ winner }: { winner: Winner }) {
   );
 }
 
+/**
+ * At the venue: a winner shows their claim code, the organizer types it in,
+ * checks who won what, and hands the prize over in one tap. Lookup and redeem
+ * are separate so the organizer sees the prize before committing.
+ */
+function RedeemByCode({ eventId }: { eventId: string }) {
+  const [code, setCode] = useState("");
+  const [lookup, { data: found, isLoading: looking, reset }] =
+    useLookupClaimCodeMutation();
+  const [redeem, { isLoading: redeeming }] = useRedeemClaimCodeMutation();
+  const prize = found?.data;
+
+  const handleLookup = async () => {
+    if (!code.trim()) return;
+    try {
+      await lookup({ eventId, code: code.trim() }).unwrap();
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? "No prize matches that code.");
+    }
+  };
+
+  const handleRedeem = async () => {
+    try {
+      await redeem({ eventId, code: code.trim() }).unwrap();
+      toast.success("Prize handed over");
+      setCode("");
+      reset();
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? "Couldn't redeem that code.");
+    }
+  };
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Ticket className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold text-sm">Redeem a claim code</h3>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value);
+            if (prize) reset();
+          }}
+          onKeyDown={(e) => e.key === "Enter" && handleLookup()}
+          placeholder="VX7-K2P"
+          className="font-mono uppercase tracking-wider"
+          maxLength={20}
+          aria-label="Claim code"
+        />
+        <Button
+          variant="outline"
+          disabled={!code.trim() || looking}
+          onClick={handleLookup}
+        >
+          {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Find"}
+        </Button>
+      </div>
+
+      {prize && (
+        <div className="rounded-lg border p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm">
+              <span className="font-medium">{personName(prize.user)}</span> won{" "}
+              <span className="font-medium">
+                {prize.rewardTier.title || prize.rewardTier.type}
+              </span>
+            </p>
+            <RewardStatusBadge status={prize.status} />
+          </div>
+          {prize.status === "FULFILLED" ? (
+            <p className="text-xs text-destructive">
+              Already redeemed
+              {prize.fulfilledAt &&
+                ` ${formatDistanceToNow(new Date(prize.fulfilledAt), { addSuffix: true })}`}
+              . Don&apos;t hand it over again.
+            </p>
+          ) : prize.status === "REJECTED" ? (
+            <p className="text-xs text-destructive">This prize was declined.</p>
+          ) : (
+            <Button size="sm" disabled={redeeming} onClick={handleRedeem}>
+              {redeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Hand over prize
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function OrganizerRewards() {
   const {
     data: eventsData,
@@ -356,6 +458,8 @@ export function OrganizerRewards() {
             <Stat label="Unclaimed" value={overview.counts.unclaimed} />
             <Stat label="Received" value={overview.counts.fulfilled} />
           </div>
+
+          <RedeemByCode eventId={eventId} />
 
           {/* Winners and what each one won */}
           <Card className="p-4">
