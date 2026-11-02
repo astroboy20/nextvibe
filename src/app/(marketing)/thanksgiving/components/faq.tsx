@@ -8,11 +8,11 @@ import {
 const faqs = [
   {
     q: "What exactly do I pay for?",
-    a: "One full NextVibe Thanksgiving package — VibeTag, postcards, family trivia, VibePod and analytics — at $29 instead of $58.",
+    a: "One full NextVibe Thanksgiving package — private family gallery, VibeTag, family trivia, guest postcards and a host dashboard — at a $29 founder price.",
   },
   {
-    q: "We're Canadian — is this for us too?",
-    a: "Absolutely. The package works the same for Canadian Thanksgiving and Friendsgiving. If your date has already passed this year, pick next year's date and your setup is ready well ahead.",
+    q: "I'm hosting Friendsgiving — does this work for me?",
+    a: "Absolutely. The package works for any Thanksgiving celebration, Friendsgiving included. Just pick your dinner date during setup.",
   },
   {
     q: "Why is it 50% off?",

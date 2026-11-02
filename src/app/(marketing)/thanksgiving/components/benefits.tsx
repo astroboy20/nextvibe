@@ -2,7 +2,7 @@ import { Check, Drumstick, MessageSquareHeart } from "lucide-react";
 import Image from "next/image";
 
 const hostBenefits = [
-  "One organised memory bank — no more chasing photos in the group chat",
+  "One organized memory bank — no more chasing photos in the group chat",
   "Every cousin's photos and videos in one place, automatically",
   "Family trivia that gets the whole table talking",
   "See who joined and what they shared",
