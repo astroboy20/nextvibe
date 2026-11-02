@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users,
   Gamepad2,
+  Gift,
   Tag,
   BarChart3,
   QrCode,
@@ -35,6 +36,7 @@ import EventRemindersContent from "@/features/events/components/dashboard/event-
 import Image from "next/image";
 // import AnalyticsPanelContent from "@/features/events/components/dashboard/analytics-panel";
 import VibeTagStudioContent from "@/features/vibetags/components/vibe-tag-studio";
+import { WishlistManagerContent } from "@/features/wishlist/components/dashboard/wishlist-manager-content";
 // import PostcardLeaderboardContent from "@/features/postcards/components/dashboard/leaderboard-content";
 import {
   useGetEventDetailsQuery,
@@ -1376,6 +1378,25 @@ export default function OrganizerDashboard({
                 vibeTag={event?.vibeTag ?? null}
                 eventPlan={event?.eventPlan ?? null}
               />
+            </EventDashboardCard>
+          )}
+
+          {isLoading ? (
+            <DashboardCardSkeleton />
+          ) : (
+            <EventDashboardCard
+              title="Wishlist"
+              icon={<Gift className="h-4 w-4" />}
+              badge={
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-[#531342]/10 text-[#531342] font-semibold"
+                >
+                  {event?.hasWishlist ? "On" : "Off"}
+                </Badge>
+              }
+            >
+              <WishlistManagerContent eventId={eventId} />
             </EventDashboardCard>
           )}
 

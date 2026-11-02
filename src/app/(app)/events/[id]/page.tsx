@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   Table,
   Info,
+  Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
 import { EventChatTab } from "@/features/events/components/event-page/event-chat-tab";
 import { EventGamesTab } from "@/features/games/components/play/event-game-tab";
 import { EventVibeTagsTab } from "@/features/postcards/components/event-vibetags-tab";
+import { EventWishlistTab } from "@/features/wishlist/components/event-wishlist-tab";
 import { useGetEventDetailsQuery } from "@/features/events/api/events-api";
 import { PrivateEventGuard } from "@/features/events/components/private-event-guard";
 import { toast } from "sonner";
@@ -64,6 +66,13 @@ const tabsConfig = [
     icon: <Tag className="mr-1.5 h-4 w-4" />,
     always: false,
     flag: "hasVibeTag" as const,
+  },
+  {
+    value: "wishlist",
+    label: "Wishlist",
+    icon: <Gift className="mr-1.5 h-4 w-4" />,
+    always: false,
+    flag: "hasWishlist" as const,
   },
   {
     value: "chat",
@@ -160,7 +169,15 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
 
   // Sync tab with ?tab= search param so the URL can be used as a deep-link
   // back to the exact tab after a login redirect.
-  const VALID_TABS = ["about", "rsvp", "qr", "games", "postcard", "chat"];
+  const VALID_TABS = [
+    "about",
+    "rsvp",
+    "qr",
+    "games",
+    "postcard",
+    "wishlist",
+    "chat",
+  ];
   const initialTab = VALID_TABS.includes(searchParams.get("tab") ?? "")
     ? (searchParams.get("tab") as string)
     : "about";
@@ -192,9 +209,12 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
     event?.hasVibeTag ??
     (Array.isArray(event?.vibeTag) && event.vibeTag.length > 0);
 
-  const visibleTabs = tabsConfig.filter(
-    (t) => t.always || (t.flag === "hasGame" ? hasGame : hasVibeTag)
-  );
+  const flags = {
+    hasGame,
+    hasVibeTag,
+    hasWishlist: event?.hasWishlist ?? false,
+  };
+  const visibleTabs = tabsConfig.filter((t) => t.always || flags[t.flag!]);
 
   const eventUrl =
     typeof window !== "undefined"
@@ -495,6 +515,10 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
               eventName={eventDetails?.data?.name ?? "Event"}
               eventStartsAt={eventDetails?.data?.startsAt ?? null}
             />
+          </TabsContent>
+
+          <TabsContent value="wishlist" className="mt-0">
+            <EventWishlistTab eventId={id} />
           </TabsContent>
 
           <TabsContent value="chat" className="mt-0">
