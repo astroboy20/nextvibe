@@ -5,11 +5,9 @@ export default function ThanksgivingLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-     
-
-      <main className="flex-1">{children}</main>
-
-     
+      <main className="flex-1">
+        {children}
+        </main>
     </div>
   );
 }
