@@ -154,15 +154,10 @@ export const MediaSlide = memo(function MediaSlide({
     }
   }, [isActive, updateFillHeight]);
 
-  if (!shouldMountMedia) {
-    return <div className="h-full w-full bg-black" aria-hidden="true" />;
-  }
-
   /**
    * Receives dimensions from either
    * ProgressiveImage or VideoPlayer.
    */
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const handleIntrinsicSize = useCallback(
     (width: number, height: number) => {
       mediaSizeRef.current = {
@@ -174,6 +169,10 @@ export const MediaSlide = memo(function MediaSlide({
     },
     [updateFillHeight]
   );
+
+  if (!shouldMountMedia) {
+    return <div className="h-full w-full bg-black" aria-hidden="true" />;
+  }
 
   return (
     <div

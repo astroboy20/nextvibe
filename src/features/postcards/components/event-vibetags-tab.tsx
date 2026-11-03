@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +84,12 @@ function PostcardTile({
     process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
     "http://minio-production-5cff.up.railway.app:443/nextvibe";
   const mediaItems: any[] = postcard?.media ?? [];
+  
+  // Debug: log the full postcard to see what fields are available
+  if (mediaItems.length === 1 && typeof window !== 'undefined') {
+    console.log('[PostcardTile] Sample postcard:', postcard);
+  }
+  
   const firstMedia = mediaItems[0];
   const src = firstMedia?.mediaUrl
     ? firstMedia.mediaUrl
@@ -91,6 +97,9 @@ function PostcardTile({
       ? `${storageBase}/${firstMedia.storageKey}`
       : (tag?.imageUrl ?? "");
   const isVideo = firstMedia?.mediaType === "VIDEO";
+  // Check for explicit mediaCount field or fall back to counting media array
+  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m) => !!m.mediaUrl).length;
+  const hasMultiple = mediaCount > 1;
 
   if (!src) return null;
 
@@ -120,6 +129,24 @@ function PostcardTile({
         >
           {pill.label}
         </span>
+      )}
+      {isVideo && (
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
+          <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">
+            <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+          </svg>
+        </div>
+      )}
+      {hasMultiple && !isVideo && (
+        <div className="absolute top-2 right-2 z-10">
+          <svg
+            className="h-4 w-4 text-white drop-shadow-lg"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
+          </svg>
+        </div>
       )}
       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -157,12 +184,14 @@ function PhasePostcards({
   vibeTagMap,
   onLike,
   onSelect,
+  onListReady,
 }: {
   eventId: string;
   phase: PostcardPhase;
   vibeTagMap: Record<string, VibeTag>;
   onLike: (id: string) => void;
-  onSelect: (p: any) => void;
+  onSelect: (p: any, list: any[]) => void;
+  onListReady?: (list: any[]) => void;
 }) {
   const { data, isLoading } = useGetEventPostcardsQuery(
     { eventId, phase },
@@ -173,6 +202,16 @@ function PhasePostcards({
   const postcards: any[] = rawList.filter((p: any) =>
     (p?.media ?? []).some((m: any) => !!m.mediaUrl),
   );
+
+  // Notify parent whenever the list changes so it can track it for navigation
+  const prevListRef = useRef<any[]>([]);
+  if (
+    onListReady &&
+    postcards.length !== prevListRef.current.length
+  ) {
+    prevListRef.current = postcards;
+    onListReady(postcards);
+  }
 
   if (isLoading) {
     return (
@@ -199,7 +238,7 @@ function PhasePostcards({
               postcard={postcard}
               vibeTagMap={vibeTagMap}
               onLike={onLike}
-              onClick={() => onSelect(postcard)}
+              onClick={() => onSelect(postcard, postcards)}
             />
           ))}
         </div>
@@ -220,6 +259,7 @@ export function EventVibeTagsTab({
   const [selectedPostcard, setSelectedPostcard] = useState<PostcardData | null>(
     null,
   );
+  const [currentPostcardList, setCurrentPostcardList] = useState<PostcardData[]>([]);
 
   // Same query as PhasePostcards — RTK Query deduplicates the request, no extra network call
   const { data: countData } = useGetEventPostcardsQuery(
@@ -381,13 +421,17 @@ export function EventVibeTagsTab({
                   const storageBase =
                     process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
                     "http://minio-production-5cff.up.railway.app:443/nextvibe";
-                  const firstMedia = postcard?.media?.[0];
+                  const mediaItems = postcard?.media ?? [];
+                  const firstMedia = mediaItems[0];
                   const src = firstMedia?.mediaUrl
                     ? firstMedia.mediaUrl
                     : firstMedia?.storageKey
                       ? `${storageBase}/${firstMedia.storageKey}`
                       : "";
                   const isVideo = firstMedia?.mediaType === "VIDEO";
+                  // Check for explicit mediaCount field or fall back to counting media array
+                  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m: any) => !!m.mediaUrl).length;
+                  const hasMultiple = mediaCount > 1;
                   if (!src) return null;
                   return (
                     <div
@@ -406,6 +450,27 @@ export function EventVibeTagsTab({
                         <img
                           src={src}
                           alt="Postcard"
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                      {isVideo && (
+                        <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
+                          <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">
+                            <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                          </svg>
+                        </div>
+                      )}
+                      {hasMultiple && !isVideo && (
+                        <div className="absolute top-2 right-2 z-10">
+                          <svg
+                            className="h-4 w-4 text-white drop-shadow-lg"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
+                          </svg>
+                        </div>
+                      )}
                           className="h-full w-full object-cover"
                         />
                       )}
@@ -570,7 +635,11 @@ export function EventVibeTagsTab({
               phase={postcardPhase}
               vibeTagMap={vibeTagMap}
               onLike={handleLike}
-              onSelect={(p) => setSelectedPostcard(p)}
+              onSelect={(p, list) => {
+                setCurrentPostcardList(list as PostcardData[]);
+                setSelectedPostcard(p);
+              }}
+              onListReady={(list) => setCurrentPostcardList(list as PostcardData[])}
             />
           )}
         </div>
@@ -585,6 +654,13 @@ export function EventVibeTagsTab({
           eventName={eventName}
           onClose={() => setSelectedPostcard(null)}
           zIndex={60}
+          postcardList={currentPostcardList}
+          initialPostcardIndex={currentPostcardList.findIndex(
+            (p) => p.id === selectedPostcard.id,
+          )}
+          onNavigatePostcard={(idx) =>
+            setSelectedPostcard(currentPostcardList[idx])
+          }
         />
       )}
     </>

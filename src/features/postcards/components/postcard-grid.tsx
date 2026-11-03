@@ -93,7 +93,10 @@ const PostcardGrid = ({
       {postcards.map((postcard, index) => {
         const primaryMedia = postcard?.media?.[0];
         const src = resolveMediaUrl(primaryMedia);
-        // const isVideo = primaryMedia?.mediaType === "VIDEO";
+        const isVideo = primaryMedia?.mediaType === "VIDEO";
+        // Check for explicit mediaCount field or fall back to counting media array
+        const mediaCount = postcard?.mediaCount ?? (postcard?.media ?? []).filter((m) => !!m.mediaUrl).length;
+        const hasMultiple = mediaCount > 1;
         const eventName = postcard?.event?.name ?? "";
         const authorName =
           postcard?.author?.displayName ?? postcard?.author?.username ?? "";
@@ -122,6 +125,26 @@ const PostcardGrid = ({
               />
 
               <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              
+              {isVideo && (
+                <div className="absolute top-2 left-2 z-10 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
+                  <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                  </svg>
+                </div>
+              )}
+              
+              {hasMultiple && !isVideo && (
+                <div className="absolute top-2 right-2 z-10">
+                  <svg
+                    className="h-4 w-4 text-white drop-shadow-lg"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
+                  </svg>
+                </div>
+              )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-3 text-white translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">

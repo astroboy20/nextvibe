@@ -153,10 +153,12 @@ export const PostcardViewer = memo(function PostcardViewer({
   const userId = resolvedAuthor?.id;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
-  const media = useMemo(
-    () => (postcard.media ?? []).filter((item) => !!item.mediaUrl),
-    [postcard.media]
-  );
+  const media = useMemo(() => {
+    // Use freshData.media if available (has all media items), otherwise fall back to postcard.media
+    const source = (freshData?.media ?? postcard.media ?? []);
+    const filtered = source.filter((item) => !!item.mediaUrl);
+    return filtered;
+  }, [freshData?.media, postcard.media]);
 
   const caption = postcard.caption ?? "";
 
