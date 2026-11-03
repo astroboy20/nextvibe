@@ -153,12 +153,27 @@ export const PostcardViewer = memo(function PostcardViewer({
   const userId = resolvedAuthor?.id;
   const resolvedEventName = postcard.event?.name ?? eventName;
 
+<<<<<<< HEAD
   const media = useMemo(() => {
     // Use freshData.media if available (has all media items), otherwise fall back to postcard.media
     const source = (freshData?.media ?? postcard.media ?? []);
     const filtered = source.filter((item) => !!item.mediaUrl);
     return filtered;
   }, [freshData?.media, postcard.media]);
+=======
+  // Prefer the fetched postcard's media. Lists (feed, gallery, profile) come
+  // from GET /postcards, which only includes the FIRST media item for
+  // thumbnails, so reading the prop alone collapses the carousel to a single
+  // slide. The prop is only the placeholder until the full postcard arrives.
+  const media = useMemo(
+    () =>
+      ((freshData?.media as PostcardMediaItem[] | undefined) ??
+        postcard.media ??
+        []
+      ).filter((item) => !!item.mediaUrl),
+    [freshData?.media, postcard.media]
+  );
+>>>>>>> e8552da23945e1c8b7899763bd006326c84793b7
 
   const caption = postcard.caption ?? "";
 

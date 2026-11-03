@@ -23,6 +23,7 @@ import {
   Timer,
   XCircle,
   Share2,
+  Disc3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,6 +49,7 @@ import { useGetUserQuery } from "@/features/auth/api/auth-api";
 import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/features/games/lib/anonymous-game";
 import { AnonScorePrompt } from "@/features/games/components/anon-score-prompt";
+import { SpinWheelRoundPlayer } from "@/features/games/components/play/spin-wheel-round-player";
 
 /** Read a persisted set of ids, tolerating absent/corrupt entries. */
 const readIdSet = (key: string): Set<string> => {
@@ -60,7 +62,13 @@ const readIdSet = (key: string): Set<string> => {
   }
 };
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "feedback";
+type GameType =
+  | "trivia"
+  | "word-puzzle"
+  | "two-truths"
+  | "this-or-that"
+  | "feedback"
+  | "spin-wheel";
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
@@ -68,6 +76,7 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "two-truths": <MessageSquare className="h-5 w-5" />,
   "this-or-that": <Zap className="h-5 w-5" />,
   feedback: <MessageCircleQuestion className="h-5 w-5" />,
+  "spin-wheel": <Disc3 className="h-5 w-5" />,
 };
 
 const mapType = (t: string): GameType =>
@@ -77,6 +86,7 @@ const mapType = (t: string): GameType =>
   TWO_TRUTHS_ONE_LIE: "two-truths",
   THIS_OR_THAT: "this-or-that",
   FEEDBACK: "feedback",
+  SPIN_WHEEL: "spin-wheel",
 }[t] ?? "trivia") as GameType);
 
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
@@ -1101,6 +1111,11 @@ function RoundPlayer({
   const progress =
     questions.length > 0 ? (currentQ / questions.length) * 100 : 0;
   const isLast = currentQ === questions.length - 1;
+
+  // ── Spin the wheel: its own player, no questions or score ─────────────────
+  if (gameType === "spin-wheel") {
+    return <SpinWheelRoundPlayer roundId={round.id} sessionId={session?.id} />;
+  }
 
   // ── Word Puzzle: delegate entirely to the grid player ──────────────────────
   if (gameType === "word-puzzle") {

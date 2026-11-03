@@ -31,6 +31,7 @@ export const baseApi = createApi({
     "Games",
     "PublishPreview",
     "Withdrawals",
+    "Wishlist",
   ],
   keepUnusedDataFor: 300, // cache for 5 minutes — avoids re-fetching on every mount/navigation
   endpoints: () => ({}),

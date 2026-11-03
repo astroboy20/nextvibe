@@ -58,6 +58,8 @@ export interface Reward {
     rejectedAt: string | null;
     rejectionReason: string | null;
     fulfilmentNote: string | null;
+    /** Spin-the-wheel wins only: shown at the venue to collect the prize. */
+    claimCode: string | null;
     createdAt: string;
     rewardTier: RewardTier;
     gameSession: {
@@ -106,6 +108,7 @@ export interface EventRewardsOverview {
         rejectedAt: string | null;
         rejectionReason: string | null;
         fulfilmentNote: string | null;
+        claimCode: string | null;
     }[];
     counts: {
         awaitingReview: number;
@@ -113,6 +116,17 @@ export interface EventRewardsOverview {
         fulfilled: number;
         unclaimed: number;
     };
+}
+
+/** A prize found by its claim code, with who won it. */
+export interface ClaimCodeReward {
+    id: string;
+    status: RewardStatus;
+    claimCode: string;
+    fulfilledAt: string | null;
+    createdAt: string;
+    rewardTier: RewardTier;
+    user: RewardUser;
 }
 
 export interface RewardsResponse {
@@ -188,6 +202,32 @@ export const rewardsApi = createApi({
             }),
             invalidatesTags: ["Rewards"],
         }),
+
+        // =======================
+        // Claim codes (spin the wheel, redeemed at the venue)
+        // =======================
+        lookupClaimCode: build.mutation<
+            { success: boolean; data: ClaimCodeReward },
+            { eventId: string; code: string }
+        >({
+            query: ({ eventId, code }) => ({
+                url: `/v1/events/${eventId}/rewards/lookup-code`,
+                method: "POST",
+                body: { code },
+            }),
+        }),
+
+        redeemClaimCode: build.mutation<
+            { success: boolean; data: ClaimCodeReward },
+            { eventId: string; code: string }
+        >({
+            query: ({ eventId, code }) => ({
+                url: `/v1/events/${eventId}/rewards/redeem-code`,
+                method: "POST",
+                body: { code },
+            }),
+            invalidatesTags: ["Rewards"],
+        }),
     }),
 });
 
@@ -198,4 +238,6 @@ export const {
     useApproveRewardMutation,
     useFulfilRewardMutation,
     useRejectRewardMutation,
+    useLookupClaimCodeMutation,
+    useRedeemClaimCodeMutation,
 } = rewardsApi;

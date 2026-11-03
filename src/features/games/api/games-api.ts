@@ -353,6 +353,25 @@ export const gameEndpoints = baseApi.injectEndpoints({
     }),
 
     /** DELETE /v1/game-reward-tiers/:id — delete a reward tier */
+    // ─── Spin the wheel ─────────────────────────────────────────────────────
+    /** Slices in order, which are sold out, and (signed in) my spins and wins. */
+    getWheel: builder.query<WheelState, string>({
+      query: (roundId) => `/v1/game-rounds/${roundId}/wheel`,
+      transformResponse: (res: { data: WheelState }) => res.data,
+      providesTags: (_, __, roundId) => [{ type: "Games", id: `wheel-${roundId}` }],
+    }),
+
+    /** The server picks the slice; the wheel only animates to it. */
+    spinWheel: builder.mutation<SpinResult, string>({
+      query: (roundId) => ({
+        url: `/v1/game-rounds/${roundId}/spin`,
+        method: "POST",
+      }),
+      transformResponse: (res: { data: SpinResult }) => res.data,
+      // Not invalidated here: refetching mid-animation would grey out a slice
+      // before the wheel stops on it. The player refetches after the reveal.
+    }),
+
     deleteGameRewardTier: builder.mutation<any, string>({
       query: (tierId) => ({
         url: `/v1/game-reward-tiers/${tierId}`,
@@ -392,4 +411,50 @@ export const {
   useAddGameRewardTierMutation,
   useUpdateGameRewardTierMutation,
   useDeleteGameRewardTierMutation,
+  useGetWheelQuery,
+  useSpinWheelMutation,
 } = gameEndpoints;
+
+export type PrizeRarity = "COMMON" | "RARE" | "VERY_RARE";
+
+export interface WheelSlice {
+  id: string;
+  position: number;
+  title: string | null;
+  description: string | null;
+  rarity: PrizeRarity;
+  isRetry: boolean;
+  isLimited: boolean;
+  /** null = unlimited */
+  remaining: number | null;
+  isSoldOut: boolean;
+}
+
+export interface WheelWin {
+  rewardId: string;
+  title: string | null;
+  claimCode: string | null;
+  status: string;
+}
+
+export interface WheelState {
+  roundId: string;
+  title: string | null;
+  status: string;
+  sessionStatus: string;
+  slices: WheelSlice[];
+  /** Only present when signed in. */
+  me: { spinsUsed: number; spinsLeft: number; wins: WheelWin[] } | null;
+}
+
+export interface SpinResult {
+  slice: {
+    id: string;
+    position: number;
+    title: string | null;
+    rarity: PrizeRarity;
+    isRetry: boolean;
+  };
+  reward: { id: string; claimCode: string | null; status: string } | null;
+  spinsLeft: number;
+}

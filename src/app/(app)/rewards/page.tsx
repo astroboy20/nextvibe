@@ -118,6 +118,20 @@ function RewardCard({ reward }: { reward: Reward }) {
             Won {formatDistanceToNow(new Date(reward.createdAt), { addSuffix: true })}
           </p>
 
+          {/* Spin-the-wheel wins: shown at the venue to collect the prize. */}
+          {reward.claimCode &&
+            reward.status !== "FULFILLED" &&
+            reward.status !== "REJECTED" && (
+              <div className="mt-3 rounded-xl border border-[#531342]/30 bg-[#531342]/5 px-3 py-2.5 text-center">
+                <p className="text-[11px] text-muted-foreground">
+                  Show this code to the organizer
+                </p>
+                <p className="font-mono text-xl font-bold tracking-[0.2em] text-[#531342]">
+                  {reward.claimCode}
+                </p>
+              </div>
+            )}
+
           {/* Where this prize has got to */}
           <div className="mt-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5">
             <RewardProgress status={reward.status} />
