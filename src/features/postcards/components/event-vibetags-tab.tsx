@@ -84,12 +84,12 @@ function PostcardTile({
     process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
     "http://minio-production-5cff.up.railway.app:443/nextvibe";
   const mediaItems: any[] = postcard?.media ?? [];
-  
+
   // Debug: log the full postcard to see what fields are available
   if (mediaItems.length === 1 && typeof window !== 'undefined') {
     console.log('[PostcardTile] Sample postcard:', postcard);
   }
-  
+
   const firstMedia = mediaItems[0];
   const src = firstMedia?.mediaUrl
     ? firstMedia.mediaUrl
@@ -419,8 +419,7 @@ export function EventVibeTagsTab({
               <div className="grid grid-cols-2 gap-3">
                 {myPostcardsRaw.map((postcard: any) => {
                   const storageBase =
-                    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
-                    "http://minio-production-5cff.up.railway.app:443/nextvibe";
+                    process.env.NEXT_PUBLIC_STORAGE_BASE_URL
                   const mediaItems = postcard?.media ?? [];
                   const firstMedia = mediaItems[0];
                   const src = firstMedia?.mediaUrl
@@ -470,9 +469,6 @@ export function EventVibeTagsTab({
                             <path d="M19 3H7a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2zM5 7H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2H5V7z" />
                           </svg>
                         </div>
-                      )}
-                          className="h-full w-full object-cover"
-                        />
                       )}
                       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-2">

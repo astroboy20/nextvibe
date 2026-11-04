@@ -205,9 +205,8 @@ export default function EventPostcardsPage({
                 if (!src) return null;
 
                 const isVideo = primaryMedia?.mediaType === "VIDEO";
-                // Check for explicit mediaCount field or fall back to counting media array
-                const mediaCount = postcard?.mediaCount ?? (postcard.media ?? []).filter((m) => !!m.mediaUrl).length;
-                const hasMultiple = mediaCount > 1;
+                // Count media items from the media array
+                const hasMultiple = (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
 
                 return (
                   <div

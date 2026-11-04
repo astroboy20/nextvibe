@@ -46,7 +46,7 @@ import {
 import { useInitiateAdditionalGamePaymentMutation } from "@/features/billing/api/organizer-payments-api";
 import { toast } from "sonner";
 
-type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that";
+type GameType = "trivia" | "word-puzzle" | "two-truths" | "this-or-that" | "poll";
 type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 
 interface GameProps {
@@ -72,6 +72,7 @@ const mapGameType = (t: string): GameType =>
     WORD_PUZZLE: "word-puzzle",
     TWO_TRUTHS: "two-truths",
     THIS_OR_THAT: "this-or-that",
+    POLL: "poll",
   }[t] ?? "trivia") as GameType);
 
 const mapPhase = (t: string): EventPhase =>
@@ -93,6 +94,7 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "word-puzzle": <Puzzle className="h-4 w-4" />,
   "two-truths": <MessageSquare className="h-4 w-4" />,
   "this-or-that": <Zap className="h-4 w-4" />,
+  poll: <HelpCircle className="h-4 w-4" />,
 };
 
 function StatusBadge({ status }: { status: "pending" | "live" | "ended" }) {

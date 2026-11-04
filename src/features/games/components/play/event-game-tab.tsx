@@ -35,6 +35,7 @@ import {
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
   useGetRoundResponsesQuery,
+  useGetPollResultsQuery,
   useGetGameSessionQuery,
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,
@@ -50,6 +51,8 @@ import Cookies from "js-cookie";
 import { getAnonymousId, saveAnonSession } from "@/features/games/lib/anonymous-game";
 import { AnonScorePrompt } from "@/features/games/components/anon-score-prompt";
 import { SpinWheelRoundPlayer } from "@/features/games/components/play/spin-wheel-round-player";
+import { PollRoundPlayer } from "@/features/games/components/play/poll-round-player";
+import { PollResultsDisplay } from "@/features/games/components/play/poll-results-display";
 
 /** Read a persisted set of ids, tolerating absent/corrupt entries. */
 const readIdSet = (key: string): Set<string> => {
@@ -68,7 +71,8 @@ type GameType =
   | "two-truths"
   | "this-or-that"
   | "feedback"
-  | "spin-wheel";
+  | "spin-wheel"
+  | "poll";
 
 const gameTypeIcons: Record<GameType, React.ReactNode> = {
   trivia: <HelpCircle className="h-5 w-5" />,
@@ -77,6 +81,7 @@ const gameTypeIcons: Record<GameType, React.ReactNode> = {
   "this-or-that": <Zap className="h-5 w-5" />,
   feedback: <MessageCircleQuestion className="h-5 w-5" />,
   "spin-wheel": <Disc3 className="h-5 w-5" />,
+  poll: <HelpCircle className="h-5 w-5" />,
 };
 
 const mapType = (t: string): GameType =>
@@ -87,6 +92,7 @@ const mapType = (t: string): GameType =>
   THIS_OR_THAT: "this-or-that",
   FEEDBACK: "feedback",
   SPIN_WHEEL: "spin-wheel",
+  POLL: "poll",
 }[t] ?? "trivia") as GameType);
 
 const mapStatus = (s: string): "pending" | "live" | "ended" =>
@@ -1216,6 +1222,82 @@ function RoundPlayer({
           <p className="text-sm text-muted-foreground">Your answers have been submitted.</p>
         </div>
       </div>
+    );
+  }
+
+  // ── Poll: delegate entirely to the poll player ─────────────────────────────
+  if (gameType === "poll") {
+    if (finalScore !== null) {
+      // fall through to the poll results screen below
+    } else if (waitingForResult) {
+      // auto-submit is in flight — show the submitting spinner below
+    } else {
+      return (
+        <PollRoundPlayer
+          questions={questions}
+          initialAnswers={
+            savedState?.answers ? (savedState.answers as number[]) : undefined
+          }
+          onAllComplete={async (pollAnswers) => {
+            setWaitingForResult(true);
+            const timeTakenMs = Date.now() - totalStartTime;
+            const result = await onSubmit(round.id, pollAnswers, timeTakenMs);
+            if (result.ok) {
+              setFinalScore(0); // Polls don't have scores
+              onComplete?.(0);
+            } else {
+              try {
+                sessionStorage.setItem(
+                  `game_answers:${round.id}`,
+                  JSON.stringify({
+                    answers: pollAnswers,
+                    currentQ: 0,
+                    startTime: Date.now() - timeTakenMs,
+                  })
+                );
+              } catch { /* ignore */ }
+              setWaitingForResult(false);
+            }
+          }}
+        />
+      );
+    }
+  }
+
+  // ── Poll: results screen (no score/rank, just vote results) ────────────────
+  if (gameType === "poll" && finalScore !== null) {
+    // Fetch poll results
+    const { data: pollResults } = useGetPollResultsQuery(round.id);
+    
+    if (!pollResults) {
+      return (
+        <div className="flex flex-col items-center gap-4 py-10 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading results...</p>
+        </div>
+      );
+    }
+
+    const resultQuestions = (pollResults?.data?.questions ?? pollResults?.questions ?? []).map(
+      (q: any) => ({
+        questionIndex: q.questionIndex ?? 0,
+        text: q.text ?? "",
+        options: q.options ?? [],
+        totalVotes: q.totalVotes ?? 0,
+        counts: q.counts ?? [],
+        userVote: q.userVote ?? null,
+        revealed: q.revealed ?? false,
+      })
+    );
+
+    return (
+      <PollResultsDisplay
+        roundId={round.id}
+        gameType={gameType}
+        questions={resultQuestions}
+        totalVotes={pollResults?.data?.totalVotes ?? pollResults?.totalVotes ?? 0}
+        revealed={pollResults?.data?.revealed ?? pollResults?.revealed ?? false}
+      />
     );
   }
 

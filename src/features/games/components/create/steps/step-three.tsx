@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Pencil, Sparkles, HelpCircle, Puzzle, MessageSquare, MessageCircleQuestion, Zap, Disc3 } from "lucide-react";
+import { Pencil, Sparkles, HelpCircle, Puzzle, MessageSquare, MessageCircleQuestion, Zap, Disc3, BarChart3 } from "lucide-react";
 import { GameType, ApiGameType } from "@/features/games/components/create/game-creation-wizard";
 
 interface StepThreeProps {
@@ -35,6 +35,7 @@ const GAME_TYPES: { value: GameType; label: string; description: string; icon: R
   { value: "two-truths",     label: "2 Truths & 1 Lie", description: "Spot the lie",        icon: <MessageSquare className="h-5 w-5" /> },
   { value: "this-or-that",   label: "This or That",     description: "Pick between two",    icon: <Zap className="h-5 w-5" /> },
   { value: "feedback",       label: "Feedback",         description: "Open-ended, no right answer", icon: <MessageCircleQuestion className="h-5 w-5" /> },
+  { value: "poll",           label: "Poll",             description: "Vote and see results", icon: <BarChart3 className="h-5 w-5" /> },
   { value: "spin-wheel",     label: "Spin the Wheel",   description: "Checked-in guests spin for prizes", icon: <Disc3 className="h-5 w-5" /> },
 ];
 

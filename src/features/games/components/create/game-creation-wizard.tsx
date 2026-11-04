@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Loader2,
   Disc3,
+  BarChart3,
 } from "lucide-react";
 import WheelPrizeEditor, {
   newWheelPrize,
@@ -41,7 +42,8 @@ export type GameType =
   | "two-truths"
   | "this-or-that"
   | "feedback"
-  | "spin-wheel";
+  | "spin-wheel"
+  | "poll";
 export type GameTypeOrEmpty = "" | GameType;
 export type ApiGameType =
   | "TRIVIA"
@@ -49,7 +51,8 @@ export type ApiGameType =
   | "TWO_TRUTHS_ONE_LIE"
   | "THIS_OR_THAT"
   | "FEEDBACK"
-  | "SPIN_WHEEL";
+  | "SPIN_WHEEL"
+  | "POLL";
 export type EventPhase = "pre-event" | "main-event" | "post-event" | "both";
 type ContentMode = "ai" | "manual";
 export type ScheduleMode = "daily" | "weekly" | "concurrent";
@@ -128,6 +131,7 @@ const GAMETYPE_TO_API: Record<GameType, ApiGameType> = {
   "this-or-that": "THIS_OR_THAT",
   feedback: "FEEDBACK",
   "spin-wheel": "SPIN_WHEEL",
+  poll: "POLL",
 };
 
 export const gameTypeConfig: Record<
@@ -163,6 +167,11 @@ export const gameTypeConfig: Record<
     icon: <Disc3 className="h-5 w-5" />,
     label: "Spin the Wheel",
     description: "Checked-in guests spin for prizes",
+  },
+  poll: {
+    icon: <BarChart3 className="h-5 w-5" />,
+    label: "Poll",
+    description: "Vote on questions, see aggregated results",
   },
 };
 
@@ -388,6 +397,18 @@ export function GameCreationWizard({
           }
           return "";
         }
+        // Poll validation: questions must have at least 2 options
+        if (roundsData[activeRoundIdx].gameType === "poll") {
+          for (const q of roundsData[activeRoundIdx].questions) {
+            if (!q.question.trim())
+              return `Round ${activeRoundIdx + 1}: all questions must have text.`;
+            if (!q.options || q.options.length < 2)
+              return `Round ${activeRoundIdx + 1}: poll questions must have at least 2 options.`;
+            if (q.options.some((o) => !o.trim()))
+              return `Round ${activeRoundIdx + 1}: all poll options must be filled in.`;
+          }
+          return "";
+        }
         for (const q of roundsData[activeRoundIdx].questions) {
           if (!q.question.trim())
             return `Round ${activeRoundIdx + 1}: all questions must have text.`;
@@ -561,6 +582,19 @@ export function GameCreationWizard({
             options: tfOptions,
             correctAnswerIndex: correctIdx,
             correctAnswer: tfOptions[correctIdx],
+          };
+        }
+
+        // POLL — Multiple choice voting, no correct answer
+        if (gameType === "poll") {
+          const options: string[] = q.options ?? [];
+          return {
+            ...base,
+            question: q.text ?? q.question ?? "",
+            options,
+            correctAnswerIndex: undefined, // No correct answer for polls
+            correctAnswer: undefined,
+            points: 0, // Polls are not scored
           };
         }
 
@@ -916,6 +950,25 @@ export function GameCreationWizard({
                 questions: r.questions.map((q) => ({
                   text: q.question,
                   timeLimitSecs: q.timeLimitSecs,
+                })),
+              },
+              rewardTiers: [],
+            };
+          }
+
+          if (r.gameType === "poll") {
+            // Poll questions — multiple options, but no correct answer
+            return {
+              title: r.title || `Round ${i + 1}`,
+              description: r.description,
+              gameType: GAMETYPE_TO_API[r.gameType],
+              orderIndex: i,
+              config: {
+                questions: r.questions.map((q) => ({
+                  text: q.question,
+                  options: q.options ?? [],
+                  timeLimitSecs: q.timeLimitSecs ?? 20,
+                  points: 0, // Polls are not scored
                 })),
               },
               rewardTiers: [],

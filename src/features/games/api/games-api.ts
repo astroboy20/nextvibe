@@ -23,7 +23,7 @@ export const gameEndpoints = baseApi.injectEndpoints({
       }
     >({
       query: ({ eventId, ...body }) => ({
-        url: `/events/${eventId}/games/play`,
+        url: `/v1/events/${eventId}/games/play`,
         method: "POST",
         body,
       }),
@@ -159,6 +159,12 @@ export const gameEndpoints = baseApi.injectEndpoints({
     /** GET /v1/game-rounds/:roundId/responses — organizer only: free-text responses for a FEEDBACK round */
     getRoundResponses: builder.query<any, string>({
       query: (roundId) => `/v1/game-rounds/${roundId}/responses`,
+      providesTags: ["Games"],
+    }),
+
+    /** GET /v1/game-rounds/:roundId/poll-results — get poll results (aggregated vote counts) */
+    getPollResults: builder.query<any, string>({
+      query: (roundId) => `/v1/game-rounds/${roundId}/poll-results`,
       providesTags: ["Games"],
     }),
 
@@ -392,6 +398,7 @@ export const {
   useSubmitRoundAnswersMutation,
   useGetSessionLeaderboardQuery,
   useGetRoundResponsesQuery,
+  useGetPollResultsQuery,
   useGetGameSessionQuery,
   useGetGameRoundParticipationQuery,
   useGetGameSessionByTokenQuery,

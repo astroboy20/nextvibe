@@ -94,9 +94,8 @@ const PostcardGrid = ({
         const primaryMedia = postcard?.media?.[0];
         const src = resolveMediaUrl(primaryMedia);
         const isVideo = primaryMedia?.mediaType === "VIDEO";
-        // Check for explicit mediaCount field or fall back to counting media array
-        const mediaCount = postcard?.mediaCount ?? (postcard?.media ?? []).filter((m) => !!m.mediaUrl).length;
-        const hasMultiple = mediaCount > 1;
+        // Count media items from the media array
+        const hasMultiple = (postcard?.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
         const eventName = postcard?.event?.name ?? "";
         const authorName =
           postcard?.author?.displayName ?? postcard?.author?.username ?? "";

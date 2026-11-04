@@ -2,7 +2,7 @@ import { IEvent } from "@/features/events/types"
 
 
 // Game Types
-export type GameType = 'trivia' | 'wordPuzzle' | 'thisOrThat' | 'twoTruthsOneLie' | 'bingo' | 'spinTheWheel'
+export type GameType = 'trivia' | 'wordPuzzle' | 'thisOrThat' | 'twoTruthsOneLie' | 'bingo' | 'spinTheWheel' | 'poll'
 
 export type GameState = 'active' | 'inactive' | 'completed'
 
@@ -114,6 +114,14 @@ export type TwoTruthsAndALieData = {
   statements: string[];
   lieIndex: number;
   category: string;
+};
+
+// Poll Question Data
+export type PollQuestionData = {
+  text: string;
+  options: string[];
+  timeLimitSecs: number;
+  points: number;
 };
 
 // Generate Game Content Requests
