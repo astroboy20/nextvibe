@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { Check, Copy, Gift, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -17,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiErrorMessage } from "@/shared/lib/error-handler";
 import { formatMoney } from "@/shared/lib/money";
+import { setHideHeader } from "@/store/slices/ui-slice";
 import {
   useLazyGetPaymentDetailsQuery,
   useReportContributionMutation,
@@ -41,6 +43,7 @@ export function ContributeDialog({
   item,
   onOpenChange,
 }: ContributeDialogProps) {
+  const dispatch = useDispatch();
   const open = item !== null;
   const [fetchDetails, details] = useLazyGetPaymentDetailsQuery();
   const [report, { isLoading: isSubmitting }] = useReportContributionMutation();
@@ -52,6 +55,14 @@ export function ContributeDialog({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Hide header when modal is open
+  useEffect(() => {
+    dispatch(setHideHeader(open));
+    return () => {
+      dispatch(setHideHeader(false));
+    };
+  }, [open, dispatch]);
 
   // Bank details are only requested once a guest actually opens the dialog.
   // (The parent keys this component by item, so form state starts fresh.)
