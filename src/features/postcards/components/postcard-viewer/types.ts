@@ -2,6 +2,12 @@ export interface PostcardMediaItem {
   id?: string;
   mediaUrl?: string | null;
   mediaType?: string | null;
+  /**
+   * Composited preview frame URL (VIDEO only) — the first frame of the video
+   * with the vibe tag baked onto it. Used in feeds/grids/leaderboards whenever
+   * the video isn't actively playing. null for photos (the photo IS the thumbnail).
+   */
+  thumbnailUrl?: string | null;
   /** VibeTag overlay URL — set when canvas baking was skipped (large file). */
   vibeTagOverlayUrl?: string | null;
 }

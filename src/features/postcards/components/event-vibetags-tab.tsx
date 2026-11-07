@@ -85,20 +85,17 @@ function PostcardTile({
     "http://minio-production-5cff.up.railway.app:443/nextvibe";
   const mediaItems: any[] = postcard?.media ?? [];
 
-  // Debug: log the full postcard to see what fields are available
-  if (mediaItems.length === 1 && typeof window !== 'undefined') {
-    console.log('[PostcardTile] Sample postcard:', postcard);
-  }
-
   const firstMedia = mediaItems[0];
-  const src = firstMedia?.mediaUrl
-    ? firstMedia.mediaUrl
-    : firstMedia?.storageKey
-      ? `${storageBase}/${firstMedia.storageKey}`
-      : (tag?.imageUrl ?? "");
   const isVideo = firstMedia?.mediaType === "VIDEO";
+  // For videos use the composited thumbnail (frame 0 + vibe tag baked in).
+  // Fall back to mediaUrl (raw video) only if no thumbnail was generated.
+  const src = isVideo
+    ? (firstMedia?.thumbnailUrl ?? firstMedia?.mediaUrl
+        ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : (tag?.imageUrl ?? "")))
+    : (firstMedia?.mediaUrl
+        ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : (tag?.imageUrl ?? "")));
   // Check for explicit mediaCount field or fall back to counting media array
-  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m) => !!m.mediaUrl).length;
+  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m: any) => !!m.mediaUrl).length;
   const hasMultiple = mediaCount > 1;
 
   if (!src) return null;
@@ -108,21 +105,13 @@ function PostcardTile({
       className="group relative aspect-[3/4] overflow-hidden rounded-2xl animate-fade-in cursor-pointer"
       onClick={onClick}
     >
-      {isVideo ? (
-        <video
-          src={src}
-          muted
-          loop
-          playsInline
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
-      ) : (
-        <img
-          src={src}
-          alt={tag?.name ?? "Postcard"}
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
-      )}
+      {/* Always render as <img> — for photos this is the composited photo,
+          for videos this is the composited thumbnail frame (not the raw video). */}
+      <img
+        src={src}
+        alt={tag?.name ?? "Postcard"}
+        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+      />
       {pill && (
         <span
           className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${pill.color}`}
@@ -422,12 +411,12 @@ export function EventVibeTagsTab({
                     process.env.NEXT_PUBLIC_STORAGE_BASE_URL
                   const mediaItems = postcard?.media ?? [];
                   const firstMedia = mediaItems[0];
-                  const src = firstMedia?.mediaUrl
-                    ? firstMedia.mediaUrl
-                    : firstMedia?.storageKey
-                      ? `${storageBase}/${firstMedia.storageKey}`
-                      : "";
                   const isVideo = firstMedia?.mediaType === "VIDEO";
+                  const src = isVideo
+                    ? (firstMedia?.thumbnailUrl ?? firstMedia?.mediaUrl
+                        ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : ""))
+                    : (firstMedia?.mediaUrl
+                        ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : ""));
                   // Check for explicit mediaCount field or fall back to counting media array
                   const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m: any) => !!m.mediaUrl).length;
                   const hasMultiple = mediaCount > 1;
@@ -438,20 +427,12 @@ export function EventVibeTagsTab({
                       className="relative aspect-[3/4] overflow-hidden rounded-2xl cursor-pointer ring-2 ring-transparent hover:ring-destructive transition-all"
                       onClick={() => handlePickSwapTarget(postcard)}
                     >
-                      {isVideo ? (
-                        <video
-                          src={src}
-                          muted
-                          playsInline
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <img
-                          src={src}
-                          alt="Postcard"
-                          className="h-full w-full object-cover"
-                        />
-                      )}
+                      {/* Always render as <img> — thumbnailUrl is the composited preview frame */}
+                      <img
+                        src={src}
+                        alt="Postcard"
+                        className="h-full w-full object-cover"
+                      />
                       {isVideo && (
                         <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
                           <svg className="h-3 w-3 text-white fill-white" viewBox="0 0 24 24">

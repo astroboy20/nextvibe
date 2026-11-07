@@ -70,7 +70,19 @@ export const postcardEndpoints = baseApi.injectEndpoints({
         eventId: string;
         caption?: string;
         vibeTagId?: string;
-        media: { fileKey: string; mediaType: string; mediaUrl?: string }[];
+        media: {
+          fileKey: string;
+          mediaType: string;
+          mediaUrl?: string;
+          /** Storage key of the composited preview frame (VIDEO only). */
+          thumbnailKey?: string;
+          /**
+           * Send any truthy string (e.g. "true") to tell the server this video
+           * needs the vibe tag drawn live during playback.
+           * Omit for photos — they are always pre-composited.
+           */
+          vibeTagOverlayUrl?: string;
+        }[];
       }
     >({
       query: ({ eventId, vibeTagId, media, caption }) => ({
@@ -210,7 +222,18 @@ export const postcardEndpoints = baseApi.injectEndpoints({
         eventId: string;
         vibeTagId?: string;
         caption?: string;
-        media: { fileKey: string; mediaType: string; mediaUrl?: string }[];
+        media: {
+          fileKey: string;
+          mediaType: string;
+          mediaUrl?: string;
+          /** Storage key of the composited preview frame (VIDEO only). */
+          thumbnailKey?: string;
+          /**
+           * Send any truthy string (e.g. "true") to tell the server this video
+           * needs the vibe tag drawn live during playback.
+           */
+          vibeTagOverlayUrl?: string;
+        }[];
       }
     >({
       query: ({ postcardId, eventId, vibeTagId, caption, media }) => ({

@@ -16,7 +16,8 @@ import { useDispatch } from "react-redux";
 import { useBeforeUnload } from "@/shared/hooks/use-before-unload";
 import { AuthBottomSheet } from "@/features/auth/components/auth-bottom-sheet";
 import Cookies from "js-cookie";
-import { bakeOverlay, bakeOverlayOntoVideo, resizeTo1080p, dataUrlToBlob, createBakeQueue, OUTPUT_WIDTH, OUTPUT_HEIGHT } from "./utils";
+import { bakeOverlay, resizeTo1080p, dataUrlToBlob, OUTPUT_WIDTH, OUTPUT_HEIGHT } from "./utils";
+import { uploadBlobToCDN, fileUrlToStorageKey } from "@/shared/api/uploads-api";
 import type { QueuedItem, PostcardCreatorProps } from "./types";
 
 export type { VibeTagOverlay } from "./types";
@@ -24,7 +25,6 @@ export type { VibeTagOverlay } from "./types";
 const MAX_ITEMS = 20;
 const MAX_VIDEO_DURATION_SECS = 125;
 const MAX_VIDEO_UPLOAD_SIZE_MB = 151;
-const BAKE_SIZE_LIMIT_MB = 151;
 
 const PostcardChooseView = lazy(() => import("./postcard-choose-view").then((m) => ({ default: m.PostcardChooseView })));
 const PostcardCameraView = lazy(() => import("./postcard-camera-view").then((m) => ({ default: m.PostcardCameraView })));
@@ -32,7 +32,6 @@ const PostcardReviewView = lazy(() => import("./postcard-review-view").then((m) 
 
 export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay, vibeTagId, eventName = "Event", eventId, onClose, onSubmit, swapPostcardId, swapLikeCount = 0, swapCommentCount = 0 }: PostcardCreatorProps) {
   const dispatch = useDispatch();
-  const enqueueBake = useRef(createBakeQueue()).current;
   const [mode, setMode] = useState<"choose"|"camera"|"camera-review"|"upload-review">("choose");
   const [cameraMode, setCameraMode] = useState<"photo"|"video">("photo");
   const [isRecording, setIsRecording] = useState(false);
@@ -85,23 +84,12 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
     if (currentLength >= MAX_ITEMS) { toast.error(`Maximum ${MAX_ITEMS} items allowed.`); return; }
     const id = `${Date.now()}-${Math.random()}`;
     const raw = URL.createObjectURL(blob);
+    // Preview overlay: shown on top of the raw video in the creator review screen.
+    // The video itself is never re-encoded; the overlay is composited live at playback
+    // (and baked onto the thumbnail frame on submit).
     const previewOverlayUrl = hasOverlay ? (vibeTagOverlay?.imageUrl ?? null) : null;
-    const isTooLarge = blob.size > BAKE_SIZE_LIMIT_MB * 1024 * 1024;
-    const shouldBake = hasOverlay && !!vibeTagOverlay?.imageUrl && !isTooLarge;
-    if (isTooLarge && hasOverlay) toast.info(`Video is large - VibeTag shown as overlay.`);
-    setter((q) => [...q, { id, kind: "video", raw, baked: raw, caption: "", baking: shouldBake, blob, overlayUrl: previewOverlayUrl }]);
-    if (shouldBake) {
-      enqueueBake(async () => {
-        try {
-          const bakedBlob = await bakeOverlayOntoVideo(blob, vibeTagOverlay!.imageUrl);
-          const bakedUrl = URL.createObjectURL(bakedBlob);
-          setter((q) => q.map((item) => item.id !== id ? item : { ...item, baked: bakedUrl, baking: false, blob: bakedBlob, overlayUrl: null }));
-        } catch {
-          setter((q) => q.map((item) => item.id === id ? { ...item, baking: false } : item));
-        }
-      });
-    }
-  }, [hasOverlay, vibeTagOverlay, enqueueBake]);
+    setter((q) => [...q, { id, kind: "video", raw, baked: raw, caption: "", baking: false, blob, overlayUrl: previewOverlayUrl }]);
+  }, [hasOverlay, vibeTagOverlay]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -264,34 +252,150 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
     }
 
     setIsSubmitting(true); setSubmitProgress(0); setSubmitStage("uploading");
+
+    /**
+     * Presigned upload helper — requests a one-time upload URL from the server,
+     * PUTs the blob directly to storage, and returns the storage key derived
+     * from the returned fileUrl.
+     *
+     * Guide: every file (photo, video, thumbnail) goes through this same flow.
+     * We never send raw bytes through the postcard creation endpoint itself.
+     */
+    const getPresignedUrl = async (filename: string, contentType: string): Promise<{ uploadUrl: string; fileKey: string }> => {
+      const accessToken = Cookies.get("accessToken");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/postcards/upload-intent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ filename, contentType }),
+      });
+      if (!res.ok) throw new Error(`Failed to get upload URL: ${res.status}`);
+      const json = await res.json();
+      const { uploadUrl, fileUrl } = json?.data ?? json;
+      if (!uploadUrl || !fileUrl) throw new Error("Invalid upload intent response");
+      return { uploadUrl, fileKey: fileUrlToStorageKey(fileUrl) };
+    };
+
+    /**
+     * Capture frame 0 from a video blob and composite the vibe tag overlay
+     * onto it, exactly like a photo. This becomes the thumbnail — what shows
+     * in feeds, grids, and leaderboards whenever the video isn't playing.
+     */
+    const captureVideoThumbnail = async (blob: Blob, overlayUrl: string | null): Promise<Blob> => {
+      return new Promise((resolve) => {
+        const srcUrl = URL.createObjectURL(blob);
+        const vid = document.createElement("video");
+        vid.playsInline = true;
+        vid.muted = true;
+        vid.preload = "metadata";
+        vid.src = srcUrl;
+        vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
+        document.body.appendChild(vid);
+
+        const cleanup = () => {
+          vid.pause();
+          vid.removeAttribute("src");
+          vid.load();
+          if (vid.parentNode) vid.parentNode.removeChild(vid);
+          URL.revokeObjectURL(srcUrl);
+        };
+
+        vid.onloadeddata = async () => {
+          // Seek to frame 0 — currentTime = 0 is already the default
+          vid.currentTime = 0;
+        };
+
+        vid.onseeked = async () => {
+          const vw = vid.videoWidth || OUTPUT_WIDTH;
+          const vh = vid.videoHeight || OUTPUT_HEIGHT;
+          const canvas = document.createElement("canvas");
+          canvas.width = vw;
+          canvas.height = vh;
+          const ctx = canvas.getContext("2d", { alpha: false });
+          if (!ctx) { cleanup(); resolve(dataUrlToBlob(await bakeOverlay("", null))); return; }
+          ctx.drawImage(vid, 0, 0, vw, vh);
+          cleanup();
+          // Composite the overlay exactly like a photo
+          const frameDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+          const composited = await bakeOverlay(frameDataUrl, overlayUrl);
+          resolve(dataUrlToBlob(composited));
+        };
+
+        vid.onerror = () => { cleanup(); resolve(new Blob([], { type: "image/jpeg" })); };
+        // Trigger load
+        vid.load();
+      });
+    };
+
     try {
-      const formData = new FormData();
-      for (const item of ready) {
+      // Upload each item via presigned URL and collect the media payload
+      const uploadedItems: {
+        fileKey: string;
+        mediaType: string;
+        thumbnailKey?: string;
+        vibeTagOverlayUrl?: string;
+      }[] = [];
+
+      const totalItems = ready.length;
+
+      for (let i = 0; i < ready.length; i++) {
+        const item = ready[i];
+        const baseProgress = Math.round((i / totalItems) * 80);
+
         if (item.kind === "video" && item.blob) {
+          // ── VIDEO ──────────────────────────────────────────────────────────
+          // 1. Upload raw video (untouched — no frame baking)
           const ext = item.blob.type.includes("mp4") ? "mp4" : "webm";
-          formData.append("files", item.blob, `postcard-${item.id}.${ext}`);
+          const videoContentType = item.blob.type || `video/${ext}`;
+          const { uploadUrl: videoUploadUrl, fileKey } = await getPresignedUrl(
+            `postcard-${item.id}.${ext}`,
+            videoContentType,
+          );
+          await uploadBlobToCDN(item.blob, videoContentType, videoUploadUrl, (pct) => {
+            setSubmitProgress(baseProgress + Math.round((pct * 0.6) / totalItems));
+          });
+
+          // 2. Capture frame 0 + composite overlay → upload as thumbnail
+          const overlayUrl = hasOverlay ? (vibeTagOverlay?.imageUrl ?? null) : null;
+          const thumbBlob = await captureVideoThumbnail(item.blob, overlayUrl);
+          let thumbnailKey: string | undefined;
+          if (thumbBlob.size > 0) {
+            const { uploadUrl: thumbUploadUrl, fileKey: tKey } = await getPresignedUrl(
+              `postcard-${item.id}-thumb.jpg`,
+              "image/jpeg",
+            );
+            await uploadBlobToCDN(thumbBlob, "image/jpeg", thumbUploadUrl, (pct) => {
+              setSubmitProgress(baseProgress + Math.round(60 / totalItems) + Math.round((pct * 0.2) / totalItems));
+            });
+            thumbnailKey = tKey;
+          }
+
+          uploadedItems.push({
+            fileKey,
+            mediaType: "VIDEO",
+            ...(thumbnailKey ? { thumbnailKey } : {}),
+            // Tell the server to resolve the vibe tag overlay at playback time
+            ...(hasOverlay ? { vibeTagOverlayUrl: "true" } : {}),
+          });
         } else {
-          const blob = dataUrlToBlob(item.baked ?? item.raw);
-          formData.append("files", blob, `postcard-${item.id}.jpg`);
+          // ── PHOTO ──────────────────────────────────────────────────────────
+          // Upload the fully composited image (baked already by addImageToQueue)
+          const photoBlob = dataUrlToBlob(item.baked ?? item.raw);
+          const { uploadUrl: photoUploadUrl, fileKey } = await getPresignedUrl(
+            `postcard-${item.id}.jpg`,
+            "image/jpeg",
+          );
+          await uploadBlobToCDN(photoBlob, "image/jpeg", photoUploadUrl, (pct) => {
+            setSubmitProgress(baseProgress + Math.round((pct * 0.8) / totalItems));
+          });
+          // Photos: no thumbnailKey, no vibeTagOverlayUrl — always pre-composited
+          uploadedItems.push({ fileKey, mediaType: "PHOTO" });
         }
       }
-      const accessToken = document.cookie.split("; ").find((c) => c.startsWith("accessToken="))?.split("=")[1];
-      const uploadResult = await new Promise<any>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL}/v1/storage/upload-multiple`);
-        if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-        xhr.upload.onprogress = (e) => { if (e.lengthComputable) setSubmitProgress(Math.round((e.loaded/e.total)*85)); };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) { try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error("Invalid response")); } }
-          else { try { reject(new Error(JSON.parse(xhr.responseText)?.message || "Upload failed")); } catch { reject(new Error("Upload failed")); } }
-        };
-        xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(formData);
-      });
-      const uploadedItems = (uploadResult?.data ?? []).map((item: { fileKey: string; mediaType: string; url: string }) => ({
-        fileKey: item.fileKey, mediaType: item.mediaType, mediaUrl: item.url
-      }));
-      if (!uploadedItems.length) { toast.error("Upload failed - no file keys returned."); return; }
+
+      if (!uploadedItems.length) { toast.error("Upload failed — no file keys returned."); return; }
       setSubmitStage("saving"); setSubmitProgress(90);
 
       if (isSwapMode && swapPostcardId) {
@@ -307,7 +411,6 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
       onClose?.();
     } catch (err: any) {
       const msg = apiErrorMessage(err) ?? err?.message ?? "Failed to post. Please try again.";
-      // Helpful error messages for swap-specific cases
       if (isSwapMode && err?.status === 403) {
         toast.error("You can only replace your own postcards.");
       } else if (isSwapMode && err?.status === 404) {
