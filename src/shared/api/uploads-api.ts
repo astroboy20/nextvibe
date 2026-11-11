@@ -30,7 +30,7 @@ export const uploadsApi = baseApi.injectEndpoints({
       { filename: string; contentType: string }
     >({
       query: (body) => ({
-        url: "/v1/postcards/upload-intent",
+        url: "/v1/events/upload-intent",
         method: "POST",
         body,
       }),

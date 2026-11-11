@@ -10,6 +10,15 @@ interface VideoPlayerProps {
   active?: boolean;
 
   /**
+   * Composited thumbnail image (frame 0 + vibe tag).
+   * Shown as the poster while the video is loading/buffering.
+   * For new-style videos where mediaUrl may be null until the CDN
+   * resolves the storage key, this is the only visible content until
+   * playback starts.
+   */
+  thumbnailSrc?: string | null;
+
+  /**
    * Kept for compatibility with the
    * existing component API.
    */
@@ -36,6 +45,7 @@ const PLAYBACK_INDICATOR_MS = 650;
 export const VideoPlayer = memo(function VideoPlayer({
   src,
   active = true,
+  thumbnailSrc,
   onSingleTap,
   onDoubleTap,
   onVideoMetadata,
@@ -246,7 +256,16 @@ export const VideoPlayer = memo(function VideoPlayer({
     >
       {buffering && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black">
-          <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+          {thumbnailSrc ? (
+            /* Show the composited thumbnail while the video loads */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumbnailSrc}
+              alt="Loading video"
+              className="absolute inset-0 h-full w-full object-contain"
+            />
+          ) : null}
+          <Loader2 className="relative z-10 h-8 w-8 animate-spin text-white/80" />
         </div>
       )}
       <video
@@ -256,6 +275,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         loop
         playsInline
         muted
+        poster={thumbnailSrc ?? undefined}
         preload={active ? "auto" : "metadata"}
         onLoadedMetadata={handleMetadata}
         onCanPlay={() => setBuffering(false)}

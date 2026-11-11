@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { apiErrorMessage } from "@/shared/lib/error-handler";
@@ -263,7 +262,7 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
      */
     const getPresignedUrl = async (filename: string, contentType: string): Promise<{ uploadUrl: string; fileKey: string }> => {
       const accessToken = Cookies.get("accessToken");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/postcards/upload-intent`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/events/upload-intent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

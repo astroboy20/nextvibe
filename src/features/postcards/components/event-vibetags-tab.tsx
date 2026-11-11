@@ -87,15 +87,24 @@ function PostcardTile({
 
   const firstMedia = mediaItems[0];
   const isVideo = firstMedia?.mediaType === "VIDEO";
-  // For videos use the composited thumbnail (frame 0 + vibe tag baked in).
-  // Fall back to mediaUrl (raw video) only if no thumbnail was generated.
+
+  // Resolve thumbnail URL: server returns thumbnailKey (storage key) not a full URL.
+  // Build the full URL the same way storageKey is resolved elsewhere.
+  const thumbnailUrl: string | null = firstMedia?.thumbnailUrl
+    ?? (firstMedia?.thumbnailKey ? `${storageBase}/${firstMedia.thumbnailKey}` : null);
+
+  // For videos: prefer the composited thumbnail image (frame 0 + vibe tag).
+  // Fall back to mediaUrl (raw video) for legacy posts that have no thumbnail.
+  // For photos: mediaUrl is always the composited image.
   const src = isVideo
-    ? (firstMedia?.thumbnailUrl ?? firstMedia?.mediaUrl
+    ? (thumbnailUrl ?? firstMedia?.mediaUrl
         ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : (tag?.imageUrl ?? "")))
     : (firstMedia?.mediaUrl
         ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : (tag?.imageUrl ?? "")));
-  // Check for explicit mediaCount field or fall back to counting media array
-  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m: any) => !!m.mediaUrl).length;
+
+  // Count media items — include videos that have thumbnailKey even if mediaUrl is null
+  const mediaCount = postcard?.mediaCount
+    ?? mediaItems.filter((m: any) => !!m.mediaUrl || !!m.thumbnailKey || !!m.storageKey).length;
   const hasMultiple = mediaCount > 1;
 
   if (!src) return null;
@@ -188,8 +197,10 @@ function PhasePostcards({
   );
 
   const rawList: any[] = data?.data?.data ?? data?.data ?? [];
+  // A postcard is renderable if any media item has a URL or at least a storage key
+  // (covers new-style videos that return thumbnailKey but mediaUrl: null)
   const postcards: any[] = rawList.filter((p: any) =>
-    (p?.media ?? []).some((m: any) => !!m.mediaUrl),
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl || !!m.thumbnailKey || !!m.storageKey),
   );
 
   // Notify parent whenever the list changes so it can track it for navigation
@@ -257,7 +268,7 @@ export function EventVibeTagsTab({
   );
   const countRaw: any[] = countData?.data?.data ?? countData?.data ?? [];
   const postcardCount = countRaw.filter((p: any) =>
-    (p?.media ?? []).some((m: any) => !!m.mediaUrl),
+    (p?.media ?? []).some((m: any) => !!m.mediaUrl || !!m.thumbnailKey || !!m.storageKey),
   ).length;
 
   const eventHasStarted = eventStartsAt
@@ -412,13 +423,16 @@ export function EventVibeTagsTab({
                   const mediaItems = postcard?.media ?? [];
                   const firstMedia = mediaItems[0];
                   const isVideo = firstMedia?.mediaType === "VIDEO";
+                  const thumbnailUrl: string | null = firstMedia?.thumbnailUrl
+                    ?? (firstMedia?.thumbnailKey ? `${storageBase}/${firstMedia.thumbnailKey}` : null);
                   const src = isVideo
-                    ? (firstMedia?.thumbnailUrl ?? firstMedia?.mediaUrl
+                    ? (thumbnailUrl ?? firstMedia?.mediaUrl
                         ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : ""))
                     : (firstMedia?.mediaUrl
                         ?? (firstMedia?.storageKey ? `${storageBase}/${firstMedia.storageKey}` : ""));
-                  // Check for explicit mediaCount field or fall back to counting media array
-                  const mediaCount = postcard?.mediaCount ?? mediaItems.filter((m: any) => !!m.mediaUrl).length;
+                  // Count items — include videos that only have thumbnailKey
+                  const mediaCount = postcard?.mediaCount
+                    ?? mediaItems.filter((m: any) => !!m.mediaUrl || !!m.thumbnailKey || !!m.storageKey).length;
                   const hasMultiple = mediaCount > 1;
                   if (!src) return null;
                   return (

@@ -19,6 +19,21 @@ const VideoPlayer = dynamic(
   }
 );
 
+const STORAGE_BASE =
+  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+  "https://minio-production-5cff.up.railway.app/nextvibe";
+
+/**
+ * Resolve a storage key to a full URL.
+ * Used when the server returns thumbnailKey / storageKey but mediaUrl is null.
+ */
+function resolveStorageUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  // Already a full URL
+  if (key.startsWith("http")) return key;
+  return `${STORAGE_BASE}/${key}`;
+}
+
 interface MediaSlideProps {
   media: PostcardMediaItem;
   index: number;
@@ -77,16 +92,25 @@ export const MediaSlide = memo(function MediaSlide({
   const isVideo = media.mediaType?.toUpperCase() === "VIDEO";
 
   /**
+   * Resolved URLs — handle new-style videos where mediaUrl is null but
+   * thumbnailKey / storageKey are present.
+   *
+   * videoSrc  — the raw video URL for VideoPlayer
+   * thumbSrc  — the composited thumbnail image (frame 0 + vibe tag)
+   */
+  const videoSrc =
+    media.mediaUrl ??
+    resolveStorageUrl((media as any).storageKey) ??
+    "";
+
+  const thumbSrc =
+    media.thumbnailUrl ??
+    resolveStorageUrl((media as any).thumbnailKey) ??
+    null;
+
+  /**
    * Compare intrinsic media aspect
    * ratio to the viewer aspect ratio.
-   *
-   * Example:
-   *
-   * Tall portrait image
-   * -> fills viewer height
-   *
-   * Landscape/smaller image
-   * -> letterboxed and centered
    */
   const updateFillHeight = useCallback(() => {
     if (!stageSize.width || !stageSize.height) {
@@ -110,13 +134,6 @@ export const MediaSlide = memo(function MediaSlide({
     }
   }, [isActive, onFillHeightChange, stageSize.height, stageSize.width]);
 
-  /**
-   * Watch the viewer dimensions.
-   *
-   * This is important because responsive
-   * mobile browser viewport sizes can
-   * change dynamically.
-   */
   useEffect(() => {
     const element = stageRef.current;
 
@@ -144,20 +161,12 @@ export const MediaSlide = memo(function MediaSlide({
     updateFillHeight();
   }, [updateFillHeight]);
 
-  /**
-   * When another slide becomes active,
-   * immediately re-evaluate its dimensions.
-   */
   useEffect(() => {
     if (isActive) {
       updateFillHeight();
     }
   }, [isActive, updateFillHeight]);
 
-  /**
-   * Receives dimensions from either
-   * ProgressiveImage or VideoPlayer.
-   */
   const handleIntrinsicSize = useCallback(
     (width: number, height: number) => {
       mediaSizeRef.current = {
@@ -181,7 +190,8 @@ export const MediaSlide = memo(function MediaSlide({
     >
       {isVideo ? (
         <VideoPlayer
-          src={media.mediaUrl!}
+          src={videoSrc}
+          thumbnailSrc={thumbSrc}
           active={isActive}
           onDoubleTap={onDoubleTap}
           onVideoMetadata={handleIntrinsicSize}
