@@ -2,12 +2,13 @@
 
 import Discover from "./container/discover";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { setLocation, setLocationSynced } from "@/store/slices/location-slice";
 import { setLocationConsentAsked } from "@/store/slices/consent-slice";
 import { useUserLocation } from "@/shared/lib/get-location";
 import { LocationConsentDialog } from "@/shared/components/location-consent-dialog";
 import { RootState } from "@/store/store";
+import { useTour } from "@/features/onboarding-tour/tour-context";
 
 /**
  * DiscoverPage
@@ -17,6 +18,9 @@ import { RootState } from "@/store/store";
  *  2. If the user grants consent → trigger geolocation → resolve city/country only.
  *  3. If the user declines → skip location entirely.
  *  4. City/country are synced to the backend (PATCH /v1/users/me), never raw coords.
+ *
+ * The consent dialog is deferred until after the onboarding tour finishes so
+ * the two don't collide on a brand-new user's first visit.
  */
 export default function DiscoverPage() {
   const dispatch = useDispatch();
@@ -28,42 +32,43 @@ export default function DiscoverPage() {
   );
   const synced = useSelector((s: RootState) => s.location.synced);
 
-  // Show consent dialog on the first visit (when we haven't asked yet)
-  const [showConsentDialog, setShowConsentDialog] = useState(false);
-  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+  const { isActive: tourIsActive } = useTour();
 
-  // Only render the dialog once the component mounts (client-side only)
+  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+  // consentNeeded = true when we haven't got a real answer yet
+  const consentNeeded = !locationConsentAsked || locationConsent === null;
+  // Only open the dialog when consent is needed AND the tour is completely done
+  const showConsentDialog = consentNeeded && !tourIsActive;
+
+  // If a previous session left a corrupted state (asked=true but consent=null),
+  // reset it so the dialog can show properly once the tour finishes.
   useEffect(() => {
-    if (!locationConsentAsked) {
-      setShowConsentDialog(true);
-    } else if (locationConsent === true && !synced) {
-      // Already consented in a previous session but not yet synced this session
+    if (locationConsentAsked && locationConsent === null) {
+      dispatch(setLocationConsentAsked(false));
+    } else if (locationConsentAsked && locationConsent === true && !synced) {
       setGeolocationEnabled(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConsentAccept = () => {
-    setShowConsentDialog(false);
     setGeolocationEnabled(true);
     dispatch(setLocationConsentAsked(true));
   };
 
   const handleConsentDecline = () => {
-    setShowConsentDialog(false);
     dispatch(setLocationConsentAsked(true));
   };
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-10 w-full 2xl:max-w-7xl 2xl:mx-auto">
-      {/* Consent dialog — shown before any geolocation call */}
+      {/* Consent dialog — deferred until after the onboarding tour completes */}
       <LocationConsentDialog
         open={showConsentDialog}
         onAccept={handleConsentAccept}
         onDecline={handleConsentDecline}
       />
 
-      {/* Only mount the geolocation tracker when consent is granted */}
       {geolocationEnabled && <LocationSyncer />}
 
       <Discover />

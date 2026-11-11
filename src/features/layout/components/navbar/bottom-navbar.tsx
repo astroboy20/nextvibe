@@ -10,16 +10,17 @@ import { useGetConversationsQuery } from "@/features/messaging/api/messaging-api
 import { useSocket } from "@/shared/hooks/use-socket";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/events" },
-  { icon: Users, label: "Social", path: "/social" },
+  { icon: Home, label: "Home", path: "/events", tourId: "tour-nav-home" },
+  { icon: Users, label: "Social", path: "/social", tourId: "tour-nav-social" },
   {
     icon: Plus,
     label: "Create",
     path: "/dashboard/event/create/?step=1",
     isMain: true,
+    tourId: "tour-nav-create",
   },
-  { icon: MessageCircle, label: "Messages", path: "/messages" },
-  { icon: User, label: "Profile", path: "/profile" },
+  { icon: MessageCircle, label: "Messages", path: "/messages", tourId: "tour-nav-messages" },
+  { icon: User, label: "Profile", path: "/profile", tourId: "tour-nav-profile" },
 ];
 
 // ── Unread message count hook ─────────────────────────────────────────────────
@@ -97,6 +98,7 @@ const BottomNav = () => {
                 <Link
                   key={item.path}
                   href={item.path}
+                  id={item.tourId}
                   className="flex items-center justify-center -mt-6"
                 >
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#34132E] text-white shadow-elevated transition-transform hover:scale-105 active:scale-95">
@@ -110,6 +112,7 @@ const BottomNav = () => {
               <Link
                 key={item.path}
                 href={item.path}
+                id={item.tourId}
                 className={cn(
                   "relative flex flex-col items-center gap-1 px-3 py-2 transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground"

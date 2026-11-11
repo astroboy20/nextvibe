@@ -30,6 +30,9 @@ import { useGetEventDetailsQuery } from "@/features/events/api/events-api";
 import { PrivateEventGuard } from "@/features/events/components/private-event-guard";
 import { toast } from "sonner";
 import Image from "next/image";
+import { TourProvider } from "@/features/onboarding-tour/tour-context";
+import { TourTooltip } from "@/features/onboarding-tour/components/tour-tooltip";
+import { useEventTour } from "@/features/onboarding-tour/use-event-tour";
 
 const FLIER_MS = 5000;
 const FADE_MS = 700;
@@ -40,18 +43,21 @@ const tabsConfig = [
     label: "About",
     icon: <Info className="mr-1.5 h-4 w-4" />,
     always: true,
+    tourId: "tour-tab-about",
   },
   {
     value: "rsvp",
     label: "RSVP",
     icon: <Table className="mr-1.5 h-4 w-4" />,
     always: true,
+    tourId: "tour-tab-rsvp",
   },
   {
     value: "qr",
     label: "QR",
     icon: <QrCode className="mr-1.5 h-4 w-4" />,
     always: true,
+    tourId: "tour-tab-qr",
   },
   {
     value: "games",
@@ -59,6 +65,7 @@ const tabsConfig = [
     icon: <Gamepad2 className="mr-1.5 h-4 w-4" />,
     always: false,
     flag: "hasGame" as const,
+    tourId: "tour-tab-games",
   },
   {
     value: "postcard",
@@ -66,6 +73,7 @@ const tabsConfig = [
     icon: <Tag className="mr-1.5 h-4 w-4" />,
     always: false,
     flag: "hasVibeTag" as const,
+    tourId: "tour-tab-postcard",
   },
   {
     value: "wishlist",
@@ -73,12 +81,14 @@ const tabsConfig = [
     icon: <Gift className="mr-1.5 h-4 w-4" />,
     always: false,
     flag: "hasWishlist" as const,
+    tourId: "tour-tab-wishlist",
   },
   {
     value: "chat",
     label: "Chat",
     icon: <MessageCircle className="mr-1.5 h-4 w-4" />,
     always: true,
+    tourId: "tour-tab-chat",
   },
 ];
 
@@ -166,6 +176,9 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: eventDetails, isLoading } = useGetEventDetailsQuery(id);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Fire the event-tabs tour once the event data has loaded
+  useEventTour(!isLoading && !!eventDetails);
 
   // Sync tab with ?tab= search param so the URL can be used as a deep-link
   // back to the exact tab after a login redirect.
@@ -461,10 +474,11 @@ function EventPage({ params }: { params: Promise<{ id: string }> }) {
       <div className="sticky top-0 z-20 bg-background border-b border-border mt-5">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="w-full h-fit! justify-start gap-1 bg-transparent p-0 border-b rounded-none overflow-x-auto overflow-y-hidden no-scrollbar">
-            {visibleTabs.map(({ value, label, icon }) => (
+            {visibleTabs.map(({ value, label, icon, tourId }) => (
               <TabsTrigger
                 key={value}
                 value={value}
+                id={tourId}
                 className="rounded-none border-b-2 shadow-none! px-3 pb-3 data-[state=active]:border-b-[#531342] data-[state=active]:bg-transparent"
               >
                 {icon}
@@ -559,8 +573,11 @@ export default function EventPageWithSuspense({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<EventPageFallback />}>
-      <EventPage params={params} />
-    </Suspense>
+    <TourProvider>
+      <Suspense fallback={<EventPageFallback />}>
+        <EventPage params={params} />
+      </Suspense>
+      <TourTooltip />
+    </TourProvider>
   );
 }
