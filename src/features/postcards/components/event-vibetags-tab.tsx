@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useRef } from "react";
