@@ -154,10 +154,23 @@ export const PostcardViewer = memo(function PostcardViewer({
   const resolvedEventName = postcard.event?.name ?? eventName;
 
   const media = useMemo(() => {
-    // Use freshData.media if available (has all media items), otherwise fall back to postcard.media
+    // Use freshData.media if available (has all media items), otherwise fall back to postcard.media.
+    // Accept items that have any resolvable URL — mediaUrl, thumbnailKey, or storageKey — so that
+    // videos which return a thumbnailKey but no mediaUrl are not silently dropped (which would
+    // cause the viewer to call onClose() immediately on open).
+    const storageBase =
+      process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+      "http://minio-production-5cff.up.railway.app:443/nextvibe";
     const source = (freshData?.media ?? postcard.media ?? []);
-    const filtered = source.filter((item) => !!item.mediaUrl);
-    return filtered;
+    return source
+      .filter((item) => !!item.mediaUrl || !!item.thumbnailKey || !!item.storageKey)
+      .map((item) => {
+        if (item.mediaUrl) return item;
+        // Synthesise a mediaUrl from the best available key so downstream code that
+        // reads item.mediaUrl (share, download, carousel) works without changes.
+        const key = item.thumbnailKey ?? item.storageKey;
+        return { ...item, mediaUrl: `${storageBase}/${key}` };
+      });
   }, [freshData?.media, postcard.media]);
 
   const caption = postcard.caption ?? "";

@@ -100,13 +100,20 @@ export const MediaSlide = memo(function MediaSlide({
    */
   const videoSrc =
     media.mediaUrl ??
-    resolveStorageUrl((media as any).storageKey) ??
+    resolveStorageUrl(media.storageKey) ??
     "";
 
   const thumbSrc =
     media.thumbnailUrl ??
-    resolveStorageUrl((media as any).thumbnailKey) ??
+    resolveStorageUrl(media.thumbnailKey) ??
     null;
+
+  // Photos: mediaUrl is the composited image, but may be null if the server
+  // hasn't pre-signed it. Fall back to storageKey the same way videos do.
+  const photoSrc =
+    media.mediaUrl ??
+    resolveStorageUrl(media.storageKey) ??
+    "";
 
   /**
    * Compare intrinsic media aspect
@@ -200,7 +207,7 @@ export const MediaSlide = memo(function MediaSlide({
       ) : (
         <div className="h-full w-full" onClick={onImageTap}>
           <ProgressiveImage
-            src={media.mediaUrl!}
+            src={photoSrc}
             alt={postcard.caption ?? "Postcard"}
             eager={index === 0 || isActive}
             fullscreen

@@ -3,6 +3,22 @@
 import { use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ImageOff } from "lucide-react";
+
+const STORAGE_BASE =
+  process.env.NEXT_PUBLIC_STORAGE_BASE_URL ??
+  "http://minio-production-5cff.up.railway.app:443/nextvibe";
+
+/** Resolve a display URL from a media item that may have a null mediaUrl. */
+function resolveMediaUrl(media?: {
+  mediaUrl?: string | null;
+  storageKey?: string | null;
+  thumbnailKey?: string | null;
+}): string {
+  if (media?.mediaUrl) return media.mediaUrl;
+  if (media?.storageKey) return `${STORAGE_BASE}/${media.storageKey}`;
+  if (media?.thumbnailKey) return `${STORAGE_BASE}/${media.thumbnailKey}`;
+  return "";
+}
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -33,14 +49,19 @@ function GridTile({
   postcard: PostcardData;
   onClick: () => void;
 }) {
-  const primaryMedia = (postcard.media ?? []).find((m) => !!m.mediaUrl);
+  // Find the first media item that has any resolvable URL.
+  const primaryMedia = (postcard.media ?? []).find(
+    (m) => !!(m.mediaUrl || m.storageKey || m.thumbnailKey),
+  );
 
-  if (!primaryMedia?.mediaUrl) return null;
+  const src = resolveMediaUrl(primaryMedia);
+  if (!src) return null;
 
-  const src = primaryMedia.mediaUrl;
-  const isVideo = primaryMedia.mediaType === "VIDEO";
+  const isVideo = primaryMedia?.mediaType === "VIDEO";
   const hasMultiple =
-    (postcard.media ?? []).filter((m) => !!m.mediaUrl).length > 1;
+    (postcard.media ?? []).filter(
+      (m) => !!(m.mediaUrl || m.storageKey || m.thumbnailKey),
+    ).length > 1;
   return (
     <div
       onClick={onClick}
@@ -123,9 +144,12 @@ export default function EventPostcardsPage({
     | undefined;
   // `phase` is the reset key: switching tabs starts the list over rather than
   // appending the new phase's postcards underneath the old ones.
+  console.log(postcardsPage,"log")
   const accumulated = useAccumulatedPages(postcardsPage, page, phase);
   const gridItems: PostcardData[] = accumulated.filter((p: PostcardData) =>
-    (p.media ?? []).some((m) => !!m.mediaUrl),
+    (p.media ?? []).some(
+      (m) => !!(m.mediaUrl || m.storageKey || m.thumbnailKey),
+    ),
   );
   const meta = postcardsData?.data?.meta ?? postcardsData?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";

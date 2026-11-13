@@ -1,7 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
-import { useAccumulatedPages } from "@/shared/hooks/use-accumulated-pages";
+import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImageOff, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +8,7 @@ import {
   useGetEventDetailsQuery,
 } from "@/features/events/api/events-api";
 import {
-  useGetPostcardsQuery,
+  useGetEventPostcardsQuery,
 } from "@/features/postcards/api/postcards-api";
 import { PostcardItem } from "@/features/postcards/components/postcard-grid";
 import BottomNav from "@/features/layout/components/navbar/bottom-navbar";
@@ -141,15 +140,43 @@ export default function EventPostcardsPage({
   const LIMIT = 40;
 
   const { data: eventDetails } = useGetEventDetailsQuery(id);
-  const { data: postcardsData, isLoading } = useGetPostcardsQuery({
+  const { data: postcardsData, isLoading } = useGetEventPostcardsQuery({
     eventId: id,
     page,
     limit: LIMIT,
   });
 
-  // Raw page straight from the cache — accumulate first, then narrow.
-  const postcardsPage = postcardsData?.data?.data as PostcardItem[] | undefined;
-  const postcards = useAccumulatedPages(postcardsPage, page, id);
+  // Accumulate pages manually — RTK Query gives us the current page; we merge
+  // prior pages in state so "load more" appends rather than replaces.
+  const [allPostcards, setAllPostcards] = useState<PostcardItem[]>([]);
+  const [loadedForId, setLoadedForId] = useState<string>("");
+
+  const rawPage: PostcardItem[] = useMemo(
+    () => (postcardsData?.data?.data ?? postcardsData?.data ?? []) as PostcardItem[],
+    [postcardsData],
+  );
+
+  // Merge incoming pages so "load more" appends rather than replaces.
+  useEffect(() => {
+    if (!rawPage.length) return;
+    if (loadedForId !== id) {
+      setLoadedForId(id);
+      setAllPostcards(rawPage);
+    } else if (page === 1) {
+      setAllPostcards(rawPage);
+    } else {
+      setAllPostcards((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newItems = rawPage.filter((p) => !existingIds.has(p.id));
+        return newItems.length ? [...prev, ...newItems] : prev;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawPage]);
+
+  // On first render the effect hasn't run yet — fall back to rawPage directly
+  // so we never flash "no postcards" when data is already in the RTK cache.
+  const postcards = allPostcards.length > 0 ? allPostcards : rawPage;
   const meta = postcardsData?.data?.meta;
   const eventName = eventDetails?.data?.name ?? "Event";
 

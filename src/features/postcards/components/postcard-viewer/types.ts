@@ -3,6 +3,17 @@ export interface PostcardMediaItem {
   mediaUrl?: string | null;
   mediaType?: string | null;
   /**
+   * Raw object-storage key (e.g. "general/1234-postcard.mp4").
+   * When the API omits a pre-signed `mediaUrl`, the client builds one from
+   * this key + NEXT_PUBLIC_STORAGE_BASE_URL.
+   */
+  storageKey?: string | null;
+  /**
+   * Storage key for the composited thumbnail frame (VIDEO only).
+   * Used as a fallback display URL when `mediaUrl` is null.
+   */
+  thumbnailKey?: string | null;
+  /**
    * Composited preview frame URL (VIDEO only) — the first frame of the video
    * with the vibe tag baked onto it. Used in feeds/grids/leaderboards whenever
    * the video isn't actively playing. null for photos (the photo IS the thumbnail).

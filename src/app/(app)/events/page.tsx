@@ -2,7 +2,7 @@
 
 import Discover from "./container/discover";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setLocation, setLocationSynced } from "@/store/slices/location-slice";
 import { setLocationConsentAsked } from "@/store/slices/consent-slice";
 import { useUserLocation } from "@/shared/lib/get-location";
