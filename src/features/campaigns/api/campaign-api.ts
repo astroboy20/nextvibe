@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type CampaignTier = "MICRO" | "SMALL" | "MEDIUM" | "LARGE" | "ENTERPRISE";
+export type CampaignCurrency = "USD" | "NGN";
 
 export interface CampaignStats {
   signedUp: number;
@@ -39,6 +40,35 @@ export interface VerifyResponse {
   status: "completed" | "pending" | "failed";
   paymentId: string;
   redemptionCode?: string;
+}
+
+// ─── Christmas campaign types ─────────────────────────────────────────────────
+
+export interface ChristmasQuoteResponse {
+  prices: Record<CampaignCurrency, Partial<Record<CampaignTier, number>>>;
+}
+
+export interface ChristmasSignupPayload {
+  email: string;
+  tier: CampaignTier;
+  eventDate: string; // YYYY-MM-DD, as picked — never use toISOString()
+  currency?: CampaignCurrency; // defaults to USD on the server
+}
+
+export interface ChristmasSignupResponse {
+  paymentId: string;
+  paymentReference: string;
+  tier: CampaignTier;
+  amountDue: number;
+  currency: CampaignCurrency;
+  checkoutUrl: string;
+  expiresAt: string;
+  status: "PENDING";
+}
+
+export interface ChristmasVerifyResponse {
+  status: "completed" | "failed" | "pending";
+  paymentId: string;
 }
 
 // ─── API slice ────────────────────────────────────────────────────────────────
@@ -88,6 +118,50 @@ export const campaignApi = createApi({
       transformResponse: (res: { data?: VerifyResponse } & VerifyResponse) =>
         res.data ?? res,
     }),
+
+    // ── Christmas campaign ───────────────────────────────────────────────────
+
+    /** GET /v1/campaigns/christmas/quote — prices for every tier in USD and NGN */
+    getChristmasQuote: build.query<ChristmasQuoteResponse, void>({
+      query: () => "/v1/campaigns/christmas/quote",
+      transformResponse: (
+        res: { data?: ChristmasQuoteResponse } & ChristmasQuoteResponse
+      ) => res.data ?? res,
+    }),
+
+    /** GET /v1/campaigns/christmas/stats — live spots count */
+    getChristmasStats: build.query<CampaignStats, void>({
+      query: () => "/v1/campaigns/christmas/stats",
+      transformResponse: (res: { data?: CampaignStats } & CampaignStats) =>
+        res.data ?? res,
+      providesTags: ["CampaignStats"],
+    }),
+
+    /** POST /v1/campaigns/christmas/signup — claim a spot, returns checkoutUrl */
+    signupChristmas: build.mutation<
+      ChristmasSignupResponse,
+      ChristmasSignupPayload
+    >({
+      query: (body) => ({
+        url: "/v1/campaigns/christmas/signup",
+        method: "POST",
+        body,
+        // Keep the full Referer URL so Bachs can redirect back to the campaign page
+        // (fetch referrerPolicy is set in the component layer for cross-origin cases)
+      }),
+      transformResponse: (
+        res: { data?: ChristmasSignupResponse } & ChristmasSignupResponse
+      ) => res.data ?? res,
+      invalidatesTags: ["CampaignStats"],
+    }),
+
+    /** GET /v1/campaigns/christmas/verify/:paymentId — poll after Bachs redirect */
+    verifyChristmasPayment: build.query<ChristmasVerifyResponse, string>({
+      query: (paymentId) => `/v1/campaigns/christmas/verify/${paymentId}`,
+      transformResponse: (
+        res: { data?: ChristmasVerifyResponse } & ChristmasVerifyResponse
+      ) => res.data ?? res,
+    }),
   }),
 });
 
@@ -96,4 +170,8 @@ export const {
   useLazyGetBirthdayQuoteQuery,
   useSignupBirthdayMutation,
   useLazyVerifyBirthdayPaymentQuery,
+  useGetChristmasQuoteQuery,
+  useGetChristmasStatsQuery,
+  useSignupChristmasMutation,
+  useLazyVerifyChristmasPaymentQuery,
 } = campaignApi;
