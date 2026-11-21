@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { Pencil, Sparkles, HelpCircle, Puzzle, MessageSquare, MessageCircleQuestion, Zap, Disc3, BarChart3 } from "lucide-react";
 import { GameType, ApiGameType } from "@/features/games/components/create/game-creation-wizard";
+import { AiSourceUpload, type AiSource } from "./ai-source-upload";
 
 interface StepThreeProps {
   roundIndex: number;
@@ -27,6 +28,11 @@ interface StepThreeProps {
     eventName: string;
   };
   setAiPrompt: React.Dispatch<React.SetStateAction<any>>;
+  aiSource: AiSource | null;
+  onAiSourceChange: (source: AiSource | null) => void;
+  importProblems: string[] | null;
+  onUseAiInstead: () => void;
+  isGenerating?: boolean;
 }
 
 const GAME_TYPES: { value: GameType; label: string; description: string; icon: React.ReactNode }[] = [
@@ -52,6 +58,11 @@ const StepThree = ({
   setContentMode,
   aiPrompt,
   setAiPrompt,
+  aiSource,
+  onAiSourceChange,
+  importProblems,
+  onUseAiInstead,
+  isGenerating,
 }: StepThreeProps) => {
   const updateField = (field: string, value: any) =>
     setAiPrompt((prev: any) => ({ ...prev, [field]: value }));
@@ -175,17 +186,31 @@ const StepThree = ({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Prompt</p>
           <div className="grid grid-cols-2 gap-3">
             <div className={cn("space-y-1.5", selectedGameType === "word-puzzle" ? "col-span-2" : "")}>
-              <Label className="text-xs">Topic <span className="text-destructive">*</span></Label>
+              <Label className="text-xs">
+                Topic{" "}
+                {aiSource ? (
+                  <span className="text-muted-foreground">(optional with a file)</span>
+                ) : (
+                  <span className="text-destructive">*</span>
+                )}
+              </Label>
               <Input
                 value={aiPrompt.topic}
                 onChange={(e) => updateField("topic", e.target.value)}
-                placeholder="e.g. Nigerian history, 90s pop culture"
+                placeholder={aiSource ? "e.g. focus on chapter 2" : "e.g. Nigerian history, 90s pop culture"}
                 className="h-10"
               />
             </div>
             {selectedGameType !== "word-puzzle" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Number of Questions <span className="text-destructive">*</span></Label>
+                <Label className="text-xs">
+                  Number of Questions{" "}
+                  {aiSource ? (
+                    <span className="text-muted-foreground">(optional)</span>
+                  ) : (
+                    <span className="text-destructive">*</span>
+                  )}
+                </Label>
                 <Input
                   type="number"
                   min={1}
@@ -203,6 +228,15 @@ const StepThree = ({
               ? 'Tip: Be specific — the AI will hide several words from this topic in a single puzzle grid.'
               : 'Tip: Be specific — "Lagos street food" beats "food".'}
           </p>
+
+          <AiSourceUpload
+            gameType={selectedGameType}
+            source={aiSource}
+            onSourceChange={onAiSourceChange}
+            importProblems={importProblems}
+            onUseAiInstead={onUseAiInstead}
+            disabled={isGenerating}
+          />
         </div>
       )}
 

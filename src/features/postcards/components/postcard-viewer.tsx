@@ -18,8 +18,11 @@ import {
   useDeletePostcardMutation,
   useGetPostcardCommentsQuery,
   useGetPostcardQuery,
+  useSetPostcardLocationVisibleMutation,
   useToggleLikePostcardMutation,
 } from "@/features/postcards/api/postcards-api";
+import { apiErrorMessage } from "@/shared/lib/error-handler";
+import { LocationStamp } from "./postcard-viewer/location-stamp";
 import { usePostcardViewTracker } from "@/features/postcards/hooks/use-views";
 import { useGetUserQuery } from "@/features/auth/api/auth-api";
 import { getGuestSessionId } from "@/shared/lib/get-guest-session-id";
@@ -97,6 +100,8 @@ export const PostcardViewer = memo(function PostcardViewer({
   const [activeMediaFillsHeight, setActiveMediaFillsHeight] = useState(true);
 
   const [toggleLikeMutation] = useToggleLikePostcardMutation();
+  const [setLocationVisible, { isLoading: isTogglingLocation }] =
+    useSetPostcardLocationVisibleMutation();
 
   const { preparedMediaRef, prepareMedia, getOrFetchFile } =
     useMediaPrepCache();
@@ -591,6 +596,24 @@ export const PostcardViewer = memo(function PostcardViewer({
     !!(resolvedAuthor?.id ?? freshData?.author?.id) &&
     userData.data.id === (resolvedAuthor?.id ?? freshData?.author?.id);
 
+  // Prefer the polled copy so a hide/show is reflected without reopening.
+  const locationLabel =
+    freshData !== undefined ? freshData.locationLabel : postcard.locationLabel;
+
+  const handleToggleLocation = async (show: boolean) => {
+    if (!postcard.id) return;
+    try {
+      await setLocationVisible({
+        postcardId: postcard.id,
+        eventId: postcard.eventId ?? eventId,
+        showLocation: show,
+      }).unwrap();
+      toast.success(show ? "Location shown" : "Location hidden");
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? "Couldn't update the location.");
+    }
+  };
+
   if (media.length === 0) {
     onClose();
     return null;
@@ -653,6 +676,15 @@ export const PostcardViewer = memo(function PostcardViewer({
                           ? setActiveMediaFillsHeight
                           : undefined
                       }
+                    />
+
+                    <LocationStamp
+                      createdAt={freshData?.createdAt ?? postcard.createdAt}
+                      locationLabel={locationLabel}
+                      canToggle={isOwner}
+                      hasLocation={freshData?.hasLocation}
+                      toggling={isTogglingLocation}
+                      onToggleLocation={handleToggleLocation}
                     />
 
                     {/* Media counter */}

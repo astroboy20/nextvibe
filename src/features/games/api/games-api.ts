@@ -70,6 +70,32 @@ export const gameEndpoints = baseApi.injectEndpoints({
       }),
     }),
 
+    /**
+     * POST /v1/games/ai/sources — upload a PDF or .txt (≤5 MB) to generate
+     * from. The server keeps only the extracted text, for 2 hours; pass the
+     * returned `sourceId` to generate-draft and regenerate-question.
+     */
+    uploadAiSource: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          sourceId: string;
+          fileName: string;
+          charCount: number;
+          truncated: boolean;
+          expiresAt: string;
+        };
+      },
+      File
+    >({
+      query: (file) => {
+        const body = new FormData();
+        body.append("file", file);
+        // No Content-Type header: the browser sets multipart with its boundary.
+        return { url: "/v1/games/ai/sources", method: "POST", body, timeout: 60000 };
+      },
+    }),
+
     createGame: builder.mutation<any, any>({
       query: ({ body, eventId }: { body: any; eventId: string }) => ({
         url: `/v1/events/${eventId}/game-sessions`,
@@ -405,6 +431,7 @@ export const {
   useJoinGameSessionByTokenMutation,
   useGenerateGameDraftMutation,
   useRegenerateAiQuestionMutation,
+  useUploadAiSourceMutation,
   useAnswerQuestionMutation,
   useGetActiveGameStatusQuery,
   useAnonymousJoinGameMutation,

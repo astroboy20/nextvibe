@@ -36,6 +36,10 @@ export interface PostcardData {
   commentCount?: number;
   eventId?: string;
   createdAt?: string;
+  /** Public place name for the stamp. null = no location, or hidden by the author. */
+  locationLabel?: string | null;
+  /** Author-only: a stamp exists (possibly hidden) and can be toggled. */
+  hasLocation?: boolean;
   author?: PostcardAuthor;
   event?: {
     id?: string;

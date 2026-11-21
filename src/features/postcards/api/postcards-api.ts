@@ -1,5 +1,6 @@
 import { baseApi } from "@/store/api/baseApi";
 import { phaseToTiming, type PostcardPhase } from "@/features/postcards/types";
+import type { GeoFix as PostcardLocationFix } from "@/features/postcards/hooks/use-geolocation-fix";
 
 /**
  * Postcard endpoints — the gallery, creation and swapping, likes, comments,
@@ -83,12 +84,14 @@ export const postcardEndpoints = baseApi.injectEndpoints({
            */
           vibeTagOverlayUrl?: string;
         }[];
+        /** Opt-in browser fix for the location stamp. The server rounds it to ~1km. */
+        location?: PostcardLocationFix;
       }
     >({
-      query: ({ eventId, vibeTagId, media, caption }) => ({
+      query: ({ eventId, vibeTagId, media, caption, location }) => ({
         url: "/v1/postcards",
         method: "POST",
-        body: { eventId, vibeTagId, media, caption },
+        body: { eventId, vibeTagId, media, caption, location },
       }),
       invalidatesTags: (_, __, { eventId }) => [
         { type: "Gallery", id: eventId },
@@ -234,15 +237,36 @@ export const postcardEndpoints = baseApi.injectEndpoints({
            */
           vibeTagOverlayUrl?: string;
         }[];
+        location?: PostcardLocationFix;
       }
     >({
-      query: ({ postcardId, eventId, vibeTagId, caption, media }) => ({
+      query: ({ postcardId, eventId, vibeTagId, caption, media, location }) => ({
         url: `/v1/postcards/${postcardId}/swap`,
         method: "POST",
-        body: { eventId, vibeTagId, caption, media },
+        body: { eventId, vibeTagId, caption, media, location },
       }),
       invalidatesTags: (_, __, { eventId }) => [
         { type: "Gallery", id: eventId },
+      ],
+    }),
+
+    /**
+     * PATCH /v1/postcards/:id — author only.
+     * `showLocation: false` hides the stamp; `true` restores it (the server
+     * re-derives the place name, and answers 503 if the geocoder is down).
+     */
+    setPostcardLocationVisible: builder.mutation<
+      any,
+      { postcardId: string; eventId?: string; showLocation: boolean }
+    >({
+      query: ({ postcardId, showLocation }) => ({
+        url: `/v1/postcards/${postcardId}`,
+        method: "PATCH",
+        body: { showLocation },
+      }),
+      invalidatesTags: (_, __, { postcardId, eventId }) => [
+        { type: "Gallery", id: `postcard-${postcardId}` },
+        ...(eventId ? [{ type: "Gallery" as const, id: eventId }] : []),
       ],
     }),
   }),
@@ -262,5 +286,6 @@ export const {
   useGetEventMemoriesCountQuery,
   useTrackPostcardViewMutation,
   useSwapPostcardMutation,
-  useDeletePostcardMutation
+  useDeletePostcardMutation,
+  useSetPostcardLocationVisibleMutation,
 } = postcardEndpoints;

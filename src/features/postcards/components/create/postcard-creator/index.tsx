@@ -18,6 +18,7 @@ import Cookies from "js-cookie";
 import { bakeOverlay, resizeTo1080p, dataUrlToBlob, OUTPUT_WIDTH, OUTPUT_HEIGHT } from "./utils";
 import { uploadBlobToCDN, fileUrlToStorageKey } from "@/shared/api/uploads-api";
 import type { QueuedItem, PostcardCreatorProps } from "./types";
+import { useGeolocationFix } from "@/features/postcards/hooks/use-geolocation-fix";
 
 export type { VibeTagOverlay } from "./types";
 
@@ -50,6 +51,9 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [localUploadProgress, setLocalUploadProgress] = useState(0);
   const [caption, setCaption] = useState("");
+  // Opt-in location stamp. Off by default; turning it on is what triggers
+  // the browser permission prompt.
+  const geo = useGeolocationFix();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -397,10 +401,11 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
       if (!uploadedItems.length) { toast.error("Upload failed — no file keys returned."); return; }
       setSubmitStage("saving"); setSubmitProgress(90);
 
+      const location = geo.fix ?? undefined;
       if (isSwapMode && swapPostcardId) {
-        await swapPostcard({ postcardId: swapPostcardId, eventId, vibeTagId, media: uploadedItems, caption }).unwrap();
+        await swapPostcard({ postcardId: swapPostcardId, eventId, vibeTagId, media: uploadedItems, caption, location }).unwrap();
       } else {
-        await createPostcards({ eventId, vibeTagId, media: uploadedItems, caption }).unwrap();
+        await createPostcards({ eventId, vibeTagId, media: uploadedItems, caption, location }).unwrap();
       }
 
       setSubmitProgress(100);
@@ -547,6 +552,8 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
             onSetActiveIdx={setActiveIdx}
             onRemoveFromQueue={removeFromQueue}
             onUpdateCaption={setCaption}
+            locationStatus={geo.status}
+            onToggleLocation={(on) => (on ? geo.request() : geo.clear())}
             onDownload={handleDownload}
             onShare={handleShare}
             onSubmitAll={() => handleSubmitAll(activeQueue)}

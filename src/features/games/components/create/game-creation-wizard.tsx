@@ -24,6 +24,7 @@ import WheelPrizeEditor, {
 import StepOne from "./steps/step-one";
 import StepTwo from "./steps/step-two";
 import StepThree from "./steps/step-three";
+import type { AiSource } from "./steps/ai-source-upload";
 import StepFour from "./steps/step-four";
 import StepFive from "./steps/step-five";
 import StepSix from "./steps/step-six";
@@ -255,6 +256,11 @@ export function GameCreationWizard({
     activityTiming: "",
     eventName,
   });
+  // An uploaded PDF/.txt for the current round: either ready-written
+  // questions (imported as-is) or notes the AI writes questions from.
+  const [aiSource, setAiSource] = useState<AiSource | null>(null);
+  // Set when the file starts with "Title:" but some questions are malformed.
+  const [importProblems, setImportProblems] = useState<string[] | null>(null);
   const [roundsData, setRoundsData] = useState<RoundData[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -368,11 +374,13 @@ export function GameCreationWizard({
       case 3:
         if (isWheelRound(activeRoundIdx)) return "";
         if (contentMode === "ai") {
-          if (!aiPrompt.topic.trim())
-            return "Please enter a topic for AI generation.";
+          if (!aiPrompt.topic.trim() && !aiSource)
+            return "Please enter a topic or upload a file.";
           // Word puzzles always generate a single shared grid — no count to ask for.
+          // With a file the count is optional (it's ignored for an imported file).
           if (
             aiPrompt.gameType !== "WORD_PUZZLE" &&
+            !aiSource &&
             (!aiPrompt.count || aiPrompt.count <= 0)
           )
             return "Please enter a valid question count.";
@@ -442,7 +450,10 @@ export function GameCreationWizard({
   };
 
   // ── AI generation ──────────────────────────────────────────────────────────
-  const generateQuestionsWithAI = async (roundIdx: number = activeRoundIdx) => {
+  const generateQuestionsWithAI = async (
+    roundIdx: number = activeRoundIdx,
+    opts?: { forceAi?: boolean },
+  ) => {
     // Always derive activityTiming from the selected phase — don't rely on aiPrompt state
     const timingMap: Record<EventPhase, string> = {
       "pre-event": "PRE_EVENT",
@@ -458,20 +469,27 @@ export function GameCreationWizard({
     // Word puzzles are always a single shared grid — the backend expects count: 1
     // (1 grid = 1 puzzle item), so there's nothing for the organizer to choose here.
     const resolvedCount =
-      aiPrompt.gameType === "WORD_PUZZLE" ? 1 : aiPrompt.count;
+      aiPrompt.gameType === "WORD_PUZZLE"
+        ? 1
+        : (aiPrompt.count ?? (aiSource ? 10 : null));
+    const topic = aiPrompt.topic.trim();
     const promptToSend = {
       ...aiPrompt,
+      // Optional when a file is attached — the backend rejects an empty string.
+      topic: topic || undefined,
       count: resolvedCount,
       activityTiming: resolvedTiming,
       // Lets the backend check this organizer owns the event and record the
       // generation's cost against it.
       eventId,
+      ...(aiSource && { sourceId: aiSource.sourceId }),
+      ...(opts?.forceAi && { forceAi: true }),
     };
 
     // Validate with the resolved prompt
     const validationErrors: string[] = [];
-    if (!promptToSend.topic.trim())
-      validationErrors.push("Please enter a topic for AI generation.");
+    if (!topic && !aiSource)
+      validationErrors.push("Please enter a topic or upload a file.");
     if (!promptToSend.count || promptToSend.count <= 0)
       validationErrors.push("Please enter a valid question count.");
     if (!promptToSend.gameType)
@@ -483,6 +501,7 @@ export function GameCreationWizard({
       return;
     }
     setValidationError("");
+    setImportProblems(null);
     setIsGenerating(true);
     try {
       const data = await generateGameDraft(promptToSend).unwrap();
@@ -617,8 +636,23 @@ export function GameCreationWizard({
         };
       });
       setRoundQuestions(roundIdx, generated);
+      if (inner?.origin === "IMPORTED") {
+        toast.success(`Using the ${generated.length} question${generated.length === 1 ? "" : "s"} from your file.`);
+      } else if (aiSource) {
+        toast.success("Questions written from your file.");
+      }
       setStep(4);
     } catch (err: any) {
+      // The file claims the question format but has mistakes: list them
+      // next to the upload rather than in a toast that disappears.
+      const details: unknown = err?.data?.error?.details;
+      if (err?.data?.error?.code === "IMPORT_FORMAT_INVALID" && Array.isArray(details)) {
+        setImportProblems(details.map(String));
+        toast.error("Your file needs a few fixes — see the list under the upload.");
+        return;
+      }
+      // An expired upload can't be regenerated from; drop it so the organizer re-uploads.
+      if (err?.status === 410) setAiSource(null);
       // RTK Query rejects with { status, data } rather than an Error, and the
       // backend's error body is { success: false, error: { code, message } }.
       toast.error(
@@ -637,7 +671,8 @@ export function GameCreationWizard({
     if (!round || !target || regeneratingId) return;
 
     const base = {
-      topic: aiPrompt.topic,
+      topic: aiPrompt.topic.trim() || undefined,
+      ...(aiSource && { sourceId: aiSource.sourceId }),
       gameType: GAMETYPE_TO_API[round.gameType],
       difficulty: aiPrompt.difficulty,
       // From the phase, like full generation — aiPrompt.activityTiming can
@@ -1091,6 +1126,8 @@ export function GameCreationWizard({
           count: null,
           difficulty: "easy",
         }));
+        setAiSource(null);
+        setImportProblems(null);
         setStep(3);
         return;
       }
@@ -1193,11 +1230,23 @@ export function GameCreationWizard({
             updateRoundMeta(activeRoundIdx, "description", v)
           }
           selectedGameType={roundsData[activeRoundIdx]?.gameType ?? "trivia"}
-          onGameTypeChange={(type) => updateRoundGameType(activeRoundIdx, type)}
+          onGameTypeChange={(type) => {
+            updateRoundGameType(activeRoundIdx, type);
+            // Format problems are specific to the game type they were checked against.
+            setImportProblems(null);
+          }}
           contentMode={contentMode}
           setContentMode={(v) => setContentMode(v as ContentMode)}
           aiPrompt={aiPrompt}
           setAiPrompt={setAiPrompt}
+          aiSource={aiSource}
+          onAiSourceChange={(source) => {
+            setAiSource(source);
+            setImportProblems(null);
+          }}
+          importProblems={importProblems}
+          onUseAiInstead={() => generateQuestionsWithAI(activeRoundIdx, { forceAi: true })}
+          isGenerating={isGenerating}
         />
       )}
       {step === 4 && isWheelRound(activeRoundIdx) && (

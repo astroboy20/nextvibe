@@ -12,8 +12,11 @@ import {
   CheckCircle2,
   RotateCcw,
   Sparkles,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import type { GeoFixStatus } from "@/features/postcards/hooks/use-geolocation-fix";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -34,6 +37,8 @@ interface PostcardReviewViewProps {
   onSetActiveIdx: (idx: number) => void;
   onRemoveFromQueue: (id: string) => void;
   onUpdateCaption: (caption: string) => void;
+  locationStatus: GeoFixStatus;
+  onToggleLocation: (on: boolean) => void;
   onDownload: (item: QueuedItem) => void;
   onShare: (item: QueuedItem) => void;
   onSubmitAll: () => void;
@@ -55,6 +60,8 @@ export function PostcardReviewView({
   onSetActiveIdx,
   onRemoveFromQueue,
   onUpdateCaption,
+  locationStatus,
+  onToggleLocation,
   onDownload,
   onShare,
   onSubmitAll,
@@ -264,6 +271,38 @@ export function PostcardReviewView({
                   className="rounded-xl resize-none"
                   rows={2}
                 />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      Add my location
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {locationStatus === "locating"
+                        ? "Finding you…"
+                        : locationStatus === "ready"
+                          ? "Your area (not your exact spot) will show on the postcard"
+                          : locationStatus === "denied"
+                            ? "Location permission is blocked in your browser"
+                            : locationStatus === "unavailable"
+                              ? "Couldn't get your location — posting without it"
+                              : "Shows your area on the postcard"}
+                    </p>
+                  </div>
+                </div>
+                {locationStatus === "locating" ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <Switch
+                    checked={locationStatus === "ready"}
+                    onCheckedChange={onToggleLocation}
+                    disabled={isSubmitting}
+                    aria-label="Add my location to this postcard"
+                  />
+                )}
               </div>
 
               <div className="flex gap-2">
