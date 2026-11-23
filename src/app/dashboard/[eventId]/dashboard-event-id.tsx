@@ -37,6 +37,7 @@ import Image from "next/image";
 // import AnalyticsPanelContent from "@/features/events/components/dashboard/analytics-panel";
 import VibeTagStudioContent from "@/features/vibetags/components/vibe-tag-studio";
 import { WishlistManagerContent } from "@/features/wishlist/components/dashboard/wishlist-manager-content";
+import { TeamManagementPanel, PendingInvitesBanner } from "@/features/events/components/team-management";
 // import PostcardLeaderboardContent from "@/features/postcards/components/dashboard/leaderboard-content";
 import {
   useGetEventDetailsQuery,
@@ -1156,6 +1157,9 @@ export default function OrganizerDashboard({
         )}
 
         <div className="space-y-4">
+          {/* Pending Co-Organizer Invites Banner */}
+          <PendingInvitesBanner />
+
           {/* Private event access key panel */}
           {!isLoading && event?.isPublic === false && event?.accessKey && (
             <AccessKeyDisplay accessKey={event.accessKey} eventId={eventId} />
@@ -1580,6 +1584,17 @@ export default function OrganizerDashboard({
                 </Link>
               </div>
             </EventDashboardCard>
+          )}
+
+          {/* Team Management */}
+          {!isLoading && (
+            <TeamManagementPanel
+              eventId={eventId}
+              eventStatus={event?.status}
+              onLeave={() => {
+                window.location.href = "/events";
+              }}
+            />
           )}
 
           {isLoading ? (

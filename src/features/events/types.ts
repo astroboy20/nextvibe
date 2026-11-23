@@ -204,6 +204,7 @@ export interface IEvent {
   eventType: "free" | "premium";
   organizerId: string;
   organizer?: IUser;
+  myRole?: EventRole | null;
   qrCodeUrl?: string;
   galleryItems?: IGalleryItem[];
   backdropUsage?: { views: number; interactions: number; lastUpdated: Date };
@@ -660,4 +661,53 @@ export interface PersonalizedInvite {
   customMessage: string;
   sentAt?: string;
   status: "pending" | "sent" | "failed";
+}
+
+// ── Co-Organizer & Role Types ────────────────────────────────────────────────
+
+export type EventRole = "OWNER" | "SUPER_ADMIN" | "CO_ORGANIZER";
+export type CoOrganizerRole = "CO_ORGANIZER" | "SUPER_ADMIN";
+export type CoOrganizerStatus = "PENDING" | "ACCEPTED";
+
+export interface CoOrganizerUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface CoOrganizerMember {
+  id: string;
+  role: CoOrganizerRole;
+  status: CoOrganizerStatus;
+  user: CoOrganizerUser | null;
+  createdAt: string;
+  acceptedAt: string | null;
+  // Present only when requester is OWNER or SUPER_ADMIN:
+  email?: string;
+  expiresAt?: string;
+  expired?: boolean;
+}
+
+export interface CoOrganizerListResponse {
+  myRole: EventRole;
+  max: number; // Currently 10
+  data: CoOrganizerMember[];
+}
+
+export interface PendingCoOrganizerInvite {
+  id: string;
+  role: CoOrganizerRole;
+  token: string;
+  expiresAt: string;
+  event: {
+    id: string;
+    name: string;
+    startsAt: string;
+    flierUrl: string | null;
+  };
+  invitedBy: {
+    displayName: string | null;
+    username: string;
+  };
 }

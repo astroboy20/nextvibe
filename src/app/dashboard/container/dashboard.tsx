@@ -4,10 +4,14 @@ import Image from "next/image";
 import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetUserQuery, useGetOrganizerEventsQuery } from "@/features/auth/api/auth-api";
+import { useGetManagedEventsQuery } from "@/features/events/api/events-api";
 import { formatDate } from "@/shared/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetOverviewLocationAnalyticsQuery } from "@/features/events/api/analytics-api";
+import { PendingInvitesBanner } from "@/features/events/components/team-management";
+import { RoleBadge } from "@/shared/components/role-badge";
+import { EventRole } from "@/features/events/types";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +22,7 @@ interface DashboardEvent {
   startsAt: string;
   status: string;
   locationName?: string;
+  myRole?: EventRole;
 }
 
 // ─── Audience Location Card ───────────────────────────────────────────────────
@@ -193,9 +198,40 @@ const Dashboard = () => {
     { skip: !organizerId }
   );
 
-  const events: DashboardEvent[] = Array.isArray(eventsData?.data)
+  // Also fetch managed events (where user is co-organizer)
+  const { data: managedEventsData } = useGetManagedEventsQuery(undefined, {
+    skip: !organizerId,
+  });
+
+  // Merge created events with managed events (deduplicate by ID)
+  const createdEvents: DashboardEvent[] = Array.isArray(eventsData?.data)
     ? eventsData.data
     : eventsData?.data?.events ?? eventsData?.data?.data ?? [];
+  
+  const managedEvents: DashboardEvent[] = managedEventsData?.data ?? [];
+  
+  // Create a map to deduplicate and merge role info
+  const eventsMap = new Map<string, DashboardEvent>();
+  
+  // Add created events (these are OWNER role)
+  createdEvents.forEach(event => {
+    eventsMap.set(event.id, { ...event, myRole: 'OWNER' as EventRole });
+  });
+  
+  // Add/update with managed events (these have myRole from API)
+  managedEvents.forEach(event => {
+    if (eventsMap.has(event.id)) {
+      // Update existing entry with role info
+      const existing = eventsMap.get(event.id)!;
+      eventsMap.set(event.id, { ...existing, myRole: event.myRole });
+    } else {
+      // Add new entry
+      eventsMap.set(event.id, event);
+    }
+  });
+  
+  const events: DashboardEvent[] = Array.from(eventsMap.values());
+  
   const meta = eventsData?.data?.meta ?? eventsData?.meta;
   const totalPages =
     meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / PAGE_LIMIT) : 1);
@@ -219,6 +255,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-5 pb-25">
+      {/* Pending Co-Organizer Invites Banner */}
+      <PendingInvitesBanner />
+
       {/* Greeting */}
       {displayName && (
         <div className="pt-1">
@@ -313,6 +352,11 @@ const Dashboard = () => {
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {event?.locationName}
                         </p>
+                      )}
+                      {event?.myRole && event.myRole !== 'OWNER' && (
+                        <div className="mt-1.5">
+                          <RoleBadge role={event.myRole} size="sm" />
+                        </div>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">

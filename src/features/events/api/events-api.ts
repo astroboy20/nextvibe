@@ -181,6 +181,34 @@ export const eventsApi = baseApi.injectEndpoints({
       providesTags: ["Events"],
     }),
 
+    /**
+     * GET /v1/events/me/managed
+     * Returns all events where the user is OWNER, SUPER_ADMIN, or accepted CO_ORGANIZER
+     * Each event includes myRole, attendingCount, checkedInCount, hasGame, hasVibetag
+     */
+    getManagedEvents: builder.query<
+      {
+        success: boolean;
+        data: Array<{
+          id: string;
+          name: string;
+          myRole: "OWNER" | "SUPER_ADMIN" | "CO_ORGANIZER";
+          attendingCount: number;
+          checkedInCount: number;
+          hasGame: boolean;
+          hasVibetag: boolean;
+          startsAt: string;
+          endsAt: string;
+          status: string;
+          flierUrl?: string;
+        }>;
+      },
+      void
+    >({
+      query: () => "/v1/events/me/managed",
+      providesTags: ["Events"],
+    }),
+
     uploadGalleryMedia: builder.mutation<
       any,
       { eventId: string; media: File | Blob }
@@ -371,6 +399,7 @@ export const eventsApi = baseApi.injectEndpoints({
 export const {
   useGetEventsQuery,
   useGetMyCreatedEventsQuery,
+  useGetManagedEventsQuery,
   useGetEventDetailsQuery,
   useDeleteEventMutation,
   useUpdateEventMutation,
