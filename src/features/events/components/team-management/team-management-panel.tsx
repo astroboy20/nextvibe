@@ -139,7 +139,6 @@ function EmptyState({
 
 export function TeamManagementPanel({
   eventId,
-  eventStatus,
   onLeave,
 }: TeamManagementPanelProps) {
   const { data: response, isLoading, refetch } = useGetCoOrganizersQuery(
