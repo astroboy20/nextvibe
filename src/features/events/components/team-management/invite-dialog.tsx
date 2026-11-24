@@ -30,6 +30,7 @@ interface InviteCoOrganizerDialogProps {
   onOpenChange: (open: boolean) => void;
   eventId: string;
   canInviteSuperAdmin: boolean;
+  onInviteSuccess?: () => void;
 }
 
 export function InviteCoOrganizerDialog({
@@ -37,6 +38,7 @@ export function InviteCoOrganizerDialog({
   onOpenChange,
   eventId,
   canInviteSuperAdmin,
+  onInviteSuccess,
 }: InviteCoOrganizerDialogProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<CoOrganizerRole>("CO_ORGANIZER");
@@ -69,6 +71,12 @@ export function InviteCoOrganizerDialog({
       setEmail("");
       setRole("CO_ORGANIZER");
       onOpenChange(false);
+      
+      // Manually refetch to update the list immediately
+      // Small delay to ensure backend has processed
+      setTimeout(() => {
+        onInviteSuccess?.();
+      }, 500);
     } catch (error: any) {
       const message = error?.data?.message || "Failed to send invite";
       toast.error(message);
@@ -108,29 +116,41 @@ export function InviteCoOrganizerDialog({
             </div>
 
             {canInviteSuperAdmin && (
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={role}
-                  onValueChange={(value) =>
-                    setRole(value as CoOrganizerRole)
-                  }
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CO_ORGANIZER">Co-Organizer</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {role === "SUPER_ADMIN"
-                    ? "Full admin access including billing and team management. Only 1 Super Admin per event."
-                    : "Can manage day-to-day operations and view non-revenue analytics."}
-                </p>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={role}
+                    onValueChange={(value) =>
+                      setRole(value as CoOrganizerRole)
+                    }
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CO_ORGANIZER">Co-Organizer</SelectItem>
+                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {role === "SUPER_ADMIN"
+                      ? "Full admin access including billing and team management. Only 1 Super Admin per event."
+                      : "Can manage day-to-day operations and view non-revenue analytics."}
+                  </p>
+                </div>
+                
+                {role === "SUPER_ADMIN" && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-xs">
+                      <strong>Single Super Admin constraint:</strong> If another Super Admin exists, 
+                      they will be automatically demoted to Co-Organizer when this invite is accepted.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
             )}
 
             {!canInviteSuperAdmin && (

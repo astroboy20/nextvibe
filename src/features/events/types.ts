@@ -705,7 +705,7 @@ export interface PendingCoOrganizerInvite {
     name: string;
     startsAt: string;
     flierUrl: string | null;
-  };
+  } | any;
   invitedBy: {
     displayName: string | null;
     username: string;

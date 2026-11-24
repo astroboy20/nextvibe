@@ -21,6 +21,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -56,13 +62,14 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 interface WishlistManagerContentProps {
   eventId: string;
+  myRole?: "OWNER" | "SUPER_ADMIN" | "CO_ORGANIZER" | null;
 }
 
 /**
  * Organizer side of the wishlist: bank details and the on/off switch, the
  * items, and the queue of gift reports to confirm against the bank app.
  */
-export function WishlistManagerContent({ eventId }: WishlistManagerContentProps) {
+export function WishlistManagerContent({ eventId, myRole }: WishlistManagerContentProps) {
   const { data: wishlist, isLoading, error } = useGetOrganizerWishlistQuery(eventId);
   const notSetUp = (error as { status?: number } | undefined)?.status === 404;
 
@@ -83,6 +90,7 @@ export function WishlistManagerContent({ eventId }: WishlistManagerContentProps)
         key={wishlist?.updatedAt ?? "new"}
         eventId={eventId}
         wishlist={wishlist ?? null}
+        myRole={myRole}
       />
       {wishlist && (
         <>
@@ -100,9 +108,11 @@ export function WishlistManagerContent({ eventId }: WishlistManagerContentProps)
 function WishlistSettings({
   eventId,
   wishlist,
+  myRole,
 }: {
   eventId: string;
   wishlist: OrganizerWishlist | null;
+  myRole?: "OWNER" | "SUPER_ADMIN" | "CO_ORGANIZER" | null;
 }) {
   const [upsert, { isLoading }] = useUpsertWishlistMutation();
   const [bankName, setBankName] = useState(wishlist?.bankName ?? "");
@@ -110,6 +120,9 @@ function WishlistSettings({
     wishlist?.accountNumber ?? "",
   );
   const [accountName, setAccountName] = useState(wishlist?.accountName ?? "");
+  
+  const isOwner = myRole === "OWNER";
+  const canEditBankDetails = isOwner;
 
   const isValid =
     bankName.trim() && accountNumber.trim() && accountName.trim();
@@ -171,41 +184,87 @@ function WishlistSettings({
         <p className="text-xs text-muted-foreground">
           Guests see these details when they tap Contribute. You can use a
           different account from your payout account.
+          {!canEditBankDetails && (
+            <span className="text-amber-600 dark:text-amber-400 ml-1">
+              • Only the event owner can edit payout bank details
+            </span>
+          )}
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="wl-bank">Bank</Label>
-          <Input
-            id="wl-bank"
-            value={bankName}
-            maxLength={100}
-            onChange={(e) => setBankName(e.target.value)}
-            placeholder="GTBank"
-          />
+      <TooltipProvider>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-bank">Bank</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Input
+                    id="wl-bank"
+                    value={bankName}
+                    maxLength={100}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="GTBank"
+                    disabled={!canEditBankDetails}
+                    className={!canEditBankDetails ? "cursor-not-allowed" : ""}
+                  />
+                </div>
+              </TooltipTrigger>
+              {!canEditBankDetails && (
+                <TooltipContent>
+                  Only the event owner can edit payout bank details
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-number">Account number</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Input
+                    id="wl-number"
+                    value={accountNumber}
+                    maxLength={34}
+                    inputMode="numeric"
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="0123456789"
+                    disabled={!canEditBankDetails}
+                    className={!canEditBankDetails ? "cursor-not-allowed" : ""}
+                  />
+                </div>
+              </TooltipTrigger>
+              {!canEditBankDetails && (
+                <TooltipContent>
+                  Only the event owner can edit payout bank details
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-name">Account name</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Input
+                    id="wl-name"
+                    value={accountName}
+                    maxLength={100}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="Olajumoke Dun"
+                    disabled={!canEditBankDetails}
+                    className={!canEditBankDetails ? "cursor-not-allowed" : ""}
+                  />
+                </div>
+              </TooltipTrigger>
+              {!canEditBankDetails && (
+                <TooltipContent>
+                  Only the event owner can edit payout bank details
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="wl-number">Account number</Label>
-          <Input
-            id="wl-number"
-            value={accountNumber}
-            maxLength={34}
-            inputMode="numeric"
-            onChange={(e) => setAccountNumber(e.target.value)}
-            placeholder="0123456789"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="wl-name">Account name</Label>
-          <Input
-            id="wl-name"
-            value={accountName}
-            maxLength={150}
-            onChange={(e) => setAccountName(e.target.value)}
-            placeholder="Tolu Adeyemi"
-          />
-        </div>
-      </div>
+      </TooltipProvider>
       {isDirty && (
         <Button
           size="sm"

@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, memo } from "react";
 import type React from "react";
-import { Calendar, Gamepad2, Lock, MapPin, Tag, Users } from "lucide-react";
+import { Calendar, Gamepad2, Lock, MapPin, Tag, Users, Crown, Shield, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/shared/lib/format-date";
@@ -26,6 +26,7 @@ export interface EventCardProps {
   postcardCount?: number;
   /** "event" navigates to /events/:id, "postcard" to /postcards/:id */
   variant?: "event" | "postcard";
+  myRole?: "OWNER" | "SUPER_ADMIN" | "CO_ORGANIZER" | null;
 }
 
 const FLIER_MS = 5000;
@@ -56,6 +57,7 @@ export const EventCard = memo(function EventCard({
   style,
   postcardCount = 0,
   variant = "event",
+  myRole,
 }: EventCardProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -203,9 +205,28 @@ export const EventCard = memo(function EventCard({
 
       {/* Body */}
       <div className="p-2.5 sm:p-4">
-        <h3 className="font-display text-sm sm:text-base font-semibold line-clamp-1">
-          {title}
-        </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-display text-sm sm:text-base font-semibold line-clamp-1 flex-1">
+            {title}
+          </h3>
+          {myRole && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold shrink-0",
+                myRole === "OWNER" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                myRole === "SUPER_ADMIN" && "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                myRole === "CO_ORGANIZER" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+              )}
+            >
+              {myRole === "OWNER" && <Crown className="h-2.5 w-2.5" />}
+              {myRole === "SUPER_ADMIN" && <Shield className="h-2.5 w-2.5" />}
+              {myRole === "CO_ORGANIZER" && <UserIcon className="h-2.5 w-2.5" />}
+              {myRole === "OWNER" && "Owner"}
+              {myRole === "SUPER_ADMIN" && "Super Admin"}
+              {myRole === "CO_ORGANIZER" && "Co-Organizer"}
+            </span>
+          )}
+        </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3 shrink-0" />

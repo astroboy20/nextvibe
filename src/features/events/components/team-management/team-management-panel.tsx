@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,7 +83,7 @@ export function TeamManagementPanel({
   eventStatus,
   onLeave,
 }: TeamManagementPanelProps) {
-  const { data, isLoading } = useGetCoOrganizersQuery(eventId);
+  const { data, isLoading, refetch } = useGetCoOrganizersQuery(eventId);
   const [inviteCoOrganizer, { isLoading: isInviting }] =
     useInviteCoOrganizerMutation();
   const [updateRole, { isLoading: isUpdatingRole }] =
@@ -91,6 +93,7 @@ export function TeamManagementPanel({
   const [leaveEvent, { isLoading: isLeaving }] = useLeaveEventMutation();
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"active" | "pending">("active");
   const [promoteConfirm, setPromoteConfirm] = useState<{
     member: CoOrganizerMember;
     currentSuperAdmin: CoOrganizerMember | null;
@@ -100,8 +103,9 @@ export function TeamManagementPanel({
   );
   const [leaveConfirm, setLeaveConfirm] = useState(false);
 
+  // Extract data with safe defaults - must be before early returns that use these values
   const myRole = data?.myRole;
-  const members = data?.data ?? [];
+  const members = Array.isArray(data?.data) ? data.data : [];
   const max = data?.max ?? 10;
 
   const acceptedMembers = members.filter((m) => m.status === "ACCEPTED");
@@ -110,11 +114,25 @@ export function TeamManagementPanel({
   const activeCount =
     acceptedMembers.length +
     pendingInvites.filter((inv) => !inv.expired).length;
+  
+  // Debug to see what's happening
+  console.log('Team Management State:', {
+    myRole,
+    eventStatus,
+    activeCount,
+    max,
+    members,
+    acceptedMembers: acceptedMembers.length,
+    pendingInvites: pendingInvites.length,
+    fullData: data
+  });
+  
   const canInvite =
     (myRole === "OWNER" || myRole === "SUPER_ADMIN") &&
-    eventStatus !== "ENDED" &&
-    eventStatus !== "CANCELLED" &&
     activeCount < max;
+  
+  // Always show invite button for OWNER or SUPER_ADMIN
+  const shouldShowInvite = myRole === "OWNER" || myRole === "SUPER_ADMIN";
 
   const currentSuperAdmin = acceptedMembers.find(
     (m) => m.role === "SUPER_ADMIN"
@@ -189,6 +207,9 @@ export function TeamManagementPanel({
       } else {
         toast.success("Invite resent successfully");
       }
+      
+      // Manually refetch to update the list
+      refetch();
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to resend invite");
     }
@@ -222,6 +243,28 @@ export function TeamManagementPanel({
     );
   }
 
+  // Add error/no access handling
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Team Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to load team management. You may not have access to this event.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card>
@@ -236,7 +279,7 @@ export function TeamManagementPanel({
                 Slots used: {activeCount} / {max}
               </CardDescription>
             </div>
-            {canInvite && (
+            {shouldShowInvite && (
               <Button
                 onClick={() => setInviteDialogOpen(true)}
                 size="sm"
@@ -249,117 +292,131 @@ export function TeamManagementPanel({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Accepted Members */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Team Members ({acceptedMembers.length})
-            </h3>
-            {acceptedMembers.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No team members yet
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {acceptedMembers.map((member) => {
-                  const RoleIcon = roleConfig[member.role].icon;
-                  const canModify =
-                    myRole === "OWNER" ||
-                    (myRole === "SUPER_ADMIN" &&
-                      member.role === "CO_ORGANIZER");
+        <CardContent className="space-y-4">
+          {/* Tabs for Active Members and Pending Invites */}
+          {(myRole === "OWNER" || myRole === "SUPER_ADMIN") ? (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "active" | "pending")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="active" className="relative">
+                  Active Members
+                  {acceptedMembers.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
+                      {acceptedMembers.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="relative">
+                  Pending Invites
+                  {pendingInvites.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
+                      {pendingInvites.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={member.user?.avatarUrl ?? ""} />
-                          <AvatarFallback>
-                            {member.user?.displayName?.[0] ||
-                              member.user?.username?.[0] ||
-                              "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {member.user?.displayName || member.user?.username}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            @{member.user?.username}
-                          </p>
+              <TabsContent value="active" className="space-y-2 mt-4">
+                {acceptedMembers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">
+                    No active team members yet
+                  </p>
+                ) : (
+                  acceptedMembers.map((member) => {
+                    const RoleIcon = roleConfig[member.role].icon;
+                    const canModify =
+                      myRole === "OWNER" ||
+                      (myRole === "SUPER_ADMIN" &&
+                        member.role === "CO_ORGANIZER");
+
+                    return (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar className="h-10 w-10 shrink-0">
+                            <AvatarImage src={member.user?.avatarUrl ?? ""} />
+                            <AvatarFallback>
+                              {member.user?.displayName?.[0] ||
+                                member.user?.username?.[0] ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {member.user?.displayName || member.user?.username}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              @{member.user?.username}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={roleConfig[member.role].color}
+                          >
+                            <RoleIcon className="h-3 w-3 mr-1" />
+                            {roleConfig[member.role].label}
+                          </Badge>
+
+                          {canModify && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {myRole === "OWNER" && (
+                                  <>
+                                    {member.role === "CO_ORGANIZER" && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handlePromote(member, "SUPER_ADMIN")
+                                        }
+                                      >
+                                        <Shield className="h-4 w-4 mr-2" />
+                                        Promote to Super Admin
+                                      </DropdownMenuItem>
+                                    )}
+                                    {member.role === "SUPER_ADMIN" && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handlePromote(member, "CO_ORGANIZER")
+                                        }
+                                      >
+                                        <User className="h-4 w-4 mr-2" />
+                                        Demote to Co-Organizer
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                )}
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => setRemoveConfirm(member)}
+                                >
+                                  <AlertCircle className="h-4 w-4 mr-2" />
+                                  Remove from Team
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       </div>
+                    );
+                  })
+                )}
+              </TabsContent>
 
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={roleConfig[member.role].color}
-                        >
-                          <RoleIcon className="h-3 w-3 mr-1" />
-                          {roleConfig[member.role].label}
-                        </Badge>
-
-                        {canModify && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {myRole === "OWNER" && (
-                                <>
-                                  {member.role === "CO_ORGANIZER" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handlePromote(member, "SUPER_ADMIN")
-                                      }
-                                    >
-                                      <Shield className="h-4 w-4 mr-2" />
-                                      Promote to Super Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  {member.role === "SUPER_ADMIN" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handlePromote(member, "CO_ORGANIZER")
-                                      }
-                                    >
-                                      <User className="h-4 w-4 mr-2" />
-                                      Demote to Co-Organizer
-                                    </DropdownMenuItem>
-                                  )}
-                                </>
-                              )}
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => setRemoveConfirm(member)}
-                              >
-                                <AlertCircle className="h-4 w-4 mr-2" />
-                                Remove from Team
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Pending Invites (Only visible to OWNER and SUPER_ADMIN) */}
-          {(myRole === "OWNER" || myRole === "SUPER_ADMIN") &&
-            pendingInvites.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Pending Invites ({pendingInvites.length})
-                </h3>
-                <div className="space-y-2">
-                  {pendingInvites.map((invite) => {
+              <TabsContent value="pending" className="space-y-2 mt-4">
+                {pendingInvites.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">
+                    No pending invites
+                  </p>
+                ) : (
+                  pendingInvites.map((invite) => {
                     const RoleIcon = roleConfig[invite.role].icon;
                     const expiresIn = invite.expiresAt
                       ? formatDistanceToNow(new Date(invite.expiresAt), {
@@ -427,10 +484,61 @@ export function TeamManagementPanel({
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              </div>
-            )}
+                  })
+                )}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            /* CO_ORGANIZER view - only shows accepted members */
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Team Members ({acceptedMembers.length})
+              </h3>
+              {acceptedMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  No team members yet
+                </p>
+              ) : (
+                acceptedMembers.map((member) => {
+                  const RoleIcon = roleConfig[member.role].icon;
+
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="h-10 w-10 shrink-0">
+                          <AvatarImage src={member.user?.avatarUrl ?? ""} />
+                          <AvatarFallback>
+                            {member.user?.displayName?.[0] ||
+                              member.user?.username?.[0] ||
+                              "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">
+                            {member.user?.displayName || member.user?.username}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            @{member.user?.username}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Badge
+                        variant="outline"
+                        className={roleConfig[member.role].color}
+                      >
+                        <RoleIcon className="h-3 w-3 mr-1" />
+                        {roleConfig[member.role].label}
+                      </Badge>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
 
           {/* Leave Event Button */}
           {(myRole === "SUPER_ADMIN" || myRole === "CO_ORGANIZER") && (
@@ -454,6 +562,7 @@ export function TeamManagementPanel({
         onOpenChange={setInviteDialogOpen}
         eventId={eventId}
         canInviteSuperAdmin={myRole === "OWNER"}
+        onInviteSuccess={refetch}
       />
 
       {/* Promote Confirmation */}

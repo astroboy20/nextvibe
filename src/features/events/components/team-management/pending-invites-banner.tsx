@@ -39,7 +39,15 @@ export function PendingInvitesBanner() {
   }
 
   const invite = invites[0]; // Show first invite
-  const RoleIcon = roleConfig[invite.role].icon;
+  
+  // Extra safety check - shouldn't happen but guards against runtime errors
+  if (!invite || !invite.role || !invite.token) {
+    return null;
+  }
+  
+  // Safely access role with fallback
+  const role = roleConfig[invite.role] ? invite.role : 'CO_ORGANIZER';
+  const RoleIcon = roleConfig[role].icon;
 
   const handleQuickAccept = async () => {
     try {
@@ -85,17 +93,17 @@ export function PendingInvitesBanner() {
       </AlertTitle>
       <AlertDescription className="space-y-3">
         <div>
-          <p className="font-medium text-foreground">{invite.event.name}</p>
+          <p className="font-medium text-foreground">{invite?.event?.name || 'Unknown Event'}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">
-              Invited by @{invite.invitedBy.username}
+              Invited by @{invite?.invitedBy?.username || 'Unknown'}
             </span>
             <Badge
               variant="outline"
-              className={`${roleConfig[invite.role].color} text-xs`}
+              className={`${roleConfig[role].color} text-xs`}
             >
               <RoleIcon className="h-3 w-3 mr-1" />
-              {roleConfig[invite.role].label}
+              {roleConfig[role].label}
             </Badge>
           </div>
         </div>

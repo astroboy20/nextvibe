@@ -208,7 +208,9 @@ const Dashboard = () => {
     ? eventsData.data
     : eventsData?.data?.events ?? eventsData?.data?.data ?? [];
   
-  const managedEvents: DashboardEvent[] = managedEventsData?.data ?? [];
+  const managedEvents: DashboardEvent[] = Array.isArray(managedEventsData?.data)
+    ? managedEventsData.data
+    : [];
   
   // Create a map to deduplicate and merge role info
   const eventsMap = new Map<string, DashboardEvent>();

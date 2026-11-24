@@ -1400,7 +1400,7 @@ export default function OrganizerDashboard({
                 </Badge>
               }
             >
-              <WishlistManagerContent eventId={eventId} />
+              <WishlistManagerContent eventId={eventId} myRole={event?.myRole} />
             </EventDashboardCard>
           )}
 
