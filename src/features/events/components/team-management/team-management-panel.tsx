@@ -53,6 +53,7 @@ import {
 import { InviteCoOrganizerDialog } from "./invite-dialog";
 import { CoOrganizerMember, EventRole } from "@/features/events/types";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface TeamManagementPanelProps {
   eventId: string;
@@ -60,32 +61,96 @@ interface TeamManagementPanelProps {
   onLeave?: () => void;
 }
 
+/**
+ * Shape of the API response:
+ * { success: true, data: { myRole, max, data: CoOrganizerMember[] } }
+ */
+interface CoOrganizersPayload {
+  myRole: EventRole;
+  max: number;
+  data: CoOrganizerMember[];
+}
+
+interface CoOrganizersResponse {
+  success: boolean;
+  data: CoOrganizersPayload;
+}
+
 const roleConfig = {
   OWNER: {
     label: "Owner",
     icon: Crown,
-    color: "text-amber-600 bg-amber-50 border-amber-200",
+    color:
+      "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-900",
   },
   SUPER_ADMIN: {
     label: "Super Admin",
     icon: Shield,
-    color: "text-purple-600 bg-purple-50 border-purple-200",
+    color:
+      "text-purple-700 bg-purple-50 border-purple-200 dark:text-purple-300 dark:bg-purple-950/40 dark:border-purple-900",
   },
   CO_ORGANIZER: {
     label: "Co-Organizer",
     icon: User,
-    color: "text-blue-600 bg-blue-50 border-blue-200",
+    color:
+      "text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-300 dark:bg-blue-950/40 dark:border-blue-900",
   },
 };
+
+const getMemberName = (member?: CoOrganizerMember | null) =>
+  member?.user?.displayName || member?.user?.username || member?.email || "";
+
+function RoleBadge({
+  role,
+  className,
+}: {
+  role: CoOrganizerMember["role"];
+  className?: string;
+}) {
+  const { icon: Icon, label, color } = roleConfig[role];
+  return (
+    <Badge
+      variant="outline"
+      className={cn("gap-1 whitespace-nowrap font-medium", color, className)}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </Badge>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  hint,
+}: {
+  icon: typeof Users;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed py-8 text-center">
+      <Icon className="mb-1 h-6 w-6 text-muted-foreground/60" />
+      <p className="text-sm font-medium">{title}</p>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
 
 export function TeamManagementPanel({
   eventId,
   eventStatus,
   onLeave,
 }: TeamManagementPanelProps) {
-  const { data, isLoading, refetch } = useGetCoOrganizersQuery(eventId);
-  const [inviteCoOrganizer, { isLoading: isInviting }] =
-    useInviteCoOrganizerMutation();
+  const { data: response, isLoading, refetch } = useGetCoOrganizersQuery(
+    eventId
+  ) as {
+    data?: CoOrganizersResponse;
+    isLoading: boolean;
+    refetch: () => void;
+  };
+
+  const [inviteCoOrganizer] = useInviteCoOrganizerMutation();
   const [updateRole, { isLoading: isUpdatingRole }] =
     useUpdateCoOrganizerRoleMutation();
   const [removeMember, { isLoading: isRemoving }] =
@@ -103,10 +168,11 @@ export function TeamManagementPanel({
   );
   const [leaveConfirm, setLeaveConfirm] = useState(false);
 
-  // Extract data with safe defaults - must be before early returns that use these values
-  const myRole = data?.myRole;
-  const members = Array.isArray(data?.data) ? data.data : [];
-  const max = data?.max ?? 10;
+  // The real payload is nested one level down: response.data
+  const payload = response?.data;
+  const myRole = payload?.myRole;
+  const members = payload?.data ?? [];
+  const max = payload?.max ?? 10;
 
   const acceptedMembers = members.filter((m) => m.status === "ACCEPTED");
   const pendingInvites = members.filter((m) => m.status === "PENDING");
@@ -114,31 +180,20 @@ export function TeamManagementPanel({
   const activeCount =
     acceptedMembers.length +
     pendingInvites.filter((inv) => !inv.expired).length;
-  
-  // Debug to see what's happening
-  console.log('Team Management State:', {
-    myRole,
-    eventStatus,
-    activeCount,
-    max,
-    members,
-    acceptedMembers: acceptedMembers.length,
-    pendingInvites: pendingInvites.length,
-    fullData: data
-  });
-  
-  const canInvite =
-    (myRole === "OWNER" || myRole === "SUPER_ADMIN") &&
-    activeCount < max;
-  
-  // Always show invite button for OWNER or SUPER_ADMIN
-  const shouldShowInvite = myRole === "OWNER" || myRole === "SUPER_ADMIN";
 
-  const currentSuperAdmin = acceptedMembers.find(
-    (m) => m.role === "SUPER_ADMIN"
-  );
+  const isManager = myRole === "OWNER" || myRole === "SUPER_ADMIN";
+  const shouldShowInvite = isManager;
+  const canInvite = isManager && activeCount < max;
 
-  const handlePromote = async (member: CoOrganizerMember, toRole: "SUPER_ADMIN" | "CO_ORGANIZER") => {
+  const currentSuperAdmin =
+    acceptedMembers.find((m) => m.role === "SUPER_ADMIN") ?? null;
+
+  const handlePromote = async (
+    member: CoOrganizerMember,
+    toRole: "SUPER_ADMIN" | "CO_ORGANIZER"
+  ) => {
+    // Promoting someone while a Super Admin already exists needs confirmation,
+    // because the existing Super Admin will be demoted.
     if (toRole === "SUPER_ADMIN" && currentSuperAdmin) {
       setPromoteConfirm({ member, currentSuperAdmin });
       return;
@@ -151,7 +206,9 @@ export function TeamManagementPanel({
         role: toRole,
       }).unwrap();
       toast.success(
-        `${member.user?.displayName || member.user?.username} ${toRole === "SUPER_ADMIN" ? "promoted to" : "demoted to"} ${roleConfig[toRole].label}`
+        `${getMemberName(member)} ${
+          toRole === "SUPER_ADMIN" ? "promoted to" : "demoted to"
+        } ${roleConfig[toRole].label}`
       );
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to update role");
@@ -168,7 +225,7 @@ export function TeamManagementPanel({
         role: "SUPER_ADMIN",
       }).unwrap();
       toast.success(
-        `${promoteConfirm.member.user?.displayName || promoteConfirm.member.user?.username} promoted to Super Admin`
+        `${getMemberName(promoteConfirm.member)} promoted to Super Admin`
       );
       setPromoteConfirm(null);
     } catch (error: any) {
@@ -182,7 +239,7 @@ export function TeamManagementPanel({
       toast.success(
         member.status === "PENDING"
           ? "Invite removed"
-          : `${member.user?.displayName || member.user?.username} removed from team`
+          : `${getMemberName(member)} removed from team`
       );
       setRemoveConfirm(null);
     } catch (error: any) {
@@ -207,8 +264,7 @@ export function TeamManagementPanel({
       } else {
         toast.success("Invite resent successfully");
       }
-      
-      // Manually refetch to update the list
+
       refetch();
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to resend invite");
@@ -243,8 +299,7 @@ export function TeamManagementPanel({
     );
   }
 
-  // Add error/no access handling
-  if (!data) {
+  if (!payload) {
     return (
       <Card>
         <CardHeader>
@@ -257,7 +312,8 @@ export function TeamManagementPanel({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Unable to load team management. You may not have access to this event.
+              Unable to load team management. You may not have access to this
+              event.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -283,24 +339,45 @@ export function TeamManagementPanel({
               <Button
                 onClick={() => setInviteDialogOpen(true)}
                 size="sm"
-                disabled={activeCount >= max}
+                disabled={!canInvite}
               >
                 <Plus className="h-4 w-4 mr-1.5" />
                 Invite
               </Button>
             )}
           </div>
+          <div
+            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={max}
+            aria-valuenow={activeCount}
+            aria-label="Team slots used"
+          >
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                activeCount >= max ? "bg-destructive" : "bg-primary"
+              )}
+              style={{ width: `${Math.min(100, (activeCount / max) * 100)}%` }}
+            />
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Tabs for Active Members and Pending Invites */}
-          {(myRole === "OWNER" || myRole === "SUPER_ADMIN") ? (
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "active" | "pending")}>
+          {isManager ? (
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as "active" | "pending")}
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="active" className="relative">
                   Active Members
                   {acceptedMembers.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                    >
                       {acceptedMembers.length}
                     </Badge>
                   )}
@@ -308,21 +385,25 @@ export function TeamManagementPanel({
                 <TabsTrigger value="pending" className="relative">
                   Pending Invites
                   {pendingInvites.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
+                    >
                       {pendingInvites.length}
                     </Badge>
                   )}
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="active" className="space-y-2 mt-4">
+              <TabsContent value="active" className="mt-4 space-y-2">
                 {acceptedMembers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    No active team members yet
-                  </p>
+                  <EmptyState
+                    icon={Users}
+                    title="No active team members yet"
+                    hint="Invite someone to help run this event."
+                  />
                 ) : (
                   acceptedMembers.map((member) => {
-                    const RoleIcon = roleConfig[member.role].icon;
                     const canModify =
                       myRole === "OWNER" ||
                       (myRole === "SUPER_ADMIN" &&
@@ -331,93 +412,92 @@ export function TeamManagementPanel({
                     return (
                       <div
                         key={member.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Avatar className="h-10 w-10 shrink-0">
-                            <AvatarImage src={member.user?.avatarUrl ?? ""} />
-                            <AvatarFallback>
-                              {member.user?.displayName?.[0] ||
-                                member.user?.username?.[0] ||
-                                "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {member.user?.displayName || member.user?.username}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              @{member.user?.username}
-                            </p>
-                          </div>
-                        </div>
+                        <Avatar className="h-10 w-10 shrink-0">
+                          <AvatarImage src={member.user?.avatarUrl ?? ""} />
+                          <AvatarFallback>
+                            {member.user?.displayName?.[0] ||
+                              member.user?.username?.[0] ||
+                              "?"}
+                          </AvatarFallback>
+                        </Avatar>
 
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={roleConfig[member.role].color}
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="truncate text-sm font-medium"
+                            title={getMemberName(member)}
                           >
-                            <RoleIcon className="h-3 w-3 mr-1" />
-                            {roleConfig[member.role].label}
-                          </Badge>
-
-                          {canModify && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {myRole === "OWNER" && (
-                                  <>
-                                    {member.role === "CO_ORGANIZER" && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handlePromote(member, "SUPER_ADMIN")
-                                        }
-                                      >
-                                        <Shield className="h-4 w-4 mr-2" />
-                                        Promote to Super Admin
-                                      </DropdownMenuItem>
-                                    )}
-                                    {member.role === "SUPER_ADMIN" && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handlePromote(member, "CO_ORGANIZER")
-                                        }
-                                      >
-                                        <User className="h-4 w-4 mr-2" />
-                                        Demote to Co-Organizer
-                                      </DropdownMenuItem>
-                                    )}
-                                  </>
-                                )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => setRemoveConfirm(member)}
-                                >
-                                  <AlertCircle className="h-4 w-4 mr-2" />
-                                  Remove from Team
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                            {getMemberName(member)}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            @{member.user?.username}
+                          </p>
+                          <RoleBadge role={member.role} className="mt-1.5" />
                         </div>
+
+                        {canModify && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 self-start"
+                                aria-label="Member actions"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {myRole === "OWNER" && (
+                                <>
+                                  {member.role === "CO_ORGANIZER" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handlePromote(member, "SUPER_ADMIN")
+                                      }
+                                    >
+                                      <Shield className="mr-2 h-4 w-4" />
+                                      Promote to Super Admin
+                                    </DropdownMenuItem>
+                                  )}
+                                  {member.role === "SUPER_ADMIN" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handlePromote(member, "CO_ORGANIZER")
+                                      }
+                                    >
+                                      <User className="mr-2 h-4 w-4" />
+                                      Demote to Co-Organizer
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setRemoveConfirm(member)}
+                              >
+                                <AlertCircle className="mr-2 h-4 w-4" />
+                                Remove from Team
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     );
                   })
                 )}
               </TabsContent>
 
-              <TabsContent value="pending" className="space-y-2 mt-4">
+              <TabsContent value="pending" className="mt-4 space-y-2">
                 {pendingInvites.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    No pending invites
-                  </p>
+                  <EmptyState
+                    icon={Mail}
+                    title="No pending invites"
+                    hint="Invites you send will show up here."
+                  />
                 ) : (
                   pendingInvites.map((invite) => {
-                    const RoleIcon = roleConfig[invite.role].icon;
                     const expiresIn = invite.expiresAt
                       ? formatDistanceToNow(new Date(invite.expiresAt), {
                           addSuffix: true,
@@ -427,61 +507,69 @@ export function TeamManagementPanel({
                     return (
                       <div
                         key={invite.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50",
+                          invite.expired && "border-destructive/30"
+                        )}
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <Mail className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {invite.email}
-                            </p>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {invite.expired ? (
-                                <span className="text-destructive font-medium">
-                                  Expired
-                                </span>
-                              ) : (
-                                <span>Expires {expiresIn}</span>
-                              )}
-                            </div>
-                          </div>
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <Mail className="h-5 w-5 text-muted-foreground" />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={roleConfig[invite.role].color}
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="truncate text-sm font-medium"
+                            title={invite.email ?? undefined}
                           >
-                            <RoleIcon className="h-3 w-3 mr-1" />
-                            {roleConfig[invite.role].label}
-                          </Badge>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleResend(invite)}
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Resend Invite
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => setRemoveConfirm(invite)}
-                              >
-                                <AlertCircle className="h-4 w-4 mr-2" />
-                                Remove Invite
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                            {invite.email}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <RoleBadge role={invite.role} />
+                            <span
+                              className={cn(
+                                "flex items-center gap-1 whitespace-nowrap text-xs",
+                                invite.expired
+                                  ? "font-medium text-destructive"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              <Clock className="h-3 w-3" />
+                              {invite.expired
+                                ? "Expired"
+                                : expiresIn
+                                  ? `Expires ${expiresIn}`
+                                  : "No expiry"}
+                            </span>
+                          </div>
                         </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 self-start"
+                              aria-label="Invite actions"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleResend(invite)}
+                            >
+                              <Mail className="mr-2 h-4 w-4" />
+                              Resend Invite
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setRemoveConfirm(invite)}
+                            >
+                              <AlertCircle className="mr-2 h-4 w-4" />
+                              Remove Invite
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     );
                   })
@@ -491,51 +579,39 @@ export function TeamManagementPanel({
           ) : (
             /* CO_ORGANIZER view - only shows accepted members */
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Team Members ({acceptedMembers.length})
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Team members ({acceptedMembers.length})
               </h3>
               {acceptedMembers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">
-                  No team members yet
-                </p>
+                <EmptyState icon={Users} title="No team members yet" />
               ) : (
-                acceptedMembers.map((member) => {
-                  const RoleIcon = roleConfig[member.role].icon;
-
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={member.user?.avatarUrl ?? ""} />
-                          <AvatarFallback>
-                            {member.user?.displayName?.[0] ||
-                              member.user?.username?.[0] ||
-                              "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
-                            {member.user?.displayName || member.user?.username}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            @{member.user?.username}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Badge
-                        variant="outline"
-                        className={roleConfig[member.role].color}
+                acceptedMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                  >
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage src={member.user?.avatarUrl ?? ""} />
+                      <AvatarFallback>
+                        {member.user?.displayName?.[0] ||
+                          member.user?.username?.[0] ||
+                          "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-sm font-medium"
+                        title={getMemberName(member)}
                       >
-                        <RoleIcon className="h-3 w-3 mr-1" />
-                        {roleConfig[member.role].label}
-                      </Badge>
+                        {getMemberName(member)}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        @{member.user?.username}
+                      </p>
+                      <RoleBadge role={member.role} className="mt-1.5" />
                     </div>
-                  );
-                })
+                  </div>
+                ))
               )}
             </div>
           )}
@@ -574,22 +650,26 @@ export function TeamManagementPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Promote to Super Admin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Promoting{" "}
-              <strong>
-                {promoteConfirm?.member.user?.displayName ||
-                  promoteConfirm?.member.user?.username}
-              </strong>{" "}
+              Promoting <strong>{getMemberName(promoteConfirm?.member)}</strong>{" "}
               will demote{" "}
               <strong>
-                {promoteConfirm?.currentSuperAdmin?.user?.displayName ||
-                  promoteConfirm?.currentSuperAdmin?.user?.username}
+                {getMemberName(promoteConfirm?.currentSuperAdmin)}
               </strong>{" "}
               to Co-Organizer. Continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmPromote}>
+            <AlertDialogCancel disabled={isUpdatingRole}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isUpdatingRole}
+              onClick={(e) => {
+                // Keep the dialog open so the loading state is visible
+                e.preventDefault();
+                confirmPromote();
+              }}
+            >
               {isUpdatingRole ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -618,14 +698,18 @@ export function TeamManagementPanel({
             <AlertDialogDescription>
               {removeConfirm?.status === "PENDING"
                 ? `Remove the invite sent to ${removeConfirm.email}?`
-                : `Remove ${removeConfirm?.user?.displayName || removeConfirm?.user?.username} from the team?`}
+                : `Remove ${getMemberName(removeConfirm)} from the team?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isRemoving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => removeConfirm && handleRemove(removeConfirm)}
+              disabled={isRemoving}
+              onClick={(e) => {
+                e.preventDefault();
+                if (removeConfirm) handleRemove(removeConfirm);
+              }}
             >
               {isRemoving ? (
                 <>
@@ -651,10 +735,14 @@ export function TeamManagementPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLeaving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleLeave}
+              disabled={isLeaving}
+              onClick={(e) => {
+                e.preventDefault();
+                handleLeave();
+              }}
             >
               {isLeaving ? (
                 <>
