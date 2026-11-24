@@ -173,8 +173,8 @@ export function TeamManagementPanel({
   const members = payload?.data ?? [];
   const max = payload?.max ?? 10;
 
-  const acceptedMembers = members.filter((m) => m.status === "ACCEPTED");
-  const pendingInvites = members.filter((m) => m.status === "PENDING");
+  const acceptedMembers = members?.filter((m) => m.status === "ACCEPTED");
+  const pendingInvites = members?.filter((m) => m.status === "PENDING");
 
   const activeCount =
     acceptedMembers.length +
