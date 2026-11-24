@@ -126,7 +126,7 @@ export function InviteCoOrganizerDialog({
                     }
                     disabled={isLoading}
                   >
-                    <SelectTrigger id="role">
+                    <SelectTrigger id="role" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
