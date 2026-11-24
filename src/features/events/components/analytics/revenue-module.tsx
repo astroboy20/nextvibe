@@ -102,7 +102,7 @@ export function RevenueModule({ data, eventId }: RevenueModuleProps) {
                 <XAxis dataKey="tierName" />
                 <YAxis />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value))}
                 />
                 <Bar
                   dataKey="revenue"
@@ -130,8 +130,8 @@ export function RevenueModule({ data, eventId }: RevenueModuleProps) {
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip
-                  formatter={(value: number, name: string) =>
-                    name === "revenue" ? formatCurrency(value) : value
+                  formatter={(value, name) =>
+                    name === "revenue" ? formatCurrency(Number(value)) : `${value}`
                   }
                 />
                 <Legend />
