@@ -130,9 +130,15 @@ export function AiSourceUpload({
     }
 
     try {
-      const res = await uploadAiSource(file).unwrap();
-      const { sourceId, fileName, truncated } = res.data;
-      onSourceChange({ sourceId, fileName, truncated });
+      const { sourceId, fileName, truncated } = await uploadAiSource(file).unwrap();
+      // Without an id the file can't be used: a source with no id would pass
+      // the "topic or file" check and then be silently dropped from the
+      // request, so the backend never sees the file.
+      if (!sourceId) {
+        toast.error("We couldn't attach that file. Please try uploading it again.");
+        return;
+      }
+      onSourceChange({ sourceId, fileName: fileName ?? file.name, truncated: !!truncated });
       if (truncated) {
         toast.info("That's a long file — only the first part will be used.");
       }
