@@ -1,6 +1,15 @@
 import { baseApi } from "@/store/api/baseApi";
 import { getAnonymousId } from "@/features/games/lib/anonymous-game";
 
+/** What POST /v1/games/ai/sources gives back, already unwrapped. */
+export interface AiSourceUploadResult {
+  sourceId: string;
+  fileName: string;
+  charCount: number;
+  truncated: boolean;
+  expiresAt: string;
+}
+
 /**
  * Game endpoints — sessions, rounds, answers, leaderboards, reward tiers, and
  * the anonymous-play path.
@@ -75,24 +84,23 @@ export const gameEndpoints = baseApi.injectEndpoints({
      * from. The server keeps only the extracted text, for 2 hours; pass the
      * returned `sourceId` to generate-draft and regenerate-question.
      */
-    uploadAiSource: builder.mutation<
-      {
-        success: boolean;
-        data: {
-          sourceId: string;
-          fileName: string;
-          charCount: number;
-          truncated: boolean;
-          expiresAt: string;
-        };
-      },
-      File
-    >({
+    uploadAiSource: builder.mutation<AiSourceUploadResult, File>({
       query: (file) => {
         const body = new FormData();
         body.append("file", file);
         // No Content-Type header: the browser sets multipart with its boundary.
         return { url: "/v1/games/ai/sources", method: "POST", body, timeout: 60000 };
+      },
+      // The controller returns { success, data } and the global
+      // ResponseInterceptor wraps that again, so the payload arrives as
+      // { success, data: { success, data: {...} } }. Unwrap whichever depth
+      // we get, so this keeps working once the backend stops double-wrapping.
+      transformResponse: (raw: unknown): AiSourceUploadResult => {
+        let payload: any = raw;
+        while (payload && typeof payload === "object" && !("sourceId" in payload) && "data" in payload) {
+          payload = payload.data;
+        }
+        return payload as AiSourceUploadResult;
       },
     }),
 
