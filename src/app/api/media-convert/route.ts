@@ -9,6 +9,28 @@ import { Readable } from "stream";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+/**
+ * Hosts we're allowed to fetch media/overlay assets from.
+ */
+const ALLOWED_HOSTS = [
+  "res.cloudinary.com",
+  "nextvibe.co",
+  "images.pexels.com",
+  "lh3.googleusercontent.com",
+  "pbs.twimg.com",
+  "hebbkx1anhila5yf.public.blob.vercel-storage.com",
+  "minio-production-5cff.up.railway.app",
+];
+
+function isAllowedHost(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    return ALLOWED_HOSTS.some((h) => parsed.hostname.endsWith(h));
+  } catch {
+    return false;
+  }
+}
+
 async function getFFmpegPath(): Promise<string> {
     const possiblePaths = [
         path.join(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg.exe"),
@@ -28,6 +50,12 @@ export async function GET(request: NextRequest) {
     const url = searchParams.get("url");
     if (!url) return new Response("Missing video URL", { status: 400 });
 
+    // Optional VibeTag overlay image to burn onto the video.
+    const overlayUrl = searchParams.get("overlay");
+    if (overlayUrl && !isAllowedHost(overlayUrl)) {
+        return new Response("Overlay host not allowed", { status: 403 });
+    }
+
     let tempDir: string | undefined;
 
     try {
@@ -35,28 +63,74 @@ export async function GET(request: NextRequest) {
         ffmpeg.setFfmpegPath(ffmpegPath);
 
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "nextvibe-"));
-        const inputPath = path.join(tempDir, "input.webm");
-        const outputPath = path.join(tempDir, "output.mp4");
+
+        // fluent-ffmpeg passes paths directly to the FFmpeg binary which uses
+        // POSIX-style paths even on Windows. Convert backslashes to forward
+        // slashes so the output file argument is never malformed.
+        const toFFmpegPath = (p: string) => p.replace(/\\/g, "/");
+
+        const inputPath  = toFFmpegPath(path.join(tempDir, "input.webm"));
+        const outputPath = toFFmpegPath(path.join(tempDir, "output.mp4"));
 
         const sourceResponse = await fetch(url);
         if (!sourceResponse.ok || !sourceResponse.body) {
             throw new Error(`Failed to fetch video: ${sourceResponse.status}`);
         }
 
-        // Stream the download straight to disk instead of buffering the whole
-        // thing in memory first — starts writing immediately as bytes arrive.
+        // Stream the download straight to disk. createWriteStream uses the
+        // native OS path; toFFmpegPath is only needed for FFmpeg arguments.
         const nodeStream = Readable.fromWeb(sourceResponse.body as any);
         const { createWriteStream } = await import("fs");
         await new Promise<void>((resolve, reject) => {
-            const ws = createWriteStream(inputPath);
+            const ws = createWriteStream(path.join(tempDir!, "input.webm"));
             nodeStream.pipe(ws);
             ws.on("finish", resolve);
             ws.on("error", reject);
             nodeStream.on("error", reject);
         });
 
+        // If an overlay was requested, download it locally so FFmpeg can
+        // composite it over every frame of the video.
+        let overlayPath: string | undefined;
+        if (overlayUrl) {
+            const overlayResponse = await fetch(overlayUrl, {
+                headers: { "User-Agent": "NextVibe/1.0" },
+            });
+            if (!overlayResponse.ok) {
+                throw new Error(
+                    `Failed to fetch overlay: ${overlayResponse.status}`
+                );
+            }
+            const overlayBuffer = Buffer.from(
+                await overlayResponse.arrayBuffer()
+            );
+            // Store under the native path for Node FS; toFFmpegPath converts it
+            // to forward slashes when passed to the FFmpeg command below.
+            const overlayNativePath = path.join(tempDir, "overlay.png");
+            await fs.writeFile(overlayNativePath, overlayBuffer);
+            overlayPath = toFFmpegPath(overlayNativePath);
+        }
+
+        const command = ffmpeg(inputPath);
+
+        if (overlayPath) {
+            // Add the overlay image as a second input, looped for the video duration.
+            command
+                .input(overlayPath)
+                .inputOptions(["-loop 1"]);
+
+            // Scale the overlay to the video's dimensions and composite it on top.
+            // We do NOT pass a second argument to complexFilter so fluent-ffmpeg
+            // won't auto-inject a duplicate -map [v] — we add the maps explicitly
+            // in outputOptions below.
+            command.complexFilter(
+                "[0:v][1:v]scale2ref=w=iw:h=ih[ov][base];[base][ov]overlay=0:0[out]"
+            );
+        }
+
         await new Promise<void>((resolve, reject) => {
-            ffmpeg(inputPath)
+            command
+                .output(outputPath)
                 .videoCodec("libx264")
                 .audioCodec("aac")
                 .outputOptions([
@@ -64,23 +138,30 @@ export async function GET(request: NextRequest) {
                     "-crf 23",
                     "-pix_fmt yuv420p",
                     "-movflags +faststart",
-                    "-fps_mode cfr",      // forces constant frame rate — fixes the skipping
-                    "-r 30",               // explicit output fps; drop/duplicate frames to hit it evenly
-                    "-max_muxing_queue_size 9999", // avoids a mux error that can also manifest as dropped frames on VFR sources
+                    "-fps_mode cfr",
+                    "-r 30",
+                    "-max_muxing_queue_size 9999",
+                    // When an overlay is present: map the composited video stream
+                    // and the original audio (optional — videos may be silent).
+                    // -shortest ends encoding when the shorter input (video) ends.
+                    ...(overlayPath
+                        ? ["-map", "[out]", "-map", "0:a?", "-shortest"]
+                        : []),
                 ])
-                .format("mp4")
                 .on("start", (cmd) => console.log("FFmpeg command:", cmd))
-                .on("error", (err) => {
-                    console.error("FFmpeg error:", err);
+                .on("error", (err, stdout, stderr) => {
+                    console.error("FFmpeg error:", err.message);
+                    console.error("FFmpeg stderr:", stderr);
                     reject(err);
                 })
                 .on("end", () => resolve())
-                .save(outputPath);
+                .run();
         });
 
-        // Stream the output file back instead of reading it fully into memory first.
-        const stat = await fs.stat(outputPath);
-        const nodeReadable = createReadStream(outputPath);
+        // createReadStream needs the native OS path (backslashes fine on Windows).
+        const outputNativePath = path.join(tempDir, "output.mp4");
+        const stat = await fs.stat(outputNativePath);
+        const nodeReadable = createReadStream(outputNativePath);
         const webStream = Readable.toWeb(nodeReadable) as ReadableStream;
 
         return new Response(webStream, {

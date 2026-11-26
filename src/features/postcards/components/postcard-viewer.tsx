@@ -33,6 +33,7 @@ import { PostcardCaption } from "./postcard-viewer/caption";
 import { DotIndicator } from "./postcard-viewer/dot-indicator";
 import { MediaSlide } from "./postcard-viewer/media-slide";
 import { useMediaPrepCache } from "./postcard-viewer/hooks/use-media-prep-cache";
+import { fetchAndBuildFile } from "./postcard-viewer/media-prep";
 import { usePostcardSwipe } from "./postcard-viewer/hooks/use-postcard-swipe";
 import type {
   CommentData,
@@ -67,11 +68,32 @@ export const PostcardViewer = memo(function PostcardViewer({
   onAddPostcard,
   onFilter,
   onRepost,
+  vibeTagMap,
 }: PostcardViewerProps) {
   const dispatch = useDispatch();
 
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  /**
+   * Resolve the real overlay URL for a media item.
+   * Legacy posts stored "true" as a flag instead of the actual URL.
+   * We recover the URL from vibeTagMap using the postcard's vibeTagId.
+   */
+  const resolveOverlayUrl = useCallback(
+    (media: PostcardMediaItem): string | null => {
+      const raw = media.vibeTagOverlayUrl;
+      if (!raw || raw === "true") {
+        // Fall back to vibeTagMap if available
+        if (vibeTagMap && (postcard as any).vibeTagId) {
+          return vibeTagMap[(postcard as any).vibeTagId]?.imageUrl ?? null;
+        }
+        return null;
+      }
+      return raw;
+    },
+    [vibeTagMap, postcard]
+  );
 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(postcard.likeCount ?? 0);
@@ -415,29 +437,28 @@ export const PostcardViewer = memo(function PostcardViewer({
 
     try {
       const isVideo = currentMedia.mediaType?.toUpperCase() === "VIDEO";
+      const resolvedOverlay = resolveOverlayUrl(currentMedia);
 
-      const file = await getOrFetchFile(currentMedia);
+      // Always fetch fresh for download so the overlay URL is applied correctly.
+      // The background prep cache may have stored a no-overlay version already.
+      const file = await fetchAndBuildFile(
+        currentMedia.mediaUrl,
+        isVideo,
+        resolvedOverlay,
+      );
 
       if (!file) {
         throw new Error("Failed to fetch media");
       }
 
       const filename = buildFilename(isVideo ? "mp4" : "png");
-
       const url = URL.createObjectURL(file);
-
       const anchor = document.createElement("a");
-
       anchor.href = url;
-
       anchor.download = filename;
-
       document.body.appendChild(anchor);
-
       anchor.click();
-
       anchor.remove();
-
       URL.revokeObjectURL(url);
 
       toast.success("Downloaded!");
@@ -446,7 +467,7 @@ export const PostcardViewer = memo(function PostcardViewer({
     } finally {
       setDownloading(false);
     }
-  }, [activeIndex, buildFilename, getOrFetchFile, media]);
+  }, [activeIndex, buildFilename, media, resolveOverlayUrl]);
 
   /**
    * Existing share flow.
@@ -479,7 +500,11 @@ export const PostcardViewer = memo(function PostcardViewer({
     }
 
     if (currentMedia?.mediaUrl) {
-      const cached = preparedMediaRef.current.get(currentMedia.mediaUrl);
+      const resolvedOverlay = resolveOverlayUrl(currentMedia);
+      const cacheKey = resolvedOverlay
+        ? `${currentMedia.mediaUrl}||${resolvedOverlay}`
+        : currentMedia.mediaUrl;
+      const cached = preparedMediaRef.current.get(cacheKey);
 
       /**
        * Fast path:
@@ -507,14 +532,14 @@ export const PostcardViewer = memo(function PostcardViewer({
           }
         }
       } else {
-        /**
-         * Slow path:
-         * prepare the file on demand.
-         */
         setSharing(true);
 
         try {
-          const file = await getOrFetchFile(currentMedia);
+          const file = await fetchAndBuildFile(
+            currentMedia.mediaUrl,
+            currentMedia.mediaType?.toUpperCase() === "VIDEO",
+            resolvedOverlay,
+          );
 
           if (
             file &&
@@ -571,6 +596,7 @@ export const PostcardViewer = memo(function PostcardViewer({
     preparedMediaRef,
     resolvedAuthor?.displayName,
     resolvedEventName,
+    resolveOverlayUrl,
   ]);
 
   const handleDelete = async () => {
@@ -665,7 +691,7 @@ export const PostcardViewer = memo(function PostcardViewer({
                 >
                   <div className="relative h-full w-full bg-black">
                     <MediaSlide
-                      media={item}
+                      media={{ ...item, vibeTagOverlayUrl: resolveOverlayUrl(item) }}
                       index={index}
                       activeIndex={activeIndex}
                       postcard={postcard}
@@ -678,18 +704,19 @@ export const PostcardViewer = memo(function PostcardViewer({
                       }
                     />
 
-                    <LocationStamp
-                      createdAt={freshData?.createdAt ?? postcard.createdAt}
-                      locationLabel={locationLabel}
-                      canToggle={isOwner}
-                      hasLocation={freshData?.hasLocation}
-                      toggling={isTogglingLocation}
-                      onToggleLocation={handleToggleLocation}
-                    />
-
-                    {/* Media counter */}
-                    <div className="pointer-events-none absolute right-3 top-4 z-30 rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
-                      {index + 1}/{media.length}
+                    {/* Media counter + date/time stacked vertically top-right */}
+                    <div className="pointer-events-none absolute right-3 top-4 z-30 flex flex-col items-end gap-1.5">
+                      <div className="rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
+                        {index + 1}/{media.length}
+                      </div>
+                      <LocationStamp
+                        createdAt={freshData?.createdAt ?? postcard.createdAt}
+                        locationLabel={locationLabel}
+                        canToggle={isOwner}
+                        hasLocation={freshData?.hasLocation}
+                        toggling={isTogglingLocation}
+                        onToggleLocation={handleToggleLocation}
+                      />
                     </div>
 
                     {/* Double-tap heart */}

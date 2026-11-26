@@ -379,8 +379,11 @@ export function PostcardCreator({ vibeTagName = "Event VibeTag", vibeTagOverlay,
             fileKey,
             mediaType: "VIDEO",
             ...(thumbnailKey ? { thumbnailKey } : {}),
-            // Tell the server to resolve the vibe tag overlay at playback time
-            ...(hasOverlay ? { vibeTagOverlayUrl: "true" } : {}),
+            // Store the actual overlay image URL so the server returns it on
+            // GET and the download/share flow can burn it into the exported video.
+            ...(hasOverlay && vibeTagOverlay?.imageUrl
+              ? { vibeTagOverlayUrl: vibeTagOverlay.imageUrl }
+              : {}),
           });
         } else {
           // ── PHOTO ──────────────────────────────────────────────────────────

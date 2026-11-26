@@ -35,6 +35,8 @@ export interface PostcardData {
   likeCount?: number;
   commentCount?: number;
   eventId?: string;
+  /** ID of the vibe tag applied to this postcard — used to resolve the overlay image URL. */
+  vibeTagId?: string | null;
   createdAt?: string;
   /** Public place name for the stamp. null = no location, or hidden by the author. */
   locationLabel?: string | null;
@@ -82,4 +84,9 @@ export interface PostcardViewerProps extends PostcardViewerActionHandlers {
   initialPostcardIndex?: number;
   /** Called when user swipes to navigate; receives the new index. */
   onNavigatePostcard?: (index: number) => void;
+  /**
+   * Optional map of vibeTagId → { imageUrl } used to resolve the overlay URL
+   * for videos where the server stored "true" instead of the actual image URL.
+   */
+  vibeTagMap?: Record<string, { imageUrl?: string | null }>;
 }

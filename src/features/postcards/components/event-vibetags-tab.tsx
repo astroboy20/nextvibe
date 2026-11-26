@@ -647,6 +647,7 @@ export function EventVibeTagsTab({
           onClose={() => setSelectedPostcard(null)}
           zIndex={60}
           postcardList={currentPostcardList}
+          vibeTagMap={vibeTagMap}
           initialPostcardIndex={currentPostcardList.findIndex(
             (p) => p.id === selectedPostcard.id,
           )}

@@ -36,8 +36,8 @@ export const LocationStamp = memo(function LocationStamp({
   const isShown = !!locationLabel;
 
   return (
-    <div className="pointer-events-none absolute left-3 top-4 z-30 flex max-w-[70%] flex-col items-start gap-1.5">
-      <div className="rounded-xl bg-black/45 px-3 py-1.5 text-[11px] font-medium leading-tight text-white backdrop-blur-md">
+    <div className="pointer-events-none flex max-w-[200px] flex-col items-end gap-1.5 ">
+      <div className="rounded-xl bg-black/45 px-3 py-1.5 text-[11px] font-medium leading-tight text-white backdrop-blur-md ">
         <time dateTime={createdAt} className="flex items-center gap-1.5">
           <Clock className="h-3 w-3 shrink-0" aria-hidden />
           {format(date, "d MMM yyyy · h:mm a")}
